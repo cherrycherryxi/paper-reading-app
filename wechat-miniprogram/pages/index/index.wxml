@@ -1,0 +1,193 @@
+<scroll-view class="container" scroll-y enhanced>
+  <view class="panel hero">
+    <view class="hero-title">微信里直接记纸书阅读</view>
+    <view class="hero-copy">这版是原生小程序，不走 H5 WebView。可以直接调相机拍书页，把阅读会话和摘抄一起沉淀下来。</view>
+    <view class="hero-stats">
+      <view class="hero-stat">
+        <text class="hero-stat-value">{{stats.books}}</text>
+        <text class="hero-stat-label">在册书籍</text>
+      </view>
+      <view class="hero-stat">
+        <text class="hero-stat-value">{{stats.minutes}}</text>
+        <text class="hero-stat-label">累计分钟</text>
+      </view>
+      <view class="hero-stat">
+        <text class="hero-stat-value">{{stats.quotes}}</text>
+        <text class="hero-stat-label">摘抄卡片</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">新增书籍</view>
+    <view class="section-copy">先建档，再持续记录阅读。</view>
+    <view class="form-grid">
+      <view class="field">
+        <text class="label">书名</text>
+        <input class="input" placeholder="例如：悉达多" value="{{bookDraft.title}}" data-form="bookDraft" data-field="title" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">作者</text>
+        <input class="input" placeholder="例如：赫尔曼·黑塞" value="{{bookDraft.author}}" data-form="bookDraft" data-field="author" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">总页数</text>
+        <input class="input" type="number" placeholder="320" value="{{bookDraft.totalPages}}" data-form="bookDraft" data-field="totalPages" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">当前页码</text>
+        <input class="input" type="number" placeholder="0" value="{{bookDraft.currentPage}}" data-form="bookDraft" data-field="currentPage" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">状态</text>
+        <picker mode="selector" range="{{statusOptions}}" range-key="label" value="{{bookDraft.statusIndex}}" bindchange="onBookStatusChange">
+          <view class="picker">{{statusOptions[bookDraft.statusIndex].label}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">标签</text>
+        <input class="input" placeholder="文学, 哲学" value="{{bookDraft.tags}}" data-form="bookDraft" data-field="tags" bindinput="onInputChange" />
+      </view>
+    </view>
+    <view class="field">
+      <text class="label">备注</text>
+      <textarea class="textarea" placeholder="记录你为什么读这本书。" value="{{bookDraft.notes}}" data-form="bookDraft" data-field="notes" bindinput="onInputChange" />
+    </view>
+    <button class="primary-button" bindtap="saveBook">保存书籍</button>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">记录一次阅读</view>
+    <view class="section-copy">按会话记录，更容易看清阅读节奏。</view>
+    <view class="form-grid">
+      <view class="field">
+        <text class="label">关联书籍</text>
+        <picker mode="selector" range="{{bookOptions}}" range-key="title" value="{{sessionDraft.bookIndex}}" bindchange="onSessionBookChange">
+          <view class="picker">{{sessionBookLabel}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">开始页</text>
+        <input class="input" type="number" value="{{sessionDraft.startPage}}" data-form="sessionDraft" data-field="startPage" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">结束页</text>
+        <input class="input" type="number" value="{{sessionDraft.endPage}}" data-form="sessionDraft" data-field="endPage" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">分钟</text>
+        <input class="input" type="number" value="{{sessionDraft.minutes}}" data-form="sessionDraft" data-field="minutes" bindinput="onInputChange" />
+      </view>
+    </view>
+    <view class="field">
+      <text class="label">会话笔记</text>
+      <textarea class="textarea" placeholder="例如：今天读完第三章。" value="{{sessionDraft.note}}" data-form="sessionDraft" data-field="note" bindinput="onInputChange" />
+    </view>
+    <button class="secondary-button" bindtap="saveSession">保存会话</button>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">摘抄 / 笔记卡片</view>
+    <view class="section-copy">支持直接调微信相机拍书页。OCR 入口已预留，但生产可用识别建议接云端服务。</view>
+    <view class="form-grid">
+      <view class="field">
+        <text class="label">关联书籍</text>
+        <picker mode="selector" range="{{bookOptions}}" range-key="title" value="{{quoteDraft.bookIndex}}" bindchange="onQuoteBookChange">
+          <view class="picker">{{quoteBookLabel}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">页码</text>
+        <input class="input" type="number" value="{{quoteDraft.page}}" data-form="quoteDraft" data-field="page" bindinput="onInputChange" />
+      </view>
+      <view class="field">
+        <text class="label">卡片类型</text>
+        <picker mode="selector" range="{{quoteKindOptions}}" range-key="label" value="{{quoteDraft.kindIndex}}" bindchange="onQuoteKindChange">
+          <view class="picker">{{quoteKindOptions[quoteDraft.kindIndex].label}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">标签</text>
+        <input class="input" placeholder="人物, 结构, 金句" value="{{quoteDraft.tags}}" data-form="quoteDraft" data-field="tags" bindinput="onInputChange" />
+      </view>
+    </view>
+    <view class="button-row">
+      <button class="ghost-button" bindtap="takePhoto">直接拍照</button>
+      <button class="ghost-button" bindtap="chooseImage">从相册选图</button>
+      <button class="ghost-button" bindtap="showOcrHint">OCR 说明</button>
+    </view>
+    <view wx:if="{{quoteDraft.imageData}}" class="preview-wrap">
+      <image class="preview-image" src="{{quoteDraft.imageData}}" mode="widthFix" bindtap="previewDraftImage" />
+    </view>
+    <view class="field">
+      <text class="label">摘抄内容</text>
+      <textarea class="textarea tall" placeholder="可直接手动输入，或拍照后等待接入 OCR。" value="{{quoteDraft.content}}" data-form="quoteDraft" data-field="content" bindinput="onInputChange" />
+    </view>
+    <view class="field">
+      <text class="label">我的理解</text>
+      <textarea class="textarea" placeholder="为什么值得记？" value="{{quoteDraft.reflection}}" data-form="quoteDraft" data-field="reflection" bindinput="onInputChange" />
+    </view>
+    <button class="primary-button" bindtap="saveQuote">保存卡片</button>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">书单</view>
+    <view class="section-copy">按状态查看你的纸质书阅读进展。</view>
+    <scroll-view scroll-x class="chips">
+      <view class="chips-row">
+        <view wx:for="{{statusFilterOptions}}" wx:key="value" class="chip {{statusFilter === item.value ? 'chip-active' : ''}}" data-value="{{item.value}}" bindtap="onStatusFilterTap">{{item.label}}</view>
+      </view>
+    </scroll-view>
+    <view wx:if="{{filteredBooks.length === 0}}" class="empty">还没有匹配的书籍。</view>
+    <view wx:for="{{filteredBooks}}" wx:key="id" class="book-card">
+      <view class="book-card-head">
+        <view>
+          <view class="status-pill">{{item.statusLabel}}</view>
+          <view class="book-title">{{item.title}}</view>
+          <view class="book-meta">{{item.author || '作者未填写'}}</view>
+        </view>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{item.progressWidth}};"></view>
+      </view>
+      <view class="book-meta">{{item.progressText}}</view>
+      <view class="book-tags">{{item.metaText}}</view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">最近阅读</view>
+    <view class="section-copy">最近 10 次阅读记录。</view>
+    <view wx:if="{{recentSessions.length === 0}}" class="empty">还没有阅读记录。</view>
+    <view wx:for="{{recentSessions}}" wx:key="id" class="timeline-card">
+      <view class="timeline-title">{{item.bookTitle}}</view>
+      <view class="timeline-copy">{{item.dateLabel}} · {{item.startPage}}-{{item.endPage}} 页 · {{item.minutes}} 分钟</view>
+      <view class="timeline-copy">{{item.note || '无笔记'}}</view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">摘抄卡片墙</view>
+    <view class="section-copy">在微信里直接拍书页，再回看你的思考。</view>
+    <scroll-view scroll-x class="chips">
+      <view class="chips-row">
+        <view wx:for="{{quoteFilterOptions}}" wx:key="value" class="chip {{quoteFilter === item.value ? 'chip-active' : ''}}" data-value="{{item.value}}" bindtap="onQuoteFilterTap">{{item.label}}</view>
+      </view>
+    </scroll-view>
+    <view wx:if="{{filteredQuotes.length === 0}}" class="empty">还没有摘抄卡片。</view>
+    <view wx:for="{{filteredQuotes}}" wx:key="id" class="quote-card">
+      <view class="quote-top">
+        <view>
+          <view class="quote-kind">{{item.kindLabel}}</view>
+          <view class="book-title">{{item.bookTitle}}</view>
+          <view class="book-meta">第 {{item.pageLabel}} 页 · {{item.dateLabel}}</view>
+        </view>
+        <view wx:if="{{item.imageData}}" class="quote-badge">照片</view>
+      </view>
+      <image wx:if="{{item.imageData}}" class="quote-image" src="{{item.imageData}}" mode="widthFix" data-src="{{item.imageData}}" bindtap="previewQuoteImage" />
+      <view class="quote-content">{{item.content}}</view>
+      <view wx:if="{{item.reflection}}" class="timeline-copy">{{item.reflection}}</view>
+      <view class="book-tags">{{item.tagsLabel}}</view>
+    </view>
+  </view>
+</scroll-view>

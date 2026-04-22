@@ -1,0 +1,9 @@
+{
+  "desc": "paper reading mini program",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}
