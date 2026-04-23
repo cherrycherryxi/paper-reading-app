@@ -16,7 +16,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-
+print("DEEPSEEK_API_KEY:", os.getenv("DEEPSEEK_API_KEY"))
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "paper_reading_backend.db"
 UPLOAD_DIR = BASE_DIR / "uploads"
@@ -292,7 +292,6 @@ def build_book_prompt(state: dict, book_id: str) -> str:
         if quotes
         else "暂无摘抄"
     )
-
     return f"""你是一个阅读助手，正在和用户围绕下面这本书深入探讨：
 
 书名：{book.get('title', '')}
@@ -304,7 +303,65 @@ def build_book_prompt(state: dict, book_id: str) -> str:
 用户摘抄：
 {quotes_text}
 
-请基于这些上下文帮助用户理解内容、提出问题、建立联系。不要先重复背景，直接进入讨论。"""
+请基于这些上下文帮助用户理解内容、提出问题、建立联系。不要先重复背景，直接进入讨论。
+
+你现在不仅是阅读助手，还是一个“结构化笔记助手”。
+
+请严格输出 JSON，格式如下：
+
+{{
+  "reply": "给用户的回答（自然语言）",
+  "actions": [
+    {{
+      "type": "add_note",
+      "data": {{
+        "content": "从对话中提炼出的笔记",
+        "bookId": "{book_id}",
+        "tags": ["相关主题"]
+      }}
+    }},
+    {{
+      "type": "add_book",
+      "data": {{
+        "title": "书名",
+        "author": "作者",
+        "reason": "推荐理由"
+      }}
+    }},
+    {{
+      "type": "summary",
+      "data": {{
+        "content": "阶段性总结"
+      }}
+    }},
+    {{
+      "type": "question",
+      "data": {{
+        "content": "值得深入思考的问题"
+      }}
+    }},
+    {{
+      "type": "tag",
+      "data": {{
+        "tags": ["关键词"]
+      }}
+    }}
+  ]
+}}
+
+规则：
+1. actions 只能返回 0 或 1 个（最多一个）
+2. 如果多个动作都合理，只选择“最有价值”的一个
+3. 优先级如下（从高到低）：
+   - add_note（用户表达理解/观点）
+   - add_book（明确出现书籍或强关联）
+   - summary（对话较长）
+   - question（启发思考）
+   - tag（信息较弱时才用）
+4. 如果不确定，返回 []
+5. 不要输出 JSON 以外的任何内容
+6. reply 必须存在
+"""
 
 
 def call_deepseek(messages: list[dict], model: str = "deepseek-chat", max_tokens: int = 1200) -> str:
@@ -651,7 +708,30 @@ class Handler(BaseHTTPRequestHandler):
             request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": message}]
 
             try:
-                reply = call_deepseek(request_messages)
+                raw = call_deepseek(request_messages)
+
+                def clean_json(text: str) -> str:
+                    text = text.strip()
+                    if text.startswith("```"):
+                        text = text.split("```")[1]
+                    return text.strip()
+
+                try:
+                    cleaned = clean_json(raw)
+                    parsed = json.loads(cleaned)
+
+                    reply = parsed.get("reply", "")
+                    actions = parsed.get("actions", [])
+                    if isinstance(actions, list) and len(actions) > 1:
+                        actions = [actions[0]]
+
+                    if not isinstance(actions, list):
+                        actions = []
+
+                except Exception:
+                    reply = raw
+                    actions = []
+                # reply = call_deepseek(request_messages)
                 history = [*history, {"role": "user", "content": message}, {"role": "assistant", "content": reply}][-40:]
                 state.setdefault("chatHistories", {})[history_key] = history
                 save_state(conn, user["id"], state)
@@ -666,7 +746,8 @@ class Handler(BaseHTTPRequestHandler):
                     output=reply,
                 )
                 conn.close()
-                self._send_json({"reply": reply, "history": history, "historyKey": history_key})
+                # self._send_json({"reply": reply, "history": history, "historyKey": history_key})
+                self._send_json({"reply": reply,"actions": actions,"history": history,"historyKey": history_key})
             except Exception as error:
                 append_log(
                     conn,

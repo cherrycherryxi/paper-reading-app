@@ -77,9 +77,17 @@
       );
 
       history = Array.isArray(payload.history) ? payload.history : [];
+      const actions = Array.isArray(payload.actions) ? payload.actions : [];
       window.paperReadingApp.setChatHistoryForBook(activeBookId(), history);
       thinking.textContent = payload.reply || "";
+
+      // 问题3修复：发完消息后立即刷新日志
       await window.paperReadingApp.loadRemoteLogs?.();
+
+      // 有 action 才弹确认卡片
+      if (actions.length > 0) {
+        handleAgentActions(actions);
+      }
     } catch (error) {
       thinking.textContent = `出错了：${error.message}`;
       thinking.classList.add("chat-error");
@@ -112,6 +120,161 @@
       populateChatBookSelect();
       restoreHistory();
     });
+  }
+
+  function handleAgentActions(actions) {
+    if (!actions || !actions.length) return;
+    showAgentConfirm(actions);
+  }
+
+  // 问题1修复：函数参数是 actions 数组，内部用 actions[0] 取第一个
+  // 问题2修复：不用 getElementById 查全局，改用 container.querySelector
+  function showAgentConfirm(actions) {
+    const action = actions[0];
+    if (!action) return;
+
+    const container = document.createElement('div');
+    container.className = 'agent-confirm';
+
+    container.innerHTML = `
+      <div class="agent-confirm-text">💡 AI 建议：${renderActionText(action)}</div>
+      <div class="agent-confirm-actions">
+        <button class="agent-confirm-btn button button-primary button-small">确认执行</button>
+        <button class="agent-cancel-btn button button-ghost button-small">忽略</button>
+      </div>
+    `;
+
+    els.messages.appendChild(container);
+    els.messages.scrollTop = els.messages.scrollHeight;
+
+    // 用 container 内部查找，避免 getElementById 命中旧元素
+    const confirmBtn = container.querySelector('.agent-confirm-btn');
+    const cancelBtn = container.querySelector('.agent-cancel-btn');
+
+    let executed = false;
+
+    confirmBtn.onclick = async () => {
+      if (executed) return;
+      executed = true;
+
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      confirmBtn.textContent = "执行中...";
+
+      try {
+        await applyActions(actions);
+        confirmBtn.textContent = "已完成 ✅";
+      } catch (e) {
+        confirmBtn.textContent = "失败 ❌";
+        console.error("applyActions error:", e);
+      }
+
+      setTimeout(() => container.remove(), 1500);
+    };
+
+    cancelBtn.onclick = () => container.remove();
+  }
+
+  function renderActionText(action) {
+    const d = action.data || {};
+    switch (action.type) {
+      case 'add_note':    return `📝 新增笔记：${String(d.content || '').slice(0, 30)}…`;
+      case 'add_book':    return `📚 加入书单：《${d.title}》`;
+      case 'summary':     return `📌 生成阶段总结`;
+      case 'question':    return `❓ 提出问题：${String(d.content || '').slice(0, 30)}…`;
+      case 'tag':         return `🏷 添加标签：${(d.tags || []).join('、')}`;
+      default:            return '未知操作';
+    }
+  }
+
+  // 问题2修复：state/createId/syncState/render/showToast 都通过 window.paperReadingApp 访问
+  async function applyActions(actions) {
+    const action = actions[0];
+    if (!action) return;
+
+    const app = window.paperReadingApp;
+    const appState = app.getState();
+    const d = action.data || {};
+
+    switch (action.type) {
+      case 'add_note':
+        appState.quotes.unshift({
+          id: `quote-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          bookId: d.bookId || activeBookId(),
+          content: d.content || '',
+          tags: Array.isArray(d.tags) ? d.tags : [],
+          kind: 'note',
+          createdAt: new Date().toISOString(),
+        });
+        app.showToast("笔记已添加");
+        break;
+
+      case 'add_book': {
+        const exists = appState.books.some(
+          b => b.title === d.title && b.author === d.author
+        );
+        if (!exists) {
+          appState.books.unshift({
+            id: `book-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+            title: d.title || '未命名',
+            author: d.author || '',
+            status: 'wishlist',
+            notes: d.reason || '',
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+          app.showToast(`《${d.title}》已加入书单`);
+        } else {
+          app.showToast(`《${d.title}》已在书单中`);
+        }
+        break;
+      }
+
+      case 'summary': {
+        const book = appState.books.find(b => b.id === activeBookId());
+        if (book && d.content) {
+          book.notes = ((book.notes || '') + '\n\n' + d.content).trim();
+          app.showToast("总结已追加到书籍备注");
+        }
+        break;
+      }
+
+      case 'tag': {
+        const book = appState.books.find(b => b.id === activeBookId());
+        if (book && Array.isArray(d.tags)) {
+          const existing = new Set(book.tags || []);
+          d.tags.forEach(t => existing.add(t));
+          book.tags = Array.from(existing);
+          app.showToast("标签已更新");
+        }
+        break;
+      }
+
+      case 'question':
+        appendBubble("assistant", "❓ " + (d.content || ''));
+        break;
+
+      default:
+        break;
+    }
+
+    // 同步到后端 + 刷新 UI
+    try {
+      await app.apiFetch("/api/state", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appState),
+      }, true);
+    } catch (e) {
+      console.error("syncState in applyActions failed:", e);
+    }
+
+    // 问题3修复：执行 action 后也刷新日志
+    await app.loadRemoteLogs?.();
+
+    // 触发全局重渲染
+    window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
   }
 
   window.populateChatBookSelect = populateChatBookSelect;
