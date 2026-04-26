@@ -39,6 +39,7 @@
 
   function populateChatBookSelect() {
     if (!els.bookSelect) return;
+    const prevValue = els.bookSelect.value;
     const books = window.paperReadingApp?.getState?.()?.books || [];
     els.bookSelect.innerHTML = '<option value="">— 不关联书籍 —</option>';
     books.forEach((book) => {
@@ -47,6 +48,7 @@
       option.textContent = `${book.title}${book.author ? ` — ${book.author}` : ""}`;
       els.bookSelect.appendChild(option);
     });
+    if (prevValue) els.bookSelect.value = prevValue;
   }
 
   async function sendMessage() {
@@ -259,13 +261,18 @@
         break;
     }
 
-    // 同步到后端 + 刷新 UI
+    // 同步到后端，用返回的 state 覆盖前端（确保 tag 等更新立即可见）
     try {
-      await app.apiFetch("/api/state", {
+      const result = await app.apiFetch("/api/state", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(appState),
       }, true);
+      // 用后端返回的权威 state 更新前端引用
+      if (result?.state) {
+        const s = app.getState();
+        Object.assign(s, result.state);
+      }
     } catch (e) {
       console.error("syncState in applyActions failed:", e);
     }

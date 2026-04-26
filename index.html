@@ -40,12 +40,16 @@
               <button class="circle-action" id="openBookDialogBtn" type="button" aria-label="新增书籍">+</button>
             </div>
           </div>
+          <div class="books-search-row">
+            <input id="booksSearchInput" type="search" placeholder="搜索书名、作者或标签…" autocomplete="off" />
+          </div>
           <div class="chip-strip" id="statusFilterChips">
             <button class="filter-chip active" type="button" data-status-filter="all">全部</button>
             <button class="filter-chip" type="button" data-status-filter="reading">阅读中</button>
             <button class="filter-chip" type="button" data-status-filter="wishlist">想读</button>
             <button class="filter-chip" type="button" data-status-filter="finished">已读完</button>
           </div>
+          <div class="tag-filter-strip" id="tagFilterStrip"></div>
           <div class="books-meta-row">
             <span id="booksResultCount">共 0 本</span>
           </div>

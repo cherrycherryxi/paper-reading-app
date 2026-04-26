@@ -25,6 +25,7 @@ PORT = 8787
 
 # 部署时在这里填写你的服务端密钥，不要再放到前端。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
 AUTH_TOKEN = ""
 
 INITIAL_STATE = {
@@ -364,7 +365,7 @@ def build_book_prompt(state: dict, book_id: str) -> str:
 """
 
 
-def call_deepseek(messages: list[dict], model: str = "deepseek-chat", max_tokens: int = 1200) -> str:
+def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_tokens: int = 1200) -> str:
     if not DEEPSEEK_API_KEY:
         raise RuntimeError("DEEPSEEK_API_KEY is not configured")
 
@@ -378,6 +379,37 @@ def call_deepseek(messages: list[dict], model: str = "deepseek-chat", max_tokens
         data=json.dumps(
             {
                 "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+            }
+        ).encode("utf-8"),
+    )
+
+    try:
+        with urlopen(request, timeout=120) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data["choices"][0]["message"]["content"].strip()
+    except HTTPError as error:
+        payload = error.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(payload or f"HTTP {error.code}") from error
+    except URLError as error:
+        raise RuntimeError(str(error.reason)) from error
+
+
+def call_kimi_vision(messages: list[dict], max_tokens: int = 1200) -> str:
+    if not MOONSHOT_API_KEY:
+        raise RuntimeError("MOONSHOT_API_KEY is not configured")
+
+    request = Request(
+        "https://api.moonshot.ai/v1/chat/completions",
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {MOONSHOT_API_KEY}",
+        },
+        data=json.dumps(
+            {
+                "model": "kimi-k2.6",
                 "messages": messages,
                 "max_tokens": max_tokens,
             }
@@ -660,13 +692,13 @@ class Handler(BaseHTTPRequestHandler):
                     {"type": "image_url", "image_url": {"url": data_url}},
                     {"type": "text", "text": prompt},
                 ]
-                output = call_deepseek([{"role": "user", "content": content}])
+                output = call_kimi_vision([{"role": "user", "content": content}])
                 append_log(
                     conn,
                     user_id=user["id"],
                     username=user["username"],
                     type_="ocr",
-                    model="deepseek-chat",
+                    model="kimi-k2.6",
                     prompt=prompt,
                     input_="image:data-url",
                     output=output,
@@ -679,7 +711,7 @@ class Handler(BaseHTTPRequestHandler):
                     user_id=user["id"],
                     username=user["username"],
                     type_="ocr",
-                    model="deepseek-chat",
+                    model="kimi-k2.6",
                     prompt=prompt,
                     input_="image:data-url",
                     output="",

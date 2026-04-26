@@ -95,6 +95,9 @@ let pendingBookEditImage = null;
 let pendingQuoteImage = null;
 let toastTimer = null;
 let selectedStatusFilter = "all";
+let selectedTagFilter = "";
+let searchQuery = "";
+let searchDebounceTimer = null;
 let remoteLogs = [];
 
 function createId(prefix) {
@@ -367,6 +370,216 @@ function renderBookSelect(selectEl, includeWishlist = false) {
   });
 }
 
+function renderTagFilterChips() {
+  const container = document.querySelector("#tagFilterStrip");
+  if (!container) return;
+
+  // 收集所有 tag
+  const allTags = [...new Set(
+    state.books.flatMap(b => Array.isArray(b.tags) ? b.tags : []).filter(Boolean)
+  )].sort();
+
+  if (!allTags.length) {
+    container.style.display = "none";
+    return;
+  }
+
+  container.style.display = "flex";
+  container.innerHTML = "";
+
+  // "全部 tag" 重置按钮
+  const allBtn = document.createElement("button");
+  allBtn.className = "filter-chip tag-chip" + (selectedTagFilter === "" ? " active" : "");
+  allBtn.type = "button";
+  allBtn.textContent = "全部标签";
+  allBtn.addEventListener("click", () => {
+    selectedTagFilter = "";
+    renderTagFilterChips();
+    renderBooks();
+  });
+  container.appendChild(allBtn);
+
+  allTags.forEach(tag => {
+    const btn = document.createElement("button");
+    btn.className = "filter-chip tag-chip" + (selectedTagFilter === tag ? " active" : "");
+    btn.type = "button";
+    btn.textContent = `🏷 ${tag}`;
+    btn.addEventListener("click", () => {
+      selectedTagFilter = selectedTagFilter === tag ? "" : tag;
+      renderTagFilterChips();
+      renderBooks();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function fuzzyMatch(haystack, needle) {
+  return String(haystack).toLowerCase().includes(needle);
+}
+
+function matchBooks(query) {
+  return state.books.filter(
+    (book) => fuzzyMatch(book.title, query) || fuzzyMatch(book.author || "", query)
+  );
+}
+
+function matchQuotes(query) {
+  return state.quotes.filter((quote) => fuzzyMatch(quote.content || "", query));
+}
+
+function buildBookSearchCard(book) {
+  const progress = getProgress(book);
+  const metrics = getBookMetrics(book.id);
+  const coverImage = book.coverImageUrl || state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "";
+  const progressText =
+    progress === null
+      ? `已读到第 ${book.currentPage || 0} 页`
+      : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
+
+  const tags = Array.isArray(book.tags) && book.tags.length
+    ? book.tags.map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("")
+    : "";
+
+  const card = document.createElement("article");
+  card.className = "book-grid-card";
+  card.innerHTML = `
+    <div class="book-card-cover ${coverImage ? "has-image" : ""}">
+      ${
+        coverImage
+          ? `<img src="${coverImage}" alt="${escapeHtml(book.title)}" />`
+          : `<div class="book-cover-fallback">${escapeHtml(book.title.slice(0, 2) || "书")}</div>`
+      }
+      <span class="book-status-chip">${escapeHtml(statusMap[book.status] || book.status)}</span>
+      <button class="book-delete-corner" type="button" title="删除书籍" aria-label="删除书籍">✖️</button>
+    </div>
+    <div class="book-grid-body">
+      <h3>${escapeHtml(book.title)}</h3>
+      <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
+      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张</div>
+      <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
+      ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
+      <div class="book-grid-actions">
+        <button class="button button-small button-ghost edit-book-button" type="button">编辑</button>
+      </div>
+    </div>
+  `;
+  card.querySelector(".edit-book-button").addEventListener("click", () => openBookEditDialog(book.id));
+  card.querySelector(".book-delete-corner").addEventListener("click", () => deleteBook(book.id));
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("button")) return;
+    openBookDetailDialog(book.id);
+  });
+  return card;
+}
+
+function buildQuoteSearchCard(quote) {
+  const book = state.books.find((item) => item.id === quote.bookId);
+  const tagsText = quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签";
+  const card = document.createElement("article");
+  card.className = "quote-grid-card";
+  card.innerHTML = `
+    <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
+      ${
+        quote.imageUrl
+          ? `<img src="${quote.imageUrl}" alt="摘抄照片" />`
+          : `<div class="entry-cover-fallback">${escapeHtml((book?.title || "摘抄").slice(0, 2))}</div>`
+      }
+      <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
+    </div>
+    <div class="entry-card-body">
+      <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
+      <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
+      <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content || "")}</p>
+      <p class="entry-card-tags">${tagsText}</p>
+    </div>
+  `;
+  card.addEventListener("click", () => {
+    if (book?.id) {
+      openBookDetailDialog(book.id);
+    }
+  });
+  return card;
+}
+
+function renderSearchResults(matchedBooks, matchedQuotes) {
+  const totalCount = matchedBooks.length + matchedQuotes.length;
+  els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍、${matchedQuotes.length} 条摘抄`;
+
+  if (totalCount === 0) {
+    els.booksList.className = "book-list empty-state";
+    els.booksList.innerHTML = '<p class="search-empty-combined">没有找到匹配的结果，试试其他关键词</p>';
+    return;
+  }
+
+  els.booksList.className = "book-list search-results";
+  els.booksList.innerHTML = "";
+
+  const booksSection = document.createElement("section");
+  booksSection.className = "search-results-section";
+  booksSection.innerHTML = '<h3 class="search-section-header">书籍</h3>';
+
+  if (!matchedBooks.length) {
+    booksSection.insertAdjacentHTML("beforeend", '<p class="search-empty-section">没有匹配的书籍</p>');
+  } else {
+    const booksList = document.createElement("div");
+    booksList.className = "search-book-list";
+    matchedBooks.forEach((book) => {
+      booksList.appendChild(buildBookSearchCard(book));
+    });
+    booksSection.appendChild(booksList);
+  }
+
+  const quotesSection = document.createElement("section");
+  quotesSection.className = "search-results-section";
+  quotesSection.innerHTML = '<h3 class="search-section-header">摘抄</h3>';
+
+  if (!matchedQuotes.length) {
+    quotesSection.insertAdjacentHTML("beforeend", '<p class="search-empty-section">没有匹配的摘抄</p>');
+  } else {
+    const quotesList = document.createElement("div");
+    quotesList.className = "search-quote-list";
+    matchedQuotes.forEach((quote) => {
+      quotesList.appendChild(buildQuoteSearchCard(quote));
+    });
+    quotesSection.appendChild(quotesList);
+  }
+
+  els.booksList.appendChild(booksSection);
+  els.booksList.appendChild(quotesSection);
+}
+
+function restoreDefaultView() {
+  searchQuery = "";
+  if (els.statusFilterChips) {
+    els.statusFilterChips.style.display = "";
+  }
+  const tagStrip = document.querySelector("#tagFilterStrip");
+  if (tagStrip) {
+    tagStrip.style.display = "";
+  }
+  renderBooks();
+}
+
+function globalSearch(query) {
+  const normalized = String(query || "").trim().toLowerCase();
+  searchQuery = normalized;
+
+  if (!normalized) {
+    restoreDefaultView();
+    return;
+  }
+
+  if (els.statusFilterChips) {
+    els.statusFilterChips.style.display = "none";
+  }
+  const tagStrip = document.querySelector("#tagFilterStrip");
+  if (tagStrip) {
+    tagStrip.style.display = "none";
+  }
+
+  renderSearchResults(matchBooks(normalized), matchQuotes(normalized));
+}
+
 function renderBooks() {
   if (!currentUser?.id) {
     els.booksList.className = "book-list empty-state";
@@ -375,14 +588,22 @@ function renderBooks() {
     return;
   }
 
+  renderTagFilterChips();
+
   const books = [...state.books]
     .filter((book) => selectedStatusFilter === "all" || book.status === selectedStatusFilter)
-    .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+    .filter((book) => {
+      if (!selectedTagFilter) return true;
+      return Array.isArray(book.tags) && book.tags.includes(selectedTagFilter);
+    })
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
   els.booksResultCount.textContent = `共 ${books.length} 本`;
   if (!books.length) {
     els.booksList.className = "book-list empty-state";
-    els.booksList.textContent = "还没有匹配的书籍，点右上角加号新增一本。";
+    els.booksList.textContent = selectedTagFilter
+      ? "没有匹配的书籍，试试清除搜索条件。"
+      : "还没有匹配的书籍，点右上角加号新增一本。";
     return;
   }
 
@@ -390,43 +611,7 @@ function renderBooks() {
   els.booksList.innerHTML = "";
 
   for (const book of books) {
-    const progress = getProgress(book);
-    const metrics = getBookMetrics(book.id);
-    const coverImage = book.coverImageUrl || state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "";
-    const progressText =
-      progress === null
-        ? `已读到第 ${book.currentPage || 0} 页`
-        : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
-
-    const card = document.createElement("article");
-    card.className = "book-grid-card";
-    card.innerHTML = `
-      <div class="book-card-cover ${coverImage ? "has-image" : ""}">
-        ${
-          coverImage
-            ? `<img src="${coverImage}" alt="${escapeHtml(book.title)}" />`
-            : `<div class="book-cover-fallback">${escapeHtml(book.title.slice(0, 2) || "书")}</div>`
-        }
-        <span class="book-status-chip">${escapeHtml(statusMap[book.status] || book.status)}</span>
-        <button class="book-delete-corner" type="button" title="删除书籍" aria-label="删除书籍">✖️</button>
-      </div>
-      <div class="book-grid-body">
-        <h3>${escapeHtml(book.title)}</h3>
-        <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
-        <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张</div>
-        <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
-        <div class="book-grid-actions">
-          <button class="button button-small button-ghost edit-book-button" type="button">编辑</button>
-        </div>
-      </div>
-    `;
-    card.querySelector(".edit-book-button").addEventListener("click", () => openBookEditDialog(book.id));
-    card.querySelector(".book-delete-corner").addEventListener("click", () => deleteBook(book.id));
-    card.addEventListener("click", (event) => {
-      if (event.target.closest("button")) return;
-      openBookDetailDialog(book.id);
-    });
-    els.booksList.appendChild(card);
+    els.booksList.appendChild(buildBookSearchCard(book));
   }
 }
 
@@ -587,7 +772,11 @@ function render() {
   renderHero();
   renderSummary();
   renderAuthPanels();
-  renderBooks();
+  if (searchQuery) {
+    globalSearch(searchQuery);
+  } else {
+    renderBooks();
+  }
   renderTimeline();
   renderQuotes();
   renderModelLogs();
@@ -940,6 +1129,7 @@ async function saveBookEdit(formData) {
     book.currentPage = currentPage;
     book.status = String(formData.get("status"));
     book.notes = String(formData.get("notes")).trim();
+    book.tags = Array.isArray(book.tags) ? book.tags : [];
     book.updatedAt = new Date().toISOString();
     if (book.status === "reading" || book.status === "finished") {
       book.lastReadAt = new Date().toISOString();
@@ -1395,6 +1585,18 @@ function bindEvents() {
       item.classList.toggle("active", item.dataset.statusFilter === selectedStatusFilter);
     });
     renderBooks();
+  });
+
+  document.querySelector("#booksSearchInput")?.addEventListener("input", (event) => {
+    window.clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = window.setTimeout(() => {
+      globalSearch(event.target.value);
+    }, 200);
+  });
+
+  // chat.js 执行 action 后触发此事件，app.js 响应并重渲染
+  window.addEventListener("paper-reading-data-changed", () => {
+    render();
   });
 
   els.importInput?.addEventListener("change", (event) => {

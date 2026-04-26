@@ -20,6 +20,7 @@
 
 ```python
 DEEPSEEK_API_KEY = ""
+MOONSHOT_API_KEY = ""
 AUTH_TOKEN = ""
 HOST = "0.0.0.0"
 PORT = 8787
@@ -27,6 +28,7 @@ PORT = 8787
 
 说明：
 - `DEEPSEEK_API_KEY` 必填，否则聊天和 OCR 不可用
+- `MOONSHOT_API_KEY` 必填，否则 OCR 不可用
 - `AUTH_TOKEN` 可选；如果你要给日志接口加一层额外保护，可以填写
 
 **前端配置**
