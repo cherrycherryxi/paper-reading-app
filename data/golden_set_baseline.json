@@ -1,0 +1,13 @@
+{
+  "scoreSummary": {
+    "outcome": 0.95,
+    "trajectory": 0.93,
+    "robustness_pass_rate": 1.0,
+    "efficiency": {
+      "overall": 0.98,
+      "tokenUsage": 42.0,
+      "latencyMs": 0.8,
+      "contextSizeChars": 35.0
+    }
+  }
+}

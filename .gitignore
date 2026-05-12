@@ -19,3 +19,6 @@ uploads/
 
 # 前端构建（如果以后有）
 dist/
+
+# kiro文件
+.kiro/
