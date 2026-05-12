@@ -8,9 +8,14 @@
   };
 
   let history = [];
+  let currentBookId = "";
+
+  function normalizePreferredBookValue(preferredValue) {
+    return typeof preferredValue === "string" ? preferredValue : "";
+  }
 
   function activeBookId() {
-    return els.bookSelect?.value || "";
+    return currentBookId || els.bookSelect?.value || "";
   }
 
   function resetMessages() {
@@ -32,14 +37,15 @@
   }
 
   function restoreHistory() {
-    history = window.paperReadingApp?.getChatHistoryForBook?.(activeBookId()) || [];
+    const bookId = activeBookId();
+    history = window.paperReadingApp?.getChatHistoryForBook?.(bookId) || [];
     resetMessages();
     history.forEach((item) => appendBubble(item.role, item.content));
   }
 
-  function populateChatBookSelect() {
+  function populateChatBookSelect(preferredValue) {
     if (!els.bookSelect) return;
-    const prevValue = els.bookSelect.value;
+    const prevValue = normalizePreferredBookValue(preferredValue) || currentBookId || els.bookSelect.value;
     const books = window.paperReadingApp?.getState?.()?.books || [];
     els.bookSelect.innerHTML = '<option value="">— 不关联书籍 —</option>';
     books.forEach((book) => {
@@ -48,7 +54,12 @@
       option.textContent = `${book.title}${book.author ? ` — ${book.author}` : ""}`;
       els.bookSelect.appendChild(option);
     });
-    if (prevValue) els.bookSelect.value = prevValue;
+    if (prevValue && books.some((book) => book.id === prevValue)) {
+      els.bookSelect.value = prevValue;
+      currentBookId = prevValue;
+      return;
+    }
+    currentBookId = els.bookSelect.value || "";
   }
 
   async function sendMessage() {
@@ -78,9 +89,10 @@
         true
       );
 
+      const bookId = activeBookId();
       history = Array.isArray(payload.history) ? payload.history : [];
       const actions = Array.isArray(payload.actions) ? payload.actions : [];
-      window.paperReadingApp.setChatHistoryForBook(activeBookId(), history);
+      window.paperReadingApp.setChatHistoryForBook(bookId, history);
       thinking.textContent = payload.reply || "";
 
       // 问题3修复：发完消息后立即刷新日志
@@ -99,26 +111,40 @@
     }
   }
 
-  async function clearHistory() {
-    if (!confirm("清空当前账号下的探讨记录？")) return;
-    await window.paperReadingApp?.clearChatHistory?.();
-    history = [];
-    resetMessages();
+  function clearHistory() {
+    window.paperReadingApp?.showConfirmDialog?.({
+      message: "清空当前账号下的探讨记录？",
+      confirmLabel: "确认清空",
+      onConfirm: async () => {
+        await window.paperReadingApp?.clearChatHistory?.();
+        history = [];
+        resetMessages();
+      },
+    });
   }
 
   function bindEvents() {
     els.sendBtn?.addEventListener("click", sendMessage);
     els.clearBtn?.addEventListener("click", clearHistory);
-    els.bookSelect?.addEventListener("change", restoreHistory);
+    els.bookSelect?.addEventListener("change", () => {
+      currentBookId = els.bookSelect?.value || "";
+      restoreHistory();
+    });
     els.input?.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        sendMessage();
+        // Guard: do not submit while a response is in-flight (sendBtn is disabled)
+        if (!els.sendBtn?.disabled) {
+          sendMessage();
+        }
       }
     });
 
-    window.addEventListener("paper-reading-data-changed", populateChatBookSelect);
+    window.addEventListener("paper-reading-data-changed", () => {
+      populateChatBookSelect(activeBookId());
+    });
     window.addEventListener("paper-reading-user-changed", () => {
+      currentBookId = activeBookId();
       populateChatBookSelect();
       restoreHistory();
     });
@@ -129,17 +155,24 @@
     showAgentConfirm(actions);
   }
 
-  // 问题1修复：函数参数是 actions 数组，内部用 actions[0] 取第一个
-  // 问题2修复：不用 getElementById 查全局，改用 container.querySelector
+  // 依次展示 actions 数组中的每一个操作卡片，前一张处理完才显示下一张
   function showAgentConfirm(actions) {
-    const action = actions[0];
+    if (!actions || !actions.length) return;
+    _showNextAgentAction([...actions]);
+  }
+
+  function _showNextAgentAction(remaining) {
+    const action = remaining.shift();
     if (!action) return;
+
+    // remaining.length is the count of items left AFTER this one (shift already happened)
+    const totalLabel = remaining.length > 0 ? ` (还有 ${remaining.length} 条)` : "";
 
     const container = document.createElement('div');
     container.className = 'agent-confirm';
 
     container.innerHTML = `
-      <div class="agent-confirm-text">💡 AI 建议：${renderActionText(action)}</div>
+      <div class="agent-confirm-text">💡 AI 建议：${renderActionText(action)}${escapeHtml(totalLabel)}</div>
       <div class="agent-confirm-actions">
         <button class="agent-confirm-btn button button-primary button-small">确认执行</button>
         <button class="agent-cancel-btn button button-ghost button-small">忽略</button>
@@ -149,143 +182,101 @@
     els.messages.appendChild(container);
     els.messages.scrollTop = els.messages.scrollHeight;
 
-    // 用 container 内部查找，避免 getElementById 命中旧元素
     const confirmBtn = container.querySelector('.agent-confirm-btn');
     const cancelBtn = container.querySelector('.agent-cancel-btn');
 
-    let executed = false;
+    let handled = false;
 
     confirmBtn.onclick = async () => {
-      if (executed) return;
-      executed = true;
-
+      if (handled) return;
+      handled = true;
       confirmBtn.disabled = true;
       cancelBtn.disabled = true;
       confirmBtn.textContent = "执行中...";
-
+      let succeeded = true;
       try {
-        await applyActions(actions);
+        await approveAction(action);
         confirmBtn.textContent = "已完成 ✅";
       } catch (e) {
         confirmBtn.textContent = "失败 ❌";
-        console.error("applyActions error:", e);
+        succeeded = false;
+        console.error("approveAction error:", e);
       }
-
-      setTimeout(() => container.remove(), 1500);
+      setTimeout(() => {
+        container.remove();
+        appendBubble("system", succeeded ? `✅ 已执行：${renderActionText(action)}` : `❌ 执行失败：${renderActionText(action)}`);
+        _showNextAgentAction(remaining);
+      }, 600);
     };
 
-    cancelBtn.onclick = () => container.remove();
+    cancelBtn.onclick = async () => {
+      if (handled) return;
+      handled = true;
+      cancelBtn.disabled = true;
+      confirmBtn.disabled = true;
+      try {
+        if (action.id) {
+          await window.paperReadingApp.apiFetch(`/api/agent-actions/${action.id}/reject`, { method: "POST" }, true);
+        }
+      } catch (e) {
+        console.error("rejectAction error:", e);
+      }
+      container.remove();
+      appendBubble("system", `⏭ 已忽略：${renderActionText(action)}`);
+      _showNextAgentAction(remaining);
+    };
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function renderActionText(action) {
     const d = action.data || {};
     switch (action.type) {
-      case 'add_note':    return `📝 新增笔记：${String(d.content || '').slice(0, 30)}…`;
-      case 'add_book':    return `📚 加入书单：《${d.title}》`;
+      case 'add_note':    return `📝 新增笔记：${escapeHtml(String(d.content || ''))}`;
+      case 'add_book':    return `📚 加入书单：《${escapeHtml(String(d.title || ''))}》`;
       case 'summary':     return `📌 生成阶段总结`;
-      case 'question':    return `❓ 提出问题：${String(d.content || '').slice(0, 30)}…`;
+      case 'question':    return `❓ 提出问题：${escapeHtml(String(d.content || ''))}`;
       case 'tag':         return `🏷 添加标签：${(d.tags || []).join('、')}`;
       default:            return '未知操作';
     }
   }
 
   // 问题2修复：state/createId/syncState/render/showToast 都通过 window.paperReadingApp 访问
-  async function applyActions(actions) {
-    const action = actions[0];
-    if (!action) return;
-
+  async function approveAction(action) {
+    if (!action?.id) {
+      throw new Error("缺少 action id");
+    }
     const app = window.paperReadingApp;
-    const appState = app.getState();
-    const d = action.data || {};
-
-    switch (action.type) {
-      case 'add_note':
-        appState.quotes.unshift({
-          id: `quote-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-          bookId: d.bookId || activeBookId(),
-          content: d.content || '',
-          tags: Array.isArray(d.tags) ? d.tags : [],
-          kind: 'note',
-          createdAt: new Date().toISOString(),
-        });
-        app.showToast("笔记已添加");
-        break;
-
-      case 'add_book': {
-        const exists = appState.books.some(
-          b => b.title === d.title && b.author === d.author
-        );
-        if (!exists) {
-          appState.books.unshift({
-            id: `book-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-            title: d.title || '未命名',
-            author: d.author || '',
-            status: 'wishlist',
-            notes: d.reason || '',
-            tags: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-          app.showToast(`《${d.title}》已加入书单`);
-        } else {
-          app.showToast(`《${d.title}》已在书单中`);
-        }
-        break;
-      }
-
-      case 'summary': {
-        const book = appState.books.find(b => b.id === activeBookId());
-        if (book && d.content) {
-          book.notes = ((book.notes || '') + '\n\n' + d.content).trim();
-          app.showToast("总结已追加到书籍备注");
-        }
-        break;
-      }
-
-      case 'tag': {
-        const book = appState.books.find(b => b.id === activeBookId());
-        if (book && Array.isArray(d.tags)) {
-          const existing = new Set(book.tags || []);
-          d.tags.forEach(t => existing.add(t));
-          book.tags = Array.from(existing);
-          app.showToast("标签已更新");
-        }
-        break;
-      }
-
-      case 'question':
-        appendBubble("assistant", "❓ " + (d.content || ''));
-        break;
-
-      default:
-        break;
+    const selectedBookId = activeBookId();
+    const result = await app.apiFetch(`/api/agent-actions/${action.id}/approve`, { method: "POST" }, true);
+    if (result?.state) {
+      const currentState = app.getState();
+      Object.assign(currentState, result.state);
     }
-
-    // 同步到后端，用返回的 state 覆盖前端（确保 tag 等更新立即可见）
-    try {
-      const result = await app.apiFetch("/api/state", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(appState),
-      }, true);
-      // 用后端返回的权威 state 更新前端引用
-      if (result?.state) {
-        const s = app.getState();
-        Object.assign(s, result.state);
-      }
-    } catch (e) {
-      console.error("syncState in applyActions failed:", e);
+    // Only refresh the book select — do NOT call restoreHistory() here,
+    // because that calls resetMessages() which destroys all pending action cards.
+    populateChatBookSelect(selectedBookId);
+    if (action.type === "question" && action.data?.content) {
+      appendBubble("assistant", "❓ " + action.data.content);
     }
+    app.showToast("操作已执行");
 
-    // 问题3修复：执行 action 后也刷新日志
     await app.loadRemoteLogs?.();
-
-    // 触发全局重渲染
     window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
   }
 
   window.populateChatBookSelect = populateChatBookSelect;
   window.paperReadingApp.getActiveChatBookId = activeBookId;
+  window.paperReadingApp.switchChatToBook = (bookId) => {
+    populateChatBookSelect(bookId);
+    restoreHistory();
+  };
 
   populateChatBookSelect();
   restoreHistory();

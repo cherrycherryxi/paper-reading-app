@@ -1,0 +1,624 @@
+{
+  "version": 1,
+  "bugs": [
+    {
+      "id": "P0-001",
+      "priority": "P0",
+      "status": "fixed",
+      "title": "Toast 提示消息被底部导航栏遮挡，用户无法看到操作反馈",
+      "timestamp": "2026-05-11T11:55:56.098Z",
+      "fixed_at": "2026-05-11T19:55:00.000Z",
+      "file": "styles.css",
+      "root_cause": "`.toast` 的 bottom 值仅计算了 safe-area-inset-bottom，未加上 `.mobile-tabs` 的 64px 高度，导致 toast 出现在导航栏后面",
+      "fix": "在 @media (max-width: 768px) 块内覆盖 .toast bottom: calc(20px + 64px + env(safe-area-inset-bottom))",
+      "tags": [
+        "css",
+        "mobile",
+        "toast",
+        "nav-bar"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T11:55:56.098Z"
+    },
+    {
+      "id": "P0-002",
+      "priority": "P0",
+      "status": "fixed",
+      "title": "书卡删除按钮触控区域仅 30×30px，远低于 Apple HIG 44×44px 最低标准，手指难以点中",
+      "timestamp": "2026-05-11T19:56:00.000Z",
+      "fixed_at": "2026-05-11T19:56:00.000Z",
+      "file": "styles.css",
+      "root_cause": "`.book-delete-corner` 的 width/height 硬编码为 30px，导致触控区域不足，用户点歪后误触书卡进入详情页",
+      "fix": "将 width/height 从 30px 扩大到 44px，并将 right/top 从 10px 收缩到 3px 补偿视觉偏移，图标通过 place-items: center 仍居中不变",
+      "tags": [
+        "css",
+        "mobile",
+        "touch-target",
+        "accessibility"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T19:56:00.000Z"
+    },
+    {
+      "id": "P0-003",
+      "priority": "P0",
+      "status": "fixed",
+      "title": "AI 回复期间按 Enter 键会重复发送同一条消息，导致对话混乱",
+      "timestamp": "2026-05-11T19:56:00.000Z",
+      "fixed_at": "2026-05-11T19:56:00.000Z",
+      "file": "chat.js",
+      "root_cause": "`sendMessage()` 在请求发出后仅 disable 了 sendBtn，但 input keydown 监听器未检查按钮状态，用户手速快按 Enter 时仍会再次调用 sendMessage()",
+      "fix": "在 keydown 处理器中加守卫条件 `if (!els.sendBtn?.disabled)`，只有按钮可用时才触发发送",
+      "tags": [
+        "js",
+        "chat",
+        "input",
+        "race-condition"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T19:56:00.000Z"
+    },
+    {
+      "id": "P1-001",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "AI 建议多个操作时仅展示第一个，其余静默丢失",
+      "timestamp": "2026-05-11T20:00:00.000Z",
+      "fixed_at": "2026-05-11T20:45:00.000Z",
+      "file": "chat.js",
+      "root_cause": "`showAgentConfirm()` 始终取 `actions[0]`，剩余 action 被忽略，无卡片渲染",
+      "fix": "重构为 `_showNextAgentAction(remaining[])`，每次处理完（确认或忽略）后递归展示下一条，卡片尾部标注「还有 N 条」",
+      "tags": [
+        "js",
+        "chat",
+        "agent",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T20:00:00.000Z"
+    },
+    {
+      "id": "P1-002",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "摘抄卡片和阅读记录无法删除",
+      "timestamp": "2026-05-11T20:00:00.000Z",
+      "fixed_at": "2026-05-11T20:45:00.000Z",
+      "file": "app.js + styles.css",
+      "root_cause": "`renderTimeline()` 和 `renderQuotes()` 渲染的卡片没有删除按钮，也没有对应的删除函数",
+      "fix": "卡片封面区加 `.card-delete-btn[data-delete-session/quote]`，新增 `deleteSession()` / `deleteQuote()`，通过容器委托事件触发",
+      "tags": [
+        "js",
+        "css",
+        "crud",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T20:00:00.000Z"
+    },
+    {
+      "id": "P1-003",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "删除书籍弹出原生浏览器 confirm，样式不符，且不说明数据损失范围",
+      "timestamp": "2026-05-11T20:00:00.000Z",
+      "fixed_at": "2026-05-11T20:45:00.000Z",
+      "file": "index.html + app.js + styles.css",
+      "root_cause": "`deleteBook()` 调用 `window.confirm()`，原生弹窗无法自定义样式，也没有醒目的数据损失警告",
+      "fix": "新增 `#deleteBookDialog` 自定义 `<dialog>`，含「同时删除阅读记录/摘抄/探讨历史，无法恢复」警告文本和红色「确认删除」按钮",
+      "tags": [
+        "js",
+        "html",
+        "css",
+        "ux",
+        "dialog"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T20:00:00.000Z"
+    },
+    {
+      "id": "P1-004",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "表单提交期间无加载状态，重复点击或白屏无反馈",
+      "timestamp": "2026-05-11T20:00:00.000Z",
+      "fixed_at": "2026-05-11T20:45:00.000Z",
+      "file": "app.js",
+      "root_cause": "所有表单 submit handler 直接调用 async 函数，submit 按钮未被 disable，用户无法判断是否在保存中",
+      "fix": "新增 `withSavingState(btn, label, fn)` 工具函数，7 个表单 handler 均包裹进去，保存期间按钮显示「保存中…」并 disabled",
+      "tags": [
+        "js",
+        "ux",
+        "form",
+        "loading-state"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T20:00:00.000Z"
+    },
+    {
+      "id": "P1-005",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "Token 过期后静默退出登录，无任何说明",
+      "timestamp": "2026-05-11T20:00:00.000Z",
+      "fixed_at": "2026-05-11T20:45:00.000Z",
+      "file": "app.js",
+      "root_cause": "`apiFetch()` 收到 401 时仅 throw Error，没有清空 auth 状态或告知用户原因，用户看到数据消失不知道发生了什么",
+      "fix": "在 `apiFetch()` 的 401 分支中：清空 `authToken` / `currentUser` / localStorage，调用 `showToast('登录已过期，请重新登录')` 并触发 `dispatchUserChange()` 切换到登录界面",
+      "tags": [
+        "js",
+        "auth",
+        "ux",
+        "error-handling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T20:00:00.000Z"
+    },
+    {
+      "id": "P1-006",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "确认第一个 AI action 后后续 action 卡片不再出现",
+      "timestamp": "2026-05-11T21:00:00.000Z",
+      "fixed_at": "2026-05-11T21:30:00.000Z",
+      "file": "chat.js",
+      "root_cause": "`approveAction()` 内部调用 `restoreHistory()` → `resetMessages()` → `els.messages.innerHTML = ...`，把 2-N 号 action 卡片的 DOM 节点全部清除，导致 `_showNextAgentAction` setTimeout 回调追加的卡片也无法出现",
+      "fix": "从 `approveAction()` 中移除 `restoreHistory()` 调用；book select 刷新已由 `populateChatBookSelect()` 单独处理，无需重置整个消息区",
+      "tags": [
+        "js",
+        "chat",
+        "agent",
+        "dom",
+        "ux"
+      ],
+      "related_bugs": [
+        "P1-001"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T21:00:00.000Z"
+    },
+    {
+      "id": "P2-001",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "底部导航顺序与实际使用流程不符（摘抄↔记录位置应互换）",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "index.html",
+      "root_cause": "当前顺序：书单→摘抄→记录→探讨→我的。实际使用流程是「加书→记录阅读→加摘抄→聊书」，「记录」应排在「摘抄」前",
+      "fix": "index.html: 将 mobile-tabs 中 session tab 移到 quote tab 之前，顺序改为：书单→记录→摘抄→探讨→我的",
+      "tags": [
+        "html",
+        "nav",
+        "ux",
+        "ia"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P2-002",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "「更新进度」和「编辑书籍」两个弹窗内容大量重复，应合并为一个",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "index.html + app.js",
+      "root_cause": "两个 dialog 的字段（当前页码、状态、备注）几乎完全相同，唯一区别是「编辑书籍」多一个封面上传；用户不清楚该用哪个",
+      "fix": "发现 progressDialog 和 bookCardTemplate 已是死代码（buildBookCard 只有「编辑」按钮，openProgressDialog 从未被调用）。删除 index.html 中 progressDialog+bookCardTemplate 两块 HTML，以及 app.js 中对应 els 引用、openProgressDialog/updateBookProgress 函数、progressForm submit 和 cancelDialog 事件监听。书单卡片统一走 bookEditDialog。",
+      "tags": [
+        "html",
+        "js",
+        "ux",
+        "dialog",
+        "duplication"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P2-003",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "聊天输入框字体 15px，iOS Safari 点击时自动缩放页面",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "styles.css",
+      "root_cause": "iOS Safari 对 font-size < 16px 的 input/textarea 会自动放大页面（zoom），导致布局错乱；当前聊天输入框 font-size: 15px",
+      "fix": "styles.css: .chat-input-inline textarea 加 font-size: 16px，附注释说明原因",
+      "tags": [
+        "css",
+        "mobile",
+        "ios",
+        "input",
+        "accessibility"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P2-004",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "AI 操作确认卡片正文截断为 30 字，用户无法在确认前看完完整内容",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "chat.js",
+      "root_cause": "`renderActionText()` 对 content/question 类 action 用 `.slice(0, 30) + '…'` 截断，用户需在不知全貌的情况下决定「确认还是忽略」",
+      "fix": "chat.js: renderActionText 移除 .slice(0, 30)，改为显示完整内容；同时对所有字段调用 escapeHtml() 防止 XSS",
+      "tags": [
+        "js",
+        "chat",
+        "agent",
+        "ux",
+        "truncation"
+      ],
+      "related_bugs": [
+        "P1-001"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P3-001",
+      "priority": "P3",
+      "status": "fixed",
+      "title": "摘抄 tab 用下拉框筛选，书单 tab 用标签按钮筛选，控件样式不统一；且无关键字搜索",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "index.html + app.js",
+      "root_cause": "摘抄只能按类型筛选，无法按书名/内容/标签关键字搜索",
+      "fix": "index.html: 在摘抄 tab 工具栏下方加 #quoteSearch 输入框；app.js: els 加 quoteSearch，renderQuotes 加全文搜索（书名+作者+内容+标签），bindEvents 加 input 事件",
+      "tags": [
+        "html",
+        "css",
+        "ux",
+        "consistency"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P3-002",
+      "priority": "P3",
+      "status": "fixed",
+      "title": "书卡没有「去聊这本书」快捷入口",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "app.js + chat.js",
+      "root_cause": "用户想聊某本书时，需手动切到「探讨」tab 再在下拉框里重新选择书籍，路径冗长",
+      "fix": "app.js: buildBookCard 加「去聊」按钮，点击调用 activateTab('chat') + window.paperReadingApp.switchChatToBook(id)；chat.js: 暴露 switchChatToBook 方法（populateChatBookSelect + restoreHistory）",
+      "tags": [
+        "js",
+        "ux",
+        "navigation",
+        "shortcut"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P3-003",
+      "priority": "P3",
+      "status": "fixed",
+      "title": "AI 操作确认/忽略后聊天记录无任何痕迹",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "chat.js",
+      "root_cause": "action 卡片在确认或忽略后直接从 DOM 移除，聊天历史中看不出曾经发生过什么，用户回看时无法追溯",
+      "fix": "chat.js: confirmBtn.onclick 在卡片移除后 appendBubble('system', '✅ 已执行：…') 或 '❌ 执行失败：…'；cancelBtn.onclick 后 appendBubble('system', '⏭ 已忽略：…')；新增 .chat-bubble-system 样式（虚线边框小字居中气泡）",
+      "tags": [
+        "js",
+        "chat",
+        "agent",
+        "ux",
+        "history"
+      ],
+      "related_bugs": [
+        "P1-001"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "P3-004",
+      "priority": "P3",
+      "status": "fixed",
+      "title": "页面内有开发者调试备注文字对用户可见",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "file": "index.html",
+      "root_cause": "HTML 中存在「默认看最近阅读，再决定要不要补一条会话」和「默认展示卡片墙，新增操作放到加号里」两处开发者自用 <p> 文本",
+      "fix": "index.html: 删除 session-panel 和 quotes-panel section-head 里的两条开发者 <p> 文本",
+      "tags": [
+        "html",
+        "ux",
+        "polish",
+        "debug-text"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-05-11T13:36:10.228Z",
+      "error_message": "Significant refactor of ",
+      "file": "chat.js",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 58→75 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T13:36:10.228Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-05-11T13:37:25.976Z",
+      "error_message": "Missing error handling in function",
+      "file": "app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T13:37:25.976Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-05-11T13:37:33.404Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app.js",
+      "root_cause": "Condition was: if (!button)",
+      "fix": "Changed to: if (btn)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T13:37:33.404Z"
+    },
+    {
+      "id": "bug-007",
+      "timestamp": "2026-05-11T13:38:31.759Z",
+      "error_message": "CSS fix: font-size",
+      "file": "styles.css",
+      "root_cause": "font-size: 14px → 13px",
+      "fix": "Changed font-size: 14px → 13px",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T13:38:31.759Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-05-11T13:40:29.390Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 23→42 lines (3 removed) | Also: addBook(new FormData(els.bookForm));; addSession(new FormData(els.sessionForm));",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-11T13:41:11.465Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-05-11T13:40:54.567Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !btn",
+      "fix": "Added guard clause: if (!btn)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T13:40:54.567Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-05-11T14:29:15.028Z",
+      "error_message": "Incorrect value in code",
+      "file": "log_server.py",
+      "root_cause": "Had \"请提取图片中所有被划线标注的文字，按出现顺序列出，每条单独一行，不需要其他解释。如果没有发现划线内",
+      "fix": "Changed to '请提取图片中所有被划线标注的文字，按出现顺序列出，每条单独一行，不需要其他解释。如果没有发现划线内",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T14:29:15.028Z"
+    },
+    {
+      "id": "bug-016",
+      "timestamp": "2026-05-11T14:29:31.459Z",
+      "error_message": "Significant refactor of ",
+      "file": "log_server.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→13 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T14:29:31.459Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-05-12T00:00:00.000Z",
+      "error_message": "「删除书籍」弹窗悬浮在每个 tab 页底部，未关闭也可见",
+      "file": "index.html",
+      "root_cause": "deleteBookDialog 的 <dialog> 元素直接加了 class=\"dialog-form\"，而 .dialog-form 设有 display:grid，在 iOS Safari 覆盖了 <dialog> 关闭时的 UA display:none，导致 dialog 在未打开状态下仍然可见",
+      "fix": "从 <dialog> 元素移除 dialog-form class，改在内部加 <div class=\"dialog-form\"> 包裹内容；其他所有 dialog 均已是此结构",
+      "tags": [
+        "html",
+        "css",
+        "ios",
+        "dialog",
+        "display"
+      ],
+      "related_bugs": [
+        "P1-003"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-12T00:00:00.000Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-05-12T00:00:00.000Z",
+      "error_message": "删除阅读记录/摘抄/清空探讨记录仍弹出原生浏览器 confirm",
+      "file": "app.js + chat.js",
+      "root_cause": "P1-003 只修复了 deleteBook，但 deleteSession、deleteQuote（app.js）和 clearHistory（chat.js）仍在用 window.confirm()/confirm()",
+      "fix": "新增通用 showConfirmDialog({message,confirmLabel,onConfirm}) 并挂到 window.paperReadingApp；deleteSession/deleteQuote 改用回调式调用；chat.js clearHistory 改为 window.paperReadingApp.showConfirmDialog()",
+      "tags": [
+        "js",
+        "html",
+        "ux",
+        "dialog",
+        "confirm"
+      ],
+      "related_bugs": [
+        "P1-003"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-12T00:00:00.000Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-05-12T05:03:04.909Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"quote\"",
+      "fix": "Changed to \"session\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:03:04.909Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-05-12T05:03:26.622Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"#cancelDialog\"",
+      "fix": "Changed to \".mobile-tab\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:03:26.622Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-05-12T05:04:09.605Z",
+      "error_message": "Wrong return value",
+      "file": "chat.js",
+      "root_cause": "Was returning: `📝 新增笔记：${String(d.content || '').slice(0, 30)}…`",
+      "fix": "Now returns: `📝 新增笔记：${escapeHtml(String(d.content || ''))}`;",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:04:09.605Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-05-12T00:00:00.000Z",
+      "error_message": "摘抄页和记录页的删除按钮（✕）在手机上不可见，无法点击",
+      "file": "styles.css",
+      "root_cause": ".card-delete-btn 默认 opacity:0，仅在 :hover 时显示，但 iOS 触屏设备没有 hover 事件，导致按钮永久透明不可点击",
+      "fix": "在 @media (max-width:768px) 中覆盖 .card-delete-btn { opacity: 1; }，手机端常显删除按钮",
+      "tags": [
+        "css",
+        "mobile",
+        "ios",
+        "hover",
+        "touch",
+        "ux"
+      ],
+      "related_bugs": [
+        "P1-002"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-12T00:00:00.000Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-05-12T05:41:32.233Z",
+      "error_message": "CSS fix: background, color",
+      "file": "styles.css",
+      "root_cause": "background: #fee2e2 → var(--color-ink); color: #b91c1c → #fff",
+      "fix": "Changed background: #fee2e2 → var(--color-ink); color: #b91c1c → #fff",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:41:32.233Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-05-12T05:42:16.467Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <button class=\"button button-small button-ghost chat-book-bu; card.querySelector(\".chat-book-button\").addEventListener(\"cl",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-12T05:42:24.454Z"
+    }
+  ]
+}

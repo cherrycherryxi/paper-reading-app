@@ -445,6 +445,34 @@ textarea {
   font-size: 14px;
 }
 
+.button-danger {
+  background: #e53e3e;
+  color: #fff;
+  border: none;
+}
+.button-danger:hover {
+  background: #c53030;
+}
+
+.delete-confirm-dialog {
+  max-width: 340px;
+  width: calc(100% - 40px);
+}
+.delete-confirm-title {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+.delete-confirm-body {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.delete-confirm-warning {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #e53e3e;
+  line-height: 1.5;
+}
+
 .circle-action {
   width: 44px;
   height: 44px;
@@ -675,10 +703,11 @@ textarea {
 
 .book-delete-corner {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 30px;
-  height: 30px;
+  /* shift by 7px so the 44px button's visual center stays at the old 30px position */
+  right: 3px;
+  top: 3px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: none;
@@ -687,6 +716,56 @@ textarea {
   color: var(--color-ink);
   cursor: pointer;
   box-shadow: var(--shadow-card);
+}
+
+/* Delete button on session/quote cards — same 44×44 tap target as book-delete-corner */
+.card-delete-btn {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.90);
+  color: var(--color-ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  transition: opacity 150ms ease;
+  font-size: 12px;
+  z-index: 2;
+}
+.entry-card-cover:hover .card-delete-btn,
+.entry-card-cover:focus-within .card-delete-btn {
+  opacity: 1;
+}
+
+.entry-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.card-action-btn {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  text-align: center;
+}
+
+.card-action-danger {
+  color: #e53e3e;
+  border-color: #fed7d7;
 }
 
 .book-grid-body,
@@ -862,6 +941,53 @@ textarea {
   color: #b91c1c;
 }
 
+.chat-bubble-system {
+  align-self: center;
+  max-width: 92%;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--color-ink-muted);
+  font-size: 12px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed var(--color-border);
+  text-align: center;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  width: fit-content;
+  margin-bottom: 16px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 8px 24px;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+}
+
+.auth-tab-btn.active {
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.auth-form-panel {
+  display: none;
+}
+
+.auth-form-panel.active {
+  display: contents;
+}
+
 .chat-input-inline {
   margin-top: 8px;
   padding-top: 8px;
@@ -875,6 +1001,7 @@ textarea {
   min-height: 34px;
   max-height: 72px;
   padding: 8px 10px;
+  font-size: 16px; /* ≥16px prevents iOS Safari auto-zoom on focus */
   line-height: 1.4;
   resize: none;
 }
@@ -1053,6 +1180,11 @@ dialog::backdrop {
     background-color: var(--color-bg);
   }
 
+  /* Touch devices have no hover — always show delete buttons */
+  .card-delete-btn {
+    opacity: 1;
+  }
+
   .desktop-only {
     display: none !important;
   }
@@ -1135,6 +1267,11 @@ dialog::backdrop {
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -10px 24px rgba(17, 17, 17, 0.06);
+  }
+
+  /* Toast must clear the 64px nav bar + safe area */
+  .toast {
+    bottom: calc(20px + 64px + env(safe-area-inset-bottom));
   }
 
   .mobile-tab {

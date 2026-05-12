@@ -60,7 +60,6 @@
           <div class="section-head row-head">
             <div>
               <h2>记录</h2>
-              <p>默认看最近阅读，再决定要不要补一条会话。</p>
             </div>
             <div class="toolbar">
               <button class="circle-action" id="openSessionDialogBtn" type="button" aria-label="新增阅读记录">+</button>
@@ -71,10 +70,7 @@
 
         <section class="panel quotes-panel" data-tab-section="quote">
           <div class="section-head row-head">
-            <div>
-              <h2>摘抄</h2>
-              <p>默认展示卡片墙，新增操作放到加号里。</p>
-            </div>
+            <h2>摘抄</h2>
             <div class="toolbar">
               <select id="quoteFilter">
                 <option value="all">全部卡片</option>
@@ -83,6 +79,9 @@
               </select>
               <button class="circle-action" id="openQuoteDialogBtn" type="button" aria-label="新增摘抄">+</button>
             </div>
+          </div>
+          <div class="books-search-row">
+            <input id="quoteSearch" type="search" placeholder="搜索书名、内容、标签…" />
           </div>
           <div id="quotesList" class="quote-list empty-state"></div>
         </section>
@@ -129,21 +128,24 @@
 
           <section class="subpanel" id="authPanel">
             <div class="subpanel-head">
-              <h3>注册 / 登录</h3>
-              <p>账号由后端管理，登录后可从部署服务器读取和写入数据。</p>
+              <h3>登录账号</h3>
             </div>
-            <div class="auth-grid">
+            <div class="auth-tabs">
+              <button class="auth-tab-btn active" data-auth-tab="login" type="button">登录</button>
+              <button class="auth-tab-btn" data-auth-tab="register" type="button">注册</button>
+            </div>
+            <div class="auth-form-panel active" id="authTabLogin">
+              <form id="loginForm" class="stack-form">
+                <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
+                <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
+                <button type="submit" class="button button-primary">登录</button>
+              </form>
+            </div>
+            <div class="auth-form-panel" id="authTabRegister">
               <form id="registerForm" class="stack-form">
-                <h4>注册</h4>
                 <label><span>用户名</span><input name="username" type="text" placeholder="例如：nanqi" required /></label>
                 <label><span>密码</span><input name="password" type="password" placeholder="至少 4 位" required /></label>
                 <button type="submit" class="button button-primary">注册</button>
-              </form>
-              <form id="loginForm" class="stack-form">
-                <h4>登录</h4>
-                <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
-                <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
-                <button type="submit" class="button button-accent">登录</button>
               </form>
             </div>
           </section>
@@ -186,44 +188,6 @@
       </main>
     </div>
 
-    <template id="bookCardTemplate">
-      <article class="book-card">
-        <div class="book-card-head">
-          <div>
-            <p class="book-meta status-pill"></p>
-            <h3></h3>
-            <p class="book-meta author-line"></p>
-          </div>
-          <button class="button button-small button-ghost progress-button" type="button">更新进度</button>
-        </div>
-        <div class="progress-wrap">
-          <div class="progress-track"><div class="progress-fill"></div></div>
-          <p class="progress-copy"></p>
-        </div>
-        <div class="book-details"></div>
-        <p class="book-notes"></p>
-      </article>
-    </template>
-
-    <dialog id="progressDialog">
-      <form id="progressForm" method="dialog" class="dialog-form">
-        <div class="section-head"><h2>更新进度</h2><p id="progressDialogTitle"></p></div>
-        <input type="hidden" name="bookId" />
-        <label><span>当前页码</span><input name="currentPage" type="number" min="0" required /></label>
-          <label><span>状态</span>
-          <select name="status" class="compact-status-select">
-            <option value="reading">阅读中</option>
-            <option value="wishlist">想读</option>
-            <option value="finished">已读完</option>
-          </select>
-        </label>
-        <label><span>备注</span><textarea name="notes" rows="3"></textarea></label>
-        <div class="dialog-actions">
-          <button type="button" class="button button-ghost" id="cancelDialog">取消</button>
-          <button type="submit" class="button button-primary">保存</button>
-        </div>
-      </form>
-    </dialog>
 
     <dialog id="bookEditDialog">
       <form id="bookEditForm" class="dialog-form">
@@ -309,6 +273,7 @@
           <label><span>阅读分钟</span><input name="minutes" type="number" min="1" required /></label>
         </div>
         <label><span>会话笔记</span><textarea name="note" rows="3" placeholder="例如：今天读完第三章。"></textarea></label>
+        <input type="hidden" name="id" id="sessionId" />
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="sessionDialog">取消</button>
           <button type="submit" class="button button-primary">保存记录</button>
@@ -341,6 +306,7 @@
           <span id="ocrStatus" class="helper-text">将调用默认模型识别图片内容。</span>
         </div>
         <div id="quoteImagePreview" class="image-preview is-hidden"><img id="quotePreviewImg" alt="摘抄图片预览" /></div>
+        <input type="hidden" name="id" id="quoteId" />
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="quoteDialog">取消</button>
           <button type="submit" class="button button-primary">保存卡片</button>
@@ -348,12 +314,36 @@
       </form>
     </dialog>
 
+    <!-- Custom delete-book confirmation dialog (replaces native window.confirm) -->
+    <dialog id="deleteBookDialog" class="delete-confirm-dialog">
+      <div class="dialog-form">
+        <h2 class="delete-confirm-title">删除书籍</h2>
+        <p id="deleteBookMessage" class="delete-confirm-body"></p>
+        <p class="delete-confirm-warning">⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。</p>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" id="deleteBookCancelBtn">取消</button>
+          <button type="button" class="button button-danger" id="deleteBookConfirmBtn">确认删除</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Generic confirm dialog for session/quote deletes and other confirmations -->
+    <dialog id="confirmDialog" class="delete-confirm-dialog">
+      <div class="dialog-form">
+        <p id="confirmDialogMessage" class="delete-confirm-body"></p>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" id="confirmDialogCancelBtn">取消</button>
+          <button type="button" class="button button-danger" id="confirmDialogConfirmBtn">确认删除</button>
+        </div>
+      </div>
+    </dialog>
+
     <div id="toast" class="toast"></div>
 
     <nav class="mobile-tabs" id="mobileTabs">
       <button class="mobile-tab active" data-tab="books" type="button"><span class="mobile-tab-icon">📚</span><span class="mobile-tab-label">书单</span></button>
-      <button class="mobile-tab" data-tab="quote" type="button"><span class="mobile-tab-icon">✍️</span><span class="mobile-tab-label">摘抄</span></button>
       <button class="mobile-tab" data-tab="session" type="button"><span class="mobile-tab-icon">🕐</span><span class="mobile-tab-label">记录</span></button>
+      <button class="mobile-tab" data-tab="quote" type="button"><span class="mobile-tab-icon">✍️</span><span class="mobile-tab-label">摘抄</span></button>
       <button class="mobile-tab" data-tab="chat" type="button"><span class="mobile-tab-icon">💬</span><span class="mobile-tab-label">探讨</span></button>
       <button class="mobile-tab" data-tab="me" type="button"><span class="mobile-tab-icon">👤</span><span class="mobile-tab-label">我的</span></button>
     </nav>
