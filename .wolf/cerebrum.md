@@ -2,7 +2,7 @@
 
 > OpenWolf's learning memory. Updated automatically as the AI learns from interactions.
 > Do not edit manually unless correcting an error.
-> Last updated: 2026-05-11
+> Last updated: 2026-05-12
 
 ## User Preferences
 
@@ -12,6 +12,12 @@
 
 - **Project:** paper-reading-app
 - **Description:** 一个面向手机网页的纸质书阅读工具，当前优先适配 iPhone 12。
+
+- **[2026-05-12] 静态文件由后端统一托管。** `log_server.py` 的 `do_GET` 顶部增加了静态文件路由，serve `index.html`、`app.js`、`chat.js`、`styles.css`。前端不再需要单独的 `python3 -m http.server 4173` 进程，只开 8787 一个端口即可。
+
+- **[2026-05-12] `backendBaseUrl` 改为空字符串。** 前端与后端同源后，所有 API 请求改用相对路径。`index.html` 里 `window.PAPER_READING_APP_CONFIG.backendBaseUrl` 设为 `""`。不需要再硬编码局域网 IP。
+
+- **[2026-05-12] `guess_base_url()` 支持 HTTPS。** 增加读取 `X-Forwarded-Proto` header，确保通过 ngrok/Cloudflare Tunnel 等反向代理时媒体文件 URL 能正确生成 `https://` 前缀。
 
 ## Do-Not-Repeat
 
@@ -29,3 +35,5 @@
 ## Decision Log
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
+
+- [2026-05-12] **外网访问方案选型：ngrok（当前）。** 用户 iPhone 已有 VPN，iOS 只允许一个 VPN 配置，故排除 Tailscale。ngrok 免费版够用（个人使用 + 偶尔演示）。每次重启 ngrok 地址会变，这是已知限制，可接受。未来若需要固定域名可迁移至 Cloudflare Tunnel（需购买域名约 ¥60–80/年）。启动命令：`ngrok http 8787`。

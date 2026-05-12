@@ -109,8 +109,9 @@ class ExecutionResult:
 
 def guess_base_url(handler: BaseHTTPRequestHandler) -> str:
     host = handler.headers.get("Host")
+    proto = handler.headers.get("X-Forwarded-Proto", "http")
     if host:
-        return f"http://{host}"
+        return f"{proto}://{host}"
     return f"http://{HOST}:{PORT}"
 
 
@@ -1258,6 +1259,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+
+        # Serve frontend static files
+        _STATIC = {
+            "/": ("index.html", "text/html; charset=utf-8"),
+            "/index.html": ("index.html", "text/html; charset=utf-8"),
+            "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+            "/chat.js": ("chat.js", "application/javascript; charset=utf-8"),
+            "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+        }
+        if parsed.path in _STATIC:
+            filename, mime = _STATIC[parsed.path]
+            content = (BASE_DIR / filename).read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
 
         if parsed.path.startswith("/media/"):
             target = (UPLOAD_DIR / parsed.path.removeprefix("/media/")).resolve()

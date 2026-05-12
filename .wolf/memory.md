@@ -3,6 +3,8 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 19:55 | Edited styles.css | 13→18 lines | ~131 |
+| 17:34 | 内网穿透改造：log_server.py 加静态文件 serve + guess_base_url 支持 X-Forwarded-Proto；index.html backendBaseUrl 改为 "" | log_server.py, index.html | done, 需重启进程 | ~800 |
+| 20:30 | 内网穿透完成验证：ngrok http 8787，所有静态文件和 API 均 200，方案归档至 cerebrum.md | .wolf/cerebrum.md, .wolf/memory.md | done | ~300 |
 | 19:56 | Edited styles.css | 15→16 lines | ~111 |
 | 19:56 | Edited chat.js | added 1 condition(s) | ~90 |
 
@@ -84,3 +86,4 @@
 | 13:42 | Edited chat.js | modified catch() | ~352 |
 | 13:43 | P3 sprint: 5 fixes | index.html, app.js, chat.js, styles.css | ✅ 摘抄关键字搜索, 书卡去聊按钮, action trace bubble, 去开发者注释, 登录注册 tab 重设计 | ~900 |
 | 13:44 | Session end: 19 writes across 4 files (index.html, app.js, styles.css, chat.js) | 5 reads | ~53373 tok |
+| 14:48 | Session end: 19 writes across 4 files (index.html, app.js, styles.css, chat.js) | 5 reads | ~53373 tok |
