@@ -1,16 +1,16 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T05:42:51.347Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T15:13:35.750Z
 > Files: 58 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~37 tok)
-- `app.js` — Run an async save operation while disabling the submit button and showing a (~17425 tok)
+- `app.js` — Run an async save operation while disabling the submit button and showing a (~17496 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, resetMessages + 12 more (~2656 tok)
 - `CLAUDE.md` — OpenWolf (~1073 tok)
-- `index.html` — 纸书阅读记录 (~4572 tok)
+- `index.html` — 纸书阅读记录 (~4548 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~21708 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)

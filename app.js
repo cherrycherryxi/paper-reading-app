@@ -832,6 +832,7 @@ function renderImagePreview() {
   }
   els.quotePreviewImg.src = pendingQuoteImage.dataUrl;
   els.quoteImagePreview.classList.remove("is-hidden");
+  els.quoteImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function renderBookImagePreview() {
@@ -842,6 +843,7 @@ function renderBookImagePreview() {
   }
   els.bookPreviewImg.src = pendingBookImage.dataUrl;
   els.bookImagePreview.classList.remove("is-hidden");
+  els.bookImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function render() {
@@ -1244,6 +1246,7 @@ function renderBookEditImagePreview() {
   }
   els.bookEditPreviewImg.src = pendingBookEditImage.dataUrl;
   els.bookEditImagePreview.classList.remove("is-hidden");
+  els.bookEditImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function resetBookEditDraft() {
