@@ -620,5 +620,29 @@
       "occurrences": 2,
       "last_seen": "2026-05-12T05:42:24.454Z"
     }
+  ,{
+    "id": "bug-034",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "图片上传只支持拍照，无法从相册选取",
+    "file": "index.html",
+    "root_cause": "bookEditImageInput、bookImageInput、quoteImageInput 均带有 capture=\"environment\" 属性，强制调用相机，iOS Safari 不弹出相册选项",
+    "fix": "移除全部三处 capture=\"environment\" 属性；iOS Safari 上 accept=\"image/*\" 不带 capture 会自动弹出系统菜单（拍照 / 相册）",
+    "tags": ["image", "upload", "ios", "capture", "ux"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-05-13T00:00:00.000Z"
+  },
+  {
+    "id": "bug-035",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "拍照/选图后看不到预览图片",
+    "file": "app.js",
+    "root_cause": "预览 div 虽然移除了 is-hidden，但其位置在表单底部，dialog 内容较多时预览不在视口内，用户不知道需要向下滚动",
+    "fix": "在 renderImagePreview、renderBookImagePreview、renderBookEditImagePreview 三个函数中，显示预览后立即调用 scrollIntoView({ behavior: 'smooth', block: 'nearest' })",
+    "tags": ["image", "preview", "scroll", "ux"],
+    "related_bugs": ["bug-034"],
+    "occurrences": 1,
+    "last_seen": "2026-05-13T00:00:00.000Z"
+  }
   ]
 }

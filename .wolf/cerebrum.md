@@ -19,6 +19,12 @@
 
 - **[2026-05-12] `guess_base_url()` 支持 HTTPS。** 增加读取 `X-Forwarded-Proto` header，确保通过 ngrok/Cloudflare Tunnel 等反向代理时媒体文件 URL 能正确生成 `https://` 前缀。
 
+## Key Learnings
+
+- **[2026-05-13] `capture="environment"` 阻断相册访问。** 所有图片 input（quoteImageInput、bookImageInput、bookEditImageInput）不应带 `capture` 属性。iOS Safari 上 `accept="image/*"` 不带 capture 会弹出系统选择器（拍照 / 相册），带了 capture 则强制只走相机。
+
+- **[2026-05-13] 图片预览需要 scrollIntoView。** dialog 内容较多时，图片预览 div 在底部，用户不知道要向下滚。选图/拍照后应调用 `previewEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })`，让预览自动进入视口。
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
@@ -29,6 +35,8 @@
 - [2026-05-12] **Regression tests must execute real source via vm.runInNewContext.** Writing tests that simulate the fix logic themselves (without loading the actual JS file) always pass and catch nothing. Pattern: use `vm.runInNewContext(source, context)` as done in `chat-agent-approval.test.js` and `book-list-ordering-fix.test.js`. For CSS/HTML: read the real file and assert against its content. For `renderQuotes`, set `els.quoteFilter.value = "all"` in the test harness or all quotes get filtered out.
 
 - [2026-05-12] **opacity:0 + :hover is invisible on mobile touch devices.** Using `opacity:0` with `:hover` reveal for action buttons (e.g. `.card-delete-btn`) makes them permanently invisible on iPhone — there is no hover event. Fix: override to `opacity:1` inside `@media (max-width:768px)`.
+
+- [2026-05-13] **图片 input 禁止加 `capture="environment"`。** 这会在 iOS 上锁死到相机，无法选相册。正确做法：只写 `accept="image/*"`，让系统自己弹菜单。
 
 - [2026-05-12] **P1-003 was only partially fixed.** The original fix added a custom dialog for `deleteBook` but left `deleteSession`, `deleteQuote` (app.js), and `clearHistory` (chat.js) still calling native `window.confirm`/`confirm`. When fixing "replace native confirm" always grep all three files for remaining `confirm(` calls.
 
