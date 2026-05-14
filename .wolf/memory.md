@@ -119,3 +119,4 @@
 | 13:xx | fix P0: canvas resizeImageToDataUrl，修复图片预览+OCR 503，移除 picker.capture | app.js, log_server.py | 18/18 JS 测试通过 | ~400 |
 | 13:xx | fix: resizeImageToDataUrl 改用 FileReader 作为 Image 源（objectUrl 在 iOS HTTPS 下不可靠） | app.js | 18/18 测试通过 | ~200 |
 | 23:10 | 流式聊天：call_deepseek_stream + /api/chat/stream SSE 端点 + chat.js 用 fetch+ReadableStream 替换 apiFetch | log_server.py, app.js, chat.js, index.html | done, 版本号已升级到 20260513i | ~1200 |
+| 12:53 | 修复流式聊天：ReplyExtractor 提取 reply 字段 + .chat-bubble-loading 等待动画 | log_server.py, chat.js, styles.css, index.html | done, 已验证 | ~400 |

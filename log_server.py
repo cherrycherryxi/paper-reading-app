@@ -563,6 +563,50 @@ Action 结构只能是：
 5. 只输出 JSON，不要输出任何额外说明。"""
 
 
+class ReplyExtractor:
+    """Extracts the reply string from a streaming JSON response like {"reply": "...", "actions": [...]}.
+
+    Handles JSON escape sequences so the displayed text is unescaped.
+    """
+
+    _PREFIX = '"reply": "'
+
+    def __init__(self):
+        self._buf = ""
+        self._in_reply = False
+        self._escape = False
+        self._done = False
+
+    def feed(self, chunk: str) -> str:
+        if self._done:
+            return ""
+        out: list[str] = []
+        if not self._in_reply:
+            self._buf += chunk
+            if self._PREFIX in self._buf:
+                idx = self._buf.index(self._PREFIX) + len(self._PREFIX)
+                self._in_reply = True
+                self._process(self._buf[idx:], out)
+        else:
+            self._process(chunk, out)
+        return "".join(out)
+
+    def _process(self, text: str, out: list) -> None:
+        _ESCAPE_MAP = {'"': '"', "\\": "\\", "n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f"}
+        for ch in text:
+            if self._done:
+                break
+            if self._escape:
+                self._escape = False
+                out.append(_ESCAPE_MAP.get(ch, ch))
+            elif ch == "\\":
+                self._escape = True
+            elif ch == '"':
+                self._done = True
+            else:
+                out.append(ch)
+
+
 class ResponseParser:
     def parse(self, raw_output: str) -> ParseResult:
         text = (raw_output or "").strip()
@@ -1718,9 +1762,11 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 started_at = time.time()
                 full_reply = ""
+                extractor = ReplyExtractor()
                 for delta in call_deepseek_stream(request_messages):
                     full_reply += delta
-                    if not sse_write({"delta": delta}):
+                    reply_chunk = extractor.feed(delta)
+                    if reply_chunk and not sse_write({"delta": reply_chunk}):
                         break
                 latency_ms = int((time.time() - started_at) * 1000)
                 model_response = ModelResponse(

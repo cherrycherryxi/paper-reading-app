@@ -29,6 +29,10 @@
 
 - **[2026-05-13] 耗时操作应先关闭 dialog，在后台完成（背景保存模式）。** 如书籍封面上传：先更新内存 state + closeDialog + render()，再在 try/catch 里 await 图片上传 + syncState，完成后 showToast。用户不需要盯着 dialog 等待网络请求。
 
+- **[2026-05-14] 流式聊天时不能直接把模型 delta 发给前端显示。** 模型按系统提示输出 `{"reply": "...", "actions": [...]}` 格式，流式时 delta 是原始 JSON 文本。必须在后端用 `ReplyExtractor` 逐字符解析，只提取 `"reply"` 字段的内容才发 SSE delta 事件；完整 `full_reply`（原始 JSON）仍正常传给 `ResponseParser` 解析 actions。
+
+- **[2026-05-14] 流式等待状态用 CSS `.chat-bubble-loading` 类实现。** 发送后 assistant 气泡加 `.chat-bubble-loading`，`::after` 伪元素显示 `· · ·` 脉冲动画；收到第一个 delta 时 `classList.remove("chat-bubble-loading")`，动画即消失，文字开始显示。
+
 - **[2026-05-13] 渲染变更后务必更新测试中的 hardcoded 预期值。** 书名号加入 h3 后，`getRenderedTitles()` 的返回值也带了《》，测试里 `["三体"]` 要改成 `["《三体》"]`。规则：凡是断言渲染 DOM 内容的测试，修改渲染逻辑后必须同步更新预期值。
 
 - **[2026-05-13] 静态文件必须带 `Cache-Control: no-store` 响应头。** iPhone Safari 极度激进地缓存 JS 文件，不带缓存控制头时即使服务器重启也继续用旧版本。`log_server.py` 的静态文件路由要加 `Cache-Control: no-store, no-cache, must-revalidate` 和 `Pragma: no-cache`。同时在 `index.html` 的 `<script src="./app.js?v=YYYYMMDD">` 加版本号作为双重保险。

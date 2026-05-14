@@ -73,6 +73,7 @@
     els.input.value = "";
     appendBubble("user", text);
     const thinking = appendBubble("assistant", "");
+    thinking.classList.add("chat-bubble-loading");
     els.sendBtn.disabled = true;
 
     try {
@@ -116,6 +117,7 @@
           }
           if (evt.error) throw new Error(evt.error);
           if (evt.delta) {
+            thinking.classList.remove("chat-bubble-loading");
             thinking.textContent += evt.delta;
             els.messages.scrollTop = els.messages.scrollHeight;
           }

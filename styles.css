@@ -1055,6 +1055,18 @@ textarea {
   color: #b91c1c;
 }
 
+.chat-bubble-loading::after {
+  content: '· · ·';
+  display: inline-block;
+  letter-spacing: 3px;
+  animation: chat-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes chat-dot-pulse {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 1; }
+}
+
 .chat-bubble-system {
   align-self: center;
   max-width: 92%;
