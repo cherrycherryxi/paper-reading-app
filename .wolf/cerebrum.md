@@ -54,6 +54,16 @@
 
 - [2026-05-12] **P1-003 was only partially fixed.** The original fix added a custom dialog for `deleteBook` but left `deleteSession`, `deleteQuote` (app.js), and `clearHistory` (chat.js) still calling native `window.confirm`/`confirm`. When fixing "replace native confirm" always grep all three files for remaining `confirm(` calls.
 
+- **[2026-05-14] Design handoff applied from reading-handoff.zip.** Sage color theme: `--color-ink: #3d4a3f`, `--color-soft-accent: #e6ecd9`. Status chips use 3 distinct pastel palettes (wishlist=sage, reading=amber, finished=slate) with dot indicators. AI chat bubbles flipped to light (`#eef1e4` bg). Tab bar replaced emoji with inline SVG icons; active state fills SVG with `var(--color-soft-accent)`. Circle-action + button now soft sage with border. Books/session/quote filter bars restructured to put + button inline with search/select.
+
+- **[2026-05-14] `book-status-chip` needs `data-status` attribute for CSS-only status colors.** The chip is rendered in `app.js` at line 490. Added `data-status="${book.status}"` and a `.chip-dot.chip-dot--${book.status}` span. CSS then targets `.book-status-chip[data-status="reading"]` etc.
+
+- **[2026-05-14] 图片 URL 必须存相对路径，渲染时拼接 backendBaseUrl。** `log_server.py` 上传接口曾返回绝对 ngrok URL，存入 DB。ngrok 重启后旧 URL 全部失效。Fix：① 上传接口改为只返回 `save_image()` 的相对路径（如 `/media/<user-id>/<file>`）；② `app.js` 加 `resolveImageUrl(url)` helper，对 `/media/` 或 `/uploads/` 开头的路径前缀 `backendBaseUrl`，对含有 `/media/` 的绝对 URL（旧数据）用 regex 提取路径再拼接；③ 一次性 Python 脚本把 DB 里所有绝对 URL 迁移为相对路径。**凡是存图片 URL 到 DB 只存相对路径**，渲染层统一走 `resolveImageUrl()`。
+
+- **[2026-05-14] `chat.js` 的 `resetMessages()` 会覆盖 `index.html` 里的静态 HTML。** 每次切换书籍或初始化时 `resetMessages()` 用 `innerHTML` 重置消息区，`index.html` 里在 `.chat-welcome` 内写的装饰元素全部丢失。规则：凡是 `chat.js` 动态生成的 welcome 内容，**必须同步更新 `resetMessages()` 里的模板字符串**，不能只改 HTML。
+
+- **[2026-05-14] filter select → text search 重构模式。** 记录/摘抄/关联三个页面原来用 `<select>` 做 book 过滤，改为 `<input type="search">` + `input` 事件监听。渲染函数从读 `select.value`（精确 bookId）改为读 `input.value` 做 haystack 模糊匹配（书名 + 作者 + 笔记内容）。空搜索时 fallback 到默认行为（记录/关联：全量，摘抄：全部）。`els` 里对应条目同步更名（`sessionBookFilter` → `sessionSearch` 等）。
+
 ## Decision Log
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.

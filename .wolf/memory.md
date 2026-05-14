@@ -2,11 +2,20 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
 | 19:55 | Edited styles.css | 13→18 lines | ~131 |
 | 17:34 | 内网穿透改造：log_server.py 加静态文件 serve + guess_base_url 支持 X-Forwarded-Proto；index.html backendBaseUrl 改为 "" | log_server.py, index.html | done, 需重启进程 | ~800 |
 | 20:30 | 内网穿透完成验证：ngrok http 8787，所有静态文件和 API 均 200，方案归档至 cerebrum.md | .wolf/cerebrum.md, .wolf/memory.md | done | ~300 |
 | 19:56 | Edited styles.css | 15→16 lines | ~111 |
 | 19:56 | Edited chat.js | added 1 condition(s) | ~90 |
+
+## 2026-05-14 — Design Polish + Bug Fixes
+
+- **图片修复** `resolveImageUrl()` helper + DB 迁移：旧 ngrok 绝对 URL → 相对路径，`log_server.py` 上传接口改返回相对路径
+- **书单按钮** 换用 `card-action-btn` 样式，"去聊"加 `card-action-chat`（金色），去除 flex-wrap，加 border-top 分隔线
+- **搜索框统一** 记录/摘抄/关联页面：`<select>` 全部换为 `<input type="search">`，支持书名/作者/内容模糊搜索；摘抄卡片类型过滤改为 chip-strip
+- **App 标题** `<title>` 改为「🐛 又买了一本书」
+- **探讨空状态** 添加 5 个装饰气泡（CSS absolute + pill border-radius + 分层透明度），`chat.js resetMessages()` 同步更新
 
 ## 2026-05-11 — P0 Bug Sprint（3 fixes）
 
@@ -120,3 +129,156 @@
 | 13:xx | fix: resizeImageToDataUrl 改用 FileReader 作为 Image 源（objectUrl 在 iOS HTTPS 下不可靠） | app.js | 18/18 测试通过 | ~200 |
 | 23:10 | 流式聊天：call_deepseek_stream + /api/chat/stream SSE 端点 + chat.js 用 fetch+ReadableStream 替换 apiFetch | log_server.py, app.js, chat.js, index.html | done, 版本号已升级到 20260513i | ~1200 |
 | 12:53 | 修复流式聊天：ReplyExtractor 提取 reply 字段 + .chat-bubble-loading 等待动画 | log_server.py, chat.js, styles.css, index.html | done, 已验证 | ~400 |
+| 13:00 | Edited styles.css | expanded (+18 lines) | ~398 |
+| 13:00 | Edited styles.css | expanded (+57 lines) | ~656 |
+| 13:00 | Edited styles.css | CSS: flex-shrink | ~99 |
+| 13:00 | Edited styles.css | 5→5 lines | ~19 |
+| 13:00 | Edited styles.css | CSS: border | ~76 |
+| 13:00 | Edited styles.css | expanded (+17 lines) | ~214 |
+| 13:01 | Edited index.html | expanded (+15 lines) | ~538 |
+| 13:01 | Edited index.html | 6→6 lines | ~162 |
+| 13:01 | Edited app.js | inline fix | ~52 |
+| 13:01 | Edited styles.css | 18→18 lines | ~131 |
+| 13:01 | Edited styles.css | inline fix | ~19 |
+| 13:01 | Edited styles.css | 2→2 lines | ~35 |
+| 13:01 | Edited styles.css | CSS: font-weight, letter-spacing | ~87 |
+| 13:01 | Edited styles.css | 4→4 lines | ~19 |
+| 13:02 | Edited index.html | 12→10 lines | ~151 |
+| 13:02 | Edited index.html | 14→13 lines | ~180 |
+| 13:02 | Edited index.html | 15→18 lines | ~242 |
+| 13:02 | Edited styles.css | expanded (+9 lines) | ~53 |
+| 13:02 | Edited styles.css | expanded (+9 lines) | ~53 |
+| 13:02 | Edited styles.css | CSS: font-family, letter-spacing | ~82 |
+
+| 05:02 | Applied design handoff from reading/project — sage theme, SVG tab icons, status chip dots, inline +/search rows, warm gold accent, light AI chat bubbles | index.html, styles.css, app.js | success | ~2800 |
+| 13:03 | Session end: 20 writes across 3 files (styles.css, index.html, app.js) | 7 reads | ~38820 tok |
+
+## Session: 2026-05-14 14:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:23 | Edited app.js | 11→7 lines | ~106 |
+| 14:23 | Edited chat.js | inline fix | ~30 |
+| 14:23 | Edited styles.css | CSS: font-size, font-weight, border | ~142 |
+| 14:24 | Session end: 3 writes across 3 files (app.js, chat.js, styles.css) | 4 reads | ~37213 tok |
+| 14:30 | Created ../../.claude/plans/agent-federated-pony.md | — | ~1334 |
+| 15:11 | Edited log_server.py | 6→7 lines | ~35 |
+| 15:11 | Edited log_server.py | inline fix | ~26 |
+| 15:11 | Edited log_server.py | 7→11 lines | ~164 |
+| 15:11 | Edited log_server.py | modified str() | ~154 |
+| 15:12 | Edited log_server.py | expanded (+28 lines) | ~600 |
+| 15:12 | Edited index.html | expanded (+24 lines) | ~392 |
+| 15:12 | Edited index.html | 5→9 lines | ~221 |
+| 15:12 | Edited index.html | 5→9 lines | ~133 |
+| 15:13 | Edited index.html | 5→9 lines | ~158 |
+| 15:13 | Edited index.html | expanded (+69 lines) | ~840 |
+| 15:13 | Edited app.js | 6→7 lines | ~31 |
+| 15:13 | Edited app.js | expanded (+7 lines) | ~216 |
+| 15:13 | Edited app.js | added 1 condition(s) | ~84 |
+| 15:13 | Edited app.js | added optional chaining | ~1386 |
+| 15:14 | Edited app.js | 7→8 lines | ~58 |
+| 15:14 | Edited app.js | added 1 condition(s) | ~65 |
+| 15:14 | Edited styles.css | expanded (+171 lines) | ~1243 |
+| 15:16 | Edited app.js | added error handling | ~2324 |
+| 15:16 | Edited app.js | added 2 condition(s) | ~568 |
+| 15:16 | Edited app.js | added 2 condition(s) | ~382 |
+| 15:16 | Edited app.js | added optional chaining | ~373 |
+| 15:16 | Edited app.js | 7→8 lines | ~189 |
+| 15:16 | Edited app.js | 6→7 lines | ~146 |
+| 15:16 | Edited app.js | modified if() | ~185 |
+| 15:17 | Edited app.js | 6→7 lines | ~89 |
+| 15:17 | Edited app.js | 11→12 lines | ~162 |
+| 15:17 | Edited app.js | added optional chaining | ~88 |
+| 15:17 | Edited log_server.py | modified build_chat_prompt() | ~199 |
+| 15:18 | Edited log_server.py | modified build_system_instruction() | ~553 |
+| 15:18 | Edited chat.js | 2→3 lines | ~85 |
+| 15:18 | Edited app.js | 2→2 lines | ~50 |
+| 15:18 | Session end: 35 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~82182 tok |
+| 15:27 | Edited app.js | modified formatBookTitle() | ~37 |
+| 15:27 | Edited app.js | inline fix | ~22 |
+| 15:28 | Edited app.js | inline fix | ~14 |
+| 15:28 | Edited app.js | "《${book.title}》${book.aut" → "${book.title}${book.autho" | ~28 |
+| 15:28 | Edited app.js | "《${book.title}》" → "书籍详情" | ~17 |
+| 15:28 | Edited chat.js | "《${book.title}》" → "当前书籍" | ~13 |
+| 15:28 | Edited chat.js | inline fix | ~32 |
+| 15:28 | Session end: 42 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~82355 tok |
+| 15:31 | Session end: 42 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~82355 tok |
+| 16:01 | Edited app.js | inline fix | ~16 |
+| 16:01 | Edited app.js | inline fix | ~16 |
+| 16:01 | Edited app.js | inline fix | ~15 |
+| 16:01 | Edited app.js | 2→1 lines | ~22 |
+| 16:01 | Session end: 46 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~82424 tok |
+| 16:20 | Session end: 46 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~82636 tok |
+| 16:43 | Edited log_server.py | "- {" → "{" | ~60 |
+| 16:43 | Edited log_server.py | 1200 → 2400 | ~30 |
+| 16:43 | Session end: 48 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~82726 tok |
+| 16:47 | Edited log_server.py | 4→4 lines | ~56 |
+| 16:47 | Edited log_server.py | modified compress_chat_history_if_needed() | ~347 |
+| 16:48 | Edited log_server.py | 5→6 lines | ~142 |
+| 16:48 | Edited log_server.py | 7→8 lines | ~138 |
+| 16:48 | Session end: 52 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~83720 tok |
+| 17:09 | Edited styles.css | expanded (+16 lines) | ~124 |
+| 17:09 | Edited index.html | inline fix | ~36 |
+| 17:09 | Session end: 54 writes across 6 files (app.js, chat.js, styles.css, agent-federated-pony.md, log_server.py) | 5 reads | ~85111 tok |
+
+## Session: 2026-05-14 18:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:20 | Edited log_server.py | inline fix | ~12 |
+| 18:20 | Edited app.js | added 2 condition(s) | ~72 |
+| 18:20 | Edited app.js | inline fix | ~42 |
+| 18:20 | Edited app.js | modified formatBookTitle() | ~126 |
+| 18:20 | Edited app.js | modified formatBookTitle() | ~143 |
+| 18:21 | Edited app.js | inline fix | ~14 |
+| 18:21 | Edited app.js | 5→5 lines | ~92 |
+| 18:21 | Edited styles.css | CSS: background | ~54 |
+| 18:21 | Edited styles.css | CSS: padding-top, border-top | ~40 |
+| 18:21 | Session end: 9 writes across 3 files (log_server.py, app.js, styles.css) | 3 reads | ~63019 tok |
+| 18:39 | Edited app.js | added 1 condition(s) | ~124 |
+| 18:39 | Session end: 10 writes across 3 files (log_server.py, app.js, styles.css) | 3 reads | ~63143 tok |
+| 20:56 | Edited index.html | 8→8 lines | ~131 |
+| 20:56 | Edited index.html | 13→11 lines | ~212 |
+| 20:56 | Edited app.js | 2→2 lines | ~33 |
+| 20:56 | Edited app.js | added optional chaining | ~30 |
+| 20:56 | Edited app.js | expanded (+6 lines) | ~119 |
+| 20:56 | Edited styles.css | 9→9 lines | ~64 |
+| 20:57 | Edited styles.css | removed 14 lines | ~1 |
+| 20:57 | Session end: 17 writes across 4 files (log_server.py, app.js, styles.css, index.html) | 4 reads | ~70842 tok |
+
+## Session: 2026-05-14 21:28
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:21 | Edited ../../.claude/settings.json | expanded (+12 lines) | ~143 |
+| 22:21 | Session end: 1 writes across 1 files (settings.json) | 1 reads | ~584 tok |
+
+## Session: 2026-05-14 22:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:23 | Edited index.html | 3→1 lines | ~26 |
+| 22:23 | Edited app.js | "#sessionBookFilter" → "#sessionSearch" | ~17 |
+| 22:23 | Edited app.js | reduced (-9 lines) | ~140 |
+| 22:24 | Edited app.js | modified if() | ~196 |
+| 22:24 | Edited app.js | "change" → "input" | ~18 |
+| 22:24 | Session end: 5 writes across 2 files (index.html, app.js) | 2 reads | ~32956 tok |
+| 22:45 | Edited index.html | 3→1 lines | ~27 |
+| 22:45 | Edited app.js | "#connectionBookFilter" → "#connectionSearch" | ~19 |
+| 22:45 | Edited app.js | 2→1 lines | ~12 |
+| 22:45 | Edited app.js | modified if() | ~364 |
+| 22:45 | Edited app.js | 4→1 lines | ~20 |
+| 22:45 | Session end: 10 writes across 2 files (index.html, app.js) | 2 reads | ~33125 tok |
+| 22:52 | Session end: 10 writes across 2 files (index.html, app.js) | 2 reads | ~33125 tok |
+| 22:54 | Session end: 10 writes across 2 files (index.html, app.js) | 2 reads | ~33125 tok |
+| 22:57 | Session end: 10 writes across 2 files (index.html, app.js) | 2 reads | ~33125 tok |
+| 22:58 | Edited index.html | inline fix | ~8 |
+| 22:58 | Session end: 11 writes across 2 files (index.html, app.js) | 2 reads | ~33123 tok |
+| 23:08 | Session end: 11 writes across 2 files (index.html, app.js) | 2 reads | ~33123 tok |
+| 23:13 | Edited index.html | expanded (+7 lines) | ~112 |
+| 23:13 | Edited styles.css | expanded (+63 lines) | ~385 |
+| 23:14 | Session end: 13 writes across 3 files (index.html, app.js, styles.css) | 3 reads | ~43393 tok |
+| 23:27 | Edited chat.js | expanded (+7 lines) | ~109 |
+| 23:27 | Session end: 14 writes across 4 files (index.html, app.js, styles.css, chat.js) | 4 reads | ~46652 tok |
+| 23:29 | Edited styles.css | 51→49 lines | ~299 |
+| 23:29 | Session end: 15 writes across 4 files (index.html, app.js, styles.css, chat.js) | 4 reads | ~47311 tok |

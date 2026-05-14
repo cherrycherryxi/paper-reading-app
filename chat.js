@@ -20,7 +20,14 @@
 
   function resetMessages() {
     if (!els.messages) return;
-    els.messages.innerHTML = '<div class="chat-welcome">选择一本书，开始探讨。</div>';
+    els.messages.innerHTML = `<div class="chat-welcome">
+      <span class="chat-deco chat-deco--1"></span>
+      <span class="chat-deco chat-deco--2"></span>
+      <span class="chat-deco chat-deco--3"></span>
+      <span class="chat-deco chat-deco--4"></span>
+      <span class="chat-deco chat-deco--5"></span>
+      <span class="chat-welcome-text">选择一本书，开始探讨。</span>
+    </div>`;
   }
 
   function appendBubble(role, text) {
@@ -150,7 +157,7 @@
     const bookId = activeBookId();
     const books = window.paperReadingApp?.getState?.()?.books || [];
     const book = books.find((b) => b.id === bookId);
-    const scope = book ? `《${book.title}》` : "当前书籍";
+    const scope = book ? book.title : "当前书籍";
     window.paperReadingApp?.showConfirmDialog?.({
       message: `清空 ${scope} 的探讨记录？`,
       confirmLabel: "确认清空",
@@ -278,10 +285,11 @@
     const d = action.data || {};
     switch (action.type) {
       case 'add_note':    return `📝 新增笔记：${escapeHtml(String(d.content || ''))}`;
-      case 'add_book':    return `📚 加入书单：《${escapeHtml(String(d.title || ''))}》`;
+      case 'add_book':    return `📚 加入书单：${escapeHtml(String(d.title || '').replace(/^《+|》+$/g, '').trim())}`;
       case 'summary':     return `📌 生成阶段总结`;
       case 'question':    return `❓ 提出问题：${escapeHtml(String(d.content || ''))}`;
       case 'tag':         return `🏷 添加标签：${(d.tags || []).join('、')}`;
+      case 'link_thought': return `🔗 建立关联（${escapeHtml(String(d.kind || ''))}）：${escapeHtml(String(d.thought || '').slice(0, 40))}${String(d.thought || '').length > 40 ? '…' : ''}`;
       default:            return '未知操作';
     }
   }

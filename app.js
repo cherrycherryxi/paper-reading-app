@@ -5,6 +5,7 @@ const initialState = {
   sessions: [],
   quotes: [],
   chatHistories: {},
+  connections: [],
 };
 
 const statusMap = {
@@ -25,7 +26,7 @@ const els = {
   quoteForm: document.querySelector("#quoteForm"),
   registerForm: document.querySelector("#registerForm"),
   loginForm: document.querySelector("#loginForm"),
-  quoteFilter: document.querySelector("#quoteFilter"),
+  quoteTypeChips: document.querySelector("#quoteTypeChips"),
   quoteSearch: document.querySelector("#quoteSearch"),
   statusFilterChips: document.querySelector("#statusFilterChips"),
   booksResultCount: document.querySelector("#booksResultCount"),
@@ -36,7 +37,7 @@ const els = {
   logoutBtn: document.querySelector("#logoutBtn"),
   booksList: document.querySelector("#booksList"),
   timeline: document.querySelector("#timeline"),
-  sessionBookFilter: document.querySelector("#sessionBookFilter"),
+  sessionSearch: document.querySelector("#sessionSearch"),
   sessionStats: document.querySelector("#sessionStats"),
   quotesList: document.querySelector("#quotesList"),
   logsList: document.querySelector("#modelLogsList"),
@@ -91,6 +92,13 @@ const els = {
   openBookDialogBtn: document.querySelector("#openBookDialogBtn"),
   openSessionDialogBtn: document.querySelector("#openSessionDialogBtn"),
   openQuoteDialogBtn: document.querySelector("#openQuoteDialogBtn"),
+  openConnectionDialogBtn: document.querySelector("#openConnectionDialogBtn"),
+  connectionDialog: document.querySelector("#connectionDialog"),
+  connectionForm: document.querySelector("#connectionForm"),
+  connectionsList: document.querySelector("#connectionsList"),
+  connectionSearch: document.querySelector("#connectionSearch"),
+  connectionKindChips: document.querySelector("#connectionKindChips"),
+  quoteDetailConnectBtn: document.querySelector("#quoteDetailConnectBtn"),
   mobileTabs: document.querySelectorAll(".mobile-tab"),
 };
 
@@ -117,6 +125,20 @@ function getBackendBaseUrl() {
 
 function buildApiUrl(path) {
   return `${getBackendBaseUrl()}${path}`;
+}
+
+function resolveImageUrl(url) {
+  if (!url) return "";
+  // Relative path
+  if (url.startsWith("/media/") || url.startsWith("/uploads/")) {
+    return getBackendBaseUrl() + url;
+  }
+  // Absolute URL with possibly stale domain (e.g. old ngrok) — extract path from /media/ or /uploads/
+  const pathMatch = url.match(/(\/(?:media|uploads)\/.+)$/);
+  if (pathMatch) {
+    return getBackendBaseUrl() + pathMatch[1];
+  }
+  return url;
 }
 
 async function apiFetch(path, options = {}, requiresAuth = true) {
@@ -245,7 +267,7 @@ function normalizeBookTitle(raw) {
 // Wrap with book-title marks for display; strip any existing marks first
 function formatBookTitle(title) {
   const bare = String(title || "").replace(/^《+|》+$/g, "").trim();
-  return `《${escapeHtml(bare)}》`;
+  return escapeHtml(bare);
 }
 
 function getProgress(book) {
@@ -268,6 +290,93 @@ function getBookMetrics(bookId) {
 
 function getQuoteCount(bookId) {
   return state.quotes.filter((item) => item.bookId === bookId).length;
+}
+
+function getConnectionCount(itemId) {
+  return (state.connections || []).filter((c) => c.sourceId === itemId || c.targetId === itemId).length;
+}
+
+function resolveConnectionSide(type, id) {
+  if (type === "book") {
+    const book = state.books.find((b) => b.id === id);
+    return book ? { label: formatBookTitle(book.title), sub: book.author || "" } : { label: "（已删除）", sub: "" };
+  }
+  const quote = state.quotes.find((q) => q.id === id);
+  if (!quote) return { label: "（已删除）", sub: "" };
+  const book = state.books.find((b) => b.id === quote.bookId);
+  return { label: `"${(quote.content || "").slice(0, 36)}${quote.content?.length > 36 ? "…" : ""}"`, sub: book ? formatBookTitle(book.title) : "" };
+}
+
+const KIND_LABELS = { "异曲同工": "异曲同工", "引用": "引用", "对比": "对比", "影响": "影响", "延伸": "延伸" };
+
+function buildConnectionCard(conn) {
+  const src = resolveConnectionSide(conn.sourceType, conn.sourceId);
+  const tgt = resolveConnectionSide(conn.targetType, conn.targetId);
+  const kindLabel = KIND_LABELS[conn.kind] || conn.kind;
+  const tagsHtml = (conn.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+  return `<div class="connection-card" data-conn-id="${escapeHtml(conn.id)}">
+    <div class="connection-card-header">
+      <span class="connection-kind-badge" data-kind="${escapeHtml(conn.kind)}">${escapeHtml(kindLabel)}</span>
+      <button class="conn-delete-btn button-icon" type="button" aria-label="删除关联" data-conn-id="${escapeHtml(conn.id)}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="connection-sides">
+      <div class="connection-side">
+        <div class="connection-side-label">${escapeHtml(src.label)}</div>
+        ${src.sub ? `<div class="connection-side-sub">${escapeHtml(src.sub)}</div>` : ""}
+      </div>
+      <div class="connection-arrow">↔</div>
+      <div class="connection-side">
+        <div class="connection-side-label">${escapeHtml(tgt.label)}</div>
+        ${tgt.sub ? `<div class="connection-side-sub">${escapeHtml(tgt.sub)}</div>` : ""}
+      </div>
+    </div>
+    ${conn.thought ? `<div class="connection-thought">${escapeHtml(conn.thought)}</div>` : ""}
+    ${tagsHtml ? `<div class="connection-tags">${tagsHtml}</div>` : ""}
+    <div class="connection-meta">${formatDate(conn.createdAt)}</div>
+  </div>`;
+}
+
+let selectedConnectionKindFilter = "all";
+
+function renderConnections() {
+  connSourceBookComboWrap?._comboboxUpdate?.(state.books);
+  connTargetBookComboWrap?._comboboxUpdate?.(state.books);
+  connSourceQuoteComboWrap?._comboboxUpdate?.(state.quotes);
+  connTargetQuoteComboWrap?._comboboxUpdate?.(state.quotes);
+  if (!els.connectionsList) return;
+  const conns = state.connections || [];
+  const searchRaw = (els.connectionSearch?.value || "").trim().toLowerCase();
+  let filtered = conns;
+  if (selectedConnectionKindFilter && selectedConnectionKindFilter !== "all") {
+    filtered = filtered.filter((c) => c.kind === selectedConnectionKindFilter);
+  }
+  if (searchRaw) {
+    filtered = filtered.filter((c) => {
+      const getBookTitle = (type, id) => {
+        if (type === "book") return state.books.find((b) => b.id === id)?.title || "";
+        if (type === "quote") {
+          const q = state.quotes.find((q) => q.id === id);
+          return state.books.find((b) => b.id === q?.bookId)?.title || "";
+        }
+        return "";
+      };
+      const haystack = [
+        getBookTitle(c.sourceType, c.sourceId),
+        getBookTitle(c.targetType, c.targetId),
+        c.thought || "",
+      ].join(" ").toLowerCase();
+      return haystack.includes(searchRaw);
+    });
+  }
+  if (!filtered.length) {
+    els.connectionsList.className = "connections-list empty-state";
+    els.connectionsList.innerHTML = conns.length ? "当前筛选条件下没有关联。" : "还没有记录思想碰撞，点右上角 + 开始建立联系。";
+    return;
+  }
+  els.connectionsList.className = "connections-list";
+  els.connectionsList.innerHTML = filtered.map(buildConnectionCard).join("");
 }
 
 function requireAuth(actionText = "执行此操作") {
@@ -301,6 +410,9 @@ async function syncState() {
   if (!state.chatHistories) {
     state.chatHistories = {};
   }
+  if (!Array.isArray(state.connections)) {
+    state.connections = [];
+  }
 }
 
 async function loadSession() {
@@ -318,6 +430,9 @@ async function loadSession() {
     state = data.state || structuredClone(initialState);
     if (!state.chatHistories) {
       state.chatHistories = {};
+    }
+    if (!Array.isArray(state.connections)) {
+      state.connections = [];
     }
     await loadRemoteLogs();
   } catch {
@@ -466,7 +581,7 @@ function matchQuotes(query) {
 function buildBookSearchCard(book) {
   const progress = getProgress(book);
   const metrics = getBookMetrics(book.id);
-  const coverImage = book.coverImageUrl || state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "";
+  const coverImage = resolveImageUrl(book.coverImageUrl || state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
   const progressText =
     progress === null
       ? `已读到第 ${book.currentPage || 0} 页`
@@ -485,20 +600,21 @@ function buildBookSearchCard(book) {
       ${
         coverImage
           ? `<img src="${coverImage}" alt="${escapeHtml(book.title)}" />`
-          : `<div class="book-cover-fallback">${escapeHtml(book.title.slice(0, 2) || "书")}</div>`
+          : `<div class="book-cover-fallback"></div>`
       }
-      <span class="book-status-chip">${escapeHtml(statusMap[book.status] || book.status)}</span>
+      <span class="book-status-chip" data-status="${book.status}"><span class="chip-dot chip-dot--${book.status}"></span>${escapeHtml(statusMap[book.status] || book.status)}</span>
       <button class="book-delete-corner" type="button" title="删除书籍" aria-label="删除书籍">✖️</button>
     </div>
     <div class="book-grid-body">
       <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
-      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张</div>
+      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张${getConnectionCount(book.id) ? ` · 🔗 ${getConnectionCount(book.id)} 关联` : ""}</div>
       <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
       ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
       <div class="book-grid-actions">
-        <button class="button button-small button-ghost edit-book-button" type="button">编辑</button>
-        <button class="button button-small button-ghost chat-book-button" type="button">去聊</button>
+        <button class="card-action-btn edit-book-button" type="button">编辑</button>
+        <button class="card-action-btn card-action-chat chat-book-button" type="button">去聊</button>
+        <button class="card-action-btn connect-book-button" type="button">关联</button>
       </div>
     </div>
   `;
@@ -507,6 +623,7 @@ function buildBookSearchCard(book) {
     activateTab("chat");
     window.paperReadingApp?.switchChatToBook?.(book.id);
   });
+  card.querySelector(".connect-book-button").addEventListener("click", () => openConnectionDialog({ sourceType: "book", sourceId: book.id }));
   card.querySelector(".book-delete-corner").addEventListener("click", () => deleteBook(book.id));
   card.addEventListener("click", (event) => {
     if (event.target.closest("button")) return;
@@ -524,8 +641,8 @@ function buildQuoteSearchCard(quote) {
     <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
       ${
         quote.imageUrl
-          ? `<img src="${quote.imageUrl}" alt="摘抄照片" />`
-          : `<div class="entry-cover-fallback">${escapeHtml((book?.title || "摘抄").slice(0, 2))}</div>`
+          ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄照片" />`
+          : `<div class="entry-cover-fallback"></div>`
       }
       <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
     </div>
@@ -666,28 +783,19 @@ function renderTimeline() {
     return;
   }
 
-  // Populate book filter options
-  if (els.sessionBookFilter) {
-    const selectedBookId = els.sessionBookFilter.value;
-    const readBookIds = new Set(state.sessions.map((s) => s.bookId));
-    const booksWithSessions = state.books.filter((b) => readBookIds.has(b.id))
-      .sort((a, b) => a.title.localeCompare(b.title, "zh"));
-    els.sessionBookFilter.innerHTML =
-      `<option value="">全部书籍</option>` +
-      booksWithSessions.map((b) =>
-        `<option value="${escapeHtml(b.id)}"${b.id === selectedBookId ? " selected" : ""}>${escapeHtml(b.title)}</option>`
-      ).join("");
-  }
-
-  const filterBookId = els.sessionBookFilter?.value || "";
+  const searchRaw = (els.sessionSearch?.value || "").trim().toLowerCase();
   const allSorted = [...state.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  const sessions = filterBookId
-    ? allSorted.filter((s) => s.bookId === filterBookId)
+  const sessions = searchRaw
+    ? allSorted.filter((s) => {
+        const book = state.books.find((b) => b.id === s.bookId);
+        const haystack = [book?.title || "", book?.author || "", s.notes || ""].join(" ").toLowerCase();
+        return haystack.includes(searchRaw);
+      })
     : allSorted.slice(0, 10);
 
   // Stats bar
   if (els.sessionStats) {
-    if (filterBookId && sessions.length) {
+    if (searchRaw && sessions.length) {
       const totalMin = sessions.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
       const totalPages = sessions.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0);
       els.sessionStats.textContent = `${sessions.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
@@ -699,7 +807,7 @@ function renderTimeline() {
 
   if (!sessions.length) {
     els.timeline.className = "timeline empty-state";
-    els.timeline.textContent = filterBookId ? "这本书还没有阅读记录。" : "还没有阅读会话，点右上角加号记录一次。";
+    els.timeline.textContent = searchRaw ? "没有匹配的阅读记录。" : "还没有阅读会话，点右上角加号记录一次。";
     return;
   }
 
@@ -707,15 +815,10 @@ function renderTimeline() {
   els.timeline.innerHTML = sessions
     .map((session) => {
       const book = state.books.find((item) => item.id === session.bookId);
-      const coverImage = state.quotes.find((item) => item.bookId === session.bookId && item.imageUrl)?.imageUrl || "";
       return `
         <article class="session-grid-card" data-session-id="${escapeHtml(session.id)}">
-          <div class="entry-card-cover ${coverImage ? "has-image" : ""}">
-            ${
-              coverImage
-                ? `<img src="${coverImage}" alt="${escapeHtml(book?.title || "未知书籍")}" />`
-                : '<div class="entry-cover-fallback">🕐</div>'
-            }
+          <div class="entry-card-cover">
+            <div class="entry-cover-fallback"></div>
           </div>
           <div class="entry-card-body">
             <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
@@ -740,7 +843,7 @@ function renderQuotes() {
     return;
   }
 
-  const filter = els.quoteFilter.value;
+  const filter = els.quoteTypeChips?.querySelector('.filter-chip.active')?.dataset.quoteType || 'all';
   const searchRaw = (els.quoteSearch?.value || "").trim().toLowerCase();
   const quotes = [...state.quotes]
     .filter((item) => filter === "all" || item.kind === filter)
@@ -772,8 +875,8 @@ function renderQuotes() {
           <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
             ${
               quote.imageUrl
-                ? `<img src="${quote.imageUrl}" alt="摘抄照片" />`
-                : `<div class="entry-cover-fallback">${escapeHtml((book?.title || "摘抄").slice(0, 2))}</div>`
+                ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄照片" />`
+                : `<div class="entry-cover-fallback"></div>`
             }
             <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
@@ -899,6 +1002,7 @@ function render() {
   renderTimeline();
   renderQuotes();
   renderModelLogs();
+  renderConnections();
   renderBookSelect(els.sessionBookSelect);
   renderBookSelect(els.quoteBookSelect);
   renderOcrStatus();
@@ -1174,7 +1278,7 @@ function deleteBook(bookId) {
   if (!book) return;
 
   // Show custom confirmation dialog instead of native window.confirm
-  els.deleteBookMessage.textContent = `《${book.title}》`;
+  els.deleteBookMessage.textContent = book.title;
   els.deleteBookDialog.showModal();
 
   // Use one-shot listeners to avoid stacking up handlers
@@ -1182,12 +1286,17 @@ function deleteBook(bookId) {
     cleanup();
     els.deleteBookDialog.close();
 
+    const deletedQuoteIds = new Set(state.quotes.filter((q) => q.bookId === bookId).map((q) => q.id));
     state.books = state.books.filter((item) => item.id !== bookId);
     state.sessions = state.sessions.filter((item) => item.bookId !== bookId);
     state.quotes = state.quotes.filter((item) => item.bookId !== bookId);
     if (state.chatHistories && typeof state.chatHistories === "object") {
       delete state.chatHistories[bookId];
     }
+    state.connections = (state.connections || []).filter((c) =>
+      c.sourceId !== bookId && c.targetId !== bookId &&
+      !deletedQuoteIds.has(c.sourceId) && !deletedQuoteIds.has(c.targetId)
+    );
     try {
       await syncState();
       render();
@@ -1240,7 +1349,7 @@ function openQuoteDetail(quoteId) {
   const imgWrap = document.getElementById("quoteDetailImage");
   const img = document.getElementById("quoteDetailImg");
   if (quote.imageUrl) {
-    img.src = quote.imageUrl;
+    img.src = resolveImageUrl(quote.imageUrl);
     imgWrap.classList.remove("is-hidden");
   } else {
     imgWrap.classList.add("is-hidden");
@@ -1265,7 +1374,29 @@ function openQuoteDetail(quoteId) {
     editQuote(quoteId);
   };
 
-  document.getElementById("quoteDetailDialog").showModal();
+  const quoteDetailDlg = document.getElementById("quoteDetailDialog");
+  quoteDetailDlg.dataset.openQuoteId = quoteId;
+
+  const connsForQuote = (state.connections || []).filter((c) => c.sourceId === quoteId || c.targetId === quoteId);
+  const connWrap = document.getElementById("quoteDetailConnectionsWrap");
+  const connList = document.getElementById("quoteDetailConnections");
+  if (connsForQuote.length && connWrap && connList) {
+    connList.innerHTML = connsForQuote.map((c) => {
+      const otherId = c.sourceId === quoteId ? c.targetId : c.sourceId;
+      const otherType = c.sourceId === quoteId ? c.targetType : c.sourceType;
+      const other = resolveConnectionSide(otherType, otherId);
+      return `<div class="conn-mini-card">
+        <span class="conn-mini-kind" data-kind="${escapeHtml(c.kind)}">${escapeHtml(c.kind)}</span>
+        <div class="conn-mini-text">↔ ${escapeHtml(other.label)}</div>
+        ${other.sub ? `<div class="connection-side-sub">${escapeHtml(other.sub)}</div>` : ""}
+      </div>`;
+    }).join("");
+    connWrap.classList.remove("is-hidden");
+  } else if (connWrap) {
+    connWrap.classList.add("is-hidden");
+  }
+
+  quoteDetailDlg.showModal();
 }
 
 function editQuote(quoteId) {
@@ -1319,6 +1450,7 @@ async function deleteQuote(quoteId) {
     message: "确定删除这张摘抄卡片吗？",
     onConfirm: async () => {
       state.quotes = state.quotes.filter((item) => item.id !== quoteId);
+      state.connections = (state.connections || []).filter((c) => c.sourceId !== quoteId && c.targetId !== quoteId);
       try {
         await syncState();
         renderQuotes();
@@ -1360,7 +1492,7 @@ function openBookEditDialog(bookId) {
   els.bookEditForm.elements.currentPage.value = book.currentPage || 0;
   els.bookEditForm.elements.status.value = book.status || "wishlist";
   els.bookEditForm.elements.notes.value = book.notes || "";
-  els.bookEditDialogTitle.textContent = `《${book.title}》${book.author ? ` · ${book.author}` : ""}`;
+  els.bookEditDialogTitle.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
   if (book.coverImageUrl) {
     pendingBookEditImage = { name: "existing-cover", dataUrl: book.coverImageUrl };
     renderBookEditImagePreview();
@@ -1435,7 +1567,7 @@ function openBookDetailDialog(bookId) {
     .filter((item) => item.bookId === bookId)
     .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
-  els.bookDetailTitle.textContent = book.title ? `《${book.title}》` : "书籍详情";
+  els.bookDetailTitle.textContent = book.title || "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
@@ -1456,6 +1588,28 @@ function openBookDetailDialog(bookId) {
       )
       .join("");
   }
+  const bookConns = (state.connections || []).filter((c) =>
+    c.sourceId === bookId || c.targetId === bookId ||
+    (c.sourceType === "quote" && state.quotes.find((q) => q.id === c.sourceId)?.bookId === bookId) ||
+    (c.targetType === "quote" && state.quotes.find((q) => q.id === c.targetId)?.bookId === bookId)
+  );
+  const connWrap = document.getElementById("bookDetailConnectionsWrap");
+  const connList = document.getElementById("bookDetailConnections");
+  if (bookConns.length && connWrap && connList) {
+    connList.innerHTML = bookConns.map((c) => {
+      const srcSide = resolveConnectionSide(c.sourceType, c.sourceId);
+      const tgtSide = resolveConnectionSide(c.targetType, c.targetId);
+      return `<div class="conn-mini-card">
+        <span class="conn-mini-kind" data-kind="${escapeHtml(c.kind)}">${escapeHtml(c.kind)}</span>
+        <div class="conn-mini-text">${escapeHtml(srcSide.label)} ↔ ${escapeHtml(tgtSide.label)}</div>
+        ${c.thought ? `<div class="connection-side-sub">${escapeHtml(c.thought.slice(0, 60))}${c.thought.length > 60 ? "…" : ""}</div>` : ""}
+      </div>`;
+    }).join("");
+    connWrap.classList.remove("is-hidden");
+  } else if (connWrap) {
+    connWrap.classList.add("is-hidden");
+  }
+
   els.bookDetailDialog.showModal();
 }
 
@@ -1579,6 +1733,7 @@ function importData(file) {
             : Array.isArray(parsed.chatHistory)
               ? { "__general__": parsed.chatHistory }
               : {},
+        connections: Array.isArray(parsed.connections) ? parsed.connections : [],
       };
       await syncState();
       render();
@@ -1891,12 +2046,227 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   };
 }
 
+function initQuoteCombobox(wrapperEl, hiddenInput) {
+  if (!wrapperEl || !hiddenInput) return;
+  const textInput = wrapperEl.querySelector(".book-combobox-input");
+  const list = wrapperEl.querySelector(".book-combobox-list");
+  if (!textInput || !list) return;
+
+  let allQuotes = [];
+  let isOpen = false;
+
+  function quoteLabel(q) {
+    const book = state.books.find((b) => b.id === q.bookId);
+    const bookName = book ? book.title : "未知书籍";
+    const content = (q.content || "").slice(0, 32) + (q.content?.length > 32 ? "…" : "");
+    return `${bookName} · ${content}`;
+  }
+
+  function filteredQuotes(q) {
+    if (!q) return allQuotes.slice(0, 30);
+    const lower = q.toLowerCase();
+    return allQuotes.filter((item) => {
+      const book = state.books.find((b) => b.id === item.bookId);
+      return (item.content || "").toLowerCase().includes(lower) ||
+        (book?.title || "").toLowerCase().includes(lower);
+    }).slice(0, 30);
+  }
+
+  function positionList() {
+    const rect = textInput.getBoundingClientRect();
+    list.style.top = `${rect.bottom + 2}px`;
+    list.style.left = `${rect.left}px`;
+    list.style.width = `${rect.width}px`;
+  }
+
+  function buildList(q = "") {
+    const quotes = filteredQuotes(q);
+    list.innerHTML = "";
+    if (!quotes.length) {
+      const li = document.createElement("li");
+      li.className = "book-combobox-empty";
+      li.textContent = q ? "没有匹配的摘抄" : "暂无摘抄";
+      list.appendChild(li);
+      return;
+    }
+    quotes.forEach((quote) => {
+      const li = document.createElement("li");
+      li.className = "book-combobox-item" + (quote.id === hiddenInput.value ? " is-selected" : "");
+      li.style.cssText = "overflow:hidden;white-space:nowrap;text-overflow:ellipsis;";
+      li.textContent = quoteLabel(quote);
+      function doPick(e) { e.preventDefault(); pick(quote); }
+      li.addEventListener("mousedown", doPick);
+      li.addEventListener("touchstart", doPick, { passive: false });
+      list.appendChild(li);
+    });
+  }
+
+  function openList() {
+    buildList(textInput.value);
+    positionList();
+    list.classList.add("is-open");
+    isOpen = true;
+  }
+
+  function closeList() {
+    list.classList.remove("is-open");
+    isOpen = false;
+  }
+
+  function pick(quote) {
+    hiddenInput.value = quote.id;
+    textInput.value = quoteLabel(quote);
+    closeList();
+  }
+
+  textInput.addEventListener("focus", openList);
+  textInput.addEventListener("input", () => {
+    hiddenInput.value = "";
+    buildList(textInput.value);
+    if (!isOpen) openList();
+    else positionList();
+  });
+  textInput.addEventListener("blur", () => setTimeout(closeList, 200));
+
+  wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
+    if (isOpen) positionList();
+  }, { passive: true });
+
+  wrapperEl._comboboxUpdate = (quotes) => {
+    allQuotes = quotes;
+    if (isOpen) buildList(textInput.value);
+  };
+  wrapperEl._comboboxReset = () => {
+    textInput.value = "";
+    hiddenInput.value = "";
+    closeList();
+  };
+  wrapperEl._comboboxSetValue = (quoteId) => {
+    const quote = allQuotes.find((q) => q.id === quoteId);
+    hiddenInput.value = quoteId || "";
+    textInput.value = quote ? quoteLabel(quote) : "";
+  };
+}
+
+let connSourceBookComboWrap = null;
+let connSourceQuoteComboWrap = null;
+let connTargetBookComboWrap = null;
+let connTargetQuoteComboWrap = null;
+
+function openConnectionDialog({ sourceType, sourceId, targetType, targetId } = {}) {
+  if (!requireAuth("记录思想碰撞")) return;
+  document.getElementById("connectionId").value = "";
+  document.getElementById("connSourceType").value = sourceType || "book";
+  document.getElementById("connTargetType").value = targetType || "book";
+  connSourceBookComboWrap?._comboboxReset?.();
+  connSourceQuoteComboWrap?._comboboxReset?.();
+  connTargetBookComboWrap?._comboboxReset?.();
+  connTargetQuoteComboWrap?._comboboxReset?.();
+  els.connectionForm.querySelector('[name="thought"]').value = "";
+  els.connectionForm.querySelector('[name="tags"]').value = "";
+  toggleConnComboboxes("source", sourceType || "book");
+  toggleConnComboboxes("target", targetType || "book");
+  if (sourceType === "book" && sourceId) {
+    connSourceBookComboWrap?._comboboxSetValue?.(sourceId);
+  } else if (sourceType === "quote" && sourceId) {
+    connSourceQuoteComboWrap?._comboboxSetValue?.(sourceId);
+  }
+  if (targetType === "book" && targetId) {
+    connTargetBookComboWrap?._comboboxSetValue?.(targetId);
+  } else if (targetType === "quote" && targetId) {
+    connTargetQuoteComboWrap?._comboboxSetValue?.(targetId);
+  }
+  els.connectionDialog.showModal();
+}
+
+function toggleConnComboboxes(side, type) {
+  const bookWrap = document.getElementById(`conn${side.charAt(0).toUpperCase() + side.slice(1)}BookCombobox`);
+  const quoteWrap = document.getElementById(`conn${side.charAt(0).toUpperCase() + side.slice(1)}QuoteCombobox`);
+  if (!bookWrap || !quoteWrap) return;
+  if (type === "quote") {
+    bookWrap.classList.add("is-hidden");
+    quoteWrap.classList.remove("is-hidden");
+  } else {
+    bookWrap.classList.remove("is-hidden");
+    quoteWrap.classList.add("is-hidden");
+  }
+}
+
+async function addConnection(formData) {
+  if (!requireAuth("保存关联")) return;
+  const sourceType = String(formData.get("sourceType") || "book");
+  const targetType = String(formData.get("targetType") || "book");
+  const sourceId = sourceType === "quote"
+    ? String(formData.get("sourceQuoteId") || "").trim()
+    : String(formData.get("sourceId") || "").trim();
+  const targetId = targetType === "quote"
+    ? String(formData.get("targetQuoteId") || "").trim()
+    : String(formData.get("targetId") || "").trim();
+  const kind = String(formData.get("kind") || "延伸");
+  const thought = String(formData.get("thought") || "").trim();
+  const tagsRaw = String(formData.get("tags") || "").trim();
+
+  if (!sourceId) { showToast("请选择来源"); return; }
+  if (!targetId) { showToast("请选择目标"); return; }
+  if (sourceType === targetType && sourceId === targetId) { showToast("来源和目标不能相同"); return; }
+  if (!thought) { showToast("请填写你的想法"); return; }
+
+  const conn = {
+    id: `conn-${Date.now().toString(16)}${Math.random().toString(16).slice(2, 8)}`,
+    sourceType,
+    sourceId,
+    targetType,
+    targetId,
+    kind,
+    thought,
+    tags: tagsRaw ? tagsRaw.split(/[,，\s]+/).map((t) => t.trim()).filter(Boolean) : [],
+    createdAt: new Date().toISOString(),
+  };
+  state.connections = [conn, ...(state.connections || [])];
+  try {
+    await syncState();
+    closeDialog(els.connectionDialog);
+    render();
+    activateTab("connections");
+    showToast("关联已保存");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function deleteConnection(connId) {
+  if (!requireAuth("删除关联")) return;
+  showConfirmDialog({
+    message: "确定删除这条关联记录吗？",
+    onConfirm: async () => {
+      state.connections = (state.connections || []).filter((c) => c.id !== connId);
+      try {
+        await syncState();
+        renderConnections();
+        showToast("关联已删除");
+      } catch (error) {
+        showToast(error.message);
+      }
+    },
+  });
+}
+
 function bindEvents() {
   // Initialize book comboboxes for session and quote forms
   const sessionComboWrap = document.querySelector("#sessionBookCombobox");
   const quoteComboWrap = document.querySelector("#quoteBookCombobox");
   initBookCombobox(sessionComboWrap, els.sessionBookSelect, false);
   initBookCombobox(quoteComboWrap, els.quoteBookSelect, true);
+
+  // Initialize connection dialog comboboxes
+  connSourceBookComboWrap = document.querySelector("#connSourceBookCombobox");
+  connSourceQuoteComboWrap = document.querySelector("#connSourceQuoteCombobox");
+  connTargetBookComboWrap = document.querySelector("#connTargetBookCombobox");
+  connTargetQuoteComboWrap = document.querySelector("#connTargetQuoteCombobox");
+  initBookCombobox(connSourceBookComboWrap, document.getElementById("connSourceBookId"), true);
+  initBookCombobox(connTargetBookComboWrap, document.getElementById("connTargetBookId"), true);
+  initQuoteCombobox(connSourceQuoteComboWrap, document.getElementById("connSourceQuoteId"));
+  initQuoteCombobox(connTargetQuoteComboWrap, document.getElementById("connTargetQuoteId"));
 
   els.openBookDialogBtn?.addEventListener("click", () => {
     resetBookDraft();
@@ -1913,6 +2283,44 @@ function bindEvents() {
     document.getElementById("quoteId").value = "";
     quoteComboWrap?._comboboxReset?.();
     els.quoteDialog.showModal();
+  });
+
+  els.openConnectionDialogBtn?.addEventListener("click", () => openConnectionDialog());
+
+  els.connectionForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const btn = els.connectionForm.querySelector('[type="submit"]');
+    withSavingState(btn, "保存中…", () => addConnection(new FormData(els.connectionForm)));
+  });
+
+  document.getElementById("connSourceType")?.addEventListener("change", (e) => {
+    toggleConnComboboxes("source", e.target.value);
+  });
+  document.getElementById("connTargetType")?.addEventListener("change", (e) => {
+    toggleConnComboboxes("target", e.target.value);
+  });
+
+  els.connectionKindChips?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-kind-filter]");
+    if (!button) return;
+    selectedConnectionKindFilter = button.dataset.kindFilter;
+    els.connectionKindChips.querySelectorAll("[data-kind-filter]").forEach((item) => {
+      item.classList.toggle("active", item.dataset.kindFilter === selectedConnectionKindFilter);
+    });
+    renderConnections();
+  });
+
+  els.connectionSearch?.addEventListener("input", renderConnections);
+
+  els.connectionsList?.addEventListener("click", (event) => {
+    const delBtn = event.target.closest(".conn-delete-btn");
+    if (delBtn) { event.stopPropagation(); deleteConnection(delBtn.dataset.connId); }
+  });
+
+  els.quoteDetailConnectBtn?.addEventListener("click", () => {
+    const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
+    document.getElementById("quoteDetailDialog").close();
+    openConnectionDialog({ sourceType: "quote", sourceId: quoteId });
   });
 
   els.mobileTabs.forEach((button) => {
@@ -1957,9 +2365,15 @@ function bindEvents() {
   els.logoutBtn?.addEventListener("click", logout);
   els.exportButton?.addEventListener("click", exportData);
   els.clearLogsBtn?.addEventListener("click", clearLogs);
-  els.sessionBookFilter?.addEventListener("change", renderTimeline);
-  els.quoteFilter?.addEventListener("change", renderQuotes);
+  els.sessionSearch?.addEventListener("input", renderTimeline);
   els.quoteSearch?.addEventListener("input", renderQuotes);
+  els.quoteTypeChips?.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      els.quoteTypeChips.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderQuotes();
+    });
+  });
 
   // Auth tab toggle (Fix 5)
   document.querySelectorAll(".auth-tab-btn").forEach((btn) => {
