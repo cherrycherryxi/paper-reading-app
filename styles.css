@@ -333,6 +333,12 @@ label span,
   border-color: var(--color-tag-bg);
 }
 
+.book-tag-more {
+  background: transparent;
+  color: var(--color-ink-muted);
+  border-color: var(--color-border);
+}
+
 .books-meta-row {
   margin-top: 12px;
   font-size: 14px;
@@ -505,6 +511,30 @@ textarea {
   background: var(--color-surface-alt);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.session-filter-bar {
+  margin-bottom: 8px;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.session-stats {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-primary);
+  margin-bottom: 4px;
 }
 
 .book-list,
@@ -852,9 +882,92 @@ textarea {
   margin: 0;
 }
 
+.book-combobox {
+  position: relative;
+}
+
+.book-combobox-list {
+  position: fixed;
+  z-index: 500;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  max-height: 220px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  display: none;
+}
+
+.book-combobox-list.is-open {
+  display: block;
+}
+
+.book-combobox-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.book-combobox-item:active,
+.book-combobox-item.is-selected {
+  background: var(--color-bg);
+}
+
+.book-combobox-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--color-ink-muted);
+  background: var(--color-bg);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+}
+
+.book-combobox-empty {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: var(--color-ink-muted);
+}
+
+.quote-detail-content {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: var(--text-md);
+  color: var(--color-ink);
+}
+
+.quote-detail-reflection {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  padding: 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.quote-detail-tags {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.quote-grid-card {
+  cursor: pointer;
+}
+
 .quote-image-wrap,
 .image-preview {
-  overflow: hidden;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -865,6 +978,7 @@ textarea {
   display: block;
   width: 100%;
   height: auto;
+  border-radius: var(--radius-md);
 }
 
 .chat-panel {

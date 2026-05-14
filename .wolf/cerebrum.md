@@ -25,6 +25,14 @@
 
 - **[2026-05-13] 图片预览需要 scrollIntoView。** dialog 内容较多时，图片预览 div 在底部，用户不知道要向下滚。选图/拍照后应调用 `previewEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })`，让预览自动进入视口。
 
+- **[2026-05-13] iOS Safari 无法渲染超大 data URL 作为 img.src（静默失败，0 高度）。** iPhone 照片 base64 可达 10MB+，img.src 不报错但图片不显示。`URL.createObjectURL` 在 ngrok HTTPS 下也有时失败。**正确做法（已验证）：** 用 `resizeImageToDataUrl(file, maxPx=1200, quality=0.85)` —— 内部先 FileReader 读取原始 dataUrl，再用 `new Image()` 离屏解码（不渲染到 DOM），canvas 缩放后导出 JPEG data URL（~100-300KB）。pendingXxxImage 结构只需 `{ name, dataUrl }`，render preview 函数直接用 `dataUrl`。**永远不要**在 img.src 用原始大 base64 或直接 objectUrl（ngrok 不可靠）。不要用 objectUrl 作为 Image.src 的源，因为在某些 iOS HTTPS 环境下会静默失败。
+
+- **[2026-05-13] 耗时操作应先关闭 dialog，在后台完成（背景保存模式）。** 如书籍封面上传：先更新内存 state + closeDialog + render()，再在 try/catch 里 await 图片上传 + syncState，完成后 showToast。用户不需要盯着 dialog 等待网络请求。
+
+- **[2026-05-13] 渲染变更后务必更新测试中的 hardcoded 预期值。** 书名号加入 h3 后，`getRenderedTitles()` 的返回值也带了《》，测试里 `["三体"]` 要改成 `["《三体》"]`。规则：凡是断言渲染 DOM 内容的测试，修改渲染逻辑后必须同步更新预期值。
+
+- **[2026-05-13] 静态文件必须带 `Cache-Control: no-store` 响应头。** iPhone Safari 极度激进地缓存 JS 文件，不带缓存控制头时即使服务器重启也继续用旧版本。`log_server.py` 的静态文件路由要加 `Cache-Control: no-store, no-cache, must-revalidate` 和 `Pragma: no-cache`。同时在 `index.html` 的 `<script src="./app.js?v=YYYYMMDD">` 加版本号作为双重保险。
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
@@ -37,6 +45,8 @@
 - [2026-05-12] **opacity:0 + :hover is invisible on mobile touch devices.** Using `opacity:0` with `:hover` reveal for action buttons (e.g. `.card-delete-btn`) makes them permanently invisible on iPhone — there is no hover event. Fix: override to `opacity:1` inside `@media (max-width:768px)`.
 
 - [2026-05-13] **图片 input 禁止加 `capture="environment"`。** 这会在 iOS 上锁死到相机，无法选相册。正确做法：只写 `accept="image/*"`，让系统自己弹菜单。
+
+- [2026-05-13] **CSS Edit 时必须完整匹配多选择器规则块的全部选择器。** 例如原 CSS 是 `.book-list, .timeline, .quote-list, .logs-list { display: grid }` 四个选择器合并一组，用 `old_string` 只匹配了 `.timeline, .quote-list, .logs-list { ... }` 部分，导致 `.book-list,` 被甩出去挂到下一条规则上，`.book-list` 失去 `display: grid` 变成单列。规则：Edit 前必须先 Read 目标区域，**确认 old_string 包含完整的选择器列表**；凡是涉及 CSS 规则块的插入/替换，验证前后的选择器分组没有被拆散。
 
 - [2026-05-12] **P1-003 was only partially fixed.** The original fix added a custom dialog for `deleteBook` but left `deleteSession`, `deleteQuote` (app.js), and `clearHistory` (chat.js) still calling native `window.confirm`/`confirm`. When fixing "replace native confirm" always grep all three files for remaining `confirm(` calls.
 

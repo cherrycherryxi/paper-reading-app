@@ -72,35 +72,68 @@
 
     els.input.value = "";
     appendBubble("user", text);
-    const thinking = appendBubble("assistant", "…");
+    const thinking = appendBubble("assistant", "");
     els.sendBtn.disabled = true;
 
     try {
-      const payload = await window.paperReadingApp.apiFetch(
-        "/api/chat",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            bookId: els.bookSelect?.value || "",
-            message: text,
-          }),
+      const url = window.paperReadingApp.buildApiUrl("/api/chat/stream");
+      const token = window.paperReadingApp.getAuthToken();
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        true
-      );
+        body: JSON.stringify({
+          bookId: els.bookSelect?.value || "",
+          message: text,
+        }),
+      });
 
-      const bookId = activeBookId();
-      history = Array.isArray(payload.history) ? payload.history : [];
-      const actions = Array.isArray(payload.actions) ? payload.actions : [];
-      window.paperReadingApp.setChatHistoryForBook(bookId, history);
-      thinking.textContent = payload.reply || "";
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
 
-      // 问题3修复：发完消息后立即刷新日志
-      await window.paperReadingApp.loadRemoteLogs?.();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalPayload = null;
 
-      // 有 action 才弹确认卡片
-      if (actions.length > 0) {
-        handleAgentActions(actions);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.trim().startsWith("data: ")) continue;
+          let evt;
+          try {
+            evt = JSON.parse(line.trim().slice(6));
+          } catch {
+            continue;
+          }
+          if (evt.error) throw new Error(evt.error);
+          if (evt.delta) {
+            thinking.textContent += evt.delta;
+            els.messages.scrollTop = els.messages.scrollHeight;
+          }
+          if (evt.done) {
+            finalPayload = evt;
+          }
+        }
+      }
+
+      if (finalPayload) {
+        const bookId = activeBookId();
+        history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
+        const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
+        window.paperReadingApp.setChatHistoryForBook(bookId, history);
+        await window.paperReadingApp.loadRemoteLogs?.();
+        if (actions.length > 0) {
+          handleAgentActions(actions);
+        }
       }
     } catch (error) {
       thinking.textContent = `出错了：${error.message}`;
@@ -112,8 +145,12 @@
   }
 
   function clearHistory() {
+    const bookId = activeBookId();
+    const books = window.paperReadingApp?.getState?.()?.books || [];
+    const book = books.find((b) => b.id === bookId);
+    const scope = book ? `《${book.title}》` : "当前书籍";
     window.paperReadingApp?.showConfirmDialog?.({
-      message: "清空当前账号下的探讨记录？",
+      message: `清空 ${scope} 的探讨记录？`,
       confirmLabel: "确认清空",
       onConfirm: async () => {
         await window.paperReadingApp?.clearChatHistory?.();

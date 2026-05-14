@@ -103,3 +103,19 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 11:56 | fix: 图片预览改用 URL.createObjectURL，saveBookEdit 改为后台保存 | app.js | 修复 iOS 大图 data URL 无法预览 + 对话框立即关闭 | ~500 |
+
+## Session: 2026-05-13 12:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:xx | feat P1: 书籍搜索 combobox（记录+摘抄表单），探讨清空按钮+切 tab 滚到底部 | index.html, app.js, styles.css | done |  ~800 |
+
+## Session: 2026-05-13 13:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:xx | feat P2: 书名号统一、标签折叠(+N)、摘抄表单字段顺序调整 | app.js, index.html, styles.css, 2 test files | 全部测试通过 | ~600 |
+| 13:xx | fix P0: canvas resizeImageToDataUrl，修复图片预览+OCR 503，移除 picker.capture | app.js, log_server.py | 18/18 JS 测试通过 | ~400 |
+| 13:xx | fix: resizeImageToDataUrl 改用 FileReader 作为 Image 源（objectUrl 在 iOS HTTPS 下不可靠） | app.js | 18/18 测试通过 | ~200 |
+| 23:10 | 流式聊天：call_deepseek_stream + /api/chat/stream SSE 端点 + chat.js 用 fetch+ReadableStream 替换 apiFetch | log_server.py, app.js, chat.js, index.html | done, 版本号已升级到 20260513i | ~1200 |

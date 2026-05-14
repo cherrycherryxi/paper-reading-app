@@ -36,6 +36,8 @@ const els = {
   logoutBtn: document.querySelector("#logoutBtn"),
   booksList: document.querySelector("#booksList"),
   timeline: document.querySelector("#timeline"),
+  sessionBookFilter: document.querySelector("#sessionBookFilter"),
+  sessionStats: document.querySelector("#sessionStats"),
   quotesList: document.querySelector("#quotesList"),
   logsList: document.querySelector("#modelLogsList"),
   meSummary: document.querySelector("#meSummary"),
@@ -235,6 +237,17 @@ function escapeHtml(text) {
     .replaceAll("'", "&#39;");
 }
 
+// Strip leading/trailing 《》 so storage is always bare title
+function normalizeBookTitle(raw) {
+  return String(raw).trim().replace(/^《+|》+$/g, "").trim();
+}
+
+// Wrap with book-title marks for display; strip any existing marks first
+function formatBookTitle(title) {
+  const bare = String(title || "").replace(/^《+|》+$/g, "").trim();
+  return `《${escapeHtml(bare)}》`;
+}
+
 function getProgress(book) {
   if (!book.totalPages) return null;
   return Math.max(0, Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100)));
@@ -387,16 +400,10 @@ function renderAuthPanels() {
   els.profileStatusPill.textContent = "服务器模式";
 }
 
-function renderBookSelect(selectEl, includeWishlist = false) {
-  if (!selectEl) return;
-  const books = state.books.filter((book) => includeWishlist || book.status !== "wishlist");
-  selectEl.innerHTML = '<option value="">请选择一本书</option>';
-  books.forEach((book) => {
-    const option = document.createElement("option");
-    option.value = book.id;
-    option.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
-    selectEl.appendChild(option);
-  });
+function renderBookSelect(hiddenInput) {
+  if (!hiddenInput) return;
+  const wrap = hiddenInput.closest?.(".book-combobox");
+  wrap?._comboboxUpdate?.(state.books);
 }
 
 function renderTagFilterChips() {
@@ -465,8 +472,10 @@ function buildBookSearchCard(book) {
       ? `已读到第 ${book.currentPage || 0} 页`
       : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
 
+  const MAX_TAGS = 3;
   const tags = Array.isArray(book.tags) && book.tags.length
-    ? book.tags.map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("")
+    ? book.tags.slice(0, MAX_TAGS).map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("") +
+      (book.tags.length > MAX_TAGS ? `<span class="book-tag-chip book-tag-more">+${book.tags.length - MAX_TAGS}</span>` : "")
     : "";
 
   const card = document.createElement("article");
@@ -482,7 +491,7 @@ function buildBookSearchCard(book) {
       <button class="book-delete-corner" type="button" title="删除书籍" aria-label="删除书籍">✖️</button>
     </div>
     <div class="book-grid-body">
-      <h3>${escapeHtml(book.title)}</h3>
+      <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
       <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张</div>
       <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
@@ -521,7 +530,7 @@ function buildQuoteSearchCard(quote) {
       <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
     </div>
     <div class="entry-card-body">
-      <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
+      <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
       <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
       <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content || "")}</p>
       <p class="entry-card-tags">${tagsText}</p>
@@ -653,16 +662,44 @@ function renderTimeline() {
   if (!currentUser?.id) {
     els.timeline.className = "timeline empty-state";
     els.timeline.textContent = "登录后，这里会显示最近阅读情况。";
+    if (els.sessionStats) els.sessionStats.classList.add("is-hidden");
     return;
   }
 
-  const sessions = [...state.sessions]
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-    .slice(0, 10);
+  // Populate book filter options
+  if (els.sessionBookFilter) {
+    const selectedBookId = els.sessionBookFilter.value;
+    const readBookIds = new Set(state.sessions.map((s) => s.bookId));
+    const booksWithSessions = state.books.filter((b) => readBookIds.has(b.id))
+      .sort((a, b) => a.title.localeCompare(b.title, "zh"));
+    els.sessionBookFilter.innerHTML =
+      `<option value="">全部书籍</option>` +
+      booksWithSessions.map((b) =>
+        `<option value="${escapeHtml(b.id)}"${b.id === selectedBookId ? " selected" : ""}>${escapeHtml(b.title)}</option>`
+      ).join("");
+  }
+
+  const filterBookId = els.sessionBookFilter?.value || "";
+  const allSorted = [...state.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const sessions = filterBookId
+    ? allSorted.filter((s) => s.bookId === filterBookId)
+    : allSorted.slice(0, 10);
+
+  // Stats bar
+  if (els.sessionStats) {
+    if (filterBookId && sessions.length) {
+      const totalMin = sessions.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
+      const totalPages = sessions.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0);
+      els.sessionStats.textContent = `${sessions.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
+      els.sessionStats.classList.remove("is-hidden");
+    } else {
+      els.sessionStats.classList.add("is-hidden");
+    }
+  }
 
   if (!sessions.length) {
     els.timeline.className = "timeline empty-state";
-    els.timeline.textContent = "还没有阅读会话，点右上角加号记录一次。";
+    els.timeline.textContent = filterBookId ? "这本书还没有阅读记录。" : "还没有阅读会话，点右上角加号记录一次。";
     return;
   }
 
@@ -681,8 +718,8 @@ function renderTimeline() {
             }
           </div>
           <div class="entry-card-body">
-            <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
-            <p class="entry-card-meta">📖 ${session.startPage}-${session.endPage} 页</p>
+            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
+            <p class="entry-card-meta">📖 ${session.startPage}–${session.endPage} 页</p>
             <p class="entry-card-meta">⏱ ${session.minutes} 分钟 · ${formatDate(session.date)}</p>
             <p class="entry-card-note">${escapeHtml(session.note || "无笔记")}</p>
             <div class="entry-card-actions">
@@ -741,7 +778,7 @@ function renderQuotes() {
             <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">
-            <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
+            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
             <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content)}</p>
             <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}</p>
@@ -825,25 +862,29 @@ function renderOcrStatus() {
 }
 
 function renderImagePreview() {
-  if (!pendingQuoteImage) {
+  const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl;
+  if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
     els.quotePreviewImg.removeAttribute("src");
     return;
   }
-  els.quotePreviewImg.src = pendingQuoteImage.dataUrl;
+  els.quotePreviewImg.onload = () =>
+    els.quoteImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  els.quotePreviewImg.src = src;
   els.quoteImagePreview.classList.remove("is-hidden");
-  els.quoteImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function renderBookImagePreview() {
-  if (!pendingBookImage) {
+  const src = pendingBookImage?.objectUrl || pendingBookImage?.dataUrl;
+  if (!src) {
     els.bookImagePreview?.classList.add("is-hidden");
     els.bookPreviewImg?.removeAttribute("src");
     return;
   }
-  els.bookPreviewImg.src = pendingBookImage.dataUrl;
+  els.bookPreviewImg.onload = () =>
+    els.bookImagePreview?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  els.bookPreviewImg.src = src;
   els.bookImagePreview.classList.remove("is-hidden");
-  els.bookImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function render() {
@@ -859,7 +900,7 @@ function render() {
   renderQuotes();
   renderModelLogs();
   renderBookSelect(els.sessionBookSelect);
-  renderBookSelect(els.quoteBookSelect, true);
+  renderBookSelect(els.quoteBookSelect);
   renderOcrStatus();
   renderImagePreview();
   renderBookImagePreview();
@@ -883,6 +924,11 @@ function activateTab(tabName) {
   });
   if (tabName === "chat" && typeof window.populateChatBookSelect === "function") {
     window.populateChatBookSelect();
+    // Scroll to latest message after panel becomes visible
+    requestAnimationFrame(() => {
+      const msgs = document.querySelector("#chatMessages");
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    });
   }
 }
 
@@ -961,7 +1007,7 @@ async function logout() {
 }
 
 async function uploadImageIfNeeded() {
-  if (!pendingQuoteImage) return "";
+  if (!pendingQuoteImage || !pendingQuoteImage.dataUrl) return "";
   const payload = await apiFetch(
     "/api/upload-image",
     {
@@ -978,7 +1024,7 @@ async function uploadImageIfNeeded() {
 }
 
 async function uploadBookImageIfNeeded() {
-  if (!pendingBookImage) return "";
+  if (!pendingBookImage || !pendingBookImage.dataUrl) return "";
   const payload = await apiFetch(
     "/api/upload-image",
     {
@@ -995,12 +1041,15 @@ async function uploadBookImageIfNeeded() {
 }
 
 function resetQuoteDraft() {
+  if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   pendingQuoteImage = null;
   els.quoteForm.reset();
+  document.querySelector("#quoteBookCombobox")?._comboboxReset?.();
   renderImagePreview();
 }
 
 function resetBookDraft() {
+  if (pendingBookImage?.objectUrl) URL.revokeObjectURL(pendingBookImage.objectUrl);
   pendingBookImage = null;
   els.bookForm.reset();
   renderBookImagePreview();
@@ -1023,7 +1072,7 @@ async function addBook(formData) {
     const coverImageUrl = await uploadBookImageIfNeeded();
     state.books.unshift({
       id: createId("book"),
-      title: String(formData.get("title")).trim(),
+      title: normalizeBookTitle(formData.get("title")),
       author: String(formData.get("author")).trim(),
       totalPages,
       currentPage,
@@ -1168,6 +1217,7 @@ function editSession(sessionId) {
   if (!session) return;
   document.getElementById("sessionId").value = session.id;
   els.sessionForm.querySelector('[name="bookId"]').value = session.bookId;
+  document.querySelector("#sessionBookCombobox")?._comboboxSetValue?.(session.bookId);
   els.sessionForm.querySelector('[name="startPage"]').value = session.startPage;
   els.sessionForm.querySelector('[name="endPage"]').value = session.endPage;
   els.sessionForm.querySelector('[name="minutes"]').value = session.minutes;
@@ -1177,12 +1227,54 @@ function editSession(sessionId) {
   els.sessionDialog.showModal();
 }
 
+function openQuoteDetail(quoteId) {
+  const quote = state.quotes.find((q) => q.id === quoteId);
+  if (!quote) return;
+  const book = state.books.find((b) => b.id === quote.bookId);
+
+  document.getElementById("quoteDetailBook").textContent =
+    book ? `${formatBookTitle(book.title)} · ${book.author || ""}`.trim().replace(/·\s*$/, "") : "未知书籍";
+  document.getElementById("quoteDetailMeta").textContent =
+    `${quoteKindMap[quote.kind] || "摘抄"} · 第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}`;
+
+  const imgWrap = document.getElementById("quoteDetailImage");
+  const img = document.getElementById("quoteDetailImg");
+  if (quote.imageUrl) {
+    img.src = quote.imageUrl;
+    imgWrap.classList.remove("is-hidden");
+  } else {
+    imgWrap.classList.add("is-hidden");
+    img.removeAttribute("src");
+  }
+
+  document.getElementById("quoteDetailContent").textContent = quote.content || "";
+
+  const reflEl = document.getElementById("quoteDetailReflection");
+  if (quote.reflection) {
+    reflEl.textContent = quote.reflection;
+    reflEl.classList.remove("is-hidden");
+  } else {
+    reflEl.classList.add("is-hidden");
+  }
+
+  const tagsEl = document.getElementById("quoteDetailTags");
+  tagsEl.textContent = quote.tags?.length ? quote.tags.join(" / ") : "";
+
+  document.getElementById("quoteDetailEditBtn").onclick = () => {
+    document.getElementById("quoteDetailDialog").close();
+    editQuote(quoteId);
+  };
+
+  document.getElementById("quoteDetailDialog").showModal();
+}
+
 function editQuote(quoteId) {
   if (!requireAuth("编辑摘抄")) return;
   const quote = state.quotes.find((q) => q.id === quoteId);
   if (!quote) return;
   document.getElementById("quoteId").value = quote.id;
   els.quoteForm.querySelector('[name="bookId"]').value = quote.bookId;
+  document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(quote.bookId);
   els.quoteForm.querySelector('[name="page"]').value = quote.page || "";
   els.quoteForm.querySelector('[name="kind"]').value = quote.kind || "quote";
   els.quoteForm.querySelector('[name="tags"]').value = (quote.tags || []).join(", ");
@@ -1239,14 +1331,16 @@ async function deleteQuote(quoteId) {
 }
 
 function renderBookEditImagePreview() {
-  if (!pendingBookEditImage) {
+  const src = pendingBookEditImage?.objectUrl || pendingBookEditImage?.dataUrl;
+  if (!src) {
     els.bookEditImagePreview?.classList.add("is-hidden");
     els.bookEditPreviewImg?.removeAttribute("src");
     return;
   }
-  els.bookEditPreviewImg.src = pendingBookEditImage.dataUrl;
+  els.bookEditPreviewImg.onload = () =>
+    els.bookEditImagePreview?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  els.bookEditPreviewImg.src = src;
   els.bookEditImagePreview.classList.remove("is-hidden");
-  els.bookEditImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function resetBookEditDraft() {
@@ -1266,7 +1360,7 @@ function openBookEditDialog(bookId) {
   els.bookEditForm.elements.currentPage.value = book.currentPage || 0;
   els.bookEditForm.elements.status.value = book.status || "wishlist";
   els.bookEditForm.elements.notes.value = book.notes || "";
-  els.bookEditDialogTitle.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
+  els.bookEditDialogTitle.textContent = `《${book.title}》${book.author ? ` · ${book.author}` : ""}`;
   if (book.coverImageUrl) {
     pendingBookEditImage = { name: "existing-cover", dataUrl: book.coverImageUrl };
     renderBookEditImagePreview();
@@ -1286,46 +1380,48 @@ async function saveBookEdit(formData) {
     return;
   }
 
+  // Update in-memory state immediately
+  book.currentPage = currentPage;
+  book.status = String(formData.get("status"));
+  book.notes = String(formData.get("notes")).trim();
+  book.tags = Array.isArray(book.tags) ? book.tags : [];
+  book.updatedAt = new Date().toISOString();
+  if (book.status === "reading" || book.status === "finished") {
+    book.lastReadAt = new Date().toISOString();
+    if (!book.startedAt) {
+      book.startedAt = book.lastReadAt;
+    }
+  }
+  if (book.totalPages && currentPage >= book.totalPages) {
+    book.status = "finished";
+    if (!book.finishedAt) {
+      book.finishedAt = new Date().toISOString();
+    }
+  }
+
+  // Capture pending image then close dialog right away
+  const pendingImage = pendingBookEditImage;
+  closeDialog(els.bookEditDialog);
+  resetBookEditDraft();
+  render();
+  showToast("保存中…");
+
+  // Upload image + sync in background
   try {
-    if (pendingBookEditImage) {
-      if (pendingBookEditImage.fromExisting) {
-        book.coverImageUrl = pendingBookEditImage.dataUrl;
-      } else {
-        const payload = await apiFetch(
-          "/api/upload-image",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dataUrl: pendingBookEditImage.dataUrl, filename: pendingBookEditImage.name }),
-          },
-          true
-        );
-        book.coverImageUrl = payload.url || book.coverImageUrl || "";
-      }
+    if (pendingImage && !pendingImage.fromExisting && pendingImage.dataUrl) {
+      const payload = await apiFetch(
+        "/api/upload-image",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataUrl: pendingImage.dataUrl, filename: pendingImage.name }),
+        },
+        true
+      );
+      book.coverImageUrl = payload.url || book.coverImageUrl || "";
+      render();
     }
-
-    book.currentPage = currentPage;
-    book.status = String(formData.get("status"));
-    book.notes = String(formData.get("notes")).trim();
-    book.tags = Array.isArray(book.tags) ? book.tags : [];
-    book.updatedAt = new Date().toISOString();
-    if (book.status === "reading" || book.status === "finished") {
-      book.lastReadAt = new Date().toISOString();
-      if (!book.startedAt) {
-        book.startedAt = book.lastReadAt;
-      }
-    }
-    if (book.totalPages && currentPage >= book.totalPages) {
-      book.status = "finished";
-      if (!book.finishedAt) {
-        book.finishedAt = new Date().toISOString();
-      }
-    }
-
     await syncState();
-    closeDialog(els.bookEditDialog);
-    resetBookEditDraft();
-    render();
     showToast("书籍已更新");
   } catch (error) {
     showToast(error.message || "保存失败");
@@ -1339,7 +1435,7 @@ function openBookDetailDialog(bookId) {
     .filter((item) => item.bookId === bookId)
     .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
-  els.bookDetailTitle.textContent = book.title || "书籍详情";
+  els.bookDetailTitle.textContent = book.title ? `《${book.title}》` : "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
@@ -1371,13 +1467,12 @@ async function changeBookCover(bookId) {
   const picker = document.createElement("input");
   picker.type = "file";
   picker.accept = "image/*";
-  picker.capture = "environment";
 
   picker.addEventListener("change", async () => {
     const [file] = picker.files || [];
     if (!file) return;
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const dataUrl = await resizeImageToDataUrl(file);
       const payload = await apiFetch(
         "/api/upload-image",
         {
@@ -1582,35 +1677,58 @@ async function clearLogs() {
   }
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
+async function resizeImageToDataUrl(file, maxPx = 1200, quality = 0.85) {
+  // Step 1: FileReader gives us a data URL the browser can always decode (works on iOS Safari)
+  const rawDataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("read-failed"));
+    reader.onerror = () => reject(new Error("FileReader failed"));
     reader.readAsDataURL(file);
   });
+  // Step 2: Load into offscreen Image to get dimensions (memory decode, not DOM display)
+  const img = await new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Image decode failed"));
+    el.src = rawDataUrl;
+  });
+  // Step 3: Draw at reduced size on canvas and export as small JPEG (~100-300 KB)
+  const scale = Math.min(1, maxPx / Math.max(img.naturalWidth || maxPx, img.naturalHeight || maxPx));
+  const w = Math.max(1, Math.round((img.naturalWidth || maxPx) * scale));
+  const h = Math.max(1, Math.round((img.naturalHeight || maxPx) * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 async function handleQuoteImageChange(file) {
+  if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   if (!file) {
     pendingQuoteImage = null;
     renderImagePreview();
     return;
   }
-  const dataUrl = await fileToDataUrl(file);
-  pendingQuoteImage = {
-    name: file.name,
-    dataUrl,
-    ocrSource: "",
-  };
+  // Show preview immediately via objectUrl (blob URLs render reliably on iOS Safari)
+  const objectUrl = URL.createObjectURL(file);
+  pendingQuoteImage = { name: file.name, objectUrl, dataUrl: null, ocrSource: "" };
   renderImagePreview();
   showToast("图片已载入，可以直接保存，也可以先做 OCR");
+  // Compress in background — needed for OCR/upload
+  resizeImageToDataUrl(file).then((dataUrl) => {
+    if (pendingQuoteImage) pendingQuoteImage.dataUrl = dataUrl;
+  }).catch(() => {});
 }
 
 async function runOcrFromImage() {
   if (!requireAuth("执行 OCR")) return;
   if (!pendingQuoteImage) {
     showToast("先拍照或选择一张图片");
+    return;
+  }
+  if (!pendingQuoteImage.dataUrl) {
+    showToast("图片还在处理中，请稍候…");
     return;
   }
 
@@ -1666,18 +1784,135 @@ async function clearChatHistory() {
   }
 }
 
+function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
+  if (!wrapperEl || !hiddenInput) return;
+  const textInput = wrapperEl.querySelector(".book-combobox-input");
+  const list = wrapperEl.querySelector(".book-combobox-list");
+  if (!textInput || !list) return;
+
+  let allBooks = [];
+  let isOpen = false;
+
+  function bookLabel(b) {
+    return b.title + (b.author ? ` · ${b.author}` : "");
+  }
+
+  function filteredBooks(q) {
+    const src = includeWishlist ? allBooks : allBooks.filter((b) => b.status !== "wishlist");
+    if (!q) {
+      return [...src.filter((b) => b.status === "reading"), ...src.filter((b) => b.status !== "reading")];
+    }
+    const lower = q.toLowerCase();
+    return src.filter(
+      (b) => (b.title || "").toLowerCase().includes(lower) || (b.author || "").toLowerCase().includes(lower)
+    );
+  }
+
+  function positionList() {
+    const rect = textInput.getBoundingClientRect();
+    list.style.top = `${rect.bottom + 2}px`;
+    list.style.left = `${rect.left}px`;
+    list.style.width = `${rect.width}px`;
+  }
+
+  function buildList(q = "") {
+    const books = filteredBooks(q);
+    list.innerHTML = "";
+    if (!books.length) {
+      const li = document.createElement("li");
+      li.className = "book-combobox-empty";
+      li.textContent = q ? "没有匹配的书籍" : "暂无书籍";
+      list.appendChild(li);
+      return;
+    }
+    books.forEach((book) => {
+      const li = document.createElement("li");
+      li.className = "book-combobox-item" + (book.id === hiddenInput.value ? " is-selected" : "");
+      const nameEl = document.createElement("span");
+      nameEl.textContent = bookLabel(book);
+      li.appendChild(nameEl);
+      if (book.status === "reading") {
+        const badge = document.createElement("span");
+        badge.className = "book-combobox-badge";
+        badge.textContent = "阅读中";
+        li.appendChild(badge);
+      }
+      function doPick(e) { e.preventDefault(); pick(book); }
+      li.addEventListener("mousedown", doPick);
+      li.addEventListener("touchstart", doPick, { passive: false });
+      list.appendChild(li);
+    });
+  }
+
+  function openList() {
+    buildList(textInput.value);
+    positionList();
+    list.classList.add("is-open");
+    isOpen = true;
+  }
+
+  function closeList() {
+    list.classList.remove("is-open");
+    isOpen = false;
+  }
+
+  function pick(book) {
+    hiddenInput.value = book.id;
+    textInput.value = bookLabel(book);
+    closeList();
+  }
+
+  textInput.addEventListener("focus", openList);
+  textInput.addEventListener("input", () => {
+    hiddenInput.value = "";
+    buildList(textInput.value);
+    if (!isOpen) openList();
+    else positionList();
+  });
+  textInput.addEventListener("blur", () => setTimeout(closeList, 200));
+
+  wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
+    if (isOpen) positionList();
+  }, { passive: true });
+
+  wrapperEl._comboboxUpdate = (books) => {
+    allBooks = books;
+    if (isOpen) buildList(textInput.value);
+  };
+  wrapperEl._comboboxReset = () => {
+    textInput.value = "";
+    hiddenInput.value = "";
+    closeList();
+  };
+  wrapperEl._comboboxSetValue = (bookId) => {
+    const book = allBooks.find((b) => b.id === bookId);
+    hiddenInput.value = bookId || "";
+    textInput.value = book ? bookLabel(book) : "";
+  };
+}
+
 function bindEvents() {
+  // Initialize book comboboxes for session and quote forms
+  const sessionComboWrap = document.querySelector("#sessionBookCombobox");
+  const quoteComboWrap = document.querySelector("#quoteBookCombobox");
+  initBookCombobox(sessionComboWrap, els.sessionBookSelect, false);
+  initBookCombobox(quoteComboWrap, els.quoteBookSelect, true);
+
   els.openBookDialogBtn?.addEventListener("click", () => {
     resetBookDraft();
     openDialog(els.bookDialog, "新增书籍");
   });
   els.openSessionDialogBtn?.addEventListener("click", () => {
+    if (!requireAuth("记录阅读")) return;
     document.getElementById("sessionId").value = "";
-    openDialog(els.sessionDialog, "记录阅读");
+    sessionComboWrap?._comboboxReset?.();
+    els.sessionDialog.showModal();
   });
   els.openQuoteDialogBtn?.addEventListener("click", () => {
+    if (!requireAuth("新增摘抄")) return;
     document.getElementById("quoteId").value = "";
-    openDialog(els.quoteDialog, "新增摘抄");
+    quoteComboWrap?._comboboxReset?.();
+    els.quoteDialog.showModal();
   });
 
   els.mobileTabs.forEach((button) => {
@@ -1722,6 +1957,7 @@ function bindEvents() {
   els.logoutBtn?.addEventListener("click", logout);
   els.exportButton?.addEventListener("click", exportData);
   els.clearLogsBtn?.addEventListener("click", clearLogs);
+  els.sessionBookFilter?.addEventListener("change", renderTimeline);
   els.quoteFilter?.addEventListener("change", renderQuotes);
   els.quoteSearch?.addEventListener("input", renderQuotes);
 
@@ -1748,7 +1984,9 @@ function bindEvents() {
     const editBtn = event.target.closest("[data-edit-quote]");
     if (editBtn) { event.stopPropagation(); editQuote(editBtn.dataset.editQuote); return; }
     const delBtn = event.target.closest("[data-delete-quote]");
-    if (delBtn) { event.stopPropagation(); deleteQuote(delBtn.dataset.deleteQuote); }
+    if (delBtn) { event.stopPropagation(); deleteQuote(delBtn.dataset.deleteQuote); return; }
+    const card = event.target.closest("[data-quote-id]");
+    if (card) openQuoteDetail(card.dataset.quoteId);
   });
 
   els.statusFilterChips?.addEventListener("click", (event) => {
@@ -1791,32 +2029,28 @@ function bindEvents() {
   els.bookEditImageInput?.addEventListener("change", async (event) => {
     const [file] = event.target.files || [];
     if (!file) return;
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      pendingBookEditImage = { name: file.name, dataUrl };
-      renderBookEditImagePreview();
-      if (els.bookEditImageStatus) {
-        els.bookEditImageStatus.textContent = "新封面已选择，保存后生效。";
-      }
-    } catch {
-      showToast("封面读取失败");
-    }
+    if (pendingBookEditImage?.objectUrl) URL.revokeObjectURL(pendingBookEditImage.objectUrl);
+    const objectUrl = URL.createObjectURL(file);
+    pendingBookEditImage = { name: file.name, objectUrl, dataUrl: null };
+    renderBookEditImagePreview();
+    if (els.bookEditImageStatus) els.bookEditImageStatus.textContent = "新封面已选择，保存后生效。";
+    resizeImageToDataUrl(file).then((dataUrl) => {
+      if (pendingBookEditImage) pendingBookEditImage.dataUrl = dataUrl;
+    }).catch(() => {});
   });
 
   els.bookImageInput?.addEventListener("change", async (event) => {
     const [file] = event.target.files || [];
     if (!file) return;
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      pendingBookImage = { name: file.name, dataUrl };
-      renderBookImagePreview();
-      if (els.bookImageStatus) {
-        els.bookImageStatus.textContent = "封面已选择，保存书籍后会自动上传。";
-      }
-      showToast("封面已载入");
-    } catch {
-      showToast("封面读取失败");
-    }
+    if (pendingBookImage?.objectUrl) URL.revokeObjectURL(pendingBookImage.objectUrl);
+    const objectUrl = URL.createObjectURL(file);
+    pendingBookImage = { name: file.name, objectUrl, dataUrl: null };
+    renderBookImagePreview();
+    if (els.bookImageStatus) els.bookImageStatus.textContent = "封面已选择，保存书籍后会自动上传。";
+    showToast("封面已载入");
+    resizeImageToDataUrl(file).then((dataUrl) => {
+      if (pendingBookImage) pendingBookImage.dataUrl = dataUrl;
+    }).catch(() => {});
   });
 
   els.quoteImageInput?.addEventListener("change", async (event) => {
@@ -1837,6 +2071,8 @@ window.paperReadingApp = {
   activateTab,
   requireAuth,
   apiFetch,
+  buildApiUrl,
+  getAuthToken: () => authToken,
   loadRemoteLogs,
   clearChatHistory,
   showConfirmDialog,

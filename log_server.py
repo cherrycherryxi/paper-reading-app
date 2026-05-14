@@ -1175,6 +1175,48 @@ def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_toke
         raise RuntimeError(str(error.reason)) from error
 
 
+def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", max_tokens: int = 1200):
+    """Yields text delta strings from DeepSeek streaming API."""
+    if not DEEPSEEK_API_KEY:
+        raise RuntimeError("DEEPSEEK_API_KEY is not configured")
+
+    request = Request(
+        "https://api.deepseek.com/v1/chat/completions",
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        },
+        data=json.dumps(
+            {
+                "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "stream": True,
+            }
+        ).encode("utf-8"),
+    )
+    try:
+        with urlopen(request, timeout=120) as response:
+            for raw_line in response:
+                line = raw_line.decode("utf-8").strip()
+                if not line or line == "data: [DONE]":
+                    continue
+                if line.startswith("data: "):
+                    try:
+                        chunk = json.loads(line[6:])
+                        content = chunk.get("choices", [{}])[0].get("delta", {}).get("content") or ""
+                        if content:
+                            yield content
+                    except (json.JSONDecodeError, IndexError, KeyError):
+                        pass
+    except HTTPError as error:
+        payload = error.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(payload or f"HTTP {error.code}") from error
+    except URLError as error:
+        raise RuntimeError(str(error.reason)) from error
+
+
 def call_kimi_vision(messages: list[dict], max_tokens: int = 1200) -> str:
     if not MOONSHOT_API_KEY:
         raise RuntimeError("MOONSHOT_API_KEY is not configured")
@@ -1201,6 +1243,12 @@ def call_kimi_vision(messages: list[dict], max_tokens: int = 1200) -> str:
             return data["choices"][0]["message"]["content"].strip()
     except HTTPError as error:
         payload = error.read().decode("utf-8", errors="ignore")
+        if error.code == 401:
+            raise RuntimeError("OCR API 密钥无效或未配置") from error
+        if error.code == 429:
+            raise RuntimeError("OCR 请求过于频繁，请稍后再试") from error
+        if error.code == 503:
+            raise RuntimeError("OCR 服务暂时不可用，图片可能过大，请稍后再试") from error
         raise RuntimeError(payload or f"HTTP {error.code}") from error
     except URLError as error:
         raise RuntimeError(str(error.reason)) from error
@@ -1273,6 +1321,8 @@ class Handler(BaseHTTPRequestHandler):
             content = (BASE_DIR / filename).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", mime)
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Pragma", "no-cache")
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
@@ -1601,6 +1651,211 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 conn.close()
                 self._send_json({"error": str(error)}, 500)
+            return
+
+        if parsed.path == "/api/chat/stream":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            payload = self._read_json()
+            message = str(payload.get("message", "")).strip()
+            book_id = str(payload.get("bookId", "")).strip()
+            state = load_state(conn, user["id"])
+            trace_id = new_id("trace")
+            validator = AgentRequestValidator()
+            prompt_builder = PromptBuilder()
+            parser_component = ResponseParser()
+            action_validator = ActionValidator()
+            trace_manager = TraceManager()
+            state_machine = ActionStateMachine()
+            metrics_collector = MetricsCollector()
+            history_key = book_id or "__general__"
+            history = state.get("chatHistories", {}).get(history_key, [])
+            validation = validator.validate_chat_request(message, book_id, state)
+            trace_manager.create_trace(conn, trace_id=trace_id, user_id=user["id"], message=message, book_id=book_id)
+            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "historyLength": len(history)})
+            if not validation.is_valid:
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=AGENT_STATUS_ERROR,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                    error_message=validation.error_message,
+                )
+                trace_manager.log_event(conn, trace_id, "REQUEST_REJECTED", {"error": validation.error_message})
+                conn.close()
+                self._send_json(
+                    {
+                        "error": validation.error_message,
+                        "traceId": trace_id,
+                        "agentStatus": AGENT_STATUS_ERROR,
+                        "parseStatus": PARSE_FAILED,
+                        "validationStatus": VALIDATION_FAILED,
+                    },
+                    400,
+                )
+                return
+            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
+            request_messages = [{"role": "system", "content": system_prompt}, *history[-40:], {"role": "user", "content": validation.sanitized_input}]
+            trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history[-40:])})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Log-Token")
+            self.end_headers()
+
+            def sse_write(data: dict) -> bool:
+                try:
+                    line = f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                    self.wfile.write(line.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+
+            try:
+                started_at = time.time()
+                full_reply = ""
+                for delta in call_deepseek_stream(request_messages):
+                    full_reply += delta
+                    if not sse_write({"delta": delta}):
+                        break
+                latency_ms = int((time.time() - started_at) * 1000)
+                model_response = ModelResponse(
+                    raw_output=full_reply,
+                    latency_ms=latency_ms,
+                    input_tokens=estimate_tokens(json.dumps(request_messages, ensure_ascii=False)),
+                    output_tokens=estimate_tokens(full_reply),
+                )
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "MODEL_RESPONSE",
+                    {"latencyMs": model_response.latency_ms, "outputPreview": full_reply[:300]},
+                )
+                parse_result = parser_component.parse(full_reply)
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "PARSE_COMPLETED",
+                    {"parseStatus": parse_result.parse_status, "error": parse_result.error_message},
+                )
+                validated_actions = action_validator.validate(parse_result.actions)
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "VALIDATION_COMPLETED",
+                    {"validationStatus": validated_actions.validation_status, "errors": validated_actions.errors},
+                )
+                actions: list[dict] = []
+                for item in validated_actions.valid_actions:
+                    action_data = dict(item.get("data", {}))
+                    if item["type"] in {"add_note", "summary", "tag"} and book_id and "bookId" not in action_data:
+                        action_data["bookId"] = book_id
+                    persisted = state_machine.create_action(
+                        conn,
+                        trace_id,
+                        user["id"],
+                        {"type": item["type"], "data": action_data},
+                    )
+                    trace_manager.log_event(conn, trace_id, "ACTION_CREATED", {"actionId": persisted["id"], "type": persisted["type"]})
+                    actions.append(persisted)
+                reply = parse_result.reply
+                agent_status = AGENT_STATUS_DEGRADED if parse_result.parse_status == PARSE_DEGRADED or validated_actions.errors else AGENT_STATUS_OK
+                history = [*history, {"role": "user", "content": validation.sanitized_input}, {"role": "assistant", "content": reply}][-40:]
+                state.setdefault("chatHistories", {})[history_key] = history
+                save_state(conn, user["id"], state)
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=agent_status,
+                    parse_status=parse_result.parse_status,
+                    validation_status=validated_actions.validation_status,
+                    latency_ms=model_response.latency_ms,
+                    input_tokens=model_response.input_tokens,
+                    output_tokens=model_response.output_tokens,
+                    error_message="; ".join(validated_actions.errors) or parse_result.error_message,
+                )
+                trace_manager.log_event(conn, trace_id, "RESPONSE_SENT", {"agentStatus": agent_status, "actionCount": len(actions)})
+                metrics_collector.record_chat_metrics(
+                    conn,
+                    user_id=user["id"],
+                    trace_id=trace_id,
+                    agent_status=agent_status,
+                    parse_status=parse_result.parse_status,
+                    validation_status=validated_actions.validation_status,
+                    latency_ms=model_response.latency_ms,
+                    input_tokens=model_response.input_tokens,
+                    output_tokens=model_response.output_tokens,
+                )
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="chat",
+                    model="deepseek-chat",
+                    prompt=system_prompt,
+                    input_=validation.sanitized_input,
+                    output=full_reply,
+                    trace_id=trace_id,
+                    latency_ms=model_response.latency_ms,
+                    input_tokens=model_response.input_tokens,
+                    output_tokens=model_response.output_tokens,
+                    parse_status=parse_result.parse_status,
+                    validation_status=validated_actions.validation_status,
+                )
+                conn.close()
+                sse_write({
+                    "done": True,
+                    "traceId": trace_id,
+                    "agentStatus": agent_status,
+                    "parseStatus": parse_result.parse_status,
+                    "validationStatus": validated_actions.validation_status,
+                    "validationErrors": validated_actions.errors,
+                    "reply": reply,
+                    "actions": actions,
+                    "history": history,
+                    "historyKey": history_key,
+                })
+            except Exception as error:
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=AGENT_STATUS_ERROR,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                    error_message=str(error),
+                )
+                trace_manager.log_event(conn, trace_id, "MODEL_ERROR", {"error": str(error)})
+                metrics_collector.record_chat_metrics(
+                    conn,
+                    user_id=user["id"],
+                    trace_id=trace_id,
+                    agent_status=AGENT_STATUS_ERROR,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                    latency_ms=0,
+                    input_tokens=estimate_tokens(validation.sanitized_input),
+                    output_tokens=0,
+                )
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="chat",
+                    model="deepseek-chat",
+                    prompt=system_prompt,
+                    input_=validation.sanitized_input,
+                    output="",
+                    error=str(error),
+                    trace_id=trace_id,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                )
+                conn.close()
+                sse_write({"error": str(error)})
             return
 
         if parsed.path == "/api/chat":

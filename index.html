@@ -65,6 +65,12 @@
               <button class="circle-action" id="openSessionDialogBtn" type="button" aria-label="新增阅读记录">+</button>
             </div>
           </div>
+          <div class="session-filter-bar">
+            <select id="sessionBookFilter" class="filter-select">
+              <option value="">全部书籍</option>
+            </select>
+          </div>
+          <p id="sessionStats" class="session-stats is-hidden"></p>
           <div id="timeline" class="timeline empty-state"></div>
         </section>
 
@@ -90,6 +96,7 @@
           <div class="chat-panel-header">
             <h2>探讨</h2>
             <select id="chatBookSelect" class="chat-book-select"></select>
+            <button id="chatClearBtn" class="button button-ghost button-small" type="button">清空</button>
           </div>
           <div id="chatMessages" class="chat-messages chat-messages-inline">
             <div class="chat-welcome">选择一本书，开始探讨。</div>
@@ -266,7 +273,13 @@
       <form id="sessionForm" class="dialog-form">
         <div class="section-head"><h2>记录一次阅读</h2><p>按会话记录，方便回看你的节奏。</p></div>
         <div class="input-grid">
-          <label><span>选择书籍</span><select name="bookId" id="sessionBookSelect" required></select></label>
+          <label><span>选择书籍</span>
+            <div class="book-combobox" id="sessionBookCombobox">
+              <input type="text" class="book-combobox-input" placeholder="搜索书名或作者…" autocomplete="off" />
+              <ul class="book-combobox-list"></ul>
+              <input type="hidden" name="bookId" id="sessionBookSelect" />
+            </div>
+          </label>
           <label><span>日期</span><input name="date" type="date" /></label>
           <label><span>开始页</span><input name="startPage" type="number" min="0" required /></label>
           <label><span>结束页</span><input name="endPage" type="number" min="0" required /></label>
@@ -285,7 +298,13 @@
       <form id="quoteForm" class="dialog-form">
         <div class="section-head"><h2>新增摘抄 / 笔记</h2><p>拍照、OCR 和手动整理都在这里完成。</p></div>
         <div class="input-grid">
-          <label><span>关联书籍</span><select name="bookId" id="quoteBookSelect" required></select></label>
+          <label><span>关联书籍</span>
+            <div class="book-combobox" id="quoteBookCombobox">
+              <input type="text" class="book-combobox-input" placeholder="搜索书名或作者…" autocomplete="off" />
+              <ul class="book-combobox-list"></ul>
+              <input type="hidden" name="bookId" id="quoteBookSelect" />
+            </div>
+          </label>
           <label><span>页码</span><input name="page" type="number" min="0" placeholder="128" /></label>
           <label><span>卡片类型</span>
             <select name="kind">
@@ -296,7 +315,6 @@
           <label><span>标签</span><input name="tags" type="text" placeholder="人物, 结构, 金句" /></label>
         </div>
         <label><span>原文 / 笔记内容</span><textarea name="content" id="quoteContent" rows="5" placeholder="可手动输入，也可以先拍照上传再尝试 OCR。" required></textarea></label>
-        <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>
         <div class="quote-photo-tools">
           <label class="button button-ghost file-button">
             选择照片 / 拍照
@@ -306,12 +324,31 @@
           <span id="ocrStatus" class="helper-text">将调用默认模型识别图片内容。</span>
         </div>
         <div id="quoteImagePreview" class="image-preview is-hidden"><img id="quotePreviewImg" alt="摘抄图片预览" /></div>
+        <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>
         <input type="hidden" name="id" id="quoteId" />
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="quoteDialog">取消</button>
           <button type="submit" class="button button-primary">保存卡片</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Quote detail (read-only) dialog -->
+    <dialog id="quoteDetailDialog">
+      <div class="dialog-form">
+        <div class="section-head">
+          <h2 id="quoteDetailBook">摘抄详情</h2>
+          <p id="quoteDetailMeta"></p>
+        </div>
+        <div id="quoteDetailImage" class="quote-image-wrap is-hidden"><img id="quoteDetailImg" alt="摘抄照片" /></div>
+        <div id="quoteDetailContent" class="quote-detail-content"></div>
+        <div id="quoteDetailReflection" class="quote-detail-reflection is-hidden"></div>
+        <div id="quoteDetailTags" class="quote-detail-tags"></div>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" data-close-dialog="quoteDetailDialog">关闭</button>
+          <button type="button" class="button button-primary" id="quoteDetailEditBtn">编辑</button>
+        </div>
+      </div>
     </dialog>
 
     <!-- Custom delete-book confirmation dialog (replaces native window.confirm) -->
@@ -349,7 +386,7 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="./app.js"></script>
-    <script src="./chat.js"></script>
+    <script src="./app.js?v=20260513i"></script>
+    <script src="./chat.js?v=20260513i"></script>
   </body>
 </html>

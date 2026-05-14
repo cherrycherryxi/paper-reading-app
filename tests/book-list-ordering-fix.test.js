@@ -257,7 +257,7 @@ test("bug exploration: renderBooks should keep newest created books first even i
 
   hooks.renderBooks();
 
-  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["新书", "旧书"]);
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["《新书》", "《旧书》"]);
 });
 
 test("bug exploration: saveBookEdit should explicitly preserve and normalize tags in source", () => {
@@ -285,12 +285,12 @@ test("preservation: status and tag filters keep returning the correct matching s
   hooks.setTagFilter("");
   hooks.setBookSearchQuery("");
   hooks.renderBooks();
-  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["三体", "沙丘"]));
+  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["《三体》", "《沙丘》"]));
 
   hooks.setStatusFilter("all");
   hooks.setTagFilter("科幻");
   hooks.renderBooks();
-  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["三体", "沙丘"]));
+  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["《三体》", "《沙丘》"]));
 });
 
 test("preservation: search keeps returning the correct matching set", () => {
@@ -310,10 +310,10 @@ test("preservation: search keeps returning the correct matching set", () => {
   hooks.setStatusFilter("all");
   hooks.setTagFilter("");
   hooks.globalSearch("刘慈欣");
-  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["三体", "球状闪电"]));
+  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["《三体》", "《球状闪电》"]));
 
   hooks.globalSearch("球状闪电");
-  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["球状闪电"]);
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["《球状闪电》"]);
 });
 
 test("preservation: saveBookEdit leaves unrelated fields unchanged for a normal tagged book", async () => {

@@ -635,14 +635,86 @@
   {
     "id": "bug-035",
     "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "拍照/选图后看不到预览图片",
+    "error_message": "拍照/选图后看不到预览图片（二次复现）",
     "file": "app.js",
-    "root_cause": "预览 div 虽然移除了 is-hidden，但其位置在表单底部，dialog 内容较多时预览不在视口内，用户不知道需要向下滚动",
-    "fix": "在 renderImagePreview、renderBookImagePreview、renderBookEditImagePreview 三个函数中，显示预览后立即调用 scrollIntoView({ behavior: 'smooth', block: 'nearest' })",
-    "tags": ["image", "preview", "scroll", "ux"],
+    "root_cause": "fileToDataUrl 把 iPhone 拍照转成 base64 data URL（可达 4-11MB），iOS Safari 对 img.src 设置大型 data URL 时渲染失败，图片显示为 0 高度",
+    "fix": "change 事件处理器改为先 URL.createObjectURL(file) 生成 blob URL 用于即时预览，再异步 fileToDataUrl() 得到 dataUrl 用于上传。三个 renderXxxImagePreview 函数改为使用 objectUrl || dataUrl 作为 img.src。uploadImageIfNeeded/uploadBookImageIfNeeded 增加 dataUrl 为 null 时从 file 重新读取的兜底逻辑。",
+    "tags": ["image", "preview", "ios", "data-url", "blob-url", "ux"],
     "related_bugs": ["bug-034"],
+    "occurrences": 2,
+    "last_seen": "2026-05-13T00:00:00.000Z",
+    "status": "fixed",
+    "fixed_at": "2026-05-13T00:00:00.000Z"
+  },
+  {
+    "id": "bug-036",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "保存书籍封面时对话框卡住等待图片上传，用户体验差",
+    "file": "app.js",
+    "root_cause": "saveBookEdit 在同步流程中 await 图片上传（/api/upload-image）+ syncState，dialog 在上传完成前无法关闭，用户只能等待",
+    "fix": "saveBookEdit 重构为：先同步更新内存 state + 立即关闭 dialog + render()，然后后台 await 图片上传 + syncState，完成后显示「书籍已更新」或错误 toast",
+    "tags": ["image", "upload", "background", "ux", "saveBookEdit"],
+    "related_bugs": ["bug-035"],
     "occurrences": 1,
-    "last_seen": "2026-05-13T00:00:00.000Z"
+    "last_seen": "2026-05-13T00:00:00.000Z",
+    "status": "fixed",
+    "fixed_at": "2026-05-13T00:00:00.000Z"
+  }
+  ,{
+    "id": "bug-037",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "清空探讨记录弹窗提示「清空当前账号下的探讨记录」，实际只清当前书籍",
+    "file": "chat.js",
+    "root_cause": "clearHistory() 的 message 写死为账号级别描述，但 clearChatHistory() 只删 activeBookId 对应的记录",
+    "fix": "在 clearHistory() 里查出当前书名，message 改为「清空《书名》的探讨记录？」，无书时用「当前书籍」兜底",
+    "tags": ["chat", "ux", "copy", "confirm-dialog"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-05-13T00:00:00.000Z",
+    "status": "fixed",
+    "fixed_at": "2026-05-13T00:00:00.000Z"
+  },
+  {
+    "id": "bug-038",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "拍照/上传照片后无法预览图片（图片不显示）",
+    "file": "app.js",
+    "root_cause": "URL.createObjectURL 在 iOS Safari + ngrok HTTPS 环境下有时静默失败；fileToDataUrl (FileReader) 产生的 base64 字符串在 iPhone 照片下可达 10MB+，iOS Safari 无法用作 img.src（静默失败，图片高度为 0）",
+    "fix": "新增 resizeImageToDataUrl(file, maxPx=1200, quality=0.85) 函数：用 objectUrl 加载 Image → 绘制到 canvas → 导出 JPEG data URL（~100-300KB）。所有三处图片变更 handler（bookEditImageInput、bookImageInput、handleQuoteImageChange）改用此函数；render preview 函数改为只用 dataUrl；upload 函数移除 file 兜底。",
+    "tags": ["ios-safari", "image-preview", "canvas", "data-url", "ngrok"],
+    "related_bugs": ["bug-035"],
+    "occurrences": 2,
+    "last_seen": "2026-05-13T00:00:00.000Z",
+    "status": "fixed",
+    "fixed_at": "2026-05-13T00:00:00.000Z"
+  },
+  {
+    "id": "bug-039",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "OCR 识别失败：HTTP 503（图片过大导致 Moonshot API 超时）",
+    "file": "app.js, log_server.py",
+    "root_cause": "iPhone 原始照片 base64 后达 10MB+，发送到 Moonshot API 触发 503。加之错误消息只显示原始 HTTP 错误，不利于用户排查",
+    "fix": "bug-038 的 resizeImageToDataUrl 解决根因（图片压缩到 ~100-300KB）；log_server.py call_kimi_vision 增加 401/429/503 专属中文错误消息",
+    "tags": ["ocr", "moonshot", "503", "image-resize"],
+    "related_bugs": ["bug-038"],
+    "occurrences": 1,
+    "last_seen": "2026-05-13T00:00:00.000Z",
+    "status": "fixed",
+    "fixed_at": "2026-05-13T00:00:00.000Z"
+  },
+  {
+    "id": "bug-040",
+    "timestamp": "2026-05-13T00:00:00.000Z",
+    "error_message": "重启服务器后 iPhone Safari 仍运行旧版 app.js，导致所有前端修复无效",
+    "file": "log_server.py, index.html",
+    "root_cause": "log_server.py 静态文件路由未设置 Cache-Control 头，iPhone Safari 极度激进地缓存 JS，服务器重启不会使缓存失效",
+    "fix": "log_server.py 静态文件响应加 Cache-Control: no-store + Pragma: no-cache；index.html 脚本标签加 ?v=20260513c 版本号绕过已有缓存",
+    "tags": ["caching", "ios-safari", "static-files", "cache-control"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-05-13T00:00:00.000Z",
+    "status": "fixed",
+    "fixed_at": "2026-05-13T00:00:00.000Z"
   }
   ]
 }
