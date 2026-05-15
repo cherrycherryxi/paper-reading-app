@@ -1669,6 +1669,22 @@ dialog::backdrop {
   justify-content: space-between;
 }
 
+.conn-card-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.conn-nav-side {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+  padding: 4px 6px;
+  margin: -4px -6px;
+}
+.conn-nav-side:hover {
+  background: var(--color-soft-accent);
+}
+
 .connection-kind-badge {
   display: inline-flex;
   align-items: center;
@@ -1803,9 +1819,40 @@ dialog::backdrop {
 .conn-mini-kind[data-kind="影响"]     { background: var(--status-finished-bg); color: var(--status-finished-fg); }
 .conn-mini-kind[data-kind="延伸"]     { background: var(--color-soft-accent); color: var(--color-ink); }
 
+.conn-mini-header {
+  display: flex;
+  align-items: center;
+}
+
 .conn-mini-text {
   color: var(--color-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.conn-mini-thought {
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+  border-left: 2px solid var(--color-accent-soft);
+  padding-left: 6px;
+  margin-top: 2px;
+}
+
+.conn-mini-nav {
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.conn-mini-nav:hover {
+  background: var(--color-soft-accent);
+  border-color: var(--color-accent-soft);
+}
+
+.quote-conn-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--color-ink-muted);
+  margin-left: 4px;
 }

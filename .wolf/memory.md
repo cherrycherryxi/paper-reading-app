@@ -3,6 +3,8 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
+| 2026-05-15 | Connection 交互完善：关联卡片侧面可点击跳转书籍/摘抄、编辑 thought/kind/tags、摘抄详情 conn-mini-card 展示 thought 并可点击导航、摘抄卡片显示关联数 badge | app.js, styles.css | done | ~900 |
+| 2026-05-15 | link_thought golden-set 8 条（normal/failure/boundary）+ 12 个 unittest（验证层+执行层），58 cases 57 通过 | data/golden_set.json, tests/agent_link_thought_test.py | done | ~800 |
 | 19:55 | Edited styles.css | 13→18 lines | ~131 |
 | 17:34 | 内网穿透改造：log_server.py 加静态文件 serve + guess_base_url 支持 X-Forwarded-Proto；index.html backendBaseUrl 改为 "" | log_server.py, index.html | done, 需重启进程 | ~800 |
 | 20:30 | 内网穿透完成验证：ngrok http 8787，所有静态文件和 API 均 200，方案归档至 cerebrum.md | .wolf/cerebrum.md, .wolf/memory.md | done | ~300 |
@@ -282,3 +284,45 @@
 | 23:27 | Session end: 14 writes across 4 files (index.html, app.js, styles.css, chat.js) | 4 reads | ~46652 tok |
 | 23:29 | Edited styles.css | 51→49 lines | ~299 |
 | 23:29 | Session end: 15 writes across 4 files (index.html, app.js, styles.css, chat.js) | 4 reads | ~47311 tok |
+| 23:36 | Session end: 15 writes across 4 files (index.html, app.js, styles.css, chat.js) | 4 reads | ~47311 tok |
+| 23:39 | Session end: 15 writes across 4 files (index.html, app.js, styles.css, chat.js) | 4 reads | ~47311 tok |
+
+## Session: 2026-05-15 11:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:27 | Created ../../.claude/settings.json | — | ~218 |
+| 11:58 | Session end: 1 writes across 1 files (settings.json) | 1 reads | ~659 tok |
+| 12:59 | Created ../../.claude/scripts/weekly-report.sh | — | ~274 |
+| 13:06 | Session end: 2 writes across 2 files (settings.json, weekly-report.sh) | 1 reads | ~952 tok |
+| 13:15 | Session end: 2 writes across 2 files (settings.json, weekly-report.sh) | 1 reads | ~952 tok |
+| 14:03 | Edited app.js | modified buildConnectionCard() | ~666 |
+| 14:03 | Edited app.js | added 3 condition(s) | ~534 |
+| 14:04 | Edited app.js | added optional chaining | ~432 |
+| 14:04 | Edited app.js | added 4 condition(s) | ~195 |
+| 14:04 | Edited app.js | 10→13 lines | ~242 |
+| 14:04 | Edited app.js | 3→3 lines | ~105 |
+| 14:04 | Edited app.js | added 3 condition(s) | ~200 |
+| 14:04 | Edited styles.css | expanded (+16 lines) | ~105 |
+| 14:04 | Edited styles.css | expanded (+31 lines) | ~204 |
+| 14:10 | Session end: 11 writes across 4 files (settings.json, weekly-report.sh, app.js, styles.css) | 5 reads | ~46393 tok |
+| 15:04 | Session end: 11 writes across 4 files (settings.json, weekly-report.sh, app.js, styles.css) | 5 reads | ~46393 tok |
+| 15:16 | Edited data/golden_set.json | expanded (+273 lines) | ~2086 |
+| 15:17 | Created tests/agent_link_thought_test.py | — | ~3572 |
+| 15:27 | Session end: 13 writes across 6 files (settings.json, weekly-report.sh, app.js, styles.css, golden_set.json) | 9 reads | ~99246 tok |
+
+## Session: 2026-05-15 15:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-15 17:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:09 | Edited app.js | added 1 condition(s) | ~308 |
+| 17:09 | Edited app.js | modified buildBookSearchCard() | ~180 |
+| 17:09 | Edited app.js | inline fix | ~33 |
+| 17:09 | Edited app.js | 3→4 lines | ~31 |
+| 17:10 | Edited app.js | added 3 condition(s) | ~200 |
+| $(date +%H:%M) | 性能优化: buildRenderCache() 预计算 metricsMap/quoteCountMap/connCountMap/firstQuoteImageMap，renderBooks() 分批渲染（首批8张同步，剩余 rAF 逐批） | app.js | 12/12 tests pass |  ~800 |

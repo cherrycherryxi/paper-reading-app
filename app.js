@@ -112,6 +112,7 @@ let toastTimer = null;
 let selectedStatusFilter = "all";
 let selectedTagFilter = "";
 let searchQuery = "";
+let _renderBooksId = 0;
 let searchDebounceTimer = null;
 let remoteLogs = [];
 
@@ -275,6 +276,30 @@ function getProgress(book) {
   return Math.max(0, Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100)));
 }
 
+function buildRenderCache() {
+  const metricsMap = new Map();
+  const quoteCountMap = new Map();
+  const connCountMap = new Map();
+  const firstQuoteImageMap = new Map();
+
+  for (const s of state.sessions) {
+    const m = metricsMap.get(s.bookId) || { count: 0, minutes: 0, pages: 0 };
+    m.count++;
+    m.minutes += Number(s.minutes || 0);
+    m.pages += Number(s.pagesRead || 0);
+    metricsMap.set(s.bookId, m);
+  }
+  for (const q of state.quotes) {
+    quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+    if (q.imageUrl && !firstQuoteImageMap.has(q.bookId)) firstQuoteImageMap.set(q.bookId, q.imageUrl);
+  }
+  for (const c of state.connections || []) {
+    connCountMap.set(c.sourceId, (connCountMap.get(c.sourceId) || 0) + 1);
+    connCountMap.set(c.targetId, (connCountMap.get(c.targetId) || 0) + 1);
+  }
+  return { metricsMap, quoteCountMap, connCountMap, firstQuoteImageMap };
+}
+
 function getBookSessions(bookId) {
   return state.sessions.filter((item) => item.bookId === bookId);
 }
@@ -317,17 +342,22 @@ function buildConnectionCard(conn) {
   return `<div class="connection-card" data-conn-id="${escapeHtml(conn.id)}">
     <div class="connection-card-header">
       <span class="connection-kind-badge" data-kind="${escapeHtml(conn.kind)}">${escapeHtml(kindLabel)}</span>
-      <button class="conn-delete-btn button-icon" type="button" aria-label="删除关联" data-conn-id="${escapeHtml(conn.id)}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
+      <div class="conn-card-actions">
+        <button class="conn-edit-btn button-icon" type="button" aria-label="编辑关联" data-conn-id="${escapeHtml(conn.id)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="conn-delete-btn button-icon" type="button" aria-label="删除关联" data-conn-id="${escapeHtml(conn.id)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
     <div class="connection-sides">
-      <div class="connection-side">
+      <div class="connection-side conn-nav-side" data-nav-type="${escapeHtml(conn.sourceType)}" data-nav-id="${escapeHtml(conn.sourceId)}">
         <div class="connection-side-label">${escapeHtml(src.label)}</div>
         ${src.sub ? `<div class="connection-side-sub">${escapeHtml(src.sub)}</div>` : ""}
       </div>
       <div class="connection-arrow">↔</div>
-      <div class="connection-side">
+      <div class="connection-side conn-nav-side" data-nav-type="${escapeHtml(conn.targetType)}" data-nav-id="${escapeHtml(conn.targetId)}">
         <div class="connection-side-label">${escapeHtml(tgt.label)}</div>
         ${tgt.sub ? `<div class="connection-side-sub">${escapeHtml(tgt.sub)}</div>` : ""}
       </div>
@@ -578,10 +608,13 @@ function matchQuotes(query) {
   return state.quotes.filter((quote) => fuzzyMatch(quote.content || "", query));
 }
 
-function buildBookSearchCard(book) {
+function buildBookSearchCard(book, cache) {
   const progress = getProgress(book);
-  const metrics = getBookMetrics(book.id);
-  const coverImage = resolveImageUrl(book.coverImageUrl || state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
+  const metrics = cache ? (cache.metricsMap.get(book.id) || { count: 0, minutes: 0, pages: 0 }) : getBookMetrics(book.id);
+  const qCount = cache ? (cache.quoteCountMap.get(book.id) || 0) : getQuoteCount(book.id);
+  const cCount = cache ? (cache.connCountMap.get(book.id) || 0) : getConnectionCount(book.id);
+  const fallbackImg = cache ? (cache.firstQuoteImageMap.get(book.id) || "") : (state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
+  const coverImage = resolveImageUrl(book.coverImageUrl || fallbackImg);
   const progressText =
     progress === null
       ? `已读到第 ${book.currentPage || 0} 页`
@@ -608,7 +641,7 @@ function buildBookSearchCard(book) {
     <div class="book-grid-body">
       <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
-      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张${getConnectionCount(book.id) ? ` · 🔗 ${getConnectionCount(book.id)} 关联` : ""}</div>
+      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${qCount} 张${cCount ? ` · 🔗 ${cCount} 关联` : ""}</div>
       <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
       ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
       <div class="book-grid-actions">
@@ -770,8 +803,25 @@ function renderBooks() {
   els.booksList.className = "book-list";
   els.booksList.innerHTML = "";
 
-  for (const book of books) {
-    els.booksList.appendChild(buildBookSearchCard(book));
+  const cache = buildRenderCache();
+  const myRender = ++_renderBooksId;
+  const BATCH = 8;
+
+  for (const book of books.slice(0, BATCH)) {
+    els.booksList.appendChild(buildBookSearchCard(book, cache));
+  }
+
+  if (books.length > BATCH) {
+    let offset = BATCH;
+    const renderNext = () => {
+      if (_renderBooksId !== myRender) return;
+      for (const book of books.slice(offset, offset + BATCH)) {
+        els.booksList.appendChild(buildBookSearchCard(book, cache));
+      }
+      offset += BATCH;
+      if (offset < books.length) requestAnimationFrame(renderNext);
+    };
+    requestAnimationFrame(renderNext);
   }
 }
 
@@ -884,7 +934,7 @@ function renderQuotes() {
             <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
             <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content)}</p>
-            <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}</p>
+            <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}</p>
             <div class="entry-card-actions">
               <button class="card-action-btn" data-edit-quote="${escapeHtml(quote.id)}" type="button">编辑</button>
               <button class="card-action-btn card-action-danger" data-delete-quote="${escapeHtml(quote.id)}" type="button">删除</button>
@@ -1385,10 +1435,13 @@ function openQuoteDetail(quoteId) {
       const otherId = c.sourceId === quoteId ? c.targetId : c.sourceId;
       const otherType = c.sourceId === quoteId ? c.targetType : c.sourceType;
       const other = resolveConnectionSide(otherType, otherId);
-      return `<div class="conn-mini-card">
-        <span class="conn-mini-kind" data-kind="${escapeHtml(c.kind)}">${escapeHtml(c.kind)}</span>
+      return `<div class="conn-mini-card conn-mini-nav" data-nav-type="${escapeHtml(otherType)}" data-nav-id="${escapeHtml(otherId)}">
+        <div class="conn-mini-header">
+          <span class="conn-mini-kind" data-kind="${escapeHtml(c.kind)}">${escapeHtml(c.kind)}</span>
+        </div>
         <div class="conn-mini-text">↔ ${escapeHtml(other.label)}</div>
         ${other.sub ? `<div class="connection-side-sub">${escapeHtml(other.sub)}</div>` : ""}
+        ${c.thought ? `<div class="conn-mini-thought">${escapeHtml(c.thought)}</div>` : ""}
       </div>`;
     }).join("");
     connWrap.classList.remove("is-hidden");
@@ -2194,6 +2247,7 @@ function toggleConnComboboxes(side, type) {
 
 async function addConnection(formData) {
   if (!requireAuth("保存关联")) return;
+  const connId = String(formData.get("id") || "").trim();
   const sourceType = String(formData.get("sourceType") || "book");
   const targetType = String(formData.get("targetType") || "book");
   const sourceId = sourceType === "quote"
@@ -2205,30 +2259,33 @@ async function addConnection(formData) {
   const kind = String(formData.get("kind") || "延伸");
   const thought = String(formData.get("thought") || "").trim();
   const tagsRaw = String(formData.get("tags") || "").trim();
+  const tags = tagsRaw ? tagsRaw.split(/[,，\s]+/).map((t) => t.trim()).filter(Boolean) : [];
 
   if (!sourceId) { showToast("请选择来源"); return; }
   if (!targetId) { showToast("请选择目标"); return; }
   if (sourceType === targetType && sourceId === targetId) { showToast("来源和目标不能相同"); return; }
   if (!thought) { showToast("请填写你的想法"); return; }
 
-  const conn = {
-    id: `conn-${Date.now().toString(16)}${Math.random().toString(16).slice(2, 8)}`,
-    sourceType,
-    sourceId,
-    targetType,
-    targetId,
-    kind,
-    thought,
-    tags: tagsRaw ? tagsRaw.split(/[,，\s]+/).map((t) => t.trim()).filter(Boolean) : [],
-    createdAt: new Date().toISOString(),
-  };
-  state.connections = [conn, ...(state.connections || [])];
+  if (connId) {
+    const idx = (state.connections || []).findIndex((c) => c.id === connId);
+    if (idx !== -1) {
+      state.connections[idx] = { ...state.connections[idx], sourceType, sourceId, targetType, targetId, kind, thought, tags };
+    }
+  } else {
+    const conn = {
+      id: `conn-${Date.now().toString(16)}${Math.random().toString(16).slice(2, 8)}`,
+      sourceType, sourceId, targetType, targetId, kind, thought, tags,
+      createdAt: new Date().toISOString(),
+    };
+    state.connections = [conn, ...(state.connections || [])];
+  }
+
   try {
     await syncState();
     closeDialog(els.connectionDialog);
     render();
-    activateTab("connections");
-    showToast("关联已保存");
+    if (!connId) activateTab("connections");
+    showToast(connId ? "关联已更新" : "关联已保存");
   } catch (error) {
     showToast(error.message);
   }
@@ -2249,6 +2306,35 @@ async function deleteConnection(connId) {
       }
     },
   });
+}
+
+function openConnectionForEdit(connId) {
+  if (!requireAuth("编辑关联")) return;
+  const conn = (state.connections || []).find((c) => c.id === connId);
+  if (!conn) { showToast("关联不存在"); return; }
+  document.getElementById("connectionId").value = connId;
+  document.getElementById("connSourceType").value = conn.sourceType;
+  document.getElementById("connTargetType").value = conn.targetType;
+  els.connectionForm.querySelector('[name="kind"]').value = conn.kind || "延伸";
+  els.connectionForm.querySelector('[name="thought"]').value = conn.thought || "";
+  els.connectionForm.querySelector('[name="tags"]').value = (conn.tags || []).join(", ");
+  connSourceBookComboWrap?._comboboxReset?.();
+  connSourceQuoteComboWrap?._comboboxReset?.();
+  connTargetBookComboWrap?._comboboxReset?.();
+  connTargetQuoteComboWrap?._comboboxReset?.();
+  toggleConnComboboxes("source", conn.sourceType);
+  toggleConnComboboxes("target", conn.targetType);
+  if (conn.sourceType === "book") {
+    connSourceBookComboWrap?._comboboxSetValue?.(conn.sourceId);
+  } else {
+    connSourceQuoteComboWrap?._comboboxSetValue?.(conn.sourceId);
+  }
+  if (conn.targetType === "book") {
+    connTargetBookComboWrap?._comboboxSetValue?.(conn.targetId);
+  } else {
+    connTargetQuoteComboWrap?._comboboxSetValue?.(conn.targetId);
+  }
+  els.connectionDialog.showModal();
 }
 
 function bindEvents() {
@@ -2314,13 +2400,31 @@ function bindEvents() {
 
   els.connectionsList?.addEventListener("click", (event) => {
     const delBtn = event.target.closest(".conn-delete-btn");
-    if (delBtn) { event.stopPropagation(); deleteConnection(delBtn.dataset.connId); }
+    if (delBtn) { event.stopPropagation(); deleteConnection(delBtn.dataset.connId); return; }
+    const editBtn = event.target.closest(".conn-edit-btn");
+    if (editBtn) { event.stopPropagation(); openConnectionForEdit(editBtn.dataset.connId); return; }
+    const navSide = event.target.closest(".conn-nav-side[data-nav-id]");
+    if (navSide) {
+      event.stopPropagation();
+      const { navType, navId } = navSide.dataset;
+      if (navType === "book") openBookDetailDialog(navId);
+      else if (navType === "quote") openQuoteDetail(navId);
+    }
   });
 
   els.quoteDetailConnectBtn?.addEventListener("click", () => {
     const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
     document.getElementById("quoteDetailDialog").close();
     openConnectionDialog({ sourceType: "quote", sourceId: quoteId });
+  });
+
+  document.getElementById("quoteDetailConnections")?.addEventListener("click", (event) => {
+    const card = event.target.closest(".conn-mini-nav[data-nav-id]");
+    if (!card) return;
+    const { navType, navId } = card.dataset;
+    document.getElementById("quoteDetailDialog").close();
+    if (navType === "book") openBookDetailDialog(navId);
+    else if (navType === "quote") openQuoteDetail(navId);
   });
 
   els.mobileTabs.forEach((button) => {
