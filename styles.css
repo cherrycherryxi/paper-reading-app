@@ -2199,7 +2199,7 @@ dialog::backdrop {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 900;
+  z-index: 1050;
   background: rgba(50, 45, 35, 0.35);
 }
 
@@ -2213,7 +2213,7 @@ dialog::backdrop {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 901;
+  z-index: 1100;
   background: var(--color-surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
