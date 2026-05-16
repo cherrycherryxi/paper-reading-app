@@ -1910,10 +1910,16 @@ dialog::backdrop {
     margin-top: 8px;
   }
 
+  /* iOS auto-zooms any input < 16px — keep all inputs at 16px on mobile */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   .books-search-row input,
   .books-search-row select {
     padding: 7px 10px;
-    font-size: 13px;
   }
 
   .chip-strip,
