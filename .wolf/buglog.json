@@ -1703,20 +1703,15 @@
     {
       "id": "bug-099",
       "priority": "P1",
-      "status": "open",
+      "status": "fixed",
       "title": "「我的」页面右上角图标弹出的信息页展示不完整",
       "timestamp": "2026-05-16T00:00:00.000Z",
+      "fixed_at": "2026-05-16T00:00:00.000Z",
       "error_message": "点击「我的」tab 右上角图标后，弹出的页面部分信息缺失或未渲染",
-      "file": "app.js / index.html",
-      "root_cause": "待确认：可能是 renderProfile() 数据字段缺失、模板 HTML 未覆盖所有状态，或弹层高度限制导致内容溢出不可见",
-      "fix": "",
-      "tags": [
-        "js",
-        "html",
-        "profile",
-        "me-tab",
-        "ux"
-      ],
+      "file": "styles.css",
+      "root_cause": "me-panel 使用 overflow-y:auto 但无 padding-bottom，内容滚至底部时被导航栏遮挡；me-drawer 无 -webkit-overflow-scrolling:touch 导致 iOS 上 position:fixed 弹层滚动失效",
+      "fix": "me panel tab-active 加 padding-bottom + -webkit-overflow-scrolling:touch；me-drawer 加 -webkit-overflow-scrolling:touch",
+      "tags": ["css", "ios", "me-tab", "drawer", "scroll", "ux"],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T00:00:00.000Z"
@@ -1724,44 +1719,31 @@
     {
       "id": "bug-100",
       "priority": "P2",
-      "status": "open",
+      "status": "fixed",
       "title": "书单页编辑封面保存后页面滚回顶部，丢失当前卡片位置",
       "timestamp": "2026-05-16T00:00:00.000Z",
+      "fixed_at": "2026-05-16T00:00:00.000Z",
       "error_message": "对书卡编辑封面照片保存后，书单列表滚动到最顶部而非停留在当前书卡位置",
       "file": "app.js",
-      "root_cause": "待确认：saveBookEdit 保存后调用 render() 重建 DOM，导致滚动位置重置；未在保存前记录 scrollTop 或在渲染后恢复",
-      "fix": "",
-      "tags": [
-        "js",
-        "scroll-position",
-        "books",
-        "ux",
-        "saveBookEdit"
-      ],
-      "related_bugs": [
-        "bug-036"
-      ],
+      "root_cause": "saveBookEdit 调用 render() 重建 booksList DOM 后 scrollTop 重置为 0；未保存/恢复滚动位置",
+      "fix": "render() 调用前记录 els.booksList.scrollTop，之后用嵌套 requestAnimationFrame 还原（等待批量渲染完成）",
+      "tags": ["js", "scroll-position", "books", "ux", "saveBookEdit"],
+      "related_bugs": ["bug-036"],
       "occurrences": 1,
       "last_seen": "2026-05-16T00:00:00.000Z"
     },
     {
       "id": "bug-101",
       "priority": "P3",
-      "status": "open",
+      "status": "fixed",
       "title": "摘抄页卡片的「摘抄/笔记」类型标签位置错误，应在封面左上角而非书名旁",
       "timestamp": "2026-05-16T00:00:00.000Z",
+      "fixed_at": "2026-05-16T00:00:00.000Z",
       "error_message": "区分摘抄和笔记的标签显示在书名旁边，视觉层级混乱，应改到封面图左上角",
       "file": "app.js / styles.css",
-      "root_cause": "renderQuotes() 生成卡片时将 type badge 插入书名行，而非封面图 overlay 位置",
-      "fix": "",
-      "tags": [
-        "js",
-        "css",
-        "quotes",
-        "badge",
-        "visual-hierarchy",
-        "ux"
-      ],
+      "root_cause": "renderQuotes() 将 entry-type-chip 放在 h3 书名行内",
+      "fix": "将 chip 移到 entry-card-cover div 内，新增 .entry-type-chip-overlay 绝对定位于封面左上角 (top:8px, left:8px)",
+      "tags": ["js", "css", "quotes", "badge", "visual-hierarchy", "ux"],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T00:00:00.000Z"
@@ -1781,6 +1763,70 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T06:41:47.472Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-05-16T07:02:36.571Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"./app.js?v=20260514a\"",
+      "fix": "Changed to \"./app.js?v=20260516b\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T07:06:40.083Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-05-16T07:16:00.152Z",
+      "error_message": "Wrong reference: 20260516b should be 20260516c",
+      "file": "index.html",
+      "root_cause": "Used \"20260516b\" instead of \"20260516c\"",
+      "fix": "Changed 20260516b → 20260516c",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T07:16:00.152Z"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-05-16T07:26:20.182Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T07:26:20.182Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-05-16T07:27:03.164Z",
+      "error_message": "CSS fix: position",
+      "file": "styles.css",
+      "root_cause": "position: static → absolute",
+      "fix": "Changed position: static → absolute",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T07:27:03.164Z"
     }
   ]
 }

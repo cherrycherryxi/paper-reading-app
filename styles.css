@@ -847,6 +847,15 @@ textarea {
   margin-left: 4px;
 }
 
+.entry-type-chip-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
 .book-delete-corner {
   position: absolute;
   /* shift by 7px so the 44px button's visual center stays at the old 30px position */
@@ -1797,6 +1806,8 @@ dialog::backdrop {
   /* Me panel has no dedicated list — scroll the whole thing */
   .layout [data-tab-section="me"].tab-active {
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 
   .chat-panel {
@@ -2208,6 +2219,7 @@ dialog::backdrop {
   padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
   max-height: 85dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 -8px 32px rgba(50, 45, 35, 0.14);
 }
 

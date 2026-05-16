@@ -952,9 +952,10 @@ function renderQuotes() {
         <article class="quote-grid-card" data-quote-id="${escapeHtml(quote.id)}">
           <div class="entry-card-cover">
             <div class="entry-cover-fallback"></div>
+            <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">
-            <h3>${book ? formatBookTitle(book.title) : "未知书籍"} <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span></h3>
+            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
             <p class="entry-card-note">${escapeHtml(quote.content)}</p>
             <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}</p>
@@ -1610,9 +1611,15 @@ async function saveBookEdit(formData) {
 
   // Capture pending image then close dialog right away
   const pendingImage = pendingBookEditImage;
+  const booksScrollTop = els.booksList?.scrollTop ?? 0;
   closeDialog(els.bookEditDialog);
   resetBookEditDraft();
   render();
+  if (booksScrollTop > 0) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (els.booksList) els.booksList.scrollTop = booksScrollTop;
+    }));
+  }
   showToast("保存中…");
 
   // Upload image + sync in background

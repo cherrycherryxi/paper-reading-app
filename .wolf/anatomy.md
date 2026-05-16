@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-16T06:42:28.827Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-16T07:27:03.086Z
 > Files: 65 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -24,14 +24,14 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~37 tok)
-- `app.js` — Run an async save operation while disabling the submit button and showing a (~27099 tok)
+- `app.js` — Run an async save operation while disabling the submit button and showing a (~27174 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, updatePickerDisplay + 14 more (~3761 tok)
 - `CLAUDE.md` — OpenWolf (~1073 tok)
-- `index.html` — 🐛 又买了一本书 (~7276 tok)
+- `index.html` — 🐛 又买了一本书 (~7279 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27099 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)
-- `styles.css` — Styles: 149 rules, 51 vars (~12318 tok)
+- `styles.css` — Styles: 149 rules, 51 vars (~12417 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
