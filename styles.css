@@ -757,8 +757,7 @@ textarea {
   position: relative;
 }
 
-.session-grid-card,
-.quote-grid-card {
+.session-grid-card {
   overflow: hidden;
 }
 
@@ -788,6 +787,7 @@ textarea {
 
 .quote-grid-card .entry-card-cover {
   background: var(--color-pastel-pink);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .book-card-cover img,
