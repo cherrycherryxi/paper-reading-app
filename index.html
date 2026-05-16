@@ -112,9 +112,18 @@
 
         <section class="panel chat-panel" data-tab-section="chat">
           <div class="chat-panel-header">
-            <h2>探讨</h2>
-            <select id="chatBookSelect" class="chat-book-select"></select>
-            <button id="chatClearBtn" class="button button-ghost button-small" type="button">清空</button>
+            <div class="chat-header-row">
+              <h2>探讨</h2>
+              <button id="chatClearBtn" class="icon-btn" type="button" title="清空对话记录" aria-label="清空对话记录">
+                <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
+              </button>
+            </div>
+            <div class="book-picker">
+              <input id="chatBookInput" type="text" placeholder="搜索或选择书籍…" autocomplete="off" class="book-picker-input">
+              <button id="chatBookClearPick" class="book-picker-clear" type="button" hidden aria-label="取消选择">✕</button>
+              <ul id="chatBookDropdown" class="book-picker-dropdown" hidden role="listbox"></ul>
+            </div>
+            <input type="hidden" id="chatBookSelect">
           </div>
           <div id="chatMessages" class="chat-messages chat-messages-inline">
             <div class="chat-welcome">
@@ -133,19 +142,15 @@
         </section>
 
         <section class="panel me-panel" data-tab-section="me">
-          <div class="section-head">
+          <div class="me-panel-header">
             <h2>我的</h2>
-            <p>账号概况、数据状态和模型调用日志。</p>
+            <button id="meAvatarBtn" class="me-avatar-btn" type="button" aria-label="账号设置">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              <span id="meAvatarDot" class="me-avatar-dot is-hidden"></span>
+            </button>
           </div>
 
-          <div id="meProfileCard" class="profile-card">
-            <div class="profile-identity">
-              <div class="profile-title">未登录</div>
-              <div class="profile-subtitle">登录后由后端统一保存你的阅读数据。</div>
-            </div>
-            <div class="profile-status" id="profileStatusPill">本地模式</div>
-          </div>
-
+          <span class="profile-status" id="profileStatusPill" hidden></span>
           <div id="meSummary" class="stats-grid compact-stats"></div>
 
           <section class="subpanel progress-panel">
@@ -157,69 +162,58 @@
               <div class="profile-progress-fill" id="readingCompletionBar"></div>
             </div>
           </section>
-
-          <section class="subpanel" id="authPanel">
-            <div class="subpanel-head">
-              <h3>登录账号</h3>
-            </div>
-            <div class="auth-tabs">
-              <button class="auth-tab-btn active" data-auth-tab="login" type="button">登录</button>
-              <button class="auth-tab-btn" data-auth-tab="register" type="button">注册</button>
-            </div>
-            <div class="auth-form-panel active" id="authTabLogin">
-              <form id="loginForm" class="stack-form">
-                <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
-                <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
-                <button type="submit" class="button button-primary">登录</button>
-              </form>
-            </div>
-            <div class="auth-form-panel" id="authTabRegister">
-              <form id="registerForm" class="stack-form">
-                <label><span>用户名</span><input name="username" type="text" placeholder="例如：nanqi" required /></label>
-                <label><span>密码</span><input name="password" type="password" placeholder="至少 4 位" required /></label>
-                <button type="submit" class="button button-primary">注册</button>
-              </form>
-            </div>
-          </section>
-
-          <section class="subpanel is-hidden" id="userPanel">
-            <div class="subpanel-head row-head">
-              <div>
-                <h3 id="currentUsername">未登录</h3>
-                <p id="currentUserMeta">登录后，账号、书单、记录、摘抄、图片、聊天历史和日志都走后端。</p>
-              </div>
-              <button id="logoutBtn" class="button button-ghost" type="button">退出登录</button>
-            </div>
-            <div class="toolbar">
-              <button class="button button-ghost" id="exportButton" type="button">导出数据</button>
-              <label class="button button-ghost file-button">
-                导入数据
-                <input type="file" id="importInput" accept="application/json" />
-              </label>
-              <label class="button button-ghost file-button">
-                导入Excel
-                <input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
-              </label>
-            </div>
-          </section>
-
-          <details class="subpanel logs-collapsible">
-            <summary class="subpanel-head row-head">
-              <div>
-                <h3>模型调用日志</h3>
-                <p>日志由后端保存。这里展示当前账号在部署端的调用记录。</p>
-              </div>
-              <span class="logs-collapse-indicator">展开</span>
-            </summary>
-            <div class="toolbar">
-              <button id="clearLogsBtn" class="button button-ghost" type="button">清空日志</button>
-            </div>
-            <div id="modelLogsList" class="logs-list empty-state"></div>
-          </details>
         </section>
       </main>
     </div>
 
+    <!-- Account drawer -->
+    <div id="meDrawerOverlay" class="me-drawer-overlay"></div>
+    <div id="meDrawer" class="me-drawer" role="dialog" aria-modal="true" aria-label="账号">
+      <div class="me-drawer-handle"></div>
+      <section id="authPanel" class="me-drawer-section">
+        <div class="me-drawer-section-head"><h3>登录账号</h3></div>
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" data-auth-tab="login" type="button">登录</button>
+          <button class="auth-tab-btn" data-auth-tab="register" type="button">注册</button>
+        </div>
+        <div class="auth-form-panel active" id="authTabLogin">
+          <form id="loginForm" class="stack-form">
+            <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
+            <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
+            <button type="submit" class="button button-primary">登录</button>
+          </form>
+        </div>
+        <div class="auth-form-panel" id="authTabRegister">
+          <form id="registerForm" class="stack-form">
+            <label><span>用户名</span><input name="username" type="text" placeholder="例如：nanqi" required /></label>
+            <label><span>密码</span><input name="password" type="password" placeholder="至少 4 位" required /></label>
+            <button type="submit" class="button button-primary">注册</button>
+          </form>
+        </div>
+      </section>
+      <section id="userPanel" class="me-drawer-section is-hidden">
+        <div class="me-drawer-section-head">
+          <div>
+            <div class="me-drawer-username" id="currentUsername">未登录</div>
+            <div class="me-drawer-user-meta" id="currentUserMeta"></div>
+          </div>
+          <button id="logoutBtn" class="button button-ghost button-small" type="button">退出登录</button>
+        </div>
+        <div class="me-drawer-actions">
+          <button class="button button-ghost" id="exportButton" type="button">导出数据</button>
+          <label class="button button-ghost file-button">导入数据<input type="file" id="importInput" accept="application/json" /></label>
+          <label class="button button-ghost file-button">导入Excel<input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /></label>
+        </div>
+        <details class="subpanel logs-collapsible">
+          <summary class="subpanel-head row-head">
+            <div><h3>模型日志</h3></div>
+            <span class="logs-collapse-indicator">展开</span>
+          </summary>
+          <div class="toolbar"><button id="clearLogsBtn" class="button button-ghost" type="button">清空日志</button></div>
+          <div id="modelLogsList" class="logs-list empty-state"></div>
+        </details>
+      </section>
+    </div>
 
     <dialog id="bookEditDialog">
       <form id="bookEditForm" class="dialog-form">
@@ -507,7 +501,7 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="./app.js?v=20260514a"></script>
-    <script src="./chat.js?v=20260514a"></script>
+    <script src="./app.js?v=20260516b"></script>
+    <script src="./chat.js?v=20260516b"></script>
   </body>
 </html>
