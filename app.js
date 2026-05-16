@@ -42,7 +42,10 @@ const els = {
   quotesList: document.querySelector("#quotesList"),
   logsList: document.querySelector("#modelLogsList"),
   meSummary: document.querySelector("#meSummary"),
-  meProfileCard: document.querySelector("#meProfileCard"),
+  meAvatarBtn: document.querySelector("#meAvatarBtn"),
+  meAvatarDot: document.querySelector("#meAvatarDot"),
+  meDrawer: document.querySelector("#meDrawer"),
+  meDrawerOverlay: document.querySelector("#meDrawerOverlay"),
   profileStatusPill: document.querySelector("#profileStatusPill"),
   readingCompletionRate: document.querySelector("#readingCompletionRate"),
   readingCompletionBar: document.querySelector("#readingCompletionBar"),
@@ -528,21 +531,28 @@ function renderAuthPanels() {
   const isLoggedIn = Boolean(currentUser?.id);
   els.authPanel.classList.toggle("is-hidden", isLoggedIn);
   els.userPanel.classList.toggle("is-hidden", !isLoggedIn);
+  els.meAvatarDot?.classList.toggle("is-hidden", !isLoggedIn);
 
   if (!isLoggedIn) {
-    els.currentUsername.textContent = "未登录";
-    els.currentUserMeta.textContent = "登录后，账号、书单、记录、摘抄、图片、聊天历史和日志都走后端。";
-    els.meProfileCard.querySelector(".profile-title").textContent = "未登录";
-    els.meProfileCard.querySelector(".profile-subtitle").textContent = "登录后按账号保存你的阅读数据，并从服务器恢复。";
-    els.profileStatusPill.textContent = "未连接";
+    if (els.currentUsername) els.currentUsername.textContent = "未登录";
+    if (els.currentUserMeta) els.currentUserMeta.textContent = "登录后，数据保存到服务器。";
     return;
   }
 
-  els.currentUsername.textContent = currentUser.username;
-  els.currentUserMeta.textContent = `阅读数据、图片、聊天历史与模型日志都保存在部署服务器。`;
-  els.meProfileCard.querySelector(".profile-title").textContent = currentUser.username;
-  els.meProfileCard.querySelector(".profile-subtitle").textContent = `已连接 ${getBackendBaseUrl() || "未配置后端"}`;
-  els.profileStatusPill.textContent = "服务器模式";
+  if (els.currentUsername) els.currentUsername.textContent = currentUser.username;
+  if (els.currentUserMeta) els.currentUserMeta.textContent = "数据已同步至服务器";
+}
+
+function openMeDrawer() {
+  if (!els.meDrawer) return;
+  els.meDrawer.classList.add("is-open");
+  els.meDrawerOverlay.classList.add("is-open");
+}
+
+function closeMeDrawer() {
+  if (!els.meDrawer) return;
+  els.meDrawer.classList.remove("is-open");
+  els.meDrawerOverlay.classList.remove("is-open");
 }
 
 function renderBookSelect(hiddenInput) {
@@ -636,30 +646,53 @@ function buildBookSearchCard(book, cache) {
           : `<div class="book-cover-fallback"></div>`
       }
       <span class="book-status-chip" data-status="${book.status}"><span class="chip-dot chip-dot--${book.status}"></span>${escapeHtml(statusMap[book.status] || book.status)}</span>
-      <button class="book-delete-corner" type="button" title="删除书籍" aria-label="删除书籍">✖️</button>
+      <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">···</button>
     </div>
+    <ul class="card-context-menu" hidden>
+      <li><button type="button" data-menu="edit">编辑</button></li>
+      <li><button type="button" data-menu="chat">去聊</button></li>
+      <li><button type="button" data-menu="connect">关联</button></li>
+      <li class="menu-item-danger"><button type="button" data-menu="delete">删除</button></li>
+    </ul>
     <div class="book-grid-body">
       <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
       <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${qCount} 张${cCount ? ` · 🔗 ${cCount} 关联` : ""}</div>
       <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
       ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
-      <div class="book-grid-actions">
-        <button class="card-action-btn edit-book-button" type="button">编辑</button>
-        <button class="card-action-btn card-action-chat chat-book-button" type="button">去聊</button>
-        <button class="card-action-btn connect-book-button" type="button">关联</button>
-      </div>
     </div>
   `;
-  card.querySelector(".edit-book-button").addEventListener("click", () => openBookEditDialog(book.id));
-  card.querySelector(".chat-book-button").addEventListener("click", () => {
-    activateTab("chat");
-    window.paperReadingApp?.switchChatToBook?.(book.id);
+
+  const menuBtn = card.querySelector(".card-menu-btn");
+  const menu = card.querySelector(".card-context-menu");
+
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !menu.hidden;
+    document.querySelectorAll(".card-context-menu").forEach((m) => { m.hidden = true; m.closest(".book-grid-card")?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false"); });
+    if (!isOpen) {
+      menu.hidden = false;
+      menuBtn.setAttribute("aria-expanded", "true");
+    }
   });
-  card.querySelector(".connect-book-button").addEventListener("click", () => openConnectionDialog({ sourceType: "book", sourceId: book.id }));
-  card.querySelector(".book-delete-corner").addEventListener("click", () => deleteBook(book.id));
+
+  menu.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-menu]");
+    if (!btn) return;
+    e.stopPropagation();
+    menu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
+    const action = btn.dataset.menu;
+    if (action === "edit") openBookEditDialog(book.id);
+    else if (action === "chat") { activateTab("chat"); window.paperReadingApp?.switchChatToBook?.(book.id); }
+    else if (action === "connect") openConnectionDialog({ sourceType: "book", sourceId: book.id });
+    else if (action === "delete") deleteBook(book.id);
+  });
+
   card.addEventListener("click", (event) => {
     if (event.target.closest("button")) return;
+    menu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
     openBookDetailDialog(book.id);
   });
   return card;
@@ -671,16 +704,11 @@ function buildQuoteSearchCard(quote) {
   const card = document.createElement("article");
   card.className = "quote-grid-card";
   card.innerHTML = `
-    <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
-      ${
-        quote.imageUrl
-          ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄照片" />`
-          : `<div class="entry-cover-fallback"></div>`
-      }
-      <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
+    <div class="entry-card-cover">
+      <div class="entry-cover-fallback"></div>
     </div>
     <div class="entry-card-body">
-      <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
+      <h3>${book ? formatBookTitle(book.title) : "未知书籍"} <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span></h3>
       <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
       <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content || "")}</p>
       <p class="entry-card-tags">${tagsText}</p>
@@ -922,18 +950,13 @@ function renderQuotes() {
       const book = state.books.find((item) => item.id === quote.bookId);
       return `
         <article class="quote-grid-card" data-quote-id="${escapeHtml(quote.id)}">
-          <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
-            ${
-              quote.imageUrl
-                ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄照片" />`
-                : `<div class="entry-cover-fallback"></div>`
-            }
-            <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
+          <div class="entry-card-cover">
+            <div class="entry-cover-fallback"></div>
           </div>
           <div class="entry-card-body">
-            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
+            <h3>${book ? formatBookTitle(book.title) : "未知书籍"} <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span></h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
-            <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content)}</p>
+            <p class="entry-card-note">${escapeHtml(quote.content)}</p>
             <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}</p>
             <div class="entry-card-actions">
               <button class="card-action-btn" data-edit-quote="${escapeHtml(quote.id)}" type="button">编辑</button>
@@ -1093,6 +1116,7 @@ async function loginSuccess(payload) {
   await loadRemoteLogs();
   render();
   dispatchUserChange();
+  closeMeDrawer();
 }
 
 async function handleRegister(formData) {
@@ -2466,7 +2490,9 @@ function bindEvents() {
     withSavingState(btn, "保存中…", () => saveBookEdit(new FormData(els.bookEditForm)));
   });
 
-  els.logoutBtn?.addEventListener("click", logout);
+  els.meAvatarBtn?.addEventListener("click", openMeDrawer);
+  els.meDrawerOverlay?.addEventListener("click", closeMeDrawer);
+  els.logoutBtn?.addEventListener("click", () => { logout(); closeMeDrawer(); });
   els.exportButton?.addEventListener("click", exportData);
   els.clearLogsBtn?.addEventListener("click", clearLogs);
   els.sessionSearch?.addEventListener("input", renderTimeline);
@@ -2579,6 +2605,15 @@ function bindEvents() {
     } catch {
       showToast("图片读取失败");
     }
+  });
+
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".card-context-menu").forEach((m) => {
+      if (!m.hidden) {
+        m.hidden = true;
+        m.closest(".book-grid-card")?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false");
+      }
+    });
   });
 }
 

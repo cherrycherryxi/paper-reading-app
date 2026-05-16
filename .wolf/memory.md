@@ -5,6 +5,7 @@
 | 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
 | 2026-05-15 | Connection 交互完善：关联卡片侧面可点击跳转书籍/摘抄、编辑 thought/kind/tags、摘抄详情 conn-mini-card 展示 thought 并可点击导航、摘抄卡片显示关联数 badge | app.js, styles.css | done | ~900 |
 | 2026-05-15 | link_thought golden-set 8 条（normal/failure/boundary）+ 12 个 unittest（验证层+执行层），58 cases 57 通过 | data/golden_set.json, tests/agent_link_thought_test.py | done | ~800 |
+| 2026-05-15 | UI 迭代 8 项：Tab 图标截断 bug（height 动态计算）、面板撑满全屏 min-height、书单三点菜单、记录/摘抄封面缩为细条、摘抄去除封面图片、探讨页可搜索书籍选择器、我的页面账号圆圈+抽屉、移除无用后端状态信息 | styles.css, app.js, chat.js, index.html | done, 测试 6/9 通过（3 为原有失败）| ~3500 |
 | 19:55 | Edited styles.css | 13→18 lines | ~131 |
 | 17:34 | 内网穿透改造：log_server.py 加静态文件 serve + guess_base_url 支持 X-Forwarded-Proto；index.html backendBaseUrl 改为 "" | log_server.py, index.html | done, 需重启进程 | ~800 |
 | 20:30 | 内网穿透完成验证：ngrok http 8787，所有静态文件和 API 均 200，方案归档至 cerebrum.md | .wolf/cerebrum.md, .wolf/memory.md | done | ~300 |
@@ -326,3 +327,102 @@
 | 17:09 | Edited app.js | 3→4 lines | ~31 |
 | 17:10 | Edited app.js | added 3 condition(s) | ~200 |
 | $(date +%H:%M) | 性能优化: buildRenderCache() 预计算 metricsMap/quoteCountMap/connCountMap/firstQuoteImageMap，renderBooks() 分批渲染（首批8张同步，剩余 rAF 逐批） | app.js | 12/12 tests pass |  ~800 |
+| 17:10 | Session end: 5 writes across 1 files (app.js) | 1 reads | ~27083 tok |
+| 18:49 | Session end: 5 writes across 1 files (app.js) | 2 reads | ~27083 tok |
+| 19:35 | Session end: 5 writes across 1 files (app.js) | 2 reads | ~27083 tok |
+| 20:29 | Created ../../.claude/daily-logs/2026-05-15.md | — | ~288 |
+| 20:29 | Session end: 6 writes across 2 files (app.js, 2026-05-15.md) | 2 reads | ~27391 tok |
+| 20:32 | Edited ../../.claude/settings.json | expanded (+11 lines) | ~132 |
+| 20:33 | Session end: 7 writes across 3 files (app.js, 2026-05-15.md, settings.json) | 3 reads | ~27964 tok |
+| 21:08 | Session end: 7 writes across 3 files (app.js, 2026-05-15.md, settings.json) | 3 reads | ~27964 tok |
+
+## Session: 2026-05-15 21:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:37 | Created ../../.claude/daily-logs/2026-05-15.md | — | ~264 |
+| 22:37 | Session end: 1 writes across 1 files (2026-05-15.md) | 0 reads | ~283 tok |
+
+## Session: 2026-05-15 22:46
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-16 10:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:20 | Created ../../.claude/plans/idempotent-wishing-kurzweil.md | — | ~1136 |
+
+## Session: 2026-05-16 12:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:37 | Edited ../../.claude/plans/idempotent-wishing-kurzweil.md | expanded (+12 lines) | ~170 |
+| 12:37 | Edited ../../.claude/plans/idempotent-wishing-kurzweil.md | 3→4 lines | ~38 |
+| 12:38 | Session end: 2 writes across 1 files (idempotent-wishing-kurzweil.md) | 1 reads | ~10584 tok |
+| 12:40 | Edited styles.css | 9→9 lines | ~63 |
+| 12:41 | Edited styles.css | CSS: min-height | ~38 |
+| 12:41 | Edited app.js | inline fix | ~24 |
+| 12:43 | Edited styles.css | expanded (+12 lines) | ~136 |
+| 12:43 | Edited styles.css | CSS: flex, min-width | ~36 |
+| 12:43 | Edited styles.css | 14→19 lines | ~104 |
+| 12:44 | Edited app.js | modified formatBookTitle() | ~139 |
+| 12:44 | Edited styles.css | 5→7 lines | ~42 |
+| 12:45 | Edited app.js | added 6 condition(s) | ~800 |
+| 12:45 | Session end: 11 writes across 3 files (idempotent-wishing-kurzweil.md, styles.css, app.js) | 2 reads | ~39079 tok |
+| 12:45 | Edited app.js | added optional chaining | ~143 |
+| 12:46 | Edited styles.css | expanded (+69 lines) | ~396 |
+| 12:47 | Edited index.html | expanded (+9 lines) | ~283 |
+| 12:47 | Edited chat.js | added 6 condition(s) | ~594 |
+| 12:47 | Edited chat.js | modified populateChatBookSelect() | ~102 |
+| 12:47 | Edited chat.js | 4→4 lines | ~29 |
+| 12:48 | Edited chat.js | added 5 condition(s) | ~320 |
+| 12:48 | Edited styles.css | expanded (+139 lines) | ~712 |
+| 12:49 | Edited styles.css | 9→8 lines | ~44 |
+| 12:50 | Edited index.html | reduced (-64 lines) | ~279 |
+| 12:51 | Edited index.html | expanded (+48 lines) | ~780 |
+| 12:51 | Edited app.js | 10→12 lines | ~201 |
+| 12:51 | Edited app.js | added 6 condition(s) | ~260 |
+| 12:51 | Edited app.js | 3→5 lines | ~93 |
+| 12:51 | Edited app.js | modified loginSuccess() | ~71 |
+| 12:52 | Edited styles.css | expanded (+119 lines) | ~618 |
+| 12:54 | Edited index.html | 1→2 lines | ~40 |
+| 12:54 | Edited app.js | 4→5 lines | ~83 |
+| 12:55 | Edited index.html | "profile-status is-hidden" → "profile-status" | ~24 |
+| 12:56 | Edited index.html | inline fix | ~21 |
+| 12:57 | Session end: 31 writes across 5 files (idempotent-wishing-kurzweil.md, styles.css, app.js, index.html, chat.js) | 5 reads | ~58099 tok |
+
+## Session: 2026-05-16 13:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:21 | Edited styles.css | 6→4 lines | ~22 |
+| 13:21 | Edited styles.css | CSS: aspect-ratio | ~13 |
+| 13:21 | Edited styles.css | — | ~0 |
+| 13:21 | Edited app.js | modified formatBookTitle() | ~84 |
+| 13:21 | Session end: 4 writes across 2 files (styles.css, app.js) | 2 reads | ~39376 tok |
+| 14:04 | Edited app.js | 14→9 lines | ~160 |
+| 14:04 | Edited app.js | 21→24 lines | ~379 |
+| 14:05 | Edited styles.css | CSS: backdrop-filter | ~151 |
+| 14:05 | Session end: 7 writes across 2 files (styles.css, app.js) | 2 reads | ~39977 tok |
+| 14:08 | Edited styles.css | 23→21 lines | ~97 |
+| 14:08 | Session end: 8 writes across 2 files (styles.css, app.js) | 2 reads | ~40074 tok |
+| 14:10 | Edited app.js | 9→9 lines | ~141 |
+| 14:11 | Edited styles.css | CSS: position | ~88 |
+| 14:11 | Edited styles.css | CSS: border-radius | ~30 |
+| 14:11 | Edited styles.css | 5→5 lines | ~25 |
+| 14:11 | Session end: 12 writes across 2 files (styles.css, app.js) | 2 reads | ~40358 tok |
+| 14:16 | Edited styles.css | expanded (+10 lines) | ~90 |
+| 14:16 | Edited styles.css | 23→24 lines | ~146 |
+| 14:16 | Session end: 14 writes across 2 files (styles.css, app.js) | 2 reads | ~40561 tok |
+| 14:23 | Edited styles.css | CSS: padding-bottom | ~262 |
+| 14:23 | Session end: 15 writes across 2 files (styles.css, app.js) | 2 reads | ~40823 tok |
+| 14:29 | Edited styles.css | CSS: align-content, margin-top | ~136 |
+| 14:29 | Edited styles.css | 4→4 lines | ~22 |
+| 14:30 | Edited styles.css | expanded (+36 lines) | ~165 |
+| 14:30 | Session end: 18 writes across 2 files (styles.css, app.js) | 2 reads | ~41268 tok |
+| 14:39 | Session end: 18 writes across 2 files (styles.css, app.js) | 2 reads | ~41268 tok |
+| 14:41 | Edited app.js | "entry-card-note entry-car" → "entry-card-note" | ~21 |
+| 14:42 | Created tests/quote-content-display.test.js | — | ~1122 |
+| 14:52 | fix(bug-098 P1): 摘抄卡片内容截断 — 从 renderQuotes() 移除 entry-card-note-clamp，全文展示；新增回归测试 | app.js, tests/quote-content-display.test.js | fixed | ~300 |

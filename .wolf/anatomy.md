@@ -1,20 +1,37 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T15:13:35.750Z
-> Files: 58 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-16T06:42:28.827Z
+> Files: 65 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../.claude/
+
+- `settings.json` (~338 tok)
+
+## ../../.claude/daily-logs/
+
+- `2026-05-15.md` — 日报 2026-05-15 (~247 tok)
+
+## ../../.claude/plans/
+
+- `agent-federated-pony.md` — 思想碰撞（Cross-Book Connection）功能实现计划 (~1250 tok)
+- `idempotent-wishing-kurzweil.md` — UI 迭代计划 v2 — 7 项优化 (~1223 tok)
+
+## ../../.claude/scripts/
+
+- `weekly-report.sh` (~274 tok)
 
 ## ./
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~37 tok)
-- `app.js` — Run an async save operation while disabling the submit button and showing a (~17496 tok)
-- `chat.js` — els: normalizePreferredBookValue, activeBookId, resetMessages + 12 more (~2656 tok)
+- `app.js` — Run an async save operation while disabling the submit button and showing a (~27099 tok)
+- `chat.js` — els: normalizePreferredBookValue, activeBookId, updatePickerDisplay + 14 more (~3761 tok)
 - `CLAUDE.md` — OpenWolf (~1073 tok)
-- `index.html` — 纸书阅读记录 (~4548 tok)
-- `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~21708 tok)
+- `index.html` — 🐛 又买了一本书 (~7276 tok)
+- `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27099 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)
-- `styles.css` — Styles: 180 rules, 33 vars (~6735 tok)
+- `styles.css` — Styles: 149 rules, 51 vars (~12318 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -72,7 +89,7 @@
 ## data/
 
 - `golden_set_baseline.json` (~68 tok)
-- `golden_set.json` (~9710 tok)
+- `golden_set.json` (~11660 tok)
 
 ## tests/
 
@@ -80,10 +97,12 @@
 - `agent_backend_reliability_test.py` — Tests: chat_response_includes_trace_and_persists_pending_action, chat_parse_failure_returns_degraded_status_without_actions, chat_validation_failur... (~6925 tok)
 - `agent_evaluation_framework_test.py` — Tests: outcome_score_rewards_matching_outcome_action_and_reply, outcome_and_trajectory_scores_drop_when_action_type_mismatches, robustness_fails_fo... (~1854 tok)
 - `agent_golden_set_eval.py` — GoldenSetEvaluator: close, request_json, run_case, fake_deepseek + 8 more (~3461 tok)
+- `agent_link_thought_test.py` — LinkThoughtTests: setUp, tearDown, request_json, chat + 13 more (~3572 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~2497 tok)
 - `chat-agent-approval.test.js` — test: createElementStub, innerHTML, innerHTML + 3 more (~3620 tok)
 - `global-search.test.js` — test: createElementStub, innerHTML, innerHTML + 11 more (~4276 tok)
 - `ocr_recognition_fix_test.py` — Tests: bug_exploration_ocr_should_use_kimi_vision_helper, preservation_chat_route_still_uses_deepseek_chat, preservation_unauthenticated_ocr_return... (~1623 tok)
+- `quote-content-display.test.js` — Regression test for bug-098: quote card content truncation (~1122 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~1581 tok)
 
 ## wechat-miniprogram/

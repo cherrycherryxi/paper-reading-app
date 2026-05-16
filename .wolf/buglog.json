@@ -619,102 +619,1168 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-05-12T05:42:24.454Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "图片上传只支持拍照，无法从相册选取",
+      "file": "index.html",
+      "root_cause": "bookEditImageInput、bookImageInput、quoteImageInput 均带有 capture=\"environment\" 属性，强制调用相机，iOS Safari 不弹出相册选项",
+      "fix": "移除全部三处 capture=\"environment\" 属性；iOS Safari 上 accept=\"image/*\" 不带 capture 会自动弹出系统菜单（拍照 / 相册）",
+      "tags": [
+        "image",
+        "upload",
+        "ios",
+        "capture",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "拍照/选图后看不到预览图片（二次复现）",
+      "file": "app.js",
+      "root_cause": "fileToDataUrl 把 iPhone 拍照转成 base64 data URL（可达 4-11MB），iOS Safari 对 img.src 设置大型 data URL 时渲染失败，图片显示为 0 高度",
+      "fix": "change 事件处理器改为先 URL.createObjectURL(file) 生成 blob URL 用于即时预览，再异步 fileToDataUrl() 得到 dataUrl 用于上传。三个 renderXxxImagePreview 函数改为使用 objectUrl || dataUrl 作为 img.src。uploadImageIfNeeded/uploadBookImageIfNeeded 增加 dataUrl 为 null 时从 file 重新读取的兜底逻辑。",
+      "tags": [
+        "image",
+        "preview",
+        "ios",
+        "data-url",
+        "blob-url",
+        "ux"
+      ],
+      "related_bugs": [
+        "bug-034"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-05-13T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "保存书籍封面时对话框卡住等待图片上传，用户体验差",
+      "file": "app.js",
+      "root_cause": "saveBookEdit 在同步流程中 await 图片上传（/api/upload-image）+ syncState，dialog 在上传完成前无法关闭，用户只能等待",
+      "fix": "saveBookEdit 重构为：先同步更新内存 state + 立即关闭 dialog + render()，然后后台 await 图片上传 + syncState，完成后显示「书籍已更新」或错误 toast",
+      "tags": [
+        "image",
+        "upload",
+        "background",
+        "ux",
+        "saveBookEdit"
+      ],
+      "related_bugs": [
+        "bug-035"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "清空探讨记录弹窗提示「清空当前账号下的探讨记录」，实际只清当前书籍",
+      "file": "chat.js",
+      "root_cause": "clearHistory() 的 message 写死为账号级别描述，但 clearChatHistory() 只删 activeBookId 对应的记录",
+      "fix": "在 clearHistory() 里查出当前书名，message 改为「清空《书名》的探讨记录？」，无书时用「当前书籍」兜底",
+      "tags": [
+        "chat",
+        "ux",
+        "copy",
+        "confirm-dialog"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "拍照/上传照片后无法预览图片（图片不显示）",
+      "file": "app.js",
+      "root_cause": "URL.createObjectURL 在 iOS Safari + ngrok HTTPS 环境下有时静默失败；fileToDataUrl (FileReader) 产生的 base64 字符串在 iPhone 照片下可达 10MB+，iOS Safari 无法用作 img.src（静默失败，图片高度为 0）",
+      "fix": "新增 resizeImageToDataUrl(file, maxPx=1200, quality=0.85) 函数：用 objectUrl 加载 Image → 绘制到 canvas → 导出 JPEG data URL（~100-300KB）。所有三处图片变更 handler（bookEditImageInput、bookImageInput、handleQuoteImageChange）改用此函数；render preview 函数改为只用 dataUrl；upload 函数移除 file 兜底。",
+      "tags": [
+        "ios-safari",
+        "image-preview",
+        "canvas",
+        "data-url",
+        "ngrok"
+      ],
+      "related_bugs": [
+        "bug-035"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-05-13T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "OCR 识别失败：HTTP 503（图片过大导致 Moonshot API 超时）",
+      "file": "app.js, log_server.py",
+      "root_cause": "iPhone 原始照片 base64 后达 10MB+，发送到 Moonshot API 触发 503。加之错误消息只显示原始 HTTP 错误，不利于用户排查",
+      "fix": "bug-038 的 resizeImageToDataUrl 解决根因（图片压缩到 ~100-300KB）；log_server.py call_kimi_vision 增加 401/429/503 专属中文错误消息",
+      "tags": [
+        "ocr",
+        "moonshot",
+        "503",
+        "image-resize"
+      ],
+      "related_bugs": [
+        "bug-038"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-05-13T00:00:00.000Z",
+      "error_message": "重启服务器后 iPhone Safari 仍运行旧版 app.js，导致所有前端修复无效",
+      "file": "log_server.py, index.html",
+      "root_cause": "log_server.py 静态文件路由未设置 Cache-Control 头，iPhone Safari 极度激进地缓存 JS，服务器重启不会使缓存失效",
+      "fix": "log_server.py 静态文件响应加 Cache-Control: no-store + Pragma: no-cache；index.html 脚本标签加 ?v=20260513c 版本号绕过已有缓存",
+      "tags": [
+        "caching",
+        "ios-safari",
+        "static-files",
+        "cache-control"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T00:00:00.000Z",
+      "status": "fixed",
+      "fixed_at": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-05-14T05:00:08.792Z",
+      "error_message": "Significant refactor of ",
+      "file": "styles.css",
+      "root_cause": "18 lines replaced/restructured",
+      "fix": "Rewrote 21→39 lines (18 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T05:00:08.792Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-05-14T05:00:36.030Z",
+      "error_message": "CSS fix: font-weight",
+      "file": "styles.css",
+      "root_cause": "font-weight: 800 → 600",
+      "fix": "Changed font-weight: 800 → 600",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-05-14T05:02:38.541Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-05-14T05:01:04.969Z",
+      "error_message": "Significant refactor of ",
+      "file": "index.html",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→22 lines (5 removed) | Also: <button class=\"filter-chip\" type=\"button\" data-sta; <button class=\"filter-chip\" type=\"button\" data-sta | Also: <div class=\"section-head row-head\">; <div class=\"toolbar\">",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-14T05:02:20.188Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-05-14T05:01:39.095Z",
+      "error_message": "Wrong reference: 84px should be 92px",
+      "file": "styles.css",
+      "root_cause": "Used \"84px\" instead of \"92px\"",
+      "fix": "Changed 84px → 92px",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T05:01:39.095Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-05-14T06:23:42.444Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 11→7 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T06:23:42.444Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-05-14T06:23:47.361Z",
+      "error_message": "Incorrect value in code",
+      "file": "chat.js",
+      "root_cause": "Had '))}》`",
+      "fix": "Changed to ').replace(/^《|》$/g, '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T06:23:47.361Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-05-14T07:13:59.965Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const bookConns = (state.connections || []).filter((c) =>; c.sourceId === bookId || c.targetId === bookId || | Also: connSourceBookComboWrap?._comboboxUpdate?.(state.books);; connTargetBookComboWrap?._comboboxUpdate?.(state.books);",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-14T07:17:19.556Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-05-14T07:16:01.520Z",
+      "error_message": "Missing error handling in initQuoteCombobox",
+      "file": "app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T07:16:01.520Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-05-14T07:16:12.019Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !requireAuth(\"新增摘抄\"",
+      "fix": "Added guard clause: if (!requireAuth(\"新增摘抄\")",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T07:16:12.019Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-05-14T07:18:04.605Z",
+      "error_message": "Significant refactor of ",
+      "file": "log_server.py",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 38→42 lines (16 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T07:18:04.605Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-05-14T07:18:14.468Z",
+      "error_message": "Incorrect value in code",
+      "file": "chat.js",
+      "root_cause": "Had '未知操作'",
+      "fix": "Changed to 'link_thought'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T07:18:14.468Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-05-14T07:27:55.516Z",
+      "error_message": "Wrong return value",
+      "file": "app.js",
+      "root_cause": "Was returning: `《${escapeHtml(bare)}》`;",
+      "fix": "Now returns: escapeHtml(bare);",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T07:27:55.516Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-05-14T07:28:15.164Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had `《${book.title}》${book.author ? `",
+      "fix": "Changed to `${book.title}${book.author ? `",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-14T07:28:19.696Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-05-14T07:28:25.402Z",
+      "error_message": "Incorrect value in code",
+      "file": "chat.js",
+      "root_cause": "Had `《${book.title}》`",
+      "fix": "Changed to \"当前书籍\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-14T07:28:31.138Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-05-14T08:01:09.284Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \">${escapeHtml(book.title.slice(0, 2) || \"",
+      "fix": "Changed to \"></div>`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-14T08:01:13.229Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-05-14T08:43:03.467Z",
+      "error_message": "Incorrect value in code",
+      "file": "log_server.py",
+      "root_cause": "Had '- {\"",
+      "fix": "Changed to \"type\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T08:43:03.467Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-05-14T08:43:07.996Z",
+      "error_message": "Wrong reference: 1200 should be 2400",
+      "file": "log_server.py",
+      "root_cause": "Used \"1200\" instead of \"2400\"",
+      "fix": "Changed 1200 → 2400",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T08:43:07.996Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-05-14T08:48:11.534Z",
+      "error_message": "Wrong return value",
+      "file": "log_server.py",
+      "root_cause": "Was returning: system_prompt = prompt_builder.build_chat_prompt(s",
+      "fix": "Now returns: history = compress_chat_history_if_needed(conn, us",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T08:48:11.534Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-05-14T09:09:45.596Z",
+      "error_message": "CSS fix: flex-direction, align-items",
+      "file": "styles.css",
+      "root_cause": "flex-direction: column → row; align-items: stretch → flex-end",
+      "fix": "Changed flex-direction: column → row; align-items: stretch → flex-end",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T09:09:45.596Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-05-14T09:09:50.203Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"width=device-width, initial-scale=1.0, viewport-f",
+      "fix": "Changed to \"width=device-width, initial-scale=1.0, viewport-f",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T09:09:50.203Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-05-14T10:20:25.804Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !url",
+      "fix": "Added guard clause: if (!url)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T10:20:25.804Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-05-14T10:21:11.550Z",
+      "error_message": "CSS fix: color, border-color",
+      "file": "styles.css",
+      "root_cause": "color: #b27269 → var(--color-ink); border-color: #e8c7c2 → var(--color-yellow)",
+      "fix": "Changed color: #b27269 → var(--color-ink); border-color: #e8c7c2 → var(--color-yellow)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T10:21:11.550Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-05-14T12:56:31.929Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"#quoteFilter\"",
+      "fix": "Changed to \"#quoteTypeChips\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T12:56:31.929Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-05-14T12:56:35.736Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T12:56:35.736Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-05-14T12:56:52.390Z",
+      "error_message": "CSS fix: border-radius",
+      "file": "styles.css",
+      "root_cause": "border-radius: var(--radius-sm) → var(--radius-md)",
+      "fix": "Changed border-radius: var(--radius-sm) → var(--radius-md)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T12:56:52.390Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-05-14T14:23:34.148Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"sessionBookFilter\"",
+      "fix": "Changed to \"sessionSearch\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T14:23:34.148Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-05-14T14:23:39.042Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"#sessionBookFilter\"",
+      "fix": "Changed to \"#sessionSearch\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-14T14:24:07.157Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-05-14T14:23:46.251Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 18→9 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T14:23:46.251Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-05-14T14:45:05.047Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"connectionBookFilter\"",
+      "fix": "Changed to \"connectionSearch\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T14:45:05.047Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-05-14T14:45:08.843Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"#connectionBookFilter\"",
+      "fix": "Changed to \"#connectionSearch\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T14:45:08.843Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-05-14T14:45:27.229Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: selectedConnectionKindFilter && selectedConnectionKindFilter",
+      "fix": "Added guard clause: if (selectedConnectionKindFilter && selected)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-14T14:45:27.229Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-05-15T06:03:33.797Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 28→33 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T06:03:33.797Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-05-15T06:04:00.777Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T06:04:00.777Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-05-15T06:04:22.683Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"entry-card-actions\"",
+      "fix": "Changed to ` <span class=\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T06:04:22.683Z"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-05-15T06:04:28.702Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !card",
+      "fix": "Added guard clause: if (!card)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T06:04:28.702Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-05-15T06:04:46.366Z",
+      "error_message": "CSS fix: color",
+      "file": "styles.css",
+      "root_cause": "color: var(--color-ink) → var(--color-ink-muted)",
+      "fix": "Changed color: var(--color-ink) → var(--color-ink-muted)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T06:04:46.366Z"
+    },
+    {
+      "id": "bug-077",
+      "timestamp": "2026-05-15T09:09:37.479Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T09:09:37.479Z"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-05-15T09:09:48.056Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had ` · 🔗 ${getConnectionCount(book.id)} 关联`",
+      "fix": "Changed to ` · 🔗 ${cCount} 关联`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T09:09:48.056Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-05-15T09:10:01.738Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: books.length > BATCH",
+      "fix": "Added guard clause: if (books.length > BATCH)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-15T09:10:01.738Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-05-16T04:40:51.804Z",
+      "error_message": "CSS fix: height",
+      "file": "styles.css",
+      "root_cause": "height: 72px → calc(72px + env(safe-area-inset-bottom))",
+      "fix": "Changed height: 72px → calc(72px + env(safe-area-inset-bottom))",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-05-16T04:44:16.390Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-05-16T04:41:47.995Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had `已连接 ${getBackendBaseUrl() || \"",
+      "fix": "Changed to \"数据已同步至服务器\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:41:47.995Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-05-16T04:45:23.571Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !isOpen",
+      "fix": "Added guard clause: if (!isOpen)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:45:23.571Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-05-16T04:45:52.264Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:45:52.264Z"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-05-16T04:46:09.004Z",
+      "error_message": "Significant refactor of ",
+      "file": "styles.css",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→76 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:46:09.005Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-05-16T04:47:25.444Z",
+      "error_message": "Significant refactor of ",
+      "file": "index.html",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→14 lines (2 removed) | Also: <div class=\"section-head\">; <p>账号概况、数据状态和模型调用日志。</p>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T04:50:47.939Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-05-16T04:47:40.419Z",
+      "error_message": "Missing guard clause",
+      "file": "chat.js",
+      "root_cause": "No early return/throw for edge case: !els.bookInput",
+      "fix": "Added guard clause: if (!els.bookInput)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:47:40.419Z"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-05-16T04:47:48.385Z",
+      "error_message": "Significant refactor of ",
+      "file": "chat.js",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 18→7 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:47:48.385Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-05-16T04:48:08.467Z",
+      "error_message": "Wrong operator: || should be ===",
+      "file": "chat.js",
+      "root_cause": "Used \"||\" instead of \"===\"",
+      "fix": "Changed operator || → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:48:08.467Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-05-16T04:51:27.756Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !isLoggedIn",
+      "fix": "Added guard clause: if (!isLoggedIn)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:51:27.756Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-05-16T04:52:32.373Z",
+      "error_message": "CSS fix: display, font-size",
+      "file": "styles.css",
+      "root_cause": "display: inline-flex → flex; font-size: 0.75rem → 13px",
+      "fix": "Changed display: inline-flex → flex; font-size: 0.75rem → 13px",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T04:52:32.373Z"
+    },
+    {
+      "id": "bug-091",
+      "timestamp": "2026-05-16T04:54:22.414Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"meSummary\"",
+      "fix": "Changed to \"profile-status is-hidden\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T04:55:34.836Z"
+    },
+    {
+      "id": "bug-092",
+      "timestamp": "2026-05-16T05:21:02.217Z",
+      "error_message": "Significant refactor of ",
+      "file": "styles.css",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→4 lines (2 removed) | Also: width: 48px;; flex-shrink: 0;",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T05:21:06.257Z"
+    },
+    {
+      "id": "bug-093",
+      "timestamp": "2026-05-16T05:21:30.146Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 11→6 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T05:21:30.146Z"
+    },
+    {
+      "id": "bug-094",
+      "timestamp": "2026-05-16T06:08:37.415Z",
+      "error_message": "CSS fix: background, font-size, color",
+      "file": "styles.css",
+      "root_cause": "background: rgba(70, 110, 70, 0.92) → none; font-size: 14px → 18px; color: #fff → #3d5a32",
+      "fix": "Changed background: rgba(70, 110, 70, 0.92) → none; font-size: 14px → 18px; color: #fff → #3d5a32",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T06:11:20.735Z"
+    },
+    {
+      "id": "bug-095",
+      "timestamp": "2026-05-16T06:16:29.089Z",
+      "error_message": "CSS fix: padding",
+      "file": "styles.css",
+      "root_cause": "padding: 14px 14px calc(92px + env(safe-area-inset-bottom)) → 0",
+      "fix": "Changed padding: 14px 14px calc(92px + env(safe-area-inset-bottom)) → 0",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T06:16:41.147Z"
+    },
+    {
+      "id": "bug-096",
+      "timestamp": "2026-05-16T06:23:18.052Z",
+      "error_message": "Significant refactor of ",
+      "file": "styles.css",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 24→35 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T06:23:18.052Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-05-16T06:29:39.494Z",
+      "error_message": "CSS fix: padding",
+      "file": "styles.css",
+      "root_cause": "padding: 18px → 12px 14px 0",
+      "fix": "Changed padding: 18px → 12px 14px 0",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T06:29:39.494Z"
+    },
+    {
+      "id": "bug-098",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "摘抄页卡片内容展示不完整，用户无法阅读完整摘抄",
+      "timestamp": "2026-05-16T00:00:00.000Z",
+      "fixed_at": "2026-05-16T00:00:00.000Z",
+      "error_message": "摘抄页面卡片内容被截断，无法看到完整内容",
+      "file": "app.js",
+      "root_cause": "renderQuotes() 给内容段落加了 entry-card-note-clamp class，该 class 设置 -webkit-line-clamp: 4，超过 4 行的摘抄被截断",
+      "fix": "从 renderQuotes() 输出的卡片 HTML 中移除 entry-card-note-clamp class；书籍详情页内小预览（buildBookCard line 713）保留该 class 不变",
+      "tags": [
+        "js",
+        "quotes",
+        "truncation",
+        "line-clamp",
+        "ux"
+      ],
+      "related_bugs": [
+        "P2-004"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T00:00:00.000Z"
+    },
+    {
+      "id": "bug-099",
+      "priority": "P1",
+      "status": "open",
+      "title": "「我的」页面右上角图标弹出的信息页展示不完整",
+      "timestamp": "2026-05-16T00:00:00.000Z",
+      "error_message": "点击「我的」tab 右上角图标后，弹出的页面部分信息缺失或未渲染",
+      "file": "app.js / index.html",
+      "root_cause": "待确认：可能是 renderProfile() 数据字段缺失、模板 HTML 未覆盖所有状态，或弹层高度限制导致内容溢出不可见",
+      "fix": "",
+      "tags": [
+        "js",
+        "html",
+        "profile",
+        "me-tab",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T00:00:00.000Z"
+    },
+    {
+      "id": "bug-100",
+      "priority": "P2",
+      "status": "open",
+      "title": "书单页编辑封面保存后页面滚回顶部，丢失当前卡片位置",
+      "timestamp": "2026-05-16T00:00:00.000Z",
+      "error_message": "对书卡编辑封面照片保存后，书单列表滚动到最顶部而非停留在当前书卡位置",
+      "file": "app.js",
+      "root_cause": "待确认：saveBookEdit 保存后调用 render() 重建 DOM，导致滚动位置重置；未在保存前记录 scrollTop 或在渲染后恢复",
+      "fix": "",
+      "tags": [
+        "js",
+        "scroll-position",
+        "books",
+        "ux",
+        "saveBookEdit"
+      ],
+      "related_bugs": [
+        "bug-036"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T00:00:00.000Z"
+    },
+    {
+      "id": "bug-101",
+      "priority": "P3",
+      "status": "open",
+      "title": "摘抄页卡片的「摘抄/笔记」类型标签位置错误，应在封面左上角而非书名旁",
+      "timestamp": "2026-05-16T00:00:00.000Z",
+      "error_message": "区分摘抄和笔记的标签显示在书名旁边，视觉层级混乱，应改到封面图左上角",
+      "file": "app.js / styles.css",
+      "root_cause": "renderQuotes() 生成卡片时将 type badge 插入书名行，而非封面图 overlay 位置",
+      "fix": "",
+      "tags": [
+        "js",
+        "css",
+        "quotes",
+        "badge",
+        "visual-hierarchy",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T00:00:00.000Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-05-16T06:41:47.471Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"entry-card-note entry-card-note-clamp\"",
+      "fix": "Changed to \"entry-card-note\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T06:41:47.472Z"
     }
-  ,{
-    "id": "bug-034",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "图片上传只支持拍照，无法从相册选取",
-    "file": "index.html",
-    "root_cause": "bookEditImageInput、bookImageInput、quoteImageInput 均带有 capture=\"environment\" 属性，强制调用相机，iOS Safari 不弹出相册选项",
-    "fix": "移除全部三处 capture=\"environment\" 属性；iOS Safari 上 accept=\"image/*\" 不带 capture 会自动弹出系统菜单（拍照 / 相册）",
-    "tags": ["image", "upload", "ios", "capture", "ux"],
-    "related_bugs": [],
-    "occurrences": 1,
-    "last_seen": "2026-05-13T00:00:00.000Z"
-  },
-  {
-    "id": "bug-035",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "拍照/选图后看不到预览图片（二次复现）",
-    "file": "app.js",
-    "root_cause": "fileToDataUrl 把 iPhone 拍照转成 base64 data URL（可达 4-11MB），iOS Safari 对 img.src 设置大型 data URL 时渲染失败，图片显示为 0 高度",
-    "fix": "change 事件处理器改为先 URL.createObjectURL(file) 生成 blob URL 用于即时预览，再异步 fileToDataUrl() 得到 dataUrl 用于上传。三个 renderXxxImagePreview 函数改为使用 objectUrl || dataUrl 作为 img.src。uploadImageIfNeeded/uploadBookImageIfNeeded 增加 dataUrl 为 null 时从 file 重新读取的兜底逻辑。",
-    "tags": ["image", "preview", "ios", "data-url", "blob-url", "ux"],
-    "related_bugs": ["bug-034"],
-    "occurrences": 2,
-    "last_seen": "2026-05-13T00:00:00.000Z",
-    "status": "fixed",
-    "fixed_at": "2026-05-13T00:00:00.000Z"
-  },
-  {
-    "id": "bug-036",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "保存书籍封面时对话框卡住等待图片上传，用户体验差",
-    "file": "app.js",
-    "root_cause": "saveBookEdit 在同步流程中 await 图片上传（/api/upload-image）+ syncState，dialog 在上传完成前无法关闭，用户只能等待",
-    "fix": "saveBookEdit 重构为：先同步更新内存 state + 立即关闭 dialog + render()，然后后台 await 图片上传 + syncState，完成后显示「书籍已更新」或错误 toast",
-    "tags": ["image", "upload", "background", "ux", "saveBookEdit"],
-    "related_bugs": ["bug-035"],
-    "occurrences": 1,
-    "last_seen": "2026-05-13T00:00:00.000Z",
-    "status": "fixed",
-    "fixed_at": "2026-05-13T00:00:00.000Z"
-  }
-  ,{
-    "id": "bug-037",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "清空探讨记录弹窗提示「清空当前账号下的探讨记录」，实际只清当前书籍",
-    "file": "chat.js",
-    "root_cause": "clearHistory() 的 message 写死为账号级别描述，但 clearChatHistory() 只删 activeBookId 对应的记录",
-    "fix": "在 clearHistory() 里查出当前书名，message 改为「清空《书名》的探讨记录？」，无书时用「当前书籍」兜底",
-    "tags": ["chat", "ux", "copy", "confirm-dialog"],
-    "related_bugs": [],
-    "occurrences": 1,
-    "last_seen": "2026-05-13T00:00:00.000Z",
-    "status": "fixed",
-    "fixed_at": "2026-05-13T00:00:00.000Z"
-  },
-  {
-    "id": "bug-038",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "拍照/上传照片后无法预览图片（图片不显示）",
-    "file": "app.js",
-    "root_cause": "URL.createObjectURL 在 iOS Safari + ngrok HTTPS 环境下有时静默失败；fileToDataUrl (FileReader) 产生的 base64 字符串在 iPhone 照片下可达 10MB+，iOS Safari 无法用作 img.src（静默失败，图片高度为 0）",
-    "fix": "新增 resizeImageToDataUrl(file, maxPx=1200, quality=0.85) 函数：用 objectUrl 加载 Image → 绘制到 canvas → 导出 JPEG data URL（~100-300KB）。所有三处图片变更 handler（bookEditImageInput、bookImageInput、handleQuoteImageChange）改用此函数；render preview 函数改为只用 dataUrl；upload 函数移除 file 兜底。",
-    "tags": ["ios-safari", "image-preview", "canvas", "data-url", "ngrok"],
-    "related_bugs": ["bug-035"],
-    "occurrences": 2,
-    "last_seen": "2026-05-13T00:00:00.000Z",
-    "status": "fixed",
-    "fixed_at": "2026-05-13T00:00:00.000Z"
-  },
-  {
-    "id": "bug-039",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "OCR 识别失败：HTTP 503（图片过大导致 Moonshot API 超时）",
-    "file": "app.js, log_server.py",
-    "root_cause": "iPhone 原始照片 base64 后达 10MB+，发送到 Moonshot API 触发 503。加之错误消息只显示原始 HTTP 错误，不利于用户排查",
-    "fix": "bug-038 的 resizeImageToDataUrl 解决根因（图片压缩到 ~100-300KB）；log_server.py call_kimi_vision 增加 401/429/503 专属中文错误消息",
-    "tags": ["ocr", "moonshot", "503", "image-resize"],
-    "related_bugs": ["bug-038"],
-    "occurrences": 1,
-    "last_seen": "2026-05-13T00:00:00.000Z",
-    "status": "fixed",
-    "fixed_at": "2026-05-13T00:00:00.000Z"
-  },
-  {
-    "id": "bug-040",
-    "timestamp": "2026-05-13T00:00:00.000Z",
-    "error_message": "重启服务器后 iPhone Safari 仍运行旧版 app.js，导致所有前端修复无效",
-    "file": "log_server.py, index.html",
-    "root_cause": "log_server.py 静态文件路由未设置 Cache-Control 头，iPhone Safari 极度激进地缓存 JS，服务器重启不会使缓存失效",
-    "fix": "log_server.py 静态文件响应加 Cache-Control: no-store + Pragma: no-cache；index.html 脚本标签加 ?v=20260513c 版本号绕过已有缓存",
-    "tags": ["caching", "ios-safari", "static-files", "cache-control"],
-    "related_bugs": [],
-    "occurrences": 1,
-    "last_seen": "2026-05-13T00:00:00.000Z",
-    "status": "fixed",
-    "fixed_at": "2026-05-13T00:00:00.000Z"
-  }
   ]
 }
