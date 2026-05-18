@@ -1711,7 +1711,14 @@
       "file": "styles.css",
       "root_cause": "me-panel 使用 overflow-y:auto 但无 padding-bottom，内容滚至底部时被导航栏遮挡；me-drawer 无 -webkit-overflow-scrolling:touch 导致 iOS 上 position:fixed 弹层滚动失效",
       "fix": "me panel tab-active 加 padding-bottom + -webkit-overflow-scrolling:touch；me-drawer 加 -webkit-overflow-scrolling:touch",
-      "tags": ["css", "ios", "me-tab", "drawer", "scroll", "ux"],
+      "tags": [
+        "css",
+        "ios",
+        "me-tab",
+        "drawer",
+        "scroll",
+        "ux"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T00:00:00.000Z"
@@ -1727,8 +1734,16 @@
       "file": "app.js",
       "root_cause": "saveBookEdit 调用 render() 重建 booksList DOM 后 scrollTop 重置为 0；未保存/恢复滚动位置",
       "fix": "render() 调用前记录 els.booksList.scrollTop，之后用嵌套 requestAnimationFrame 还原（等待批量渲染完成）",
-      "tags": ["js", "scroll-position", "books", "ux", "saveBookEdit"],
-      "related_bugs": ["bug-036"],
+      "tags": [
+        "js",
+        "scroll-position",
+        "books",
+        "ux",
+        "saveBookEdit"
+      ],
+      "related_bugs": [
+        "bug-036"
+      ],
       "occurrences": 1,
       "last_seen": "2026-05-16T00:00:00.000Z"
     },
@@ -1743,7 +1758,14 @@
       "file": "app.js / styles.css",
       "root_cause": "renderQuotes() 将 entry-type-chip 放在 h3 书名行内",
       "fix": "将 chip 移到 entry-card-cover div 内，新增 .entry-type-chip-overlay 绝对定位于封面左上角 (top:8px, left:8px)",
-      "tags": ["js", "css", "quotes", "badge", "visual-hierarchy", "ux"],
+      "tags": [
+        "js",
+        "css",
+        "quotes",
+        "badge",
+        "visual-hierarchy",
+        "ux"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T00:00:00.000Z"
@@ -1827,6 +1849,294 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T07:27:03.164Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-05-16T09:07:51.993Z",
+      "error_message": "Wrong reference: urlparse should be parse_qs",
+      "file": "../../../log_server.py",
+      "root_cause": "Used \"urlparse\" instead of \"parse_qs\"",
+      "fix": "Changed urlparse → parse_qs",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T09:07:51.993Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-05-16T09:09:58.642Z",
+      "error_message": "Missing error handling in openOrganizeDialog",
+      "file": "../../../app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T09:09:58.642Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-05-16T09:10:44.664Z",
+      "error_message": "Wrong reference: renderAll should be render",
+      "file": "../../../app.js",
+      "root_cause": "Used \"renderAll\" instead of \"render\"",
+      "fix": "Changed renderAll → render",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T09:10:44.664Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-05-16T09:46:40.151Z",
+      "error_message": "Missing error handling in openOrganizeDialog",
+      "file": "../../../app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T09:46:40.151Z"
+    },
+    {
+      "id": "bug-111",
+      "timestamp": "2026-05-16T10:06:28.005Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../../index.html",
+      "root_cause": "Had \"visually-hidden\"",
+      "fix": "Changed to \"display:none\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T10:06:28.005Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-05-16T10:16:37.632Z",
+      "error_message": "Wrong condition in logic",
+      "file": "../../../app.js",
+      "root_cause": "Condition was: if (action === \"edit\")",
+      "fix": "Changed to: if (action === \"add-quote\")",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T10:16:37.632Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-05-16T10:16:47.157Z",
+      "error_message": "Null/undefined access in ",
+      "file": "../../../app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T10:16:47.157Z"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-05-16T10:16:53.077Z",
+      "error_message": "CSS fix: font-size",
+      "file": "../../../styles.css",
+      "root_cause": "font-size: 14px → 16px",
+      "fix": "Changed font-size: 14px → 16px",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T10:17:05.499Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-05-16T10:17:32.028Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../app.js",
+      "root_cause": "20 lines replaced/restructured",
+      "fix": "Rewrote 29→9 lines (20 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T10:17:32.028Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-05-16T10:22:41.818Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../app.js",
+      "root_cause": "23 lines replaced/restructured",
+      "fix": "Rewrote 46→19 lines (23 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T10:22:41.818Z"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-05-16T10:27:06.090Z",
+      "error_message": "Missing guard clause",
+      "file": "../../../app.js",
+      "root_cause": "No early return/throw for edge case: !book",
+      "fix": "Added guard clause: if (!book)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T10:27:06.090Z"
+    },
+    {
+      "id": "bug-118",
+      "timestamp": "2026-05-16T10:29:19.274Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../../app.js",
+      "root_cause": "Had \"quotes\"",
+      "fix": "Changed to \"quote\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-16T10:29:23.024Z"
+    },
+    {
+      "id": "bug-119",
+      "timestamp": "2026-05-16T11:02:29.121Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../chat.js",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 17→8 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-16T11:02:29.121Z"
+    },
+    {
+      "id": "bug-120",
+      "timestamp": "2026-05-17T09:50:28.684Z",
+      "error_message": "Missing error handling in normalizeTags",
+      "file": "../../../app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-17T09:50:28.684Z"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-05-17T09:50:40.372Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../../app.js",
+      "root_cause": "Had \";\n  els.quoteForm.querySelector('",
+      "fix": "Changed to \";\n  renderQuoteTagPicker([]);\n  document.getEleme",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-17T09:50:45.685Z"
+    },
+    {
+      "id": "bug-122",
+      "timestamp": "2026-05-17T09:51:11.276Z",
+      "error_message": "Missing guard clause",
+      "file": "../../../app.js",
+      "root_cause": "No early return/throw for edge case: !btn",
+      "fix": "Added guard clause: if (!btn)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-17T09:51:11.276Z"
+    },
+    {
+      "id": "bug-123",
+      "timestamp": "2026-05-17T14:55:58.633Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../log_server.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 14→23 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-17T14:55:58.633Z"
+    },
+    {
+      "id": "bug-124",
+      "timestamp": "2026-05-17T16:07:34.246Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../../app.js",
+      "root_cause": "Had \", s.notes || \"",
+      "fix": "Changed to \", s.note || \"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-17T16:07:34.246Z"
     }
   ]
 }
