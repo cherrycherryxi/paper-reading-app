@@ -133,6 +133,9 @@ let selectedStatusFilter = "all";
 let selectedTagFilter = "";
 let searchQuery = "";
 let _renderBooksId = 0;
+let _bookDetailCurrentId = "";
+let _organizeCurrentBookId = "";
+let _candidatesCurrentBookId = "";
 let searchDebounceTimer = null;
 let remoteLogs = [];
 
@@ -1732,12 +1735,12 @@ function openBookDetailDialog(bookId) {
     connWrap.classList.add("is-hidden");
   }
 
-  window._bookDetailCurrentId = bookId;
+  _bookDetailCurrentId = bookId;
   els.bookDetailDialog.showModal();
 }
 
 function goToBookQuotes() {
-  const bookId = window._bookDetailCurrentId;
+  const bookId = _bookDetailCurrentId;
   const book = state.books.find((b) => b.id === bookId);
   if (!book) return;
   els.bookDetailDialog.close();
@@ -1752,7 +1755,7 @@ function openOrganizeDialog(bookId) {
   if (!requireAuth("整理旧书")) return;
   const book = state.books.find((b) => b.id === bookId);
   if (!book) return;
-  window._organizeCurrentBookId = bookId;
+  _organizeCurrentBookId = bookId;
   els.organizeDialogMeta.textContent = `《${book.title}》`;
   els.organizeRawText.value = "";
   els.organizeSubmitBtn.disabled = false;
@@ -1793,7 +1796,7 @@ async function handleOrganizeImageSelect(event) {
 }
 
 async function submitOrganizePaste() {
-  const bookId = window._organizeCurrentBookId;
+  const bookId = _organizeCurrentBookId;
   const rawText = els.organizeRawText.value.trim();
   if (!rawText) {
     showToast("请先粘贴摘抄或笔记内容");
@@ -1818,7 +1821,7 @@ async function submitOrganizePaste() {
 
 function openCandidatesDialog(bookId, candidates) {
   const book = state.books.find((b) => b.id === bookId);
-  window._candidatesCurrentBookId = bookId;
+  _candidatesCurrentBookId = bookId;
   const typeLabel = { excerpt: "摘抄", note: "笔记" };
   const confidenceLabel = { high: "高置信", medium: "中", low: "低置信" };
 
@@ -1828,24 +1831,32 @@ function openCandidatesDialog(bookId, candidates) {
   }
 
   els.candidatesDialogMeta.textContent = `《${book ? book.title : ""}》共 ${candidates.length} 条候选`;
-  els.candidatesList.innerHTML = candidates
-    .map(
-      (c) => `
-      <div class="candidate-item" id="candidate-${c.id}" data-action-id="${c.id}">
-        <div class="candidate-meta">
-          <span class="candidate-type-badge candidate-type-${c.type}">${typeLabel[c.type] || c.type}</span>
-          <span class="candidate-confidence">${confidenceLabel[c.confidence] || c.confidence}</span>
-        </div>
-        <div class="candidate-content">${escapeHtml(c.data.content)}</div>
-        ${c.data.tags && c.data.tags.length ? `<div class="candidate-tags">${c.data.tags.map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-        <div class="candidate-actions">
-          <button type="button" class="button button-primary candidate-btn-save" onclick="approveCandidateItem('${c.id}', this)">保存</button>
-          <button type="button" class="button button-ghost candidate-btn-ignore" onclick="ignoreCandidateItem('${c.id}', this)">忽略</button>
-        </div>
+  els.candidatesList.innerHTML = "";
+  candidates.forEach((c) => {
+    const item = document.createElement("div");
+    item.className = "candidate-item";
+    item.id = `candidate-${c.id}`;
+    item.dataset.actionId = c.id;
+    const tagsHtml = c.data.tags?.length
+      ? `<div class="candidate-tags">${c.data.tags.map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("")}</div>`
+      : "";
+    item.innerHTML = `
+      <div class="candidate-meta">
+        <span class="candidate-type-badge candidate-type-${escapeHtml(c.type)}">${escapeHtml(typeLabel[c.type] || c.type)}</span>
+        <span class="candidate-confidence">${escapeHtml(confidenceLabel[c.confidence] || c.confidence)}</span>
       </div>
-    `
-    )
-    .join("");
+      <div class="candidate-content">${escapeHtml(c.data.content)}</div>
+      ${tagsHtml}
+      <div class="candidate-actions">
+        <button type="button" class="button button-primary candidate-btn-save">保存</button>
+        <button type="button" class="button button-ghost candidate-btn-ignore">忽略</button>
+      </div>`;
+    const saveBtn = item.querySelector(".candidate-btn-save");
+    const ignoreBtn = item.querySelector(".candidate-btn-ignore");
+    saveBtn.addEventListener("click", () => approveCandidateItem(c.id, saveBtn));
+    ignoreBtn.addEventListener("click", () => ignoreCandidateItem(c.id, ignoreBtn));
+    els.candidatesList.appendChild(item);
+  });
   els.candidatesDialog.showModal();
 }
 
@@ -2747,13 +2758,6 @@ function bindEvents() {
   });
   els.ocrButton?.addEventListener("click", runOcrFromImage);
 
-  // Delegated edit and delete for session and quote cards (cards are rebuilt on each render)
-  els.timeline?.addEventListener("click", (event) => {
-    const editBtn = event.target.closest("[data-edit-session]");
-    if (editBtn) { event.stopPropagation(); editSession(editBtn.dataset.editSession); return; }
-    const delBtn = event.target.closest("[data-delete-session]");
-    if (delBtn) { event.stopPropagation(); deleteSession(delBtn.dataset.deleteSession); }
-  });
   els.quotesList?.addEventListener("click", (event) => {
     const editBtn = event.target.closest("[data-edit-quote]");
     if (editBtn) { event.stopPropagation(); editQuote(editBtn.dataset.editQuote); return; }

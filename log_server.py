@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+import re
 import hashlib
 import hmac
 import imghdr
@@ -616,7 +617,8 @@ class ReplyExtractor:
     Handles JSON escape sequences so the displayed text is unescaped.
     """
 
-    _PREFIX = '"reply": "'
+    # Matches `"reply"` followed by optional whitespace, `:`, optional whitespace, then `"`
+    _PREFIX_RE = re.compile(r'"reply"\s*:\s*"')
 
     def __init__(self):
         self._buf = ""
@@ -630,10 +632,10 @@ class ReplyExtractor:
         out: list[str] = []
         if not self._in_reply:
             self._buf += chunk
-            if self._PREFIX in self._buf:
-                idx = self._buf.index(self._PREFIX) + len(self._PREFIX)
+            m = self._PREFIX_RE.search(self._buf)
+            if m:
                 self._in_reply = True
-                self._process(self._buf[idx:], out)
+                self._process(self._buf[m.end():], out)
         else:
             self._process(chunk, out)
         return "".join(out)
@@ -1815,16 +1817,18 @@ class Handler(BaseHTTPRequestHandler):
                     400,
                 )
                 return
-            history = compress_chat_history_if_needed(conn, user["id"], history_key, history, state)
-            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
-            request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": validation.sanitized_input}]
-            trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history)})
+            # Send SSE headers immediately so the client isn't blocked while
+            # compress_chat_history_if_needed makes a second LLM call.
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Log-Token")
             self.end_headers()
+            history = compress_chat_history_if_needed(conn, user["id"], history_key, history, state)
+            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
+            request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": validation.sanitized_input}]
+            trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history)})
 
             def sse_write(data: dict) -> bool:
                 try:
