@@ -72,6 +72,20 @@ const els = {
   bookDetailMeta: document.querySelector("#bookDetailMeta"),
   bookDetailIntro: document.querySelector("#bookDetailIntro"),
   bookDetailQuotes: document.querySelector("#bookDetailQuotes"),
+  organizeDialog: document.querySelector("#organizeDialog"),
+  organizeDialogMeta: document.querySelector("#organizeDialogMeta"),
+  organizeRawText: document.querySelector("#organizeRawText"),
+  organizeSubmitBtn: document.querySelector("#organizeSubmitBtn"),
+  organizeTabPaste: document.querySelector("#organizeTabPaste"),
+  organizeTabPhoto: document.querySelector("#organizeTabPhoto"),
+  organizePastePane: document.querySelector("#organizePastePane"),
+  organizePhotoPane: document.querySelector("#organizePhotoPane"),
+  organizePhotoPreview: document.querySelector("#organizePhotoPreview"),
+  organizePhotoImg: document.querySelector("#organizePhotoImg"),
+  organizePickPhotoBtn: document.querySelector("#organizePickPhotoBtn"),
+  candidatesDialog: document.querySelector("#candidatesDialog"),
+  candidatesDialogMeta: document.querySelector("#candidatesDialogMeta"),
+  candidatesList: document.querySelector("#candidatesList"),
   quoteImageInput: document.querySelector("#quoteImageInput"),
   quoteImagePreview: document.querySelector("#quoteImagePreview"),
   quotePreviewImg: document.querySelector("#quotePreviewImg"),
@@ -111,11 +125,17 @@ let state = structuredClone(initialState);
 let pendingBookImage = null;
 let pendingBookEditImage = null;
 let pendingQuoteImage = null;
+let lastQuoteBookId = "";
+let selectedQuoteTags = [];
+const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
 let toastTimer = null;
 let selectedStatusFilter = "all";
 let selectedTagFilter = "";
 let searchQuery = "";
 let _renderBooksId = 0;
+let _bookDetailCurrentId = "";
+let _organizeCurrentBookId = "";
+let _candidatesCurrentBookId = "";
 let searchDebounceTimer = null;
 let remoteLogs = [];
 
@@ -223,6 +243,27 @@ function normalizeTags(raw) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function getCustomQuoteTags() {
+  try { return JSON.parse(localStorage.getItem("quote-custom-tags") || "[]"); } catch { return []; }
+}
+function saveCustomQuoteTags(tags) {
+  localStorage.setItem("quote-custom-tags", JSON.stringify(tags));
+}
+function _syncQuoteTagsInput() {
+  const hidden = document.getElementById("quoteTagsHidden");
+  if (hidden) hidden.value = selectedQuoteTags.join(", ");
+}
+function renderQuoteTagPicker(initialTags) {
+  selectedQuoteTags = [...(initialTags || [])];
+  _syncQuoteTagsInput();
+  const container = document.getElementById("quoteTagChips");
+  if (!container) return;
+  const all = [...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags(), ...selectedQuoteTags])];
+  container.innerHTML = all.map((t) =>
+    `<button type="button" class="tag-chip-pick${selectedQuoteTags.includes(t) ? " tag-chip-pick--active" : ""}" data-pick-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`
+  ).join("");
 }
 
 function parseExcelDateToIso(raw) {
@@ -649,6 +690,8 @@ function buildBookSearchCard(book, cache) {
       <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">···</button>
     </div>
     <ul class="card-context-menu" hidden>
+      <li><button type="button" data-menu="add-quote">新增摘抄</button></li>
+      <li><button type="button" data-menu="add-session">新增记录</button></li>
       <li><button type="button" data-menu="edit">编辑</button></li>
       <li><button type="button" data-menu="chat">去聊</button></li>
       <li><button type="button" data-menu="connect">关联</button></li>
@@ -683,7 +726,9 @@ function buildBookSearchCard(book, cache) {
     menu.hidden = true;
     menuBtn.setAttribute("aria-expanded", "false");
     const action = btn.dataset.menu;
-    if (action === "edit") openBookEditDialog(book.id);
+    if (action === "add-quote") openNewQuoteForBook(book.id);
+    else if (action === "add-session") openNewSessionForBook(book.id);
+    else if (action === "edit") openBookEditDialog(book.id);
     else if (action === "chat") { activateTab("chat"); window.paperReadingApp?.switchChatToBook?.(book.id); }
     else if (action === "connect") openConnectionDialog({ sourceType: "book", sourceId: book.id });
     else if (action === "delete") deleteBook(book.id);
@@ -723,50 +768,23 @@ function buildQuoteSearchCard(quote) {
 }
 
 function renderSearchResults(matchedBooks, matchedQuotes) {
-  const totalCount = matchedBooks.length + matchedQuotes.length;
-  els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍、${matchedQuotes.length} 条摘抄`;
+  els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍`;
 
-  if (totalCount === 0) {
+  if (!matchedBooks.length) {
     els.booksList.className = "book-list empty-state";
-    els.booksList.innerHTML = '<p class="search-empty-combined">没有找到匹配的结果，试试其他关键词</p>';
+    els.booksList.innerHTML = '<p class="search-empty-combined">没有找到匹配的书籍，试试其他关键词</p>';
     return;
   }
 
   els.booksList.className = "book-list search-results";
   els.booksList.innerHTML = "";
 
-  const booksSection = document.createElement("section");
-  booksSection.className = "search-results-section";
-  booksSection.innerHTML = '<h3 class="search-section-header">书籍</h3>';
-
-  if (!matchedBooks.length) {
-    booksSection.insertAdjacentHTML("beforeend", '<p class="search-empty-section">没有匹配的书籍</p>');
-  } else {
-    const booksList = document.createElement("div");
-    booksList.className = "search-book-list";
-    matchedBooks.forEach((book) => {
-      booksList.appendChild(buildBookSearchCard(book));
-    });
-    booksSection.appendChild(booksList);
-  }
-
-  const quotesSection = document.createElement("section");
-  quotesSection.className = "search-results-section";
-  quotesSection.innerHTML = '<h3 class="search-section-header">摘抄</h3>';
-
-  if (!matchedQuotes.length) {
-    quotesSection.insertAdjacentHTML("beforeend", '<p class="search-empty-section">没有匹配的摘抄</p>');
-  } else {
-    const quotesList = document.createElement("div");
-    quotesList.className = "search-quote-list";
-    matchedQuotes.forEach((quote) => {
-      quotesList.appendChild(buildQuoteSearchCard(quote));
-    });
-    quotesSection.appendChild(quotesList);
-  }
-
-  els.booksList.appendChild(booksSection);
-  els.booksList.appendChild(quotesSection);
+  const booksList = document.createElement("div");
+  booksList.className = "search-book-list";
+  matchedBooks.forEach((book) => {
+    booksList.appendChild(buildBookSearchCard(book));
+  });
+  els.booksList.appendChild(booksList);
 }
 
 function restoreDefaultView() {
@@ -866,7 +884,7 @@ function renderTimeline() {
   const sessions = searchRaw
     ? allSorted.filter((s) => {
         const book = state.books.find((b) => b.id === s.bookId);
-        const haystack = [book?.title || "", book?.author || "", s.notes || ""].join(" ").toLowerCase();
+        const haystack = [book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase();
         return haystack.includes(searchRaw);
       })
     : allSorted.slice(0, 10);
@@ -890,28 +908,31 @@ function renderTimeline() {
   }
 
   els.timeline.className = "timeline";
-  els.timeline.innerHTML = sessions
-    .map((session) => {
-      const book = state.books.find((item) => item.id === session.bookId);
-      return `
-        <article class="session-grid-card" data-session-id="${escapeHtml(session.id)}">
-          <div class="entry-card-cover">
-            <div class="entry-cover-fallback"></div>
-          </div>
-          <div class="entry-card-body">
-            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
-            <p class="entry-card-meta">📖 ${session.startPage}–${session.endPage} 页</p>
-            <p class="entry-card-meta">⏱ ${session.minutes} 分钟 · ${formatDate(session.date)}</p>
-            <p class="entry-card-note">${escapeHtml(session.note || "无笔记")}</p>
-            <div class="entry-card-actions">
-              <button class="card-action-btn" data-edit-session="${escapeHtml(session.id)}" type="button">编辑</button>
-              <button class="card-action-btn card-action-danger" data-delete-session="${escapeHtml(session.id)}" type="button">删除</button>
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  els.timeline.innerHTML = "";
+  sessions.forEach((session) => {
+    const book = state.books.find((item) => item.id === session.bookId);
+    const article = document.createElement("article");
+    article.className = "session-grid-card";
+    article.dataset.sessionId = session.id;
+    article.innerHTML = `
+      <div class="entry-card-cover">
+        <div class="entry-cover-fallback"></div>
+      </div>
+      <div class="entry-card-body">
+        <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
+        <p class="entry-card-meta">📖 ${session.startPage}–${session.endPage} 页</p>
+        <p class="entry-card-meta">⏱ ${session.minutes} 分钟 · ${formatDate(session.date)}</p>
+        <p class="entry-card-note">${escapeHtml(session.note || "无笔记")}</p>
+        <div class="entry-card-actions">
+          <button class="card-action-btn" type="button">编辑</button>
+          <button class="card-action-btn card-action-danger" type="button">删除</button>
+        </div>
+      </div>`;
+    const [editBtn, deleteBtn] = article.querySelectorAll(".card-action-btn");
+    editBtn.addEventListener("click", (e) => { e.stopPropagation(); editSession(session.id); });
+    deleteBtn.addEventListener("click", (e) => { e.stopPropagation(); deleteSession(session.id); });
+    els.timeline.appendChild(article);
+  });
 }
 
 function renderQuotes() {
@@ -1042,12 +1063,19 @@ function renderImagePreview() {
   const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl;
   if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
-    els.quotePreviewImg.removeAttribute("src");
+    if (els.quotePreviewImg) els.quotePreviewImg.removeAttribute("src");
     return;
   }
-  els.quotePreviewImg.onload = () =>
+  // iOS Safari caches Live Text recognition per DOM element, not per src.
+  // Replacing the <img> node entirely gives iOS a fresh element with no cached state.
+  const newImg = document.createElement("img");
+  newImg.id = "quotePreviewImg";
+  newImg.alt = "摘抄图片预览";
+  newImg.onload = () =>
     els.quoteImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  els.quotePreviewImg.src = src;
+  newImg.src = src;
+  els.quotePreviewImg.replaceWith(newImg);
+  els.quotePreviewImg = newImg;
   els.quoteImagePreview.classList.remove("is-hidden");
 }
 
@@ -1225,6 +1253,7 @@ function resetQuoteDraft() {
   els.quoteForm.reset();
   document.querySelector("#quoteBookCombobox")?._comboboxReset?.();
   renderImagePreview();
+  renderQuoteTagPicker([]);
 }
 
 function resetBookDraft() {
@@ -1477,6 +1506,34 @@ function openQuoteDetail(quoteId) {
   quoteDetailDlg.showModal();
 }
 
+function openNewQuoteForBook(bookId) {
+  if (!requireAuth("新增摘抄")) return;
+  activateTab("quote");
+  document.getElementById("quoteId").value = "";
+  els.quoteForm.querySelector('[name="bookId"]').value = bookId;
+  document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(bookId);
+  els.quoteForm.querySelector('[name="page"]').value = "";
+  els.quoteForm.querySelector('[name="kind"]').value = "quote";
+  renderQuoteTagPicker([]);
+  document.getElementById("quoteContent").value = "";
+  els.quoteForm.querySelector('[name="reflection"]').value = "";
+  els.quoteDialog.showModal();
+}
+
+function openNewSessionForBook(bookId) {
+  if (!requireAuth("新增记录")) return;
+  activateTab("session");
+  document.getElementById("sessionId").value = "";
+  els.sessionForm.querySelector('[name="bookId"]').value = bookId;
+  document.querySelector("#sessionBookCombobox")?._comboboxSetValue?.(bookId);
+  els.sessionForm.querySelector('[name="startPage"]').value = "";
+  els.sessionForm.querySelector('[name="endPage"]').value = "";
+  els.sessionForm.querySelector('[name="minutes"]').value = "";
+  els.sessionForm.querySelector('[name="note"]').value = "";
+  els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];
+  els.sessionDialog.showModal();
+}
+
 function editQuote(quoteId) {
   if (!requireAuth("编辑摘抄")) return;
   const quote = state.quotes.find((q) => q.id === quoteId);
@@ -1486,7 +1543,7 @@ function editQuote(quoteId) {
   document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(quote.bookId);
   els.quoteForm.querySelector('[name="page"]').value = quote.page || "";
   els.quoteForm.querySelector('[name="kind"]').value = quote.kind || "quote";
-  els.quoteForm.querySelector('[name="tags"]').value = (quote.tags || []).join(", ");
+  renderQuoteTagPicker(quote.tags || []);
   document.getElementById("quoteContent").value = quote.content || "";
   els.quoteForm.querySelector('[name="reflection"]').value = quote.reflection || "";
   els.quoteDialog.showModal();
@@ -1647,31 +1704,15 @@ async function saveBookEdit(formData) {
 function openBookDetailDialog(bookId) {
   const book = state.books.find((item) => item.id === bookId);
   if (!book) return;
-  const bookQuotes = [...state.quotes]
-    .filter((item) => item.bookId === bookId)
-    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
   els.bookDetailTitle.textContent = book.title || "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
-  if (!bookQuotes.length) {
-    els.bookDetailQuotes.className = "book-detail-quotes empty-state";
-    els.bookDetailQuotes.textContent = "暂无摘抄。";
-  } else {
-    els.bookDetailQuotes.className = "book-detail-quotes";
-    els.bookDetailQuotes.innerHTML = bookQuotes
-      .map(
-        (item) => `
-          <article class="book-detail-quote">
-            <div class="book-detail-quote-meta">第 ${item.page || "-"} 页 · ${formatDate(item.createdAt)}</div>
-            <div class="book-detail-quote-content">${escapeHtml(item.content || "")}</div>
-            ${item.reflection ? `<div class="book-detail-quote-reflection">我的理解：${escapeHtml(item.reflection)}</div>` : ""}
-          </article>
-        `
-      )
-      .join("");
-  }
+  const quoteCount = state.quotes.filter((q) => q.bookId === bookId).length;
+  const countEl = document.getElementById("bookDetailQuoteCount");
+  if (countEl) countEl.textContent = `摘抄 ${quoteCount} 张`;
+
   const bookConns = (state.connections || []).filter((c) =>
     c.sourceId === bookId || c.targetId === bookId ||
     (c.sourceType === "quote" && state.quotes.find((q) => q.id === c.sourceId)?.bookId === bookId) ||
@@ -1694,7 +1735,163 @@ function openBookDetailDialog(bookId) {
     connWrap.classList.add("is-hidden");
   }
 
+  _bookDetailCurrentId = bookId;
   els.bookDetailDialog.showModal();
+}
+
+function goToBookQuotes() {
+  const bookId = _bookDetailCurrentId;
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  els.bookDetailDialog.close();
+  activateTab("quote");
+  if (els.quoteSearch) {
+    els.quoteSearch.value = book.title;
+    renderQuotes();
+  }
+}
+
+function openOrganizeDialog(bookId) {
+  if (!requireAuth("整理旧书")) return;
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  _organizeCurrentBookId = bookId;
+  els.organizeDialogMeta.textContent = `《${book.title}》`;
+  els.organizeRawText.value = "";
+  els.organizeSubmitBtn.disabled = false;
+  els.organizeSubmitBtn.textContent = "AI 识别";
+  // reset to paste tab
+  switchOrganizeTab("paste");
+  els.organizePhotoPreview.classList.add("is-hidden");
+  els.organizePhotoImg.src = "";
+  els.bookDetailDialog.close();
+  els.organizeDialog.showModal();
+}
+
+function switchOrganizeTab(tab) {
+  const isPaste = tab === "paste";
+  els.organizeTabPaste.classList.toggle("organize-tab--active", isPaste);
+  els.organizeTabPhoto.classList.toggle("organize-tab--active", !isPaste);
+  els.organizePastePane.classList.toggle("is-hidden", !isPaste);
+  els.organizePhotoPane.classList.toggle("is-hidden", isPaste);
+  // show submit btn only on paste tab; photo tab is self-serve
+  els.organizeSubmitBtn.classList.toggle("is-hidden", !isPaste);
+}
+
+async function handleOrganizeImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await resizeImageToDataUrl(file);
+    els.organizePhotoImg.src = dataUrl;
+    els.organizePhotoPreview.classList.remove("is-hidden");
+    els.organizePickPhotoBtn.textContent = "换一张";
+    // scroll image into view
+    els.organizePhotoImg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch {
+    showToast("图片加载失败，请重试");
+  }
+  // reset input so same file can be reselected
+  event.target.value = "";
+}
+
+async function submitOrganizePaste() {
+  const bookId = _organizeCurrentBookId;
+  const rawText = els.organizeRawText.value.trim();
+  if (!rawText) {
+    showToast("请先粘贴摘抄或笔记内容");
+    return;
+  }
+  els.organizeSubmitBtn.disabled = true;
+  els.organizeSubmitBtn.textContent = "识别中…";
+  try {
+    const data = await apiFetch("/api/organize/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookId, rawText }),
+    });
+    els.organizeDialog.close();
+    openCandidatesDialog(bookId, data.candidates);
+  } catch (err) {
+    showToast("识别失败：" + err.message);
+    els.organizeSubmitBtn.disabled = false;
+    els.organizeSubmitBtn.textContent = "AI 识别";
+  }
+}
+
+function openCandidatesDialog(bookId, candidates) {
+  const book = state.books.find((b) => b.id === bookId);
+  _candidatesCurrentBookId = bookId;
+  const typeLabel = { excerpt: "摘抄", note: "笔记" };
+  const confidenceLabel = { high: "高置信", medium: "中", low: "低置信" };
+
+  if (!candidates || !candidates.length) {
+    showToast("未识别出候选内容，请检查粘贴的文本");
+    return;
+  }
+
+  els.candidatesDialogMeta.textContent = `《${book ? book.title : ""}》共 ${candidates.length} 条候选`;
+  els.candidatesList.innerHTML = "";
+  candidates.forEach((c) => {
+    const item = document.createElement("div");
+    item.className = "candidate-item";
+    item.id = `candidate-${c.id}`;
+    item.dataset.actionId = c.id;
+    const tagsHtml = c.data.tags?.length
+      ? `<div class="candidate-tags">${c.data.tags.map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("")}</div>`
+      : "";
+    item.innerHTML = `
+      <div class="candidate-meta">
+        <span class="candidate-type-badge candidate-type-${escapeHtml(c.type)}">${escapeHtml(typeLabel[c.type] || c.type)}</span>
+        <span class="candidate-confidence">${escapeHtml(confidenceLabel[c.confidence] || c.confidence)}</span>
+      </div>
+      <div class="candidate-content">${escapeHtml(c.data.content)}</div>
+      ${tagsHtml}
+      <div class="candidate-actions">
+        <button type="button" class="button button-primary candidate-btn-save">保存</button>
+        <button type="button" class="button button-ghost candidate-btn-ignore">忽略</button>
+      </div>`;
+    const saveBtn = item.querySelector(".candidate-btn-save");
+    const ignoreBtn = item.querySelector(".candidate-btn-ignore");
+    saveBtn.addEventListener("click", () => approveCandidateItem(c.id, saveBtn));
+    ignoreBtn.addEventListener("click", () => ignoreCandidateItem(c.id, ignoreBtn));
+    els.candidatesList.appendChild(item);
+  });
+  els.candidatesDialog.showModal();
+}
+
+async function approveCandidateItem(actionId, btn) {
+  btn.disabled = true;
+  btn.textContent = "保存中…";
+  try {
+    const data = await apiFetch(`/api/agent-actions/${actionId}/approve`, { method: "POST" });
+    state = data.state || state;
+    render();
+    const item = document.getElementById(`candidate-${actionId}`);
+    if (item) {
+      item.classList.add("candidate-item--done");
+      item.querySelector(".candidate-actions").innerHTML = '<span class="candidate-done-label">已保存</span>';
+    }
+  } catch (err) {
+    showToast("保存失败：" + err.message);
+    btn.disabled = false;
+    btn.textContent = "保存";
+  }
+}
+
+async function ignoreCandidateItem(actionId, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/agent-actions/${actionId}/reject`, { method: "POST" });
+    const item = document.getElementById(`candidate-${actionId}`);
+    if (item) {
+      item.classList.add("candidate-item--ignored");
+      item.querySelector(".candidate-actions").innerHTML = '<span class="candidate-done-label">已忽略</span>';
+    }
+  } catch (err) {
+    showToast("操作失败：" + err.message);
+    btn.disabled = false;
+  }
 }
 
 async function changeBookCover(bookId) {
@@ -1780,6 +1977,7 @@ async function addQuote(formData) {
     }
 
     await syncState();
+    if (!existingId) lastQuoteBookId = bookId;
     closeDialog(els.quoteDialog);
     resetQuoteDraft();
     render();
@@ -2398,7 +2596,13 @@ function bindEvents() {
   els.openQuoteDialogBtn?.addEventListener("click", () => {
     if (!requireAuth("新增摘抄")) return;
     document.getElementById("quoteId").value = "";
-    quoteComboWrap?._comboboxReset?.();
+    renderQuoteTagPicker([]);
+    if (lastQuoteBookId) {
+      els.quoteForm.querySelector('[name="bookId"]').value = lastQuoteBookId;
+      quoteComboWrap?._comboboxSetValue?.(lastQuoteBookId);
+    } else {
+      quoteComboWrap?._comboboxReset?.();
+    }
     els.quoteDialog.showModal();
   });
 
@@ -2481,6 +2685,36 @@ function bindEvents() {
     const btn = els.quoteForm.querySelector('[type="submit"]');
     withSavingState(btn, "保存中…", () => addQuote(new FormData(els.quoteForm)));
   });
+
+  document.getElementById("quoteTagChips")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-pick-tag]");
+    if (!btn) return;
+    const tag = btn.dataset.pickTag;
+    if (selectedQuoteTags.includes(tag)) {
+      selectedQuoteTags = selectedQuoteTags.filter((t) => t !== tag);
+    } else {
+      selectedQuoteTags = [...selectedQuoteTags, tag];
+    }
+    btn.classList.toggle("tag-chip-pick--active", selectedQuoteTags.includes(tag));
+    _syncQuoteTagsInput();
+  });
+
+  document.getElementById("quoteTagInput")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if (!val) return;
+    const custom = getCustomQuoteTags();
+    if (!custom.includes(val) && !DEFAULT_QUOTE_TAGS.includes(val)) {
+      saveCustomQuoteTags([...custom, val]);
+    }
+    if (!selectedQuoteTags.includes(val)) {
+      selectedQuoteTags = [...selectedQuoteTags, val];
+      _syncQuoteTagsInput();
+    }
+    e.target.value = "";
+    renderQuoteTagPicker(selectedQuoteTags);
+  });
   els.registerForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const btn = els.registerForm.querySelector('[type="submit"]');
@@ -2524,13 +2758,6 @@ function bindEvents() {
   });
   els.ocrButton?.addEventListener("click", runOcrFromImage);
 
-  // Delegated edit and delete for session and quote cards (cards are rebuilt on each render)
-  els.timeline?.addEventListener("click", (event) => {
-    const editBtn = event.target.closest("[data-edit-session]");
-    if (editBtn) { event.stopPropagation(); editSession(editBtn.dataset.editSession); return; }
-    const delBtn = event.target.closest("[data-delete-session]");
-    if (delBtn) { event.stopPropagation(); deleteSession(delBtn.dataset.deleteSession); }
-  });
   els.quotesList?.addEventListener("click", (event) => {
     const editBtn = event.target.closest("[data-edit-quote]");
     if (editBtn) { event.stopPropagation(); editQuote(editBtn.dataset.editQuote); return; }
