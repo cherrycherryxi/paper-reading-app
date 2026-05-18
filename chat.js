@@ -93,7 +93,7 @@
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          bookId: els.bookSelect?.value || "",
+          bookId: currentBookId,
           message: text,
         }),
       });
