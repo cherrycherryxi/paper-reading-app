@@ -2,14 +2,14 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>纸书阅读记录</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content" />
+    <title>🐛 又买了一本书</title>
+    <link rel="stylesheet" href="./styles.css?v=20260518a" />
   </head>
   <body>
     <script>
       window.PAPER_READING_APP_CONFIG = {
-        backendBaseUrl: "http://192.168.1.19:8787"
+        backendBaseUrl: ""
       };
     </script>
 
@@ -31,23 +31,21 @@
 
       <main class="layout">
         <section class="panel books-panel" data-tab-section="books">
-          <div class="section-head row-head">
-            <div>
-              <h2>书单</h2>
-              <p>按类别浏览你的阅读卡片。</p>
-            </div>
-            <div class="toolbar">
-              <button class="circle-action" id="openBookDialogBtn" type="button" aria-label="新增书籍">+</button>
-            </div>
+          <div class="section-head">
+            <h2>书单</h2>
+            <p>按状态浏览你的阅读卡片。</p>
           </div>
           <div class="books-search-row">
+            <button class="circle-action" id="openBookDialogBtn" type="button" aria-label="新增书籍">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
             <input id="booksSearchInput" type="search" placeholder="搜索书名、作者或标签…" autocomplete="off" />
           </div>
           <div class="chip-strip" id="statusFilterChips">
             <button class="filter-chip active" type="button" data-status-filter="all">全部</button>
-            <button class="filter-chip" type="button" data-status-filter="reading">阅读中</button>
-            <button class="filter-chip" type="button" data-status-filter="wishlist">想读</button>
-            <button class="filter-chip" type="button" data-status-filter="finished">已读完</button>
+            <button class="filter-chip" type="button" data-status-filter="reading"><span class="chip-dot chip-dot--reading"></span>阅读中</button>
+            <button class="filter-chip" type="button" data-status-filter="wishlist"><span class="chip-dot chip-dot--wishlist"></span>想读</button>
+            <button class="filter-chip" type="button" data-status-filter="finished"><span class="chip-dot chip-dot--finished"></span>已读完</button>
           </div>
           <div class="tag-filter-strip" id="tagFilterStrip"></div>
           <div class="books-meta-row">
@@ -57,42 +55,85 @@
         </section>
 
         <section class="panel session-panel" data-tab-section="session">
-          <div class="section-head row-head">
-            <div>
-              <h2>记录</h2>
-            </div>
-            <div class="toolbar">
-              <button class="circle-action" id="openSessionDialogBtn" type="button" aria-label="新增阅读记录">+</button>
-            </div>
+          <div class="section-head">
+            <h2>记录</h2>
+            <p>按会话记录，回看你的节奏。</p>
           </div>
+          <div class="books-search-row">
+            <button class="circle-action" id="openSessionDialogBtn" type="button" aria-label="新增阅读记录">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <input id="sessionSearch" type="search" placeholder="搜索书名或笔记…" autocomplete="off" />
+          </div>
+          <p id="sessionStats" class="session-stats is-hidden"></p>
           <div id="timeline" class="timeline empty-state"></div>
         </section>
 
         <section class="panel quotes-panel" data-tab-section="quote">
-          <div class="section-head row-head">
+          <div class="section-head">
             <h2>摘抄</h2>
-            <div class="toolbar">
-              <select id="quoteFilter">
-                <option value="all">全部卡片</option>
-                <option value="quote">只看摘抄</option>
-                <option value="note">只看笔记</option>
-              </select>
-              <button class="circle-action" id="openQuoteDialogBtn" type="button" aria-label="新增摘抄">+</button>
-            </div>
+            <p>只读到的句子，慢慢攒成一座小图书馆。</p>
           </div>
           <div class="books-search-row">
-            <input id="quoteSearch" type="search" placeholder="搜索书名、内容、标签…" />
+            <button class="circle-action" id="openQuoteDialogBtn" type="button" aria-label="新增摘抄">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <input id="quoteSearch" type="search" placeholder="搜索书名、内容、标签…" autocomplete="off" />
+          </div>
+          <div class="chip-strip" id="quoteTypeChips">
+            <button class="filter-chip active" type="button" data-quote-type="all">全部</button>
+            <button class="filter-chip" type="button" data-quote-type="quote">摘抄</button>
+            <button class="filter-chip" type="button" data-quote-type="note">笔记</button>
           </div>
           <div id="quotesList" class="quote-list empty-state"></div>
         </section>
 
+        <section class="panel connections-panel" data-tab-section="connections">
+          <div class="section-head">
+            <h2>关联</h2>
+            <p>记录读书时碰撞出的思想联系。</p>
+          </div>
+          <div class="books-search-row">
+            <button class="circle-action" id="openConnectionDialogBtn" type="button" aria-label="新建关联">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <input id="connectionSearch" type="search" placeholder="搜索书名或内容…" autocomplete="off" />
+          </div>
+          <div class="chip-strip" id="connectionKindChips">
+            <button class="filter-chip active" type="button" data-kind-filter="all">全部</button>
+            <button class="filter-chip" type="button" data-kind-filter="异曲同工">异曲同工</button>
+            <button class="filter-chip" type="button" data-kind-filter="引用">引用</button>
+            <button class="filter-chip" type="button" data-kind-filter="对比">对比</button>
+            <button class="filter-chip" type="button" data-kind-filter="影响">影响</button>
+            <button class="filter-chip" type="button" data-kind-filter="延伸">延伸</button>
+          </div>
+          <div id="connectionsList" class="connections-list empty-state"></div>
+        </section>
+
         <section class="panel chat-panel" data-tab-section="chat">
           <div class="chat-panel-header">
-            <h2>探讨</h2>
-            <select id="chatBookSelect" class="chat-book-select"></select>
+            <div class="chat-header-row">
+              <h2>探讨</h2>
+              <button id="chatClearBtn" class="icon-btn" type="button" title="清空对话记录" aria-label="清空对话记录">
+                <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
+              </button>
+            </div>
+            <div class="book-picker">
+              <input id="chatBookInput" type="text" placeholder="搜索或选择书籍…" autocomplete="off" class="book-picker-input">
+              <button id="chatBookClearPick" class="book-picker-clear" type="button" hidden aria-label="取消选择">✕</button>
+              <ul id="chatBookDropdown" class="book-picker-dropdown" hidden role="listbox"></ul>
+            </div>
+            <input type="hidden" id="chatBookSelect">
           </div>
           <div id="chatMessages" class="chat-messages chat-messages-inline">
-            <div class="chat-welcome">选择一本书，开始探讨。</div>
+            <div class="chat-welcome">
+              <span class="chat-deco chat-deco--1"></span>
+              <span class="chat-deco chat-deco--2"></span>
+              <span class="chat-deco chat-deco--3"></span>
+              <span class="chat-deco chat-deco--4"></span>
+              <span class="chat-deco chat-deco--5"></span>
+              <span class="chat-welcome-text">选择一本书，开始探讨。</span>
+            </div>
           </div>
           <div class="chat-input-inline">
             <textarea id="chatInput" rows="1" placeholder="输入你的问题或想法…"></textarea>
@@ -101,19 +142,15 @@
         </section>
 
         <section class="panel me-panel" data-tab-section="me">
-          <div class="section-head">
+          <div class="me-panel-header">
             <h2>我的</h2>
-            <p>账号概况、数据状态和模型调用日志。</p>
+            <button id="meAvatarBtn" class="me-avatar-btn" type="button" aria-label="账号设置">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              <span id="meAvatarDot" class="me-avatar-dot is-hidden"></span>
+            </button>
           </div>
 
-          <div id="meProfileCard" class="profile-card">
-            <div class="profile-identity">
-              <div class="profile-title">未登录</div>
-              <div class="profile-subtitle">登录后由后端统一保存你的阅读数据。</div>
-            </div>
-            <div class="profile-status" id="profileStatusPill">本地模式</div>
-          </div>
-
+          <span class="profile-status" id="profileStatusPill" hidden></span>
           <div id="meSummary" class="stats-grid compact-stats"></div>
 
           <section class="subpanel progress-panel">
@@ -125,69 +162,58 @@
               <div class="profile-progress-fill" id="readingCompletionBar"></div>
             </div>
           </section>
-
-          <section class="subpanel" id="authPanel">
-            <div class="subpanel-head">
-              <h3>登录账号</h3>
-            </div>
-            <div class="auth-tabs">
-              <button class="auth-tab-btn active" data-auth-tab="login" type="button">登录</button>
-              <button class="auth-tab-btn" data-auth-tab="register" type="button">注册</button>
-            </div>
-            <div class="auth-form-panel active" id="authTabLogin">
-              <form id="loginForm" class="stack-form">
-                <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
-                <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
-                <button type="submit" class="button button-primary">登录</button>
-              </form>
-            </div>
-            <div class="auth-form-panel" id="authTabRegister">
-              <form id="registerForm" class="stack-form">
-                <label><span>用户名</span><input name="username" type="text" placeholder="例如：nanqi" required /></label>
-                <label><span>密码</span><input name="password" type="password" placeholder="至少 4 位" required /></label>
-                <button type="submit" class="button button-primary">注册</button>
-              </form>
-            </div>
-          </section>
-
-          <section class="subpanel is-hidden" id="userPanel">
-            <div class="subpanel-head row-head">
-              <div>
-                <h3 id="currentUsername">未登录</h3>
-                <p id="currentUserMeta">登录后，账号、书单、记录、摘抄、图片、聊天历史和日志都走后端。</p>
-              </div>
-              <button id="logoutBtn" class="button button-ghost" type="button">退出登录</button>
-            </div>
-            <div class="toolbar">
-              <button class="button button-ghost" id="exportButton" type="button">导出数据</button>
-              <label class="button button-ghost file-button">
-                导入数据
-                <input type="file" id="importInput" accept="application/json" />
-              </label>
-              <label class="button button-ghost file-button">
-                导入Excel
-                <input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
-              </label>
-            </div>
-          </section>
-
-          <details class="subpanel logs-collapsible">
-            <summary class="subpanel-head row-head">
-              <div>
-                <h3>模型调用日志</h3>
-                <p>日志由后端保存。这里展示当前账号在部署端的调用记录。</p>
-              </div>
-              <span class="logs-collapse-indicator">展开</span>
-            </summary>
-            <div class="toolbar">
-              <button id="clearLogsBtn" class="button button-ghost" type="button">清空日志</button>
-            </div>
-            <div id="modelLogsList" class="logs-list empty-state"></div>
-          </details>
         </section>
       </main>
     </div>
 
+    <!-- Account drawer -->
+    <div id="meDrawerOverlay" class="me-drawer-overlay"></div>
+    <div id="meDrawer" class="me-drawer" role="dialog" aria-modal="true" aria-label="账号">
+      <div class="me-drawer-handle"></div>
+      <section id="authPanel" class="me-drawer-section">
+        <div class="me-drawer-section-head"><h3>登录账号</h3></div>
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" data-auth-tab="login" type="button">登录</button>
+          <button class="auth-tab-btn" data-auth-tab="register" type="button">注册</button>
+        </div>
+        <div class="auth-form-panel active" id="authTabLogin">
+          <form id="loginForm" class="stack-form">
+            <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
+            <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
+            <button type="submit" class="button button-primary">登录</button>
+          </form>
+        </div>
+        <div class="auth-form-panel" id="authTabRegister">
+          <form id="registerForm" class="stack-form">
+            <label><span>用户名</span><input name="username" type="text" placeholder="例如：nanqi" required /></label>
+            <label><span>密码</span><input name="password" type="password" placeholder="至少 4 位" required /></label>
+            <button type="submit" class="button button-primary">注册</button>
+          </form>
+        </div>
+      </section>
+      <section id="userPanel" class="me-drawer-section is-hidden">
+        <div class="me-drawer-section-head">
+          <div>
+            <div class="me-drawer-username" id="currentUsername">未登录</div>
+            <div class="me-drawer-user-meta" id="currentUserMeta"></div>
+          </div>
+          <button id="logoutBtn" class="button button-ghost button-small" type="button">退出登录</button>
+        </div>
+        <div class="me-drawer-actions">
+          <button class="button button-ghost" id="exportButton" type="button">导出数据</button>
+          <label class="button button-ghost file-button">导入数据<input type="file" id="importInput" accept="application/json" /></label>
+          <label class="button button-ghost file-button">导入Excel<input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /></label>
+        </div>
+        <details class="subpanel logs-collapsible">
+          <summary class="subpanel-head row-head">
+            <div><h3>模型日志</h3></div>
+            <span class="logs-collapse-indicator">展开</span>
+          </summary>
+          <div class="toolbar"><button id="clearLogsBtn" class="button button-ghost" type="button">清空日志</button></div>
+          <div id="modelLogsList" class="logs-list empty-state"></div>
+        </details>
+      </section>
+    </div>
 
     <dialog id="bookEditDialog">
       <form id="bookEditForm" class="dialog-form">
@@ -196,7 +222,7 @@
         <div class="quote-photo-tools">
           <label class="button button-ghost file-button">
             更换封面照片 / 拍照
-            <input type="file" id="bookEditImageInput" accept="image/*" capture="environment" />
+            <input type="file" id="bookEditImageInput" accept="image/*" />
           </label>
           <span id="bookEditImageStatus" class="helper-text">可选。不上传则保持原封面。</span>
         </div>
@@ -223,6 +249,10 @@
         <div id="bookDetailIntro" class="book-detail-intro"></div>
         <div class="section-head"><h3>相关摘抄</h3></div>
         <div id="bookDetailQuotes" class="book-detail-quotes"></div>
+        <div id="bookDetailConnectionsWrap" class="is-hidden">
+          <div class="section-head"><h3>思想关联</h3></div>
+          <div id="bookDetailConnections" class="book-detail-connections"></div>
+        </div>
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="bookDetailDialog">关闭</button>
         </div>
@@ -249,7 +279,7 @@
         <div class="quote-photo-tools">
           <label class="button button-ghost file-button">
             选择封面照片 / 拍照
-            <input type="file" id="bookImageInput" accept="image/*" capture="environment" />
+            <input type="file" id="bookImageInput" accept="image/*" />
           </label>
           <span id="bookImageStatus" class="helper-text">可选。上传后将作为书籍封面显示。</span>
         </div>
@@ -266,7 +296,13 @@
       <form id="sessionForm" class="dialog-form">
         <div class="section-head"><h2>记录一次阅读</h2><p>按会话记录，方便回看你的节奏。</p></div>
         <div class="input-grid">
-          <label><span>选择书籍</span><select name="bookId" id="sessionBookSelect" required></select></label>
+          <label><span>选择书籍</span>
+            <div class="book-combobox" id="sessionBookCombobox">
+              <input type="text" class="book-combobox-input" placeholder="搜索书名或作者…" autocomplete="off" />
+              <ul class="book-combobox-list"></ul>
+              <input type="hidden" name="bookId" id="sessionBookSelect" />
+            </div>
+          </label>
           <label><span>日期</span><input name="date" type="date" /></label>
           <label><span>开始页</span><input name="startPage" type="number" min="0" required /></label>
           <label><span>结束页</span><input name="endPage" type="number" min="0" required /></label>
@@ -285,7 +321,13 @@
       <form id="quoteForm" class="dialog-form">
         <div class="section-head"><h2>新增摘抄 / 笔记</h2><p>拍照、OCR 和手动整理都在这里完成。</p></div>
         <div class="input-grid">
-          <label><span>关联书籍</span><select name="bookId" id="quoteBookSelect" required></select></label>
+          <label><span>关联书籍</span>
+            <div class="book-combobox" id="quoteBookCombobox">
+              <input type="text" class="book-combobox-input" placeholder="搜索书名或作者…" autocomplete="off" />
+              <ul class="book-combobox-list"></ul>
+              <input type="hidden" name="bookId" id="quoteBookSelect" />
+            </div>
+          </label>
           <label><span>页码</span><input name="page" type="number" min="0" placeholder="128" /></label>
           <label><span>卡片类型</span>
             <select name="kind">
@@ -296,22 +338,44 @@
           <label><span>标签</span><input name="tags" type="text" placeholder="人物, 结构, 金句" /></label>
         </div>
         <label><span>原文 / 笔记内容</span><textarea name="content" id="quoteContent" rows="5" placeholder="可手动输入，也可以先拍照上传再尝试 OCR。" required></textarea></label>
-        <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>
         <div class="quote-photo-tools">
           <label class="button button-ghost file-button">
             选择照片 / 拍照
-            <input type="file" id="quoteImageInput" accept="image/*" capture="environment" />
+            <input type="file" id="quoteImageInput" accept="image/*" />
           </label>
           <button class="button button-ghost" id="ocrButton" type="button">识别图片文字</button>
           <span id="ocrStatus" class="helper-text">将调用默认模型识别图片内容。</span>
         </div>
         <div id="quoteImagePreview" class="image-preview is-hidden"><img id="quotePreviewImg" alt="摘抄图片预览" /></div>
+        <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>
         <input type="hidden" name="id" id="quoteId" />
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="quoteDialog">取消</button>
           <button type="submit" class="button button-primary">保存卡片</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Quote detail (read-only) dialog -->
+    <dialog id="quoteDetailDialog">
+      <div class="dialog-form">
+        <div class="section-head">
+          <h2 id="quoteDetailBook">摘抄详情</h2>
+          <p id="quoteDetailMeta"></p>
+        </div>
+        <div id="quoteDetailImage" class="quote-image-wrap is-hidden"><img id="quoteDetailImg" alt="摘抄照片" /></div>
+        <div id="quoteDetailContent" class="quote-detail-content"></div>
+        <div id="quoteDetailReflection" class="quote-detail-reflection is-hidden"></div>
+        <div id="quoteDetailTags" class="quote-detail-tags"></div>
+        <div id="quoteDetailConnectionsWrap" class="is-hidden">
+          <div id="quoteDetailConnections" class="quote-detail-connections"></div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" data-close-dialog="quoteDetailDialog">关闭</button>
+          <button type="button" class="button button-primary" id="quoteDetailConnectBtn">建立关联</button>
+          <button type="button" class="button button-primary" id="quoteDetailEditBtn">编辑</button>
+        </div>
+      </div>
     </dialog>
 
     <!-- Custom delete-book confirmation dialog (replaces native window.confirm) -->
@@ -338,18 +402,106 @@
       </div>
     </dialog>
 
+    <!-- Connection creation/edit dialog -->
+    <dialog id="connectionDialog">
+      <form id="connectionForm" class="dialog-form">
+        <div class="section-head"><h2>记录思想碰撞</h2><p>连接两本书或两段摘抄之间的关联。</p></div>
+
+        <div class="conn-side">
+          <div class="conn-side-label">来源（触发联想的那一侧）</div>
+          <label><span>类型</span>
+            <select name="sourceType" id="connSourceType">
+              <option value="book">书籍</option>
+              <option value="quote">摘抄</option>
+            </select>
+          </label>
+          <div class="book-combobox" id="connSourceBookCombobox">
+            <input type="text" class="book-combobox-input" placeholder="搜索书名或作者…" autocomplete="off" />
+            <ul class="book-combobox-list"></ul>
+            <input type="hidden" name="sourceId" id="connSourceBookId" />
+          </div>
+          <div class="book-combobox is-hidden" id="connSourceQuoteCombobox">
+            <input type="text" class="book-combobox-input" placeholder="搜索书名或摘抄内容…" autocomplete="off" />
+            <ul class="book-combobox-list"></ul>
+            <input type="hidden" name="sourceQuoteId" id="connSourceQuoteId" />
+          </div>
+        </div>
+
+        <label><span>关联类型</span>
+          <select name="kind">
+            <option value="异曲同工">异曲同工 — 主题相似</option>
+            <option value="引用">引用 — 一方引用另一方</option>
+            <option value="对比">对比 — 观点相反</option>
+            <option value="影响">影响 — 一方影响另一方</option>
+            <option value="延伸">延伸 — 自由联想</option>
+          </select>
+        </label>
+
+        <div class="conn-side">
+          <div class="conn-side-label">目标（被联想到的那一侧）</div>
+          <label><span>类型</span>
+            <select name="targetType" id="connTargetType">
+              <option value="book">书籍</option>
+              <option value="quote">摘抄</option>
+            </select>
+          </label>
+          <div class="book-combobox" id="connTargetBookCombobox">
+            <input type="text" class="book-combobox-input" placeholder="搜索书名或作者…" autocomplete="off" />
+            <ul class="book-combobox-list"></ul>
+            <input type="hidden" name="targetId" id="connTargetBookId" />
+          </div>
+          <div class="book-combobox is-hidden" id="connTargetQuoteCombobox">
+            <input type="text" class="book-combobox-input" placeholder="搜索书名或摘抄内容…" autocomplete="off" />
+            <ul class="book-combobox-list"></ul>
+            <input type="hidden" name="targetQuoteId" id="connTargetQuoteId" />
+          </div>
+        </div>
+
+        <label><span>我的想法</span>
+          <textarea name="thought" rows="4" placeholder="为什么这两者让你觉得有关联？" required></textarea>
+        </label>
+        <label><span>标签</span>
+          <input name="tags" type="text" placeholder="哲学, 叙事, 人性" />
+        </label>
+        <input type="hidden" name="id" id="connectionId" />
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" data-close-dialog="connectionDialog">取消</button>
+          <button type="submit" class="button button-primary">保存关联</button>
+        </div>
+      </form>
+    </dialog>
+
     <div id="toast" class="toast"></div>
 
     <nav class="mobile-tabs" id="mobileTabs">
-      <button class="mobile-tab active" data-tab="books" type="button"><span class="mobile-tab-icon">📚</span><span class="mobile-tab-label">书单</span></button>
-      <button class="mobile-tab" data-tab="session" type="button"><span class="mobile-tab-icon">🕐</span><span class="mobile-tab-label">记录</span></button>
-      <button class="mobile-tab" data-tab="quote" type="button"><span class="mobile-tab-icon">✍️</span><span class="mobile-tab-label">摘抄</span></button>
-      <button class="mobile-tab" data-tab="chat" type="button"><span class="mobile-tab-icon">💬</span><span class="mobile-tab-label">探讨</span></button>
-      <button class="mobile-tab" data-tab="me" type="button"><span class="mobile-tab-icon">👤</span><span class="mobile-tab-label">我的</span></button>
+      <button class="mobile-tab active" data-tab="books" type="button">
+        <span class="mobile-tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h5v16H4z"/><path d="M10 4h5v16h-5z"/><path d="M16.5 5.8l4.3 1.2-3.1 14.4-4.3-1.2"/></svg></span>
+        <span class="mobile-tab-label">书单</span>
+      </button>
+      <button class="mobile-tab" data-tab="session" type="button">
+        <span class="mobile-tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <span class="mobile-tab-label">记录</span>
+      </button>
+      <button class="mobile-tab" data-tab="quote" type="button">
+        <span class="mobile-tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6L9 21H3v-6z"/><path d="M13 5l6 6"/></svg></span>
+        <span class="mobile-tab-label">摘抄</span>
+      </button>
+      <button class="mobile-tab" data-tab="chat" type="button">
+        <span class="mobile-tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></span>
+        <span class="mobile-tab-label">探讨</span>
+      </button>
+      <button class="mobile-tab" data-tab="connections" type="button">
+        <span class="mobile-tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="12" r="3"/><path d="M9 12h6"/></svg></span>
+        <span class="mobile-tab-label">关联</span>
+      </button>
+      <button class="mobile-tab" data-tab="me" type="button">
+        <span class="mobile-tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></span>
+        <span class="mobile-tab-label">我的</span>
+      </button>
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="./app.js"></script>
-    <script src="./chat.js"></script>
+    <script src="./app.js?v=20260518a"></script>
+    <script src="./chat.js?v=20260518a"></script>
   </body>
 </html>

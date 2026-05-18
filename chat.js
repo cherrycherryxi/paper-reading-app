@@ -20,7 +20,14 @@
 
   function resetMessages() {
     if (!els.messages) return;
-    els.messages.innerHTML = '<div class="chat-welcome">选择一本书，开始探讨。</div>';
+    els.messages.innerHTML = `<div class="chat-welcome">
+      <span class="chat-deco chat-deco--1"></span>
+      <span class="chat-deco chat-deco--2"></span>
+      <span class="chat-deco chat-deco--3"></span>
+      <span class="chat-deco chat-deco--4"></span>
+      <span class="chat-deco chat-deco--5"></span>
+      <span class="chat-welcome-text">选择一本书，开始探讨。</span>
+    </div>`;
   }
 
   function appendBubble(role, text) {
@@ -72,35 +79,70 @@
 
     els.input.value = "";
     appendBubble("user", text);
-    const thinking = appendBubble("assistant", "…");
+    const thinking = appendBubble("assistant", "");
+    thinking.classList.add("chat-bubble-loading");
     els.sendBtn.disabled = true;
 
     try {
-      const payload = await window.paperReadingApp.apiFetch(
-        "/api/chat",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            bookId: els.bookSelect?.value || "",
-            message: text,
-          }),
+      const url = window.paperReadingApp.buildApiUrl("/api/chat/stream");
+      const token = window.paperReadingApp.getAuthToken();
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        true
-      );
+        body: JSON.stringify({
+          bookId: currentBookId,
+          message: text,
+        }),
+      });
 
-      const bookId = activeBookId();
-      history = Array.isArray(payload.history) ? payload.history : [];
-      const actions = Array.isArray(payload.actions) ? payload.actions : [];
-      window.paperReadingApp.setChatHistoryForBook(bookId, history);
-      thinking.textContent = payload.reply || "";
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
 
-      // 问题3修复：发完消息后立即刷新日志
-      await window.paperReadingApp.loadRemoteLogs?.();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalPayload = null;
 
-      // 有 action 才弹确认卡片
-      if (actions.length > 0) {
-        handleAgentActions(actions);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.trim().startsWith("data: ")) continue;
+          let evt;
+          try {
+            evt = JSON.parse(line.trim().slice(6));
+          } catch {
+            continue;
+          }
+          if (evt.error) throw new Error(evt.error);
+          if (evt.delta) {
+            thinking.classList.remove("chat-bubble-loading");
+            thinking.textContent += evt.delta;
+            els.messages.scrollTop = els.messages.scrollHeight;
+          }
+          if (evt.done) {
+            finalPayload = evt;
+          }
+        }
+      }
+
+      if (finalPayload) {
+        const bookId = activeBookId();
+        history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
+        const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
+        window.paperReadingApp.setChatHistoryForBook(bookId, history);
+        await window.paperReadingApp.loadRemoteLogs?.();
+        if (actions.length > 0) {
+          handleAgentActions(actions);
+        }
       }
     } catch (error) {
       thinking.textContent = `出错了：${error.message}`;
@@ -112,8 +154,12 @@
   }
 
   function clearHistory() {
+    const bookId = activeBookId();
+    const books = window.paperReadingApp?.getState?.()?.books || [];
+    const book = books.find((b) => b.id === bookId);
+    const scope = book ? book.title : "当前书籍";
     window.paperReadingApp?.showConfirmDialog?.({
-      message: "清空当前账号下的探讨记录？",
+      message: `清空 ${scope} 的探讨记录？`,
       confirmLabel: "确认清空",
       onConfirm: async () => {
         await window.paperReadingApp?.clearChatHistory?.();
@@ -239,10 +285,11 @@
     const d = action.data || {};
     switch (action.type) {
       case 'add_note':    return `📝 新增笔记：${escapeHtml(String(d.content || ''))}`;
-      case 'add_book':    return `📚 加入书单：《${escapeHtml(String(d.title || ''))}》`;
+      case 'add_book':    return `📚 加入书单：${escapeHtml(String(d.title || '').replace(/^《+|》+$/g, '').trim())}`;
       case 'summary':     return `📌 生成阶段总结`;
       case 'question':    return `❓ 提出问题：${escapeHtml(String(d.content || ''))}`;
       case 'tag':         return `🏷 添加标签：${(d.tags || []).join('、')}`;
+      case 'link_thought': return `🔗 建立关联（${escapeHtml(String(d.kind || ''))}）：${escapeHtml(String(d.thought || '').slice(0, 40))}${String(d.thought || '').length > 40 ? '…' : ''}`;
       default:            return '未知操作';
     }
   }

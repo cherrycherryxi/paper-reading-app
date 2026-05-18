@@ -5,6 +5,7 @@ const initialState = {
   sessions: [],
   quotes: [],
   chatHistories: {},
+  connections: [],
 };
 
 const statusMap = {
@@ -25,7 +26,7 @@ const els = {
   quoteForm: document.querySelector("#quoteForm"),
   registerForm: document.querySelector("#registerForm"),
   loginForm: document.querySelector("#loginForm"),
-  quoteFilter: document.querySelector("#quoteFilter"),
+  quoteTypeChips: document.querySelector("#quoteTypeChips"),
   quoteSearch: document.querySelector("#quoteSearch"),
   statusFilterChips: document.querySelector("#statusFilterChips"),
   booksResultCount: document.querySelector("#booksResultCount"),
@@ -36,10 +37,15 @@ const els = {
   logoutBtn: document.querySelector("#logoutBtn"),
   booksList: document.querySelector("#booksList"),
   timeline: document.querySelector("#timeline"),
+  sessionSearch: document.querySelector("#sessionSearch"),
+  sessionStats: document.querySelector("#sessionStats"),
   quotesList: document.querySelector("#quotesList"),
   logsList: document.querySelector("#modelLogsList"),
   meSummary: document.querySelector("#meSummary"),
-  meProfileCard: document.querySelector("#meProfileCard"),
+  meAvatarBtn: document.querySelector("#meAvatarBtn"),
+  meAvatarDot: document.querySelector("#meAvatarDot"),
+  meDrawer: document.querySelector("#meDrawer"),
+  meDrawerOverlay: document.querySelector("#meDrawerOverlay"),
   profileStatusPill: document.querySelector("#profileStatusPill"),
   readingCompletionRate: document.querySelector("#readingCompletionRate"),
   readingCompletionBar: document.querySelector("#readingCompletionBar"),
@@ -66,6 +72,20 @@ const els = {
   bookDetailMeta: document.querySelector("#bookDetailMeta"),
   bookDetailIntro: document.querySelector("#bookDetailIntro"),
   bookDetailQuotes: document.querySelector("#bookDetailQuotes"),
+  organizeDialog: document.querySelector("#organizeDialog"),
+  organizeDialogMeta: document.querySelector("#organizeDialogMeta"),
+  organizeRawText: document.querySelector("#organizeRawText"),
+  organizeSubmitBtn: document.querySelector("#organizeSubmitBtn"),
+  organizeTabPaste: document.querySelector("#organizeTabPaste"),
+  organizeTabPhoto: document.querySelector("#organizeTabPhoto"),
+  organizePastePane: document.querySelector("#organizePastePane"),
+  organizePhotoPane: document.querySelector("#organizePhotoPane"),
+  organizePhotoPreview: document.querySelector("#organizePhotoPreview"),
+  organizePhotoImg: document.querySelector("#organizePhotoImg"),
+  organizePickPhotoBtn: document.querySelector("#organizePickPhotoBtn"),
+  candidatesDialog: document.querySelector("#candidatesDialog"),
+  candidatesDialogMeta: document.querySelector("#candidatesDialogMeta"),
+  candidatesList: document.querySelector("#candidatesList"),
   quoteImageInput: document.querySelector("#quoteImageInput"),
   quoteImagePreview: document.querySelector("#quoteImagePreview"),
   quotePreviewImg: document.querySelector("#quotePreviewImg"),
@@ -89,6 +109,13 @@ const els = {
   openBookDialogBtn: document.querySelector("#openBookDialogBtn"),
   openSessionDialogBtn: document.querySelector("#openSessionDialogBtn"),
   openQuoteDialogBtn: document.querySelector("#openQuoteDialogBtn"),
+  openConnectionDialogBtn: document.querySelector("#openConnectionDialogBtn"),
+  connectionDialog: document.querySelector("#connectionDialog"),
+  connectionForm: document.querySelector("#connectionForm"),
+  connectionsList: document.querySelector("#connectionsList"),
+  connectionSearch: document.querySelector("#connectionSearch"),
+  connectionKindChips: document.querySelector("#connectionKindChips"),
+  quoteDetailConnectBtn: document.querySelector("#quoteDetailConnectBtn"),
   mobileTabs: document.querySelectorAll(".mobile-tab"),
 };
 
@@ -98,10 +125,17 @@ let state = structuredClone(initialState);
 let pendingBookImage = null;
 let pendingBookEditImage = null;
 let pendingQuoteImage = null;
+let lastQuoteBookId = "";
+let selectedQuoteTags = [];
+const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
 let toastTimer = null;
 let selectedStatusFilter = "all";
 let selectedTagFilter = "";
 let searchQuery = "";
+let _renderBooksId = 0;
+let _bookDetailCurrentId = "";
+let _organizeCurrentBookId = "";
+let _candidatesCurrentBookId = "";
 let searchDebounceTimer = null;
 let remoteLogs = [];
 
@@ -115,6 +149,20 @@ function getBackendBaseUrl() {
 
 function buildApiUrl(path) {
   return `${getBackendBaseUrl()}${path}`;
+}
+
+function resolveImageUrl(url) {
+  if (!url) return "";
+  // Relative path
+  if (url.startsWith("/media/") || url.startsWith("/uploads/")) {
+    return getBackendBaseUrl() + url;
+  }
+  // Absolute URL with possibly stale domain (e.g. old ngrok) — extract path from /media/ or /uploads/
+  const pathMatch = url.match(/(\/(?:media|uploads)\/.+)$/);
+  if (pathMatch) {
+    return getBackendBaseUrl() + pathMatch[1];
+  }
+  return url;
 }
 
 async function apiFetch(path, options = {}, requiresAuth = true) {
@@ -197,6 +245,27 @@ function normalizeTags(raw) {
     .filter(Boolean);
 }
 
+function getCustomQuoteTags() {
+  try { return JSON.parse(localStorage.getItem("quote-custom-tags") || "[]"); } catch { return []; }
+}
+function saveCustomQuoteTags(tags) {
+  localStorage.setItem("quote-custom-tags", JSON.stringify(tags));
+}
+function _syncQuoteTagsInput() {
+  const hidden = document.getElementById("quoteTagsHidden");
+  if (hidden) hidden.value = selectedQuoteTags.join(", ");
+}
+function renderQuoteTagPicker(initialTags) {
+  selectedQuoteTags = [...(initialTags || [])];
+  _syncQuoteTagsInput();
+  const container = document.getElementById("quoteTagChips");
+  if (!container) return;
+  const all = [...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags(), ...selectedQuoteTags])];
+  container.innerHTML = all.map((t) =>
+    `<button type="button" class="tag-chip-pick${selectedQuoteTags.includes(t) ? " tag-chip-pick--active" : ""}" data-pick-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`
+  ).join("");
+}
+
 function parseExcelDateToIso(raw) {
   if (raw === null || raw === undefined) return null;
   const text = String(raw).trim();
@@ -235,9 +304,44 @@ function escapeHtml(text) {
     .replaceAll("'", "&#39;");
 }
 
+// Strip leading/trailing 《》 so storage is always bare title
+function normalizeBookTitle(raw) {
+  return String(raw).trim().replace(/^《+|》+$/g, "").trim();
+}
+
+// Wrap with book-title marks for display; strip any existing marks first
+function formatBookTitle(title) {
+  const bare = String(title || "").replace(/^《+|》+$/g, "").trim();
+  return escapeHtml(bare);
+}
+
 function getProgress(book) {
   if (!book.totalPages) return null;
   return Math.max(0, Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100)));
+}
+
+function buildRenderCache() {
+  const metricsMap = new Map();
+  const quoteCountMap = new Map();
+  const connCountMap = new Map();
+  const firstQuoteImageMap = new Map();
+
+  for (const s of state.sessions) {
+    const m = metricsMap.get(s.bookId) || { count: 0, minutes: 0, pages: 0 };
+    m.count++;
+    m.minutes += Number(s.minutes || 0);
+    m.pages += Number(s.pagesRead || 0);
+    metricsMap.set(s.bookId, m);
+  }
+  for (const q of state.quotes) {
+    quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+    if (q.imageUrl && !firstQuoteImageMap.has(q.bookId)) firstQuoteImageMap.set(q.bookId, q.imageUrl);
+  }
+  for (const c of state.connections || []) {
+    connCountMap.set(c.sourceId, (connCountMap.get(c.sourceId) || 0) + 1);
+    connCountMap.set(c.targetId, (connCountMap.get(c.targetId) || 0) + 1);
+  }
+  return { metricsMap, quoteCountMap, connCountMap, firstQuoteImageMap };
 }
 
 function getBookSessions(bookId) {
@@ -255,6 +359,98 @@ function getBookMetrics(bookId) {
 
 function getQuoteCount(bookId) {
   return state.quotes.filter((item) => item.bookId === bookId).length;
+}
+
+function getConnectionCount(itemId) {
+  return (state.connections || []).filter((c) => c.sourceId === itemId || c.targetId === itemId).length;
+}
+
+function resolveConnectionSide(type, id) {
+  if (type === "book") {
+    const book = state.books.find((b) => b.id === id);
+    return book ? { label: formatBookTitle(book.title), sub: book.author || "" } : { label: "（已删除）", sub: "" };
+  }
+  const quote = state.quotes.find((q) => q.id === id);
+  if (!quote) return { label: "（已删除）", sub: "" };
+  const book = state.books.find((b) => b.id === quote.bookId);
+  return { label: `"${(quote.content || "").slice(0, 36)}${quote.content?.length > 36 ? "…" : ""}"`, sub: book ? formatBookTitle(book.title) : "" };
+}
+
+const KIND_LABELS = { "异曲同工": "异曲同工", "引用": "引用", "对比": "对比", "影响": "影响", "延伸": "延伸" };
+
+function buildConnectionCard(conn) {
+  const src = resolveConnectionSide(conn.sourceType, conn.sourceId);
+  const tgt = resolveConnectionSide(conn.targetType, conn.targetId);
+  const kindLabel = KIND_LABELS[conn.kind] || conn.kind;
+  const tagsHtml = (conn.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+  return `<div class="connection-card" data-conn-id="${escapeHtml(conn.id)}">
+    <div class="connection-card-header">
+      <span class="connection-kind-badge" data-kind="${escapeHtml(conn.kind)}">${escapeHtml(kindLabel)}</span>
+      <div class="conn-card-actions">
+        <button class="conn-edit-btn button-icon" type="button" aria-label="编辑关联" data-conn-id="${escapeHtml(conn.id)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="conn-delete-btn button-icon" type="button" aria-label="删除关联" data-conn-id="${escapeHtml(conn.id)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="connection-sides">
+      <div class="connection-side conn-nav-side" data-nav-type="${escapeHtml(conn.sourceType)}" data-nav-id="${escapeHtml(conn.sourceId)}">
+        <div class="connection-side-label">${escapeHtml(src.label)}</div>
+        ${src.sub ? `<div class="connection-side-sub">${escapeHtml(src.sub)}</div>` : ""}
+      </div>
+      <div class="connection-arrow">↔</div>
+      <div class="connection-side conn-nav-side" data-nav-type="${escapeHtml(conn.targetType)}" data-nav-id="${escapeHtml(conn.targetId)}">
+        <div class="connection-side-label">${escapeHtml(tgt.label)}</div>
+        ${tgt.sub ? `<div class="connection-side-sub">${escapeHtml(tgt.sub)}</div>` : ""}
+      </div>
+    </div>
+    ${conn.thought ? `<div class="connection-thought">${escapeHtml(conn.thought)}</div>` : ""}
+    ${tagsHtml ? `<div class="connection-tags">${tagsHtml}</div>` : ""}
+    <div class="connection-meta">${formatDate(conn.createdAt)}</div>
+  </div>`;
+}
+
+let selectedConnectionKindFilter = "all";
+
+function renderConnections() {
+  connSourceBookComboWrap?._comboboxUpdate?.(state.books);
+  connTargetBookComboWrap?._comboboxUpdate?.(state.books);
+  connSourceQuoteComboWrap?._comboboxUpdate?.(state.quotes);
+  connTargetQuoteComboWrap?._comboboxUpdate?.(state.quotes);
+  if (!els.connectionsList) return;
+  const conns = state.connections || [];
+  const searchRaw = (els.connectionSearch?.value || "").trim().toLowerCase();
+  let filtered = conns;
+  if (selectedConnectionKindFilter && selectedConnectionKindFilter !== "all") {
+    filtered = filtered.filter((c) => c.kind === selectedConnectionKindFilter);
+  }
+  if (searchRaw) {
+    filtered = filtered.filter((c) => {
+      const getBookTitle = (type, id) => {
+        if (type === "book") return state.books.find((b) => b.id === id)?.title || "";
+        if (type === "quote") {
+          const q = state.quotes.find((q) => q.id === id);
+          return state.books.find((b) => b.id === q?.bookId)?.title || "";
+        }
+        return "";
+      };
+      const haystack = [
+        getBookTitle(c.sourceType, c.sourceId),
+        getBookTitle(c.targetType, c.targetId),
+        c.thought || "",
+      ].join(" ").toLowerCase();
+      return haystack.includes(searchRaw);
+    });
+  }
+  if (!filtered.length) {
+    els.connectionsList.className = "connections-list empty-state";
+    els.connectionsList.innerHTML = conns.length ? "当前筛选条件下没有关联。" : "还没有记录思想碰撞，点右上角 + 开始建立联系。";
+    return;
+  }
+  els.connectionsList.className = "connections-list";
+  els.connectionsList.innerHTML = filtered.map(buildConnectionCard).join("");
 }
 
 function requireAuth(actionText = "执行此操作") {
@@ -288,6 +484,9 @@ async function syncState() {
   if (!state.chatHistories) {
     state.chatHistories = {};
   }
+  if (!Array.isArray(state.connections)) {
+    state.connections = [];
+  }
 }
 
 async function loadSession() {
@@ -305,6 +504,9 @@ async function loadSession() {
     state = data.state || structuredClone(initialState);
     if (!state.chatHistories) {
       state.chatHistories = {};
+    }
+    if (!Array.isArray(state.connections)) {
+      state.connections = [];
     }
     await loadRemoteLogs();
   } catch {
@@ -370,33 +572,34 @@ function renderAuthPanels() {
   const isLoggedIn = Boolean(currentUser?.id);
   els.authPanel.classList.toggle("is-hidden", isLoggedIn);
   els.userPanel.classList.toggle("is-hidden", !isLoggedIn);
+  els.meAvatarDot?.classList.toggle("is-hidden", !isLoggedIn);
 
   if (!isLoggedIn) {
-    els.currentUsername.textContent = "未登录";
-    els.currentUserMeta.textContent = "登录后，账号、书单、记录、摘抄、图片、聊天历史和日志都走后端。";
-    els.meProfileCard.querySelector(".profile-title").textContent = "未登录";
-    els.meProfileCard.querySelector(".profile-subtitle").textContent = "登录后按账号保存你的阅读数据，并从服务器恢复。";
-    els.profileStatusPill.textContent = "未连接";
+    if (els.currentUsername) els.currentUsername.textContent = "未登录";
+    if (els.currentUserMeta) els.currentUserMeta.textContent = "登录后，数据保存到服务器。";
     return;
   }
 
-  els.currentUsername.textContent = currentUser.username;
-  els.currentUserMeta.textContent = `阅读数据、图片、聊天历史与模型日志都保存在部署服务器。`;
-  els.meProfileCard.querySelector(".profile-title").textContent = currentUser.username;
-  els.meProfileCard.querySelector(".profile-subtitle").textContent = `已连接 ${getBackendBaseUrl() || "未配置后端"}`;
-  els.profileStatusPill.textContent = "服务器模式";
+  if (els.currentUsername) els.currentUsername.textContent = currentUser.username;
+  if (els.currentUserMeta) els.currentUserMeta.textContent = "数据已同步至服务器";
 }
 
-function renderBookSelect(selectEl, includeWishlist = false) {
-  if (!selectEl) return;
-  const books = state.books.filter((book) => includeWishlist || book.status !== "wishlist");
-  selectEl.innerHTML = '<option value="">请选择一本书</option>';
-  books.forEach((book) => {
-    const option = document.createElement("option");
-    option.value = book.id;
-    option.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
-    selectEl.appendChild(option);
-  });
+function openMeDrawer() {
+  if (!els.meDrawer) return;
+  els.meDrawer.classList.add("is-open");
+  els.meDrawerOverlay.classList.add("is-open");
+}
+
+function closeMeDrawer() {
+  if (!els.meDrawer) return;
+  els.meDrawer.classList.remove("is-open");
+  els.meDrawerOverlay.classList.remove("is-open");
+}
+
+function renderBookSelect(hiddenInput) {
+  if (!hiddenInput) return;
+  const wrap = hiddenInput.closest?.(".book-combobox");
+  wrap?._comboboxUpdate?.(state.books);
 }
 
 function renderTagFilterChips() {
@@ -456,17 +659,22 @@ function matchQuotes(query) {
   return state.quotes.filter((quote) => fuzzyMatch(quote.content || "", query));
 }
 
-function buildBookSearchCard(book) {
+function buildBookSearchCard(book, cache) {
   const progress = getProgress(book);
-  const metrics = getBookMetrics(book.id);
-  const coverImage = book.coverImageUrl || state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "";
+  const metrics = cache ? (cache.metricsMap.get(book.id) || { count: 0, minutes: 0, pages: 0 }) : getBookMetrics(book.id);
+  const qCount = cache ? (cache.quoteCountMap.get(book.id) || 0) : getQuoteCount(book.id);
+  const cCount = cache ? (cache.connCountMap.get(book.id) || 0) : getConnectionCount(book.id);
+  const fallbackImg = cache ? (cache.firstQuoteImageMap.get(book.id) || "") : (state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
+  const coverImage = resolveImageUrl(book.coverImageUrl || fallbackImg);
   const progressText =
     progress === null
       ? `已读到第 ${book.currentPage || 0} 页`
       : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
 
+  const MAX_TAGS = 3;
   const tags = Array.isArray(book.tags) && book.tags.length
-    ? book.tags.map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("")
+    ? book.tags.slice(0, MAX_TAGS).map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("") +
+      (book.tags.length > MAX_TAGS ? `<span class="book-tag-chip book-tag-more">+${book.tags.length - MAX_TAGS}</span>` : "")
     : "";
 
   const card = document.createElement("article");
@@ -476,31 +684,60 @@ function buildBookSearchCard(book) {
       ${
         coverImage
           ? `<img src="${coverImage}" alt="${escapeHtml(book.title)}" />`
-          : `<div class="book-cover-fallback">${escapeHtml(book.title.slice(0, 2) || "书")}</div>`
+          : `<div class="book-cover-fallback"></div>`
       }
-      <span class="book-status-chip">${escapeHtml(statusMap[book.status] || book.status)}</span>
-      <button class="book-delete-corner" type="button" title="删除书籍" aria-label="删除书籍">✖️</button>
+      <span class="book-status-chip" data-status="${book.status}"><span class="chip-dot chip-dot--${book.status}"></span>${escapeHtml(statusMap[book.status] || book.status)}</span>
+      <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">···</button>
     </div>
+    <ul class="card-context-menu" hidden>
+      <li><button type="button" data-menu="add-quote">新增摘抄</button></li>
+      <li><button type="button" data-menu="add-session">新增记录</button></li>
+      <li><button type="button" data-menu="edit">编辑</button></li>
+      <li><button type="button" data-menu="chat">去聊</button></li>
+      <li><button type="button" data-menu="connect">关联</button></li>
+      <li class="menu-item-danger"><button type="button" data-menu="delete">删除</button></li>
+    </ul>
     <div class="book-grid-body">
-      <h3>${escapeHtml(book.title)}</h3>
+      <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
-      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${getQuoteCount(book.id)} 张</div>
+      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${qCount} 张${cCount ? ` · 🔗 ${cCount} 关联` : ""}</div>
       <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
       ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
-      <div class="book-grid-actions">
-        <button class="button button-small button-ghost edit-book-button" type="button">编辑</button>
-        <button class="button button-small button-ghost chat-book-button" type="button">去聊</button>
-      </div>
     </div>
   `;
-  card.querySelector(".edit-book-button").addEventListener("click", () => openBookEditDialog(book.id));
-  card.querySelector(".chat-book-button").addEventListener("click", () => {
-    activateTab("chat");
-    window.paperReadingApp?.switchChatToBook?.(book.id);
+
+  const menuBtn = card.querySelector(".card-menu-btn");
+  const menu = card.querySelector(".card-context-menu");
+
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !menu.hidden;
+    document.querySelectorAll(".card-context-menu").forEach((m) => { m.hidden = true; m.closest(".book-grid-card")?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false"); });
+    if (!isOpen) {
+      menu.hidden = false;
+      menuBtn.setAttribute("aria-expanded", "true");
+    }
   });
-  card.querySelector(".book-delete-corner").addEventListener("click", () => deleteBook(book.id));
+
+  menu.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-menu]");
+    if (!btn) return;
+    e.stopPropagation();
+    menu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
+    const action = btn.dataset.menu;
+    if (action === "add-quote") openNewQuoteForBook(book.id);
+    else if (action === "add-session") openNewSessionForBook(book.id);
+    else if (action === "edit") openBookEditDialog(book.id);
+    else if (action === "chat") { activateTab("chat"); window.paperReadingApp?.switchChatToBook?.(book.id); }
+    else if (action === "connect") openConnectionDialog({ sourceType: "book", sourceId: book.id });
+    else if (action === "delete") deleteBook(book.id);
+  });
+
   card.addEventListener("click", (event) => {
     if (event.target.closest("button")) return;
+    menu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
     openBookDetailDialog(book.id);
   });
   return card;
@@ -512,16 +749,11 @@ function buildQuoteSearchCard(quote) {
   const card = document.createElement("article");
   card.className = "quote-grid-card";
   card.innerHTML = `
-    <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
-      ${
-        quote.imageUrl
-          ? `<img src="${quote.imageUrl}" alt="摘抄照片" />`
-          : `<div class="entry-cover-fallback">${escapeHtml((book?.title || "摘抄").slice(0, 2))}</div>`
-      }
-      <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
+    <div class="entry-card-cover">
+      <div class="entry-cover-fallback"></div>
     </div>
     <div class="entry-card-body">
-      <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
+      <h3>${book ? formatBookTitle(book.title) : "未知书籍"} <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span></h3>
       <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
       <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content || "")}</p>
       <p class="entry-card-tags">${tagsText}</p>
@@ -536,50 +768,23 @@ function buildQuoteSearchCard(quote) {
 }
 
 function renderSearchResults(matchedBooks, matchedQuotes) {
-  const totalCount = matchedBooks.length + matchedQuotes.length;
-  els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍、${matchedQuotes.length} 条摘抄`;
+  els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍`;
 
-  if (totalCount === 0) {
+  if (!matchedBooks.length) {
     els.booksList.className = "book-list empty-state";
-    els.booksList.innerHTML = '<p class="search-empty-combined">没有找到匹配的结果，试试其他关键词</p>';
+    els.booksList.innerHTML = '<p class="search-empty-combined">没有找到匹配的书籍，试试其他关键词</p>';
     return;
   }
 
   els.booksList.className = "book-list search-results";
   els.booksList.innerHTML = "";
 
-  const booksSection = document.createElement("section");
-  booksSection.className = "search-results-section";
-  booksSection.innerHTML = '<h3 class="search-section-header">书籍</h3>';
-
-  if (!matchedBooks.length) {
-    booksSection.insertAdjacentHTML("beforeend", '<p class="search-empty-section">没有匹配的书籍</p>');
-  } else {
-    const booksList = document.createElement("div");
-    booksList.className = "search-book-list";
-    matchedBooks.forEach((book) => {
-      booksList.appendChild(buildBookSearchCard(book));
-    });
-    booksSection.appendChild(booksList);
-  }
-
-  const quotesSection = document.createElement("section");
-  quotesSection.className = "search-results-section";
-  quotesSection.innerHTML = '<h3 class="search-section-header">摘抄</h3>';
-
-  if (!matchedQuotes.length) {
-    quotesSection.insertAdjacentHTML("beforeend", '<p class="search-empty-section">没有匹配的摘抄</p>');
-  } else {
-    const quotesList = document.createElement("div");
-    quotesList.className = "search-quote-list";
-    matchedQuotes.forEach((quote) => {
-      quotesList.appendChild(buildQuoteSearchCard(quote));
-    });
-    quotesSection.appendChild(quotesList);
-  }
-
-  els.booksList.appendChild(booksSection);
-  els.booksList.appendChild(quotesSection);
+  const booksList = document.createElement("div");
+  booksList.className = "search-book-list";
+  matchedBooks.forEach((book) => {
+    booksList.appendChild(buildBookSearchCard(book));
+  });
+  els.booksList.appendChild(booksList);
 }
 
 function restoreDefaultView() {
@@ -644,8 +849,25 @@ function renderBooks() {
   els.booksList.className = "book-list";
   els.booksList.innerHTML = "";
 
-  for (const book of books) {
-    els.booksList.appendChild(buildBookSearchCard(book));
+  const cache = buildRenderCache();
+  const myRender = ++_renderBooksId;
+  const BATCH = 8;
+
+  for (const book of books.slice(0, BATCH)) {
+    els.booksList.appendChild(buildBookSearchCard(book, cache));
+  }
+
+  if (books.length > BATCH) {
+    let offset = BATCH;
+    const renderNext = () => {
+      if (_renderBooksId !== myRender) return;
+      for (const book of books.slice(offset, offset + BATCH)) {
+        els.booksList.appendChild(buildBookSearchCard(book, cache));
+      }
+      offset += BATCH;
+      if (offset < books.length) requestAnimationFrame(renderNext);
+    };
+    requestAnimationFrame(renderNext);
   }
 }
 
@@ -653,47 +875,64 @@ function renderTimeline() {
   if (!currentUser?.id) {
     els.timeline.className = "timeline empty-state";
     els.timeline.textContent = "登录后，这里会显示最近阅读情况。";
+    if (els.sessionStats) els.sessionStats.classList.add("is-hidden");
     return;
   }
 
-  const sessions = [...state.sessions]
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-    .slice(0, 10);
+  const searchRaw = (els.sessionSearch?.value || "").trim().toLowerCase();
+  const allSorted = [...state.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const sessions = searchRaw
+    ? allSorted.filter((s) => {
+        const book = state.books.find((b) => b.id === s.bookId);
+        const haystack = [book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase();
+        return haystack.includes(searchRaw);
+      })
+    : allSorted.slice(0, 10);
+
+  // Stats bar
+  if (els.sessionStats) {
+    if (searchRaw && sessions.length) {
+      const totalMin = sessions.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
+      const totalPages = sessions.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0);
+      els.sessionStats.textContent = `${sessions.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
+      els.sessionStats.classList.remove("is-hidden");
+    } else {
+      els.sessionStats.classList.add("is-hidden");
+    }
+  }
 
   if (!sessions.length) {
     els.timeline.className = "timeline empty-state";
-    els.timeline.textContent = "还没有阅读会话，点右上角加号记录一次。";
+    els.timeline.textContent = searchRaw ? "没有匹配的阅读记录。" : "还没有阅读会话，点右上角加号记录一次。";
     return;
   }
 
   els.timeline.className = "timeline";
-  els.timeline.innerHTML = sessions
-    .map((session) => {
-      const book = state.books.find((item) => item.id === session.bookId);
-      const coverImage = state.quotes.find((item) => item.bookId === session.bookId && item.imageUrl)?.imageUrl || "";
-      return `
-        <article class="session-grid-card" data-session-id="${escapeHtml(session.id)}">
-          <div class="entry-card-cover ${coverImage ? "has-image" : ""}">
-            ${
-              coverImage
-                ? `<img src="${coverImage}" alt="${escapeHtml(book?.title || "未知书籍")}" />`
-                : '<div class="entry-cover-fallback">🕐</div>'
-            }
-          </div>
-          <div class="entry-card-body">
-            <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
-            <p class="entry-card-meta">📖 ${session.startPage}-${session.endPage} 页</p>
-            <p class="entry-card-meta">⏱ ${session.minutes} 分钟 · ${formatDate(session.date)}</p>
-            <p class="entry-card-note">${escapeHtml(session.note || "无笔记")}</p>
-            <div class="entry-card-actions">
-              <button class="card-action-btn" data-edit-session="${escapeHtml(session.id)}" type="button">编辑</button>
-              <button class="card-action-btn card-action-danger" data-delete-session="${escapeHtml(session.id)}" type="button">删除</button>
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  els.timeline.innerHTML = "";
+  sessions.forEach((session) => {
+    const book = state.books.find((item) => item.id === session.bookId);
+    const article = document.createElement("article");
+    article.className = "session-grid-card";
+    article.dataset.sessionId = session.id;
+    article.innerHTML = `
+      <div class="entry-card-cover">
+        <div class="entry-cover-fallback"></div>
+      </div>
+      <div class="entry-card-body">
+        <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
+        <p class="entry-card-meta">📖 ${session.startPage}–${session.endPage} 页</p>
+        <p class="entry-card-meta">⏱ ${session.minutes} 分钟 · ${formatDate(session.date)}</p>
+        <p class="entry-card-note">${escapeHtml(session.note || "无笔记")}</p>
+        <div class="entry-card-actions">
+          <button class="card-action-btn" type="button">编辑</button>
+          <button class="card-action-btn card-action-danger" type="button">删除</button>
+        </div>
+      </div>`;
+    const [editBtn, deleteBtn] = article.querySelectorAll(".card-action-btn");
+    editBtn.addEventListener("click", (e) => { e.stopPropagation(); editSession(session.id); });
+    deleteBtn.addEventListener("click", (e) => { e.stopPropagation(); deleteSession(session.id); });
+    els.timeline.appendChild(article);
+  });
 }
 
 function renderQuotes() {
@@ -703,7 +942,7 @@ function renderQuotes() {
     return;
   }
 
-  const filter = els.quoteFilter.value;
+  const filter = els.quoteTypeChips?.querySelector('.filter-chip.active')?.dataset.quoteType || 'all';
   const searchRaw = (els.quoteSearch?.value || "").trim().toLowerCase();
   const quotes = [...state.quotes]
     .filter((item) => filter === "all" || item.kind === filter)
@@ -732,19 +971,15 @@ function renderQuotes() {
       const book = state.books.find((item) => item.id === quote.bookId);
       return `
         <article class="quote-grid-card" data-quote-id="${escapeHtml(quote.id)}">
-          <div class="entry-card-cover ${quote.imageUrl ? "has-image" : ""}">
-            ${
-              quote.imageUrl
-                ? `<img src="${quote.imageUrl}" alt="摘抄照片" />`
-                : `<div class="entry-cover-fallback">${escapeHtml((book?.title || "摘抄").slice(0, 2))}</div>`
-            }
-            <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
+          <div class="entry-card-cover">
+            <div class="entry-cover-fallback"></div>
+            <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">
-            <h3>${escapeHtml(book?.title || "未知书籍")}</h3>
+            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
-            <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quote.content)}</p>
-            <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}</p>
+            <p class="entry-card-note">${escapeHtml(quote.content)}</p>
+            <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}</p>
             <div class="entry-card-actions">
               <button class="card-action-btn" data-edit-quote="${escapeHtml(quote.id)}" type="button">编辑</button>
               <button class="card-action-btn card-action-danger" data-delete-quote="${escapeHtml(quote.id)}" type="button">删除</button>
@@ -825,22 +1060,35 @@ function renderOcrStatus() {
 }
 
 function renderImagePreview() {
-  if (!pendingQuoteImage) {
+  const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl;
+  if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
-    els.quotePreviewImg.removeAttribute("src");
+    if (els.quotePreviewImg) els.quotePreviewImg.removeAttribute("src");
     return;
   }
-  els.quotePreviewImg.src = pendingQuoteImage.dataUrl;
+  // iOS Safari caches Live Text recognition per DOM element, not per src.
+  // Replacing the <img> node entirely gives iOS a fresh element with no cached state.
+  const newImg = document.createElement("img");
+  newImg.id = "quotePreviewImg";
+  newImg.alt = "摘抄图片预览";
+  newImg.onload = () =>
+    els.quoteImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  newImg.src = src;
+  els.quotePreviewImg.replaceWith(newImg);
+  els.quotePreviewImg = newImg;
   els.quoteImagePreview.classList.remove("is-hidden");
 }
 
 function renderBookImagePreview() {
-  if (!pendingBookImage) {
+  const src = pendingBookImage?.objectUrl || pendingBookImage?.dataUrl;
+  if (!src) {
     els.bookImagePreview?.classList.add("is-hidden");
     els.bookPreviewImg?.removeAttribute("src");
     return;
   }
-  els.bookPreviewImg.src = pendingBookImage.dataUrl;
+  els.bookPreviewImg.onload = () =>
+    els.bookImagePreview?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  els.bookPreviewImg.src = src;
   els.bookImagePreview.classList.remove("is-hidden");
 }
 
@@ -856,8 +1104,9 @@ function render() {
   renderTimeline();
   renderQuotes();
   renderModelLogs();
+  renderConnections();
   renderBookSelect(els.sessionBookSelect);
-  renderBookSelect(els.quoteBookSelect, true);
+  renderBookSelect(els.quoteBookSelect);
   renderOcrStatus();
   renderImagePreview();
   renderBookImagePreview();
@@ -881,6 +1130,11 @@ function activateTab(tabName) {
   });
   if (tabName === "chat" && typeof window.populateChatBookSelect === "function") {
     window.populateChatBookSelect();
+    // Scroll to latest message after panel becomes visible
+    requestAnimationFrame(() => {
+      const msgs = document.querySelector("#chatMessages");
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    });
   }
 }
 
@@ -891,6 +1145,7 @@ async function loginSuccess(payload) {
   await loadRemoteLogs();
   render();
   dispatchUserChange();
+  closeMeDrawer();
 }
 
 async function handleRegister(formData) {
@@ -959,7 +1214,7 @@ async function logout() {
 }
 
 async function uploadImageIfNeeded() {
-  if (!pendingQuoteImage) return "";
+  if (!pendingQuoteImage || !pendingQuoteImage.dataUrl) return "";
   const payload = await apiFetch(
     "/api/upload-image",
     {
@@ -976,7 +1231,7 @@ async function uploadImageIfNeeded() {
 }
 
 async function uploadBookImageIfNeeded() {
-  if (!pendingBookImage) return "";
+  if (!pendingBookImage || !pendingBookImage.dataUrl) return "";
   const payload = await apiFetch(
     "/api/upload-image",
     {
@@ -993,12 +1248,16 @@ async function uploadBookImageIfNeeded() {
 }
 
 function resetQuoteDraft() {
+  if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   pendingQuoteImage = null;
   els.quoteForm.reset();
+  document.querySelector("#quoteBookCombobox")?._comboboxReset?.();
   renderImagePreview();
+  renderQuoteTagPicker([]);
 }
 
 function resetBookDraft() {
+  if (pendingBookImage?.objectUrl) URL.revokeObjectURL(pendingBookImage.objectUrl);
   pendingBookImage = null;
   els.bookForm.reset();
   renderBookImagePreview();
@@ -1021,7 +1280,7 @@ async function addBook(formData) {
     const coverImageUrl = await uploadBookImageIfNeeded();
     state.books.unshift({
       id: createId("book"),
-      title: String(formData.get("title")).trim(),
+      title: normalizeBookTitle(formData.get("title")),
       author: String(formData.get("author")).trim(),
       totalPages,
       currentPage,
@@ -1123,7 +1382,7 @@ function deleteBook(bookId) {
   if (!book) return;
 
   // Show custom confirmation dialog instead of native window.confirm
-  els.deleteBookMessage.textContent = `《${book.title}》`;
+  els.deleteBookMessage.textContent = book.title;
   els.deleteBookDialog.showModal();
 
   // Use one-shot listeners to avoid stacking up handlers
@@ -1131,12 +1390,17 @@ function deleteBook(bookId) {
     cleanup();
     els.deleteBookDialog.close();
 
+    const deletedQuoteIds = new Set(state.quotes.filter((q) => q.bookId === bookId).map((q) => q.id));
     state.books = state.books.filter((item) => item.id !== bookId);
     state.sessions = state.sessions.filter((item) => item.bookId !== bookId);
     state.quotes = state.quotes.filter((item) => item.bookId !== bookId);
     if (state.chatHistories && typeof state.chatHistories === "object") {
       delete state.chatHistories[bookId];
     }
+    state.connections = (state.connections || []).filter((c) =>
+      c.sourceId !== bookId && c.targetId !== bookId &&
+      !deletedQuoteIds.has(c.sourceId) && !deletedQuoteIds.has(c.targetId)
+    );
     try {
       await syncState();
       render();
@@ -1166,6 +1430,7 @@ function editSession(sessionId) {
   if (!session) return;
   document.getElementById("sessionId").value = session.id;
   els.sessionForm.querySelector('[name="bookId"]').value = session.bookId;
+  document.querySelector("#sessionBookCombobox")?._comboboxSetValue?.(session.bookId);
   els.sessionForm.querySelector('[name="startPage"]').value = session.startPage;
   els.sessionForm.querySelector('[name="endPage"]').value = session.endPage;
   els.sessionForm.querySelector('[name="minutes"]').value = session.minutes;
@@ -1175,15 +1440,110 @@ function editSession(sessionId) {
   els.sessionDialog.showModal();
 }
 
+function openQuoteDetail(quoteId) {
+  const quote = state.quotes.find((q) => q.id === quoteId);
+  if (!quote) return;
+  const book = state.books.find((b) => b.id === quote.bookId);
+
+  document.getElementById("quoteDetailBook").textContent =
+    book ? `${formatBookTitle(book.title)} · ${book.author || ""}`.trim().replace(/·\s*$/, "") : "未知书籍";
+  document.getElementById("quoteDetailMeta").textContent =
+    `${quoteKindMap[quote.kind] || "摘抄"} · 第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}`;
+
+  const imgWrap = document.getElementById("quoteDetailImage");
+  const img = document.getElementById("quoteDetailImg");
+  if (quote.imageUrl) {
+    img.src = resolveImageUrl(quote.imageUrl);
+    imgWrap.classList.remove("is-hidden");
+  } else {
+    imgWrap.classList.add("is-hidden");
+    img.removeAttribute("src");
+  }
+
+  document.getElementById("quoteDetailContent").textContent = quote.content || "";
+
+  const reflEl = document.getElementById("quoteDetailReflection");
+  if (quote.reflection) {
+    reflEl.textContent = quote.reflection;
+    reflEl.classList.remove("is-hidden");
+  } else {
+    reflEl.classList.add("is-hidden");
+  }
+
+  const tagsEl = document.getElementById("quoteDetailTags");
+  tagsEl.textContent = quote.tags?.length ? quote.tags.join(" / ") : "";
+
+  document.getElementById("quoteDetailEditBtn").onclick = () => {
+    document.getElementById("quoteDetailDialog").close();
+    editQuote(quoteId);
+  };
+
+  const quoteDetailDlg = document.getElementById("quoteDetailDialog");
+  quoteDetailDlg.dataset.openQuoteId = quoteId;
+
+  const connsForQuote = (state.connections || []).filter((c) => c.sourceId === quoteId || c.targetId === quoteId);
+  const connWrap = document.getElementById("quoteDetailConnectionsWrap");
+  const connList = document.getElementById("quoteDetailConnections");
+  if (connsForQuote.length && connWrap && connList) {
+    connList.innerHTML = connsForQuote.map((c) => {
+      const otherId = c.sourceId === quoteId ? c.targetId : c.sourceId;
+      const otherType = c.sourceId === quoteId ? c.targetType : c.sourceType;
+      const other = resolveConnectionSide(otherType, otherId);
+      return `<div class="conn-mini-card conn-mini-nav" data-nav-type="${escapeHtml(otherType)}" data-nav-id="${escapeHtml(otherId)}">
+        <div class="conn-mini-header">
+          <span class="conn-mini-kind" data-kind="${escapeHtml(c.kind)}">${escapeHtml(c.kind)}</span>
+        </div>
+        <div class="conn-mini-text">↔ ${escapeHtml(other.label)}</div>
+        ${other.sub ? `<div class="connection-side-sub">${escapeHtml(other.sub)}</div>` : ""}
+        ${c.thought ? `<div class="conn-mini-thought">${escapeHtml(c.thought)}</div>` : ""}
+      </div>`;
+    }).join("");
+    connWrap.classList.remove("is-hidden");
+  } else if (connWrap) {
+    connWrap.classList.add("is-hidden");
+  }
+
+  quoteDetailDlg.showModal();
+}
+
+function openNewQuoteForBook(bookId) {
+  if (!requireAuth("新增摘抄")) return;
+  activateTab("quote");
+  document.getElementById("quoteId").value = "";
+  els.quoteForm.querySelector('[name="bookId"]').value = bookId;
+  document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(bookId);
+  els.quoteForm.querySelector('[name="page"]').value = "";
+  els.quoteForm.querySelector('[name="kind"]').value = "quote";
+  renderQuoteTagPicker([]);
+  document.getElementById("quoteContent").value = "";
+  els.quoteForm.querySelector('[name="reflection"]').value = "";
+  els.quoteDialog.showModal();
+}
+
+function openNewSessionForBook(bookId) {
+  if (!requireAuth("新增记录")) return;
+  activateTab("session");
+  document.getElementById("sessionId").value = "";
+  els.sessionForm.querySelector('[name="bookId"]').value = bookId;
+  document.querySelector("#sessionBookCombobox")?._comboboxSetValue?.(bookId);
+  els.sessionForm.querySelector('[name="startPage"]').value = "";
+  els.sessionForm.querySelector('[name="endPage"]').value = "";
+  els.sessionForm.querySelector('[name="minutes"]').value = "";
+  els.sessionForm.querySelector('[name="note"]').value = "";
+  els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];
+  els.sessionDialog.showModal();
+}
+
 function editQuote(quoteId) {
   if (!requireAuth("编辑摘抄")) return;
   const quote = state.quotes.find((q) => q.id === quoteId);
   if (!quote) return;
   document.getElementById("quoteId").value = quote.id;
   els.quoteForm.querySelector('[name="bookId"]').value = quote.bookId;
+  document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(quote.bookId);
   els.quoteForm.querySelector('[name="page"]').value = quote.page || "";
   els.quoteForm.querySelector('[name="kind"]').value = quote.kind || "quote";
-  els.quoteForm.querySelector('[name="tags"]').value = (quote.tags || []).join(", ");
+  renderQuoteTagPicker(quote.tags || []);
   document.getElementById("quoteContent").value = quote.content || "";
   els.quoteForm.querySelector('[name="reflection"]').value = quote.reflection || "";
   els.quoteDialog.showModal();
@@ -1225,6 +1585,7 @@ async function deleteQuote(quoteId) {
     message: "确定删除这张摘抄卡片吗？",
     onConfirm: async () => {
       state.quotes = state.quotes.filter((item) => item.id !== quoteId);
+      state.connections = (state.connections || []).filter((c) => c.sourceId !== quoteId && c.targetId !== quoteId);
       try {
         await syncState();
         renderQuotes();
@@ -1237,12 +1598,15 @@ async function deleteQuote(quoteId) {
 }
 
 function renderBookEditImagePreview() {
-  if (!pendingBookEditImage) {
+  const src = pendingBookEditImage?.objectUrl || pendingBookEditImage?.dataUrl;
+  if (!src) {
     els.bookEditImagePreview?.classList.add("is-hidden");
     els.bookEditPreviewImg?.removeAttribute("src");
     return;
   }
-  els.bookEditPreviewImg.src = pendingBookEditImage.dataUrl;
+  els.bookEditPreviewImg.onload = () =>
+    els.bookEditImagePreview?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  els.bookEditPreviewImg.src = src;
   els.bookEditImagePreview.classList.remove("is-hidden");
 }
 
@@ -1283,46 +1647,54 @@ async function saveBookEdit(formData) {
     return;
   }
 
+  // Update in-memory state immediately
+  book.currentPage = currentPage;
+  book.status = String(formData.get("status"));
+  book.notes = String(formData.get("notes")).trim();
+  book.tags = Array.isArray(book.tags) ? book.tags : [];
+  book.updatedAt = new Date().toISOString();
+  if (book.status === "reading" || book.status === "finished") {
+    book.lastReadAt = new Date().toISOString();
+    if (!book.startedAt) {
+      book.startedAt = book.lastReadAt;
+    }
+  }
+  if (book.totalPages && currentPage >= book.totalPages) {
+    book.status = "finished";
+    if (!book.finishedAt) {
+      book.finishedAt = new Date().toISOString();
+    }
+  }
+
+  // Capture pending image then close dialog right away
+  const pendingImage = pendingBookEditImage;
+  const booksScrollTop = els.booksList?.scrollTop ?? 0;
+  closeDialog(els.bookEditDialog);
+  resetBookEditDraft();
+  render();
+  if (booksScrollTop > 0) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (els.booksList) els.booksList.scrollTop = booksScrollTop;
+    }));
+  }
+  showToast("保存中…");
+
+  // Upload image + sync in background
   try {
-    if (pendingBookEditImage) {
-      if (pendingBookEditImage.fromExisting) {
-        book.coverImageUrl = pendingBookEditImage.dataUrl;
-      } else {
-        const payload = await apiFetch(
-          "/api/upload-image",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dataUrl: pendingBookEditImage.dataUrl, filename: pendingBookEditImage.name }),
-          },
-          true
-        );
-        book.coverImageUrl = payload.url || book.coverImageUrl || "";
-      }
+    if (pendingImage && !pendingImage.fromExisting && pendingImage.dataUrl) {
+      const payload = await apiFetch(
+        "/api/upload-image",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataUrl: pendingImage.dataUrl, filename: pendingImage.name }),
+        },
+        true
+      );
+      book.coverImageUrl = payload.url || book.coverImageUrl || "";
+      render();
     }
-
-    book.currentPage = currentPage;
-    book.status = String(formData.get("status"));
-    book.notes = String(formData.get("notes")).trim();
-    book.tags = Array.isArray(book.tags) ? book.tags : [];
-    book.updatedAt = new Date().toISOString();
-    if (book.status === "reading" || book.status === "finished") {
-      book.lastReadAt = new Date().toISOString();
-      if (!book.startedAt) {
-        book.startedAt = book.lastReadAt;
-      }
-    }
-    if (book.totalPages && currentPage >= book.totalPages) {
-      book.status = "finished";
-      if (!book.finishedAt) {
-        book.finishedAt = new Date().toISOString();
-      }
-    }
-
     await syncState();
-    closeDialog(els.bookEditDialog);
-    resetBookEditDraft();
-    render();
     showToast("书籍已更新");
   } catch (error) {
     showToast(error.message || "保存失败");
@@ -1332,32 +1704,194 @@ async function saveBookEdit(formData) {
 function openBookDetailDialog(bookId) {
   const book = state.books.find((item) => item.id === bookId);
   if (!book) return;
-  const bookQuotes = [...state.quotes]
-    .filter((item) => item.bookId === bookId)
-    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
   els.bookDetailTitle.textContent = book.title || "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
-  if (!bookQuotes.length) {
-    els.bookDetailQuotes.className = "book-detail-quotes empty-state";
-    els.bookDetailQuotes.textContent = "暂无摘抄。";
-  } else {
-    els.bookDetailQuotes.className = "book-detail-quotes";
-    els.bookDetailQuotes.innerHTML = bookQuotes
-      .map(
-        (item) => `
-          <article class="book-detail-quote">
-            <div class="book-detail-quote-meta">第 ${item.page || "-"} 页 · ${formatDate(item.createdAt)}</div>
-            <div class="book-detail-quote-content">${escapeHtml(item.content || "")}</div>
-            ${item.reflection ? `<div class="book-detail-quote-reflection">我的理解：${escapeHtml(item.reflection)}</div>` : ""}
-          </article>
-        `
-      )
-      .join("");
+  const quoteCount = state.quotes.filter((q) => q.bookId === bookId).length;
+  const countEl = document.getElementById("bookDetailQuoteCount");
+  if (countEl) countEl.textContent = `摘抄 ${quoteCount} 张`;
+
+  const bookConns = (state.connections || []).filter((c) =>
+    c.sourceId === bookId || c.targetId === bookId ||
+    (c.sourceType === "quote" && state.quotes.find((q) => q.id === c.sourceId)?.bookId === bookId) ||
+    (c.targetType === "quote" && state.quotes.find((q) => q.id === c.targetId)?.bookId === bookId)
+  );
+  const connWrap = document.getElementById("bookDetailConnectionsWrap");
+  const connList = document.getElementById("bookDetailConnections");
+  if (bookConns.length && connWrap && connList) {
+    connList.innerHTML = bookConns.map((c) => {
+      const srcSide = resolveConnectionSide(c.sourceType, c.sourceId);
+      const tgtSide = resolveConnectionSide(c.targetType, c.targetId);
+      return `<div class="conn-mini-card">
+        <span class="conn-mini-kind" data-kind="${escapeHtml(c.kind)}">${escapeHtml(c.kind)}</span>
+        <div class="conn-mini-text">${escapeHtml(srcSide.label)} ↔ ${escapeHtml(tgtSide.label)}</div>
+        ${c.thought ? `<div class="connection-side-sub">${escapeHtml(c.thought.slice(0, 60))}${c.thought.length > 60 ? "…" : ""}</div>` : ""}
+      </div>`;
+    }).join("");
+    connWrap.classList.remove("is-hidden");
+  } else if (connWrap) {
+    connWrap.classList.add("is-hidden");
   }
+
+  _bookDetailCurrentId = bookId;
   els.bookDetailDialog.showModal();
+}
+
+function goToBookQuotes() {
+  const bookId = _bookDetailCurrentId;
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  els.bookDetailDialog.close();
+  activateTab("quote");
+  if (els.quoteSearch) {
+    els.quoteSearch.value = book.title;
+    renderQuotes();
+  }
+}
+
+function openOrganizeDialog(bookId) {
+  if (!requireAuth("整理旧书")) return;
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  _organizeCurrentBookId = bookId;
+  els.organizeDialogMeta.textContent = `《${book.title}》`;
+  els.organizeRawText.value = "";
+  els.organizeSubmitBtn.disabled = false;
+  els.organizeSubmitBtn.textContent = "AI 识别";
+  // reset to paste tab
+  switchOrganizeTab("paste");
+  els.organizePhotoPreview.classList.add("is-hidden");
+  els.organizePhotoImg.src = "";
+  els.bookDetailDialog.close();
+  els.organizeDialog.showModal();
+}
+
+function switchOrganizeTab(tab) {
+  const isPaste = tab === "paste";
+  els.organizeTabPaste.classList.toggle("organize-tab--active", isPaste);
+  els.organizeTabPhoto.classList.toggle("organize-tab--active", !isPaste);
+  els.organizePastePane.classList.toggle("is-hidden", !isPaste);
+  els.organizePhotoPane.classList.toggle("is-hidden", isPaste);
+  // show submit btn only on paste tab; photo tab is self-serve
+  els.organizeSubmitBtn.classList.toggle("is-hidden", !isPaste);
+}
+
+async function handleOrganizeImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await resizeImageToDataUrl(file);
+    els.organizePhotoImg.src = dataUrl;
+    els.organizePhotoPreview.classList.remove("is-hidden");
+    els.organizePickPhotoBtn.textContent = "换一张";
+    // scroll image into view
+    els.organizePhotoImg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch {
+    showToast("图片加载失败，请重试");
+  }
+  // reset input so same file can be reselected
+  event.target.value = "";
+}
+
+async function submitOrganizePaste() {
+  const bookId = _organizeCurrentBookId;
+  const rawText = els.organizeRawText.value.trim();
+  if (!rawText) {
+    showToast("请先粘贴摘抄或笔记内容");
+    return;
+  }
+  els.organizeSubmitBtn.disabled = true;
+  els.organizeSubmitBtn.textContent = "识别中…";
+  try {
+    const data = await apiFetch("/api/organize/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookId, rawText }),
+    });
+    els.organizeDialog.close();
+    openCandidatesDialog(bookId, data.candidates);
+  } catch (err) {
+    showToast("识别失败：" + err.message);
+    els.organizeSubmitBtn.disabled = false;
+    els.organizeSubmitBtn.textContent = "AI 识别";
+  }
+}
+
+function openCandidatesDialog(bookId, candidates) {
+  const book = state.books.find((b) => b.id === bookId);
+  _candidatesCurrentBookId = bookId;
+  const typeLabel = { excerpt: "摘抄", note: "笔记" };
+  const confidenceLabel = { high: "高置信", medium: "中", low: "低置信" };
+
+  if (!candidates || !candidates.length) {
+    showToast("未识别出候选内容，请检查粘贴的文本");
+    return;
+  }
+
+  els.candidatesDialogMeta.textContent = `《${book ? book.title : ""}》共 ${candidates.length} 条候选`;
+  els.candidatesList.innerHTML = "";
+  candidates.forEach((c) => {
+    const item = document.createElement("div");
+    item.className = "candidate-item";
+    item.id = `candidate-${c.id}`;
+    item.dataset.actionId = c.id;
+    const tagsHtml = c.data.tags?.length
+      ? `<div class="candidate-tags">${c.data.tags.map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("")}</div>`
+      : "";
+    item.innerHTML = `
+      <div class="candidate-meta">
+        <span class="candidate-type-badge candidate-type-${escapeHtml(c.type)}">${escapeHtml(typeLabel[c.type] || c.type)}</span>
+        <span class="candidate-confidence">${escapeHtml(confidenceLabel[c.confidence] || c.confidence)}</span>
+      </div>
+      <div class="candidate-content">${escapeHtml(c.data.content)}</div>
+      ${tagsHtml}
+      <div class="candidate-actions">
+        <button type="button" class="button button-primary candidate-btn-save">保存</button>
+        <button type="button" class="button button-ghost candidate-btn-ignore">忽略</button>
+      </div>`;
+    const saveBtn = item.querySelector(".candidate-btn-save");
+    const ignoreBtn = item.querySelector(".candidate-btn-ignore");
+    saveBtn.addEventListener("click", () => approveCandidateItem(c.id, saveBtn));
+    ignoreBtn.addEventListener("click", () => ignoreCandidateItem(c.id, ignoreBtn));
+    els.candidatesList.appendChild(item);
+  });
+  els.candidatesDialog.showModal();
+}
+
+async function approveCandidateItem(actionId, btn) {
+  btn.disabled = true;
+  btn.textContent = "保存中…";
+  try {
+    const data = await apiFetch(`/api/agent-actions/${actionId}/approve`, { method: "POST" });
+    state = data.state || state;
+    render();
+    const item = document.getElementById(`candidate-${actionId}`);
+    if (item) {
+      item.classList.add("candidate-item--done");
+      item.querySelector(".candidate-actions").innerHTML = '<span class="candidate-done-label">已保存</span>';
+    }
+  } catch (err) {
+    showToast("保存失败：" + err.message);
+    btn.disabled = false;
+    btn.textContent = "保存";
+  }
+}
+
+async function ignoreCandidateItem(actionId, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/agent-actions/${actionId}/reject`, { method: "POST" });
+    const item = document.getElementById(`candidate-${actionId}`);
+    if (item) {
+      item.classList.add("candidate-item--ignored");
+      item.querySelector(".candidate-actions").innerHTML = '<span class="candidate-done-label">已忽略</span>';
+    }
+  } catch (err) {
+    showToast("操作失败：" + err.message);
+    btn.disabled = false;
+  }
 }
 
 async function changeBookCover(bookId) {
@@ -1368,13 +1902,12 @@ async function changeBookCover(bookId) {
   const picker = document.createElement("input");
   picker.type = "file";
   picker.accept = "image/*";
-  picker.capture = "environment";
 
   picker.addEventListener("change", async () => {
     const [file] = picker.files || [];
     if (!file) return;
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const dataUrl = await resizeImageToDataUrl(file);
       const payload = await apiFetch(
         "/api/upload-image",
         {
@@ -1444,6 +1977,7 @@ async function addQuote(formData) {
     }
 
     await syncState();
+    if (!existingId) lastQuoteBookId = bookId;
     closeDialog(els.quoteDialog);
     resetQuoteDraft();
     render();
@@ -1481,6 +2015,7 @@ function importData(file) {
             : Array.isArray(parsed.chatHistory)
               ? { "__general__": parsed.chatHistory }
               : {},
+        connections: Array.isArray(parsed.connections) ? parsed.connections : [],
       };
       await syncState();
       render();
@@ -1579,35 +2114,58 @@ async function clearLogs() {
   }
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
+async function resizeImageToDataUrl(file, maxPx = 1200, quality = 0.85) {
+  // Step 1: FileReader gives us a data URL the browser can always decode (works on iOS Safari)
+  const rawDataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("read-failed"));
+    reader.onerror = () => reject(new Error("FileReader failed"));
     reader.readAsDataURL(file);
   });
+  // Step 2: Load into offscreen Image to get dimensions (memory decode, not DOM display)
+  const img = await new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Image decode failed"));
+    el.src = rawDataUrl;
+  });
+  // Step 3: Draw at reduced size on canvas and export as small JPEG (~100-300 KB)
+  const scale = Math.min(1, maxPx / Math.max(img.naturalWidth || maxPx, img.naturalHeight || maxPx));
+  const w = Math.max(1, Math.round((img.naturalWidth || maxPx) * scale));
+  const h = Math.max(1, Math.round((img.naturalHeight || maxPx) * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 async function handleQuoteImageChange(file) {
+  if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   if (!file) {
     pendingQuoteImage = null;
     renderImagePreview();
     return;
   }
-  const dataUrl = await fileToDataUrl(file);
-  pendingQuoteImage = {
-    name: file.name,
-    dataUrl,
-    ocrSource: "",
-  };
+  // Show preview immediately via objectUrl (blob URLs render reliably on iOS Safari)
+  const objectUrl = URL.createObjectURL(file);
+  pendingQuoteImage = { name: file.name, objectUrl, dataUrl: null, ocrSource: "" };
   renderImagePreview();
   showToast("图片已载入，可以直接保存，也可以先做 OCR");
+  // Compress in background — needed for OCR/upload
+  resizeImageToDataUrl(file).then((dataUrl) => {
+    if (pendingQuoteImage) pendingQuoteImage.dataUrl = dataUrl;
+  }).catch(() => {});
 }
 
 async function runOcrFromImage() {
   if (!requireAuth("执行 OCR")) return;
   if (!pendingQuoteImage) {
     showToast("先拍照或选择一张图片");
+    return;
+  }
+  if (!pendingQuoteImage.dataUrl) {
+    showToast("图片还在处理中，请稍候…");
     return;
   }
 
@@ -1663,18 +2221,445 @@ async function clearChatHistory() {
   }
 }
 
+function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
+  if (!wrapperEl || !hiddenInput) return;
+  const textInput = wrapperEl.querySelector(".book-combobox-input");
+  const list = wrapperEl.querySelector(".book-combobox-list");
+  if (!textInput || !list) return;
+
+  let allBooks = [];
+  let isOpen = false;
+
+  function bookLabel(b) {
+    return b.title + (b.author ? ` · ${b.author}` : "");
+  }
+
+  function filteredBooks(q) {
+    const src = includeWishlist ? allBooks : allBooks.filter((b) => b.status !== "wishlist");
+    if (!q) {
+      return [...src.filter((b) => b.status === "reading"), ...src.filter((b) => b.status !== "reading")];
+    }
+    const lower = q.toLowerCase();
+    return src.filter(
+      (b) => (b.title || "").toLowerCase().includes(lower) || (b.author || "").toLowerCase().includes(lower)
+    );
+  }
+
+  function positionList() {
+    const rect = textInput.getBoundingClientRect();
+    list.style.top = `${rect.bottom + 2}px`;
+    list.style.left = `${rect.left}px`;
+    list.style.width = `${rect.width}px`;
+  }
+
+  function buildList(q = "") {
+    const books = filteredBooks(q);
+    list.innerHTML = "";
+    if (!books.length) {
+      const li = document.createElement("li");
+      li.className = "book-combobox-empty";
+      li.textContent = q ? "没有匹配的书籍" : "暂无书籍";
+      list.appendChild(li);
+      return;
+    }
+    books.forEach((book) => {
+      const li = document.createElement("li");
+      li.className = "book-combobox-item" + (book.id === hiddenInput.value ? " is-selected" : "");
+      const nameEl = document.createElement("span");
+      nameEl.textContent = bookLabel(book);
+      li.appendChild(nameEl);
+      if (book.status === "reading") {
+        const badge = document.createElement("span");
+        badge.className = "book-combobox-badge";
+        badge.textContent = "阅读中";
+        li.appendChild(badge);
+      }
+      function doPick(e) { e.preventDefault(); pick(book); }
+      li.addEventListener("mousedown", doPick);
+      li.addEventListener("touchstart", doPick, { passive: false });
+      list.appendChild(li);
+    });
+  }
+
+  function openList() {
+    buildList(textInput.value);
+    positionList();
+    list.classList.add("is-open");
+    isOpen = true;
+  }
+
+  function closeList() {
+    list.classList.remove("is-open");
+    isOpen = false;
+  }
+
+  function pick(book) {
+    hiddenInput.value = book.id;
+    textInput.value = bookLabel(book);
+    closeList();
+  }
+
+  textInput.addEventListener("focus", openList);
+  textInput.addEventListener("input", () => {
+    hiddenInput.value = "";
+    buildList(textInput.value);
+    if (!isOpen) openList();
+    else positionList();
+  });
+  textInput.addEventListener("blur", () => setTimeout(closeList, 200));
+
+  wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
+    if (isOpen) positionList();
+  }, { passive: true });
+
+  wrapperEl._comboboxUpdate = (books) => {
+    allBooks = books;
+    if (isOpen) buildList(textInput.value);
+  };
+  wrapperEl._comboboxReset = () => {
+    textInput.value = "";
+    hiddenInput.value = "";
+    closeList();
+  };
+  wrapperEl._comboboxSetValue = (bookId) => {
+    const book = allBooks.find((b) => b.id === bookId);
+    hiddenInput.value = bookId || "";
+    textInput.value = book ? bookLabel(book) : "";
+  };
+}
+
+function initQuoteCombobox(wrapperEl, hiddenInput) {
+  if (!wrapperEl || !hiddenInput) return;
+  const textInput = wrapperEl.querySelector(".book-combobox-input");
+  const list = wrapperEl.querySelector(".book-combobox-list");
+  if (!textInput || !list) return;
+
+  let allQuotes = [];
+  let isOpen = false;
+
+  function quoteLabel(q) {
+    const book = state.books.find((b) => b.id === q.bookId);
+    const bookName = book ? book.title : "未知书籍";
+    const content = (q.content || "").slice(0, 32) + (q.content?.length > 32 ? "…" : "");
+    return `${bookName} · ${content}`;
+  }
+
+  function filteredQuotes(q) {
+    if (!q) return allQuotes.slice(0, 30);
+    const lower = q.toLowerCase();
+    return allQuotes.filter((item) => {
+      const book = state.books.find((b) => b.id === item.bookId);
+      return (item.content || "").toLowerCase().includes(lower) ||
+        (book?.title || "").toLowerCase().includes(lower);
+    }).slice(0, 30);
+  }
+
+  function positionList() {
+    const rect = textInput.getBoundingClientRect();
+    list.style.top = `${rect.bottom + 2}px`;
+    list.style.left = `${rect.left}px`;
+    list.style.width = `${rect.width}px`;
+  }
+
+  function buildList(q = "") {
+    const quotes = filteredQuotes(q);
+    list.innerHTML = "";
+    if (!quotes.length) {
+      const li = document.createElement("li");
+      li.className = "book-combobox-empty";
+      li.textContent = q ? "没有匹配的摘抄" : "暂无摘抄";
+      list.appendChild(li);
+      return;
+    }
+    quotes.forEach((quote) => {
+      const li = document.createElement("li");
+      li.className = "book-combobox-item" + (quote.id === hiddenInput.value ? " is-selected" : "");
+      li.style.cssText = "overflow:hidden;white-space:nowrap;text-overflow:ellipsis;";
+      li.textContent = quoteLabel(quote);
+      function doPick(e) { e.preventDefault(); pick(quote); }
+      li.addEventListener("mousedown", doPick);
+      li.addEventListener("touchstart", doPick, { passive: false });
+      list.appendChild(li);
+    });
+  }
+
+  function openList() {
+    buildList(textInput.value);
+    positionList();
+    list.classList.add("is-open");
+    isOpen = true;
+  }
+
+  function closeList() {
+    list.classList.remove("is-open");
+    isOpen = false;
+  }
+
+  function pick(quote) {
+    hiddenInput.value = quote.id;
+    textInput.value = quoteLabel(quote);
+    closeList();
+  }
+
+  textInput.addEventListener("focus", openList);
+  textInput.addEventListener("input", () => {
+    hiddenInput.value = "";
+    buildList(textInput.value);
+    if (!isOpen) openList();
+    else positionList();
+  });
+  textInput.addEventListener("blur", () => setTimeout(closeList, 200));
+
+  wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
+    if (isOpen) positionList();
+  }, { passive: true });
+
+  wrapperEl._comboboxUpdate = (quotes) => {
+    allQuotes = quotes;
+    if (isOpen) buildList(textInput.value);
+  };
+  wrapperEl._comboboxReset = () => {
+    textInput.value = "";
+    hiddenInput.value = "";
+    closeList();
+  };
+  wrapperEl._comboboxSetValue = (quoteId) => {
+    const quote = allQuotes.find((q) => q.id === quoteId);
+    hiddenInput.value = quoteId || "";
+    textInput.value = quote ? quoteLabel(quote) : "";
+  };
+}
+
+let connSourceBookComboWrap = null;
+let connSourceQuoteComboWrap = null;
+let connTargetBookComboWrap = null;
+let connTargetQuoteComboWrap = null;
+
+function openConnectionDialog({ sourceType, sourceId, targetType, targetId } = {}) {
+  if (!requireAuth("记录思想碰撞")) return;
+  document.getElementById("connectionId").value = "";
+  document.getElementById("connSourceType").value = sourceType || "book";
+  document.getElementById("connTargetType").value = targetType || "book";
+  connSourceBookComboWrap?._comboboxReset?.();
+  connSourceQuoteComboWrap?._comboboxReset?.();
+  connTargetBookComboWrap?._comboboxReset?.();
+  connTargetQuoteComboWrap?._comboboxReset?.();
+  els.connectionForm.querySelector('[name="thought"]').value = "";
+  els.connectionForm.querySelector('[name="tags"]').value = "";
+  toggleConnComboboxes("source", sourceType || "book");
+  toggleConnComboboxes("target", targetType || "book");
+  if (sourceType === "book" && sourceId) {
+    connSourceBookComboWrap?._comboboxSetValue?.(sourceId);
+  } else if (sourceType === "quote" && sourceId) {
+    connSourceQuoteComboWrap?._comboboxSetValue?.(sourceId);
+  }
+  if (targetType === "book" && targetId) {
+    connTargetBookComboWrap?._comboboxSetValue?.(targetId);
+  } else if (targetType === "quote" && targetId) {
+    connTargetQuoteComboWrap?._comboboxSetValue?.(targetId);
+  }
+  els.connectionDialog.showModal();
+}
+
+function toggleConnComboboxes(side, type) {
+  const bookWrap = document.getElementById(`conn${side.charAt(0).toUpperCase() + side.slice(1)}BookCombobox`);
+  const quoteWrap = document.getElementById(`conn${side.charAt(0).toUpperCase() + side.slice(1)}QuoteCombobox`);
+  if (!bookWrap || !quoteWrap) return;
+  if (type === "quote") {
+    bookWrap.classList.add("is-hidden");
+    quoteWrap.classList.remove("is-hidden");
+  } else {
+    bookWrap.classList.remove("is-hidden");
+    quoteWrap.classList.add("is-hidden");
+  }
+}
+
+async function addConnection(formData) {
+  if (!requireAuth("保存关联")) return;
+  const connId = String(formData.get("id") || "").trim();
+  const sourceType = String(formData.get("sourceType") || "book");
+  const targetType = String(formData.get("targetType") || "book");
+  const sourceId = sourceType === "quote"
+    ? String(formData.get("sourceQuoteId") || "").trim()
+    : String(formData.get("sourceId") || "").trim();
+  const targetId = targetType === "quote"
+    ? String(formData.get("targetQuoteId") || "").trim()
+    : String(formData.get("targetId") || "").trim();
+  const kind = String(formData.get("kind") || "延伸");
+  const thought = String(formData.get("thought") || "").trim();
+  const tagsRaw = String(formData.get("tags") || "").trim();
+  const tags = tagsRaw ? tagsRaw.split(/[,，\s]+/).map((t) => t.trim()).filter(Boolean) : [];
+
+  if (!sourceId) { showToast("请选择来源"); return; }
+  if (!targetId) { showToast("请选择目标"); return; }
+  if (sourceType === targetType && sourceId === targetId) { showToast("来源和目标不能相同"); return; }
+  if (!thought) { showToast("请填写你的想法"); return; }
+
+  if (connId) {
+    const idx = (state.connections || []).findIndex((c) => c.id === connId);
+    if (idx !== -1) {
+      state.connections[idx] = { ...state.connections[idx], sourceType, sourceId, targetType, targetId, kind, thought, tags };
+    }
+  } else {
+    const conn = {
+      id: `conn-${Date.now().toString(16)}${Math.random().toString(16).slice(2, 8)}`,
+      sourceType, sourceId, targetType, targetId, kind, thought, tags,
+      createdAt: new Date().toISOString(),
+    };
+    state.connections = [conn, ...(state.connections || [])];
+  }
+
+  try {
+    await syncState();
+    closeDialog(els.connectionDialog);
+    render();
+    if (!connId) activateTab("connections");
+    showToast(connId ? "关联已更新" : "关联已保存");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function deleteConnection(connId) {
+  if (!requireAuth("删除关联")) return;
+  showConfirmDialog({
+    message: "确定删除这条关联记录吗？",
+    onConfirm: async () => {
+      state.connections = (state.connections || []).filter((c) => c.id !== connId);
+      try {
+        await syncState();
+        renderConnections();
+        showToast("关联已删除");
+      } catch (error) {
+        showToast(error.message);
+      }
+    },
+  });
+}
+
+function openConnectionForEdit(connId) {
+  if (!requireAuth("编辑关联")) return;
+  const conn = (state.connections || []).find((c) => c.id === connId);
+  if (!conn) { showToast("关联不存在"); return; }
+  document.getElementById("connectionId").value = connId;
+  document.getElementById("connSourceType").value = conn.sourceType;
+  document.getElementById("connTargetType").value = conn.targetType;
+  els.connectionForm.querySelector('[name="kind"]').value = conn.kind || "延伸";
+  els.connectionForm.querySelector('[name="thought"]').value = conn.thought || "";
+  els.connectionForm.querySelector('[name="tags"]').value = (conn.tags || []).join(", ");
+  connSourceBookComboWrap?._comboboxReset?.();
+  connSourceQuoteComboWrap?._comboboxReset?.();
+  connTargetBookComboWrap?._comboboxReset?.();
+  connTargetQuoteComboWrap?._comboboxReset?.();
+  toggleConnComboboxes("source", conn.sourceType);
+  toggleConnComboboxes("target", conn.targetType);
+  if (conn.sourceType === "book") {
+    connSourceBookComboWrap?._comboboxSetValue?.(conn.sourceId);
+  } else {
+    connSourceQuoteComboWrap?._comboboxSetValue?.(conn.sourceId);
+  }
+  if (conn.targetType === "book") {
+    connTargetBookComboWrap?._comboboxSetValue?.(conn.targetId);
+  } else {
+    connTargetQuoteComboWrap?._comboboxSetValue?.(conn.targetId);
+  }
+  els.connectionDialog.showModal();
+}
+
 function bindEvents() {
+  // Initialize book comboboxes for session and quote forms
+  const sessionComboWrap = document.querySelector("#sessionBookCombobox");
+  const quoteComboWrap = document.querySelector("#quoteBookCombobox");
+  initBookCombobox(sessionComboWrap, els.sessionBookSelect, false);
+  initBookCombobox(quoteComboWrap, els.quoteBookSelect, true);
+
+  // Initialize connection dialog comboboxes
+  connSourceBookComboWrap = document.querySelector("#connSourceBookCombobox");
+  connSourceQuoteComboWrap = document.querySelector("#connSourceQuoteCombobox");
+  connTargetBookComboWrap = document.querySelector("#connTargetBookCombobox");
+  connTargetQuoteComboWrap = document.querySelector("#connTargetQuoteCombobox");
+  initBookCombobox(connSourceBookComboWrap, document.getElementById("connSourceBookId"), true);
+  initBookCombobox(connTargetBookComboWrap, document.getElementById("connTargetBookId"), true);
+  initQuoteCombobox(connSourceQuoteComboWrap, document.getElementById("connSourceQuoteId"));
+  initQuoteCombobox(connTargetQuoteComboWrap, document.getElementById("connTargetQuoteId"));
+
   els.openBookDialogBtn?.addEventListener("click", () => {
     resetBookDraft();
     openDialog(els.bookDialog, "新增书籍");
   });
   els.openSessionDialogBtn?.addEventListener("click", () => {
+    if (!requireAuth("记录阅读")) return;
     document.getElementById("sessionId").value = "";
-    openDialog(els.sessionDialog, "记录阅读");
+    sessionComboWrap?._comboboxReset?.();
+    els.sessionDialog.showModal();
   });
   els.openQuoteDialogBtn?.addEventListener("click", () => {
+    if (!requireAuth("新增摘抄")) return;
     document.getElementById("quoteId").value = "";
-    openDialog(els.quoteDialog, "新增摘抄");
+    renderQuoteTagPicker([]);
+    if (lastQuoteBookId) {
+      els.quoteForm.querySelector('[name="bookId"]').value = lastQuoteBookId;
+      quoteComboWrap?._comboboxSetValue?.(lastQuoteBookId);
+    } else {
+      quoteComboWrap?._comboboxReset?.();
+    }
+    els.quoteDialog.showModal();
+  });
+
+  els.openConnectionDialogBtn?.addEventListener("click", () => openConnectionDialog());
+
+  els.connectionForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const btn = els.connectionForm.querySelector('[type="submit"]');
+    withSavingState(btn, "保存中…", () => addConnection(new FormData(els.connectionForm)));
+  });
+
+  document.getElementById("connSourceType")?.addEventListener("change", (e) => {
+    toggleConnComboboxes("source", e.target.value);
+  });
+  document.getElementById("connTargetType")?.addEventListener("change", (e) => {
+    toggleConnComboboxes("target", e.target.value);
+  });
+
+  els.connectionKindChips?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-kind-filter]");
+    if (!button) return;
+    selectedConnectionKindFilter = button.dataset.kindFilter;
+    els.connectionKindChips.querySelectorAll("[data-kind-filter]").forEach((item) => {
+      item.classList.toggle("active", item.dataset.kindFilter === selectedConnectionKindFilter);
+    });
+    renderConnections();
+  });
+
+  els.connectionSearch?.addEventListener("input", renderConnections);
+
+  els.connectionsList?.addEventListener("click", (event) => {
+    const delBtn = event.target.closest(".conn-delete-btn");
+    if (delBtn) { event.stopPropagation(); deleteConnection(delBtn.dataset.connId); return; }
+    const editBtn = event.target.closest(".conn-edit-btn");
+    if (editBtn) { event.stopPropagation(); openConnectionForEdit(editBtn.dataset.connId); return; }
+    const navSide = event.target.closest(".conn-nav-side[data-nav-id]");
+    if (navSide) {
+      event.stopPropagation();
+      const { navType, navId } = navSide.dataset;
+      if (navType === "book") openBookDetailDialog(navId);
+      else if (navType === "quote") openQuoteDetail(navId);
+    }
+  });
+
+  els.quoteDetailConnectBtn?.addEventListener("click", () => {
+    const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
+    document.getElementById("quoteDetailDialog").close();
+    openConnectionDialog({ sourceType: "quote", sourceId: quoteId });
+  });
+
+  document.getElementById("quoteDetailConnections")?.addEventListener("click", (event) => {
+    const card = event.target.closest(".conn-mini-nav[data-nav-id]");
+    if (!card) return;
+    const { navType, navId } = card.dataset;
+    document.getElementById("quoteDetailDialog").close();
+    if (navType === "book") openBookDetailDialog(navId);
+    else if (navType === "quote") openQuoteDetail(navId);
   });
 
   els.mobileTabs.forEach((button) => {
@@ -1700,6 +2685,36 @@ function bindEvents() {
     const btn = els.quoteForm.querySelector('[type="submit"]');
     withSavingState(btn, "保存中…", () => addQuote(new FormData(els.quoteForm)));
   });
+
+  document.getElementById("quoteTagChips")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-pick-tag]");
+    if (!btn) return;
+    const tag = btn.dataset.pickTag;
+    if (selectedQuoteTags.includes(tag)) {
+      selectedQuoteTags = selectedQuoteTags.filter((t) => t !== tag);
+    } else {
+      selectedQuoteTags = [...selectedQuoteTags, tag];
+    }
+    btn.classList.toggle("tag-chip-pick--active", selectedQuoteTags.includes(tag));
+    _syncQuoteTagsInput();
+  });
+
+  document.getElementById("quoteTagInput")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if (!val) return;
+    const custom = getCustomQuoteTags();
+    if (!custom.includes(val) && !DEFAULT_QUOTE_TAGS.includes(val)) {
+      saveCustomQuoteTags([...custom, val]);
+    }
+    if (!selectedQuoteTags.includes(val)) {
+      selectedQuoteTags = [...selectedQuoteTags, val];
+      _syncQuoteTagsInput();
+    }
+    e.target.value = "";
+    renderQuoteTagPicker(selectedQuoteTags);
+  });
   els.registerForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const btn = els.registerForm.querySelector('[type="submit"]');
@@ -1716,11 +2731,20 @@ function bindEvents() {
     withSavingState(btn, "保存中…", () => saveBookEdit(new FormData(els.bookEditForm)));
   });
 
-  els.logoutBtn?.addEventListener("click", logout);
+  els.meAvatarBtn?.addEventListener("click", openMeDrawer);
+  els.meDrawerOverlay?.addEventListener("click", closeMeDrawer);
+  els.logoutBtn?.addEventListener("click", () => { logout(); closeMeDrawer(); });
   els.exportButton?.addEventListener("click", exportData);
   els.clearLogsBtn?.addEventListener("click", clearLogs);
-  els.quoteFilter?.addEventListener("change", renderQuotes);
+  els.sessionSearch?.addEventListener("input", renderTimeline);
   els.quoteSearch?.addEventListener("input", renderQuotes);
+  els.quoteTypeChips?.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      els.quoteTypeChips.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderQuotes();
+    });
+  });
 
   // Auth tab toggle (Fix 5)
   document.querySelectorAll(".auth-tab-btn").forEach((btn) => {
@@ -1734,18 +2758,13 @@ function bindEvents() {
   });
   els.ocrButton?.addEventListener("click", runOcrFromImage);
 
-  // Delegated edit and delete for session and quote cards (cards are rebuilt on each render)
-  els.timeline?.addEventListener("click", (event) => {
-    const editBtn = event.target.closest("[data-edit-session]");
-    if (editBtn) { event.stopPropagation(); editSession(editBtn.dataset.editSession); return; }
-    const delBtn = event.target.closest("[data-delete-session]");
-    if (delBtn) { event.stopPropagation(); deleteSession(delBtn.dataset.deleteSession); }
-  });
   els.quotesList?.addEventListener("click", (event) => {
     const editBtn = event.target.closest("[data-edit-quote]");
     if (editBtn) { event.stopPropagation(); editQuote(editBtn.dataset.editQuote); return; }
     const delBtn = event.target.closest("[data-delete-quote]");
-    if (delBtn) { event.stopPropagation(); deleteQuote(delBtn.dataset.deleteQuote); }
+    if (delBtn) { event.stopPropagation(); deleteQuote(delBtn.dataset.deleteQuote); return; }
+    const card = event.target.closest("[data-quote-id]");
+    if (card) openQuoteDetail(card.dataset.quoteId);
   });
 
   els.statusFilterChips?.addEventListener("click", (event) => {
@@ -1788,32 +2807,28 @@ function bindEvents() {
   els.bookEditImageInput?.addEventListener("change", async (event) => {
     const [file] = event.target.files || [];
     if (!file) return;
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      pendingBookEditImage = { name: file.name, dataUrl };
-      renderBookEditImagePreview();
-      if (els.bookEditImageStatus) {
-        els.bookEditImageStatus.textContent = "新封面已选择，保存后生效。";
-      }
-    } catch {
-      showToast("封面读取失败");
-    }
+    if (pendingBookEditImage?.objectUrl) URL.revokeObjectURL(pendingBookEditImage.objectUrl);
+    const objectUrl = URL.createObjectURL(file);
+    pendingBookEditImage = { name: file.name, objectUrl, dataUrl: null };
+    renderBookEditImagePreview();
+    if (els.bookEditImageStatus) els.bookEditImageStatus.textContent = "新封面已选择，保存后生效。";
+    resizeImageToDataUrl(file).then((dataUrl) => {
+      if (pendingBookEditImage) pendingBookEditImage.dataUrl = dataUrl;
+    }).catch(() => {});
   });
 
   els.bookImageInput?.addEventListener("change", async (event) => {
     const [file] = event.target.files || [];
     if (!file) return;
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      pendingBookImage = { name: file.name, dataUrl };
-      renderBookImagePreview();
-      if (els.bookImageStatus) {
-        els.bookImageStatus.textContent = "封面已选择，保存书籍后会自动上传。";
-      }
-      showToast("封面已载入");
-    } catch {
-      showToast("封面读取失败");
-    }
+    if (pendingBookImage?.objectUrl) URL.revokeObjectURL(pendingBookImage.objectUrl);
+    const objectUrl = URL.createObjectURL(file);
+    pendingBookImage = { name: file.name, objectUrl, dataUrl: null };
+    renderBookImagePreview();
+    if (els.bookImageStatus) els.bookImageStatus.textContent = "封面已选择，保存书籍后会自动上传。";
+    showToast("封面已载入");
+    resizeImageToDataUrl(file).then((dataUrl) => {
+      if (pendingBookImage) pendingBookImage.dataUrl = dataUrl;
+    }).catch(() => {});
   });
 
   els.quoteImageInput?.addEventListener("change", async (event) => {
@@ -1825,6 +2840,15 @@ function bindEvents() {
       showToast("图片读取失败");
     }
   });
+
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".card-context-menu").forEach((m) => {
+      if (!m.hidden) {
+        m.hidden = true;
+        m.closest(".book-grid-card")?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false");
+      }
+    });
+  });
 }
 
 window.paperReadingApp = {
@@ -1834,6 +2858,8 @@ window.paperReadingApp = {
   activateTab,
   requireAuth,
   apiFetch,
+  buildApiUrl,
+  getAuthToken: () => authToken,
   loadRemoteLogs,
   clearChatHistory,
   showConfirmDialog,

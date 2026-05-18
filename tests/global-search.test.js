@@ -473,7 +473,7 @@ test("restoreDefaultView reapplies the current filters after clearing search", (
 
   assert.equal(hooks.els.statusFilterChips.style.display, "");
   assert.equal(hooks.els.booksResultCount.textContent, "共 2 本");
-  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["沙丘", "三体"]);
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["《沙丘》", "《三体》"]);
 });
 
 test("property: restoreDefaultView matches renderBooks output under active filters", () => {

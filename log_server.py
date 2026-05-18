@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+import re
 import hashlib
 import hmac
 import imghdr
@@ -35,9 +36,10 @@ INITIAL_STATE = {
     "sessions": [],
     "quotes": [],
     "chatHistories": {},
+    "connections": [],
 }
 
-ACTION_WHITELIST = {"add_note", "add_book", "summary", "question", "tag"}
+ACTION_WHITELIST = {"add_note", "add_book", "summary", "question", "tag", "link_thought"}
 AGENT_STATUS_OK = "OK"
 AGENT_STATUS_DEGRADED = "DEGRADED"
 AGENT_STATUS_ERROR = "ERROR"
@@ -63,6 +65,10 @@ ACTION_SCHEMAS = {
     "summary": {"required": {"content": str}, "optional": {}},
     "question": {"required": {"content": str}, "optional": {}},
     "tag": {"required": {"tags": list}, "optional": {}},
+    "link_thought": {
+        "required": {"sourceType": str, "sourceId": str, "targetType": str, "targetId": str, "kind": str, "thought": str},
+        "optional": {"tags": list},
+    },
 }
 
 
@@ -109,8 +115,9 @@ class ExecutionResult:
 
 def guess_base_url(handler: BaseHTTPRequestHandler) -> str:
     host = handler.headers.get("Host")
+    proto = handler.headers.get("X-Forwarded-Proto", "http")
     if host:
-        return f"http://{host}"
+        return f"{proto}://{host}"
     return f"http://{HOST}:{PORT}"
 
 
@@ -284,6 +291,7 @@ def sanitize_state(payload: dict | None) -> dict:
         "chatHistories": {
             str(key): value for key, value in chat_histories.items() if isinstance(value, list)
         },
+        "connections": payload.get("connections") if isinstance(payload.get("connections"), list) else [],
     }
 
 
@@ -499,6 +507,38 @@ class AgentRequestValidator:
         return len(chunks) > 4 and len(set(chunks)) <= max(1, len(chunks) // 4)
 
 
+_COMPRESS_THRESHOLD = 10   # messages before triggering compression
+_COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim
+
+
+def compress_chat_history_if_needed(
+    conn: sqlite3.Connection,
+    user_id: str,
+    history_key: str,
+    history: list[dict],
+    state: dict,
+) -> list[dict]:
+    """If history exceeds threshold, summarise older messages via LLM and save back."""
+    if len(history) <= _COMPRESS_THRESHOLD:
+        return history
+    to_compress = history[:-_COMPRESS_KEEP_RECENT]
+    recent = history[-_COMPRESS_KEEP_RECENT:]
+    try:
+        summary = call_deepseek(
+            [{"role": "user", "content": (
+                "将以下对话压缩为200字内摘要，保留书名、核心观点和已执行的操作，直接输出摘要，不要前缀：\n"
+                + json.dumps(to_compress, ensure_ascii=False)
+            )}],
+            max_tokens=300,
+        )
+        compressed = [{"role": "assistant", "content": f"[对话历史摘要]\n{summary.strip()}"}] + recent
+    except Exception:
+        compressed = recent
+    state.setdefault("chatHistories", {})[history_key] = compressed
+    save_state(conn, user_id, state)
+    return compressed
+
+
 class PromptBuilder:
     def build_chat_prompt(self, user_state: dict, book_id: str, chat_history: list[dict]) -> str:
         book = next((item for item in user_state.get("books", []) if item.get("id") == book_id), None)
@@ -506,6 +546,11 @@ class PromptBuilder:
         book_payload = {
             "book": book or {},
             "quotes": quotes,
+            "all_books_summary": [
+                {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")}
+                for b in user_state.get("books", [])
+            ],
+            "existing_connections": user_state.get("connections", [])[:20],
         }
         history_payload = chat_history[-40:]
         system_instruction = self.build_system_instruction(book_id)
@@ -524,35 +569,39 @@ class PromptBuilder:
 
     @staticmethod
     def build_system_instruction(book_id: str) -> str:
+        link_thought_schema = '{"type":"link_thought","data":{"sourceType":"book"|"quote","sourceId":string,"targetType":"book"|"quote","targetId":string,"kind":"异曲同工"|"引用"|"对比"|"影响"|"延伸","thought":string}}'
         if book_id:
-            return """你是阅读助手。结合 user_data 和 conversation_history，直接回答，不要复述背景，中文输出。
+            return f"""你是阅读助手。结合 user_data 和 conversation_history，直接回答，不要复述背景，中文输出。
 
-输出必须是 JSON 对象：{"reply": string, "actions": Action[]}
+输出必须是 JSON 对象：{{"reply": string, "actions": Action[]}}
 
 Action 结构只能是：
-- {"type":"add_note","data":{"content":string,"tags"?:string[]}}
-- {"type":"add_book","data":{"title":string,"author"?:string,"reason"?:string}}
-- {"type":"summary","data":{"content":string}}
-- {"type":"question","data":{"content":string}}
-- {"type":"tag","data":{"tags":string[]}}
+- {{"type":"add_note","data":{{"content":string,"tags"?:string[]}}}}
+- {{"type":"add_book","data":{{"title":string,"author"?:string,"reason"?:string}}}}
+- {{"type":"summary","data":{{"content":string}}}}
+- {{"type":"question","data":{{"content":string}}}}
+- {{"type":"tag","data":{{"tags":string[]}}}}
+- {link_thought_schema}
 
 规则：
 1. reply 必须存在且是自然语言。
 2. actions 通常为 0 或 1 个。例外：当 reply 中明确列举了多本书时，可为每本书各返回一条 add_book（最多 4 条）；其他类型 action 仍最多 1 个。
 3. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
-4. 多个动作都合理时，优先级：add_note > add_book > summary > question > tag。
+4. 多个动作都合理时，优先级：add_note > add_book > summary > question > tag > link_thought。
 5. 如果推荐了一本具体书，优先返回 add_book。
-6. 只输出 JSON，不要输出任何额外说明。"""
-        return """你是阅读助手，帮助用户理解书籍内容、发散思考、建立联系，中文输出。
+6. 当你在回复中发现当前书籍（book.id）与 all_books_summary 中另一本书有明显关联时，可以返回一个 link_thought action。sourceId 必须是 book.id，targetId 必须是 all_books_summary 中已有书籍的 id。
+7. 只输出 JSON，不要输出任何额外说明。"""
+        return f"""你是阅读助手，帮助用户理解书籍内容、发散思考、建立联系，中文输出。
 
-输出必须是 JSON 对象：{"reply": string, "actions": Action[]}
+输出必须是 JSON 对象：{{"reply": string, "actions": Action[]}}
 
 Action 结构只能是：
-- {"type":"add_note","data":{"content":string,"tags"?:string[]}}
-- {"type":"add_book","data":{"title":string,"author"?:string,"reason"?:string}}
-- {"type":"summary","data":{"content":string}}
-- {"type":"question","data":{"content":string}}
-- {"type":"tag","data":{"tags":string[]}}
+- {{"type":"add_note","data":{{"content":string,"tags"?:string[]}}}}
+- {{"type":"add_book","data":{{"title":string,"author"?:string,"reason"?:string}}}}
+- {{"type":"summary","data":{{"content":string}}}}
+- {{"type":"question","data":{{"content":string}}}}
+- {{"type":"tag","data":{{"tags":string[]}}}}
+- {link_thought_schema}
 
 规则：
 1. reply 必须存在且是自然语言。
@@ -560,6 +609,51 @@ Action 结构只能是：
 3. 只有在建议明确且可执行时才返回 action；闲聊或纯解释时返回 []。
 4. 如果推荐了一本具体书，优先返回 add_book。
 5. 只输出 JSON，不要输出任何额外说明。"""
+
+
+class ReplyExtractor:
+    """Extracts the reply string from a streaming JSON response like {"reply": "...", "actions": [...]}.
+
+    Handles JSON escape sequences so the displayed text is unescaped.
+    """
+
+    # Matches `"reply"` followed by optional whitespace, `:`, optional whitespace, then `"`
+    _PREFIX_RE = re.compile(r'"reply"\s*:\s*"')
+
+    def __init__(self):
+        self._buf = ""
+        self._in_reply = False
+        self._escape = False
+        self._done = False
+
+    def feed(self, chunk: str) -> str:
+        if self._done:
+            return ""
+        out: list[str] = []
+        if not self._in_reply:
+            self._buf += chunk
+            m = self._PREFIX_RE.search(self._buf)
+            if m:
+                self._in_reply = True
+                self._process(self._buf[m.end():], out)
+        else:
+            self._process(chunk, out)
+        return "".join(out)
+
+    def _process(self, text: str, out: list) -> None:
+        _ESCAPE_MAP = {'"': '"', "\\": "\\", "n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f"}
+        for ch in text:
+            if self._done:
+                break
+            if self._escape:
+                self._escape = False
+                out.append(_ESCAPE_MAP.get(ch, ch))
+            elif ch == "\\":
+                self._escape = True
+            elif ch == '"':
+                self._done = True
+            else:
+                out.append(ch)
 
 
 class ResponseParser:
@@ -1042,6 +1136,34 @@ class ActionExecutor:
                         book["updatedAt"] = datetime.now().isoformat()
             elif action["type"] == "question":
                 pass
+            elif action["type"] == "link_thought":
+                VALID_KINDS = {"异曲同工", "引用", "对比", "影响", "延伸"}
+                kind = data.get("kind", "")
+                if kind not in VALID_KINDS:
+                    raise ValueError(f"invalid connection kind: {kind}")
+                source_type = data.get("sourceType", "")
+                target_type = data.get("targetType", "")
+                if source_type not in {"book", "quote"} or target_type not in {"book", "quote"}:
+                    raise ValueError("sourceType and targetType must be 'book' or 'quote'")
+                if source_type == "book" and not any(b.get("id") == data.get("sourceId") for b in state["books"]):
+                    raise ValueError(f"source book not found: {data.get('sourceId')}")
+                if source_type == "quote" and not any(q.get("id") == data.get("sourceId") for q in state["quotes"]):
+                    raise ValueError(f"source quote not found: {data.get('sourceId')}")
+                if target_type == "book" and not any(b.get("id") == data.get("targetId") for b in state["books"]):
+                    raise ValueError(f"target book not found: {data.get('targetId')}")
+                if target_type == "quote" and not any(q.get("id") == data.get("targetId") for q in state["quotes"]):
+                    raise ValueError(f"target quote not found: {data.get('targetId')}")
+                state.setdefault("connections", []).insert(0, {
+                    "id": new_id("conn"),
+                    "sourceType": source_type,
+                    "sourceId": data.get("sourceId", ""),
+                    "targetType": target_type,
+                    "targetId": data.get("targetId", ""),
+                    "kind": kind,
+                    "thought": str(data.get("thought", "")).strip(),
+                    "tags": data.get("tags", []) if isinstance(data.get("tags"), list) else [],
+                    "createdAt": datetime.now().isoformat(),
+                })
             save_state(conn, user_id, state)
             return ExecutionResult(True, ACTION_STATUS_EXECUTED, action, updated_state=state)
         except Exception as error:
@@ -1174,6 +1296,48 @@ def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_toke
         raise RuntimeError(str(error.reason)) from error
 
 
+def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", max_tokens: int = 2400):
+    """Yields text delta strings from DeepSeek streaming API."""
+    if not DEEPSEEK_API_KEY:
+        raise RuntimeError("DEEPSEEK_API_KEY is not configured")
+
+    request = Request(
+        "https://api.deepseek.com/v1/chat/completions",
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        },
+        data=json.dumps(
+            {
+                "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "stream": True,
+            }
+        ).encode("utf-8"),
+    )
+    try:
+        with urlopen(request, timeout=120) as response:
+            for raw_line in response:
+                line = raw_line.decode("utf-8").strip()
+                if not line or line == "data: [DONE]":
+                    continue
+                if line.startswith("data: "):
+                    try:
+                        chunk = json.loads(line[6:])
+                        content = chunk.get("choices", [{}])[0].get("delta", {}).get("content") or ""
+                        if content:
+                            yield content
+                    except (json.JSONDecodeError, IndexError, KeyError):
+                        pass
+    except HTTPError as error:
+        payload = error.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(payload or f"HTTP {error.code}") from error
+    except URLError as error:
+        raise RuntimeError(str(error.reason)) from error
+
+
 def call_kimi_vision(messages: list[dict], max_tokens: int = 1200) -> str:
     if not MOONSHOT_API_KEY:
         raise RuntimeError("MOONSHOT_API_KEY is not configured")
@@ -1200,6 +1364,12 @@ def call_kimi_vision(messages: list[dict], max_tokens: int = 1200) -> str:
             return data["choices"][0]["message"]["content"].strip()
     except HTTPError as error:
         payload = error.read().decode("utf-8", errors="ignore")
+        if error.code == 401:
+            raise RuntimeError("OCR API 密钥无效或未配置") from error
+        if error.code == 429:
+            raise RuntimeError("OCR 请求过于频繁，请稍后再试") from error
+        if error.code == 503:
+            raise RuntimeError("OCR 服务暂时不可用，图片可能过大，请稍后再试") from error
         raise RuntimeError(payload or f"HTTP {error.code}") from error
     except URLError as error:
         raise RuntimeError(str(error.reason)) from error
@@ -1258,6 +1428,26 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+
+        # Serve frontend static files
+        _STATIC = {
+            "/": ("index.html", "text/html; charset=utf-8"),
+            "/index.html": ("index.html", "text/html; charset=utf-8"),
+            "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+            "/chat.js": ("chat.js", "application/javascript; charset=utf-8"),
+            "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+        }
+        if parsed.path in _STATIC:
+            filename, mime = _STATIC[parsed.path]
+            content = (BASE_DIR / filename).read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
 
         if parsed.path.startswith("/media/"):
             target = (UPLOAD_DIR / parsed.path.removeprefix("/media/")).resolve()
@@ -1535,7 +1725,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": f"image upload failed: {error}"}, 400)
                 return
             conn.close()
-            self._send_json({"url": f"{guess_base_url(self)}{url}"})
+            self._send_json({"url": url})
             return
 
         if parsed.path == "/api/ocr":
@@ -1584,6 +1774,226 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": str(error)}, 500)
             return
 
+        if parsed.path == "/api/chat/stream":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            payload = self._read_json()
+            message = str(payload.get("message", "")).strip()
+            book_id = str(payload.get("bookId", "")).strip()
+            state = load_state(conn, user["id"])
+            trace_id = new_id("trace")
+            validator = AgentRequestValidator()
+            prompt_builder = PromptBuilder()
+            parser_component = ResponseParser()
+            action_validator = ActionValidator()
+            trace_manager = TraceManager()
+            state_machine = ActionStateMachine()
+            metrics_collector = MetricsCollector()
+            history_key = book_id or "__general__"
+            history = state.get("chatHistories", {}).get(history_key, [])
+            validation = validator.validate_chat_request(message, book_id, state)
+            trace_manager.create_trace(conn, trace_id=trace_id, user_id=user["id"], message=message, book_id=book_id)
+            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "historyLength": len(history)})
+            if not validation.is_valid:
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=AGENT_STATUS_ERROR,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                    error_message=validation.error_message,
+                )
+                trace_manager.log_event(conn, trace_id, "REQUEST_REJECTED", {"error": validation.error_message})
+                conn.close()
+                self._send_json(
+                    {
+                        "error": validation.error_message,
+                        "traceId": trace_id,
+                        "agentStatus": AGENT_STATUS_ERROR,
+                        "parseStatus": PARSE_FAILED,
+                        "validationStatus": VALIDATION_FAILED,
+                    },
+                    400,
+                )
+                return
+            # Send SSE headers immediately so the client isn't blocked while
+            # compress_chat_history_if_needed makes a second LLM call.
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Log-Token")
+            self.end_headers()
+            history = compress_chat_history_if_needed(conn, user["id"], history_key, history, state)
+            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
+            request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": validation.sanitized_input}]
+            trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history)})
+
+            def sse_write(data: dict) -> bool:
+                try:
+                    line = f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                    self.wfile.write(line.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+
+            try:
+                started_at = time.time()
+                full_reply = ""
+                extractor = ReplyExtractor()
+                plain_text_mode = False
+                for delta in call_deepseek_stream(request_messages):
+                    full_reply += delta
+                    if plain_text_mode:
+                        if not sse_write({"delta": delta}):
+                            break
+                    else:
+                        reply_chunk = extractor.feed(delta)
+                        if reply_chunk:
+                            if not sse_write({"delta": reply_chunk}):
+                                break
+                        elif not extractor._in_reply and len(extractor._buf) > 80:
+                            plain_text_mode = True
+                            if extractor._buf and not sse_write({"delta": extractor._buf}):
+                                break
+                latency_ms = int((time.time() - started_at) * 1000)
+                model_response = ModelResponse(
+                    raw_output=full_reply,
+                    latency_ms=latency_ms,
+                    input_tokens=estimate_tokens(json.dumps(request_messages, ensure_ascii=False)),
+                    output_tokens=estimate_tokens(full_reply),
+                )
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "MODEL_RESPONSE",
+                    {"latencyMs": model_response.latency_ms, "outputPreview": full_reply[:300]},
+                )
+                parse_result = parser_component.parse(full_reply)
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "PARSE_COMPLETED",
+                    {"parseStatus": parse_result.parse_status, "error": parse_result.error_message},
+                )
+                validated_actions = action_validator.validate(parse_result.actions)
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "VALIDATION_COMPLETED",
+                    {"validationStatus": validated_actions.validation_status, "errors": validated_actions.errors},
+                )
+                actions: list[dict] = []
+                for item in validated_actions.valid_actions:
+                    action_data = dict(item.get("data", {}))
+                    if item["type"] in {"add_note", "summary", "tag"} and book_id and "bookId" not in action_data:
+                        action_data["bookId"] = book_id
+                    persisted = state_machine.create_action(
+                        conn,
+                        trace_id,
+                        user["id"],
+                        {"type": item["type"], "data": action_data},
+                    )
+                    trace_manager.log_event(conn, trace_id, "ACTION_CREATED", {"actionId": persisted["id"], "type": persisted["type"]})
+                    actions.append(persisted)
+                reply = parse_result.reply
+                agent_status = AGENT_STATUS_DEGRADED if parse_result.parse_status == PARSE_DEGRADED or validated_actions.errors else AGENT_STATUS_OK
+                history = [*history, {"role": "user", "content": validation.sanitized_input}, {"role": "assistant", "content": reply}][-40:]
+                state.setdefault("chatHistories", {})[history_key] = history
+                save_state(conn, user["id"], state)
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=agent_status,
+                    parse_status=parse_result.parse_status,
+                    validation_status=validated_actions.validation_status,
+                    latency_ms=model_response.latency_ms,
+                    input_tokens=model_response.input_tokens,
+                    output_tokens=model_response.output_tokens,
+                    error_message="; ".join(validated_actions.errors) or parse_result.error_message,
+                )
+                trace_manager.log_event(conn, trace_id, "RESPONSE_SENT", {"agentStatus": agent_status, "actionCount": len(actions)})
+                metrics_collector.record_chat_metrics(
+                    conn,
+                    user_id=user["id"],
+                    trace_id=trace_id,
+                    agent_status=agent_status,
+                    parse_status=parse_result.parse_status,
+                    validation_status=validated_actions.validation_status,
+                    latency_ms=model_response.latency_ms,
+                    input_tokens=model_response.input_tokens,
+                    output_tokens=model_response.output_tokens,
+                )
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="chat",
+                    model="deepseek-chat",
+                    prompt=system_prompt,
+                    input_=validation.sanitized_input,
+                    output=full_reply,
+                    trace_id=trace_id,
+                    latency_ms=model_response.latency_ms,
+                    input_tokens=model_response.input_tokens,
+                    output_tokens=model_response.output_tokens,
+                    parse_status=parse_result.parse_status,
+                    validation_status=validated_actions.validation_status,
+                )
+                conn.close()
+                sse_write({
+                    "done": True,
+                    "traceId": trace_id,
+                    "agentStatus": agent_status,
+                    "parseStatus": parse_result.parse_status,
+                    "validationStatus": validated_actions.validation_status,
+                    "validationErrors": validated_actions.errors,
+                    "reply": reply,
+                    "actions": actions,
+                    "history": history,
+                    "historyKey": history_key,
+                })
+            except Exception as error:
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=AGENT_STATUS_ERROR,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                    error_message=str(error),
+                )
+                trace_manager.log_event(conn, trace_id, "MODEL_ERROR", {"error": str(error)})
+                metrics_collector.record_chat_metrics(
+                    conn,
+                    user_id=user["id"],
+                    trace_id=trace_id,
+                    agent_status=AGENT_STATUS_ERROR,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                    latency_ms=0,
+                    input_tokens=estimate_tokens(validation.sanitized_input),
+                    output_tokens=0,
+                )
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="chat",
+                    model="deepseek-chat",
+                    prompt=system_prompt,
+                    input_=validation.sanitized_input,
+                    output="",
+                    error=str(error),
+                    trace_id=trace_id,
+                    parse_status=PARSE_FAILED,
+                    validation_status=VALIDATION_FAILED,
+                )
+                conn.close()
+                sse_write({"error": str(error)})
+            return
+
         if parsed.path == "/api/chat":
             conn, user = self._require_user()
             if not conn:
@@ -1628,9 +2038,10 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 return
 
+            history = compress_chat_history_if_needed(conn, user["id"], history_key, history, state)
             system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
-            request_messages = [{"role": "system", "content": system_prompt}, *history[-40:], {"role": "user", "content": validation.sanitized_input}]
-            trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history[-40:])})
+            request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": validation.sanitized_input}]
+            trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history)})
 
             try:
                 started_at = time.time()

@@ -1117,6 +1117,279 @@
     }
   },
   {
+    "id": "link-thought-book-to-book-valid",
+    "scenarioType": "normal",
+    "bookId": "book-1",
+    "message": "这本书的核心论点和另一本书有异曲同工之处，帮我记一下这个关联",
+    "mockModelOutput": {
+      "reply": "我帮你建立了这两本书之间的关联。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": "book",
+            "sourceId": "book-1",
+            "targetType": "book",
+            "targetId": "book-2",
+            "kind": "异曲同工",
+            "thought": "两本书都从不同角度探讨了系统思维和长期主义的关系。"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "OK",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "SUCCESS",
+      "actionCount": 1
+    },
+    "groundTruth": {
+      "expectedOutcome": "OK",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 1,
+      "expectedRobustness": "pass"
+    }
+  },
+  {
+    "id": "link-thought-book-to-book-with-tags",
+    "scenarioType": "normal",
+    "bookId": "book-1",
+    "message": "这两本书的观点明显对立，把这个矛盾记下来",
+    "mockModelOutput": {
+      "reply": "我记录了这两本书的对比关系。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": "book",
+            "sourceId": "book-1",
+            "targetType": "book",
+            "targetId": "book-2",
+            "kind": "对比",
+            "thought": "一本主张渐进变革，另一本强调颠覆式创新，两者世界观截然不同。",
+            "tags": ["矛盾", "创新"]
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "OK",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "SUCCESS",
+      "actionCount": 1
+    },
+    "groundTruth": {
+      "expectedOutcome": "OK",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 1,
+      "expectedRobustness": "pass"
+    }
+  },
+  {
+    "id": "link-thought-quote-to-book-valid",
+    "scenarioType": "normal",
+    "bookId": "book-1",
+    "message": "刚才那段摘抄让我想到了另一本书里的观点",
+    "mockModelOutput": {
+      "reply": "我把这段摘抄和那本书建立了关联。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": "quote",
+            "sourceId": "quote-1",
+            "targetType": "book",
+            "targetId": "book-1",
+            "kind": "延伸",
+            "thought": "这段摘抄里的论点在另一本书里有更深的展开。"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "OK",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "SUCCESS",
+      "actionCount": 1
+    },
+    "groundTruth": {
+      "expectedOutcome": "OK",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 1,
+      "expectedRobustness": "pass"
+    }
+  },
+  {
+    "id": "link-thought-no-trigger-when-unrelated",
+    "scenarioType": "normal",
+    "bookId": "book-1",
+    "message": "这章讲的很精彩，帮我总结一下主要观点",
+    "mockModelOutput": {
+      "reply": "这章的核心在于将抽象原则落地为可观察行为。",
+      "actions": []
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "OK",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "SUCCESS",
+      "actionCount": 0
+    },
+    "groundTruth": {
+      "expectedOutcome": "OK",
+      "expectedActionTypes": [],
+      "expectedActionCount": 0,
+      "expectedRobustness": "pass"
+    }
+  },
+  {
+    "id": "link-thought-missing-thought-field",
+    "scenarioType": "failure",
+    "bookId": "book-1",
+    "message": "记录一个关联但忘记填 thought",
+    "mockModelOutput": {
+      "reply": "我尝试建立关联。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": "book",
+            "sourceId": "book-1",
+            "targetType": "book",
+            "targetId": "book-2",
+            "kind": "引用"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "DEGRADED",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "FAILED",
+      "actionCount": 0
+    },
+    "groundTruth": {
+      "expectedOutcome": "DEGRADED",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 0,
+      "expectedRobustness": "fail"
+    }
+  },
+  {
+    "id": "link-thought-missing-source-id",
+    "scenarioType": "failure",
+    "bookId": "book-1",
+    "message": "来源 id 缺失的关联",
+    "mockModelOutput": {
+      "reply": "我尝试建立关联。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": "book",
+            "targetType": "book",
+            "targetId": "book-2",
+            "kind": "影响",
+            "thought": "这是一条缺少 sourceId 的关联。"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "DEGRADED",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "FAILED",
+      "actionCount": 0
+    },
+    "groundTruth": {
+      "expectedOutcome": "DEGRADED",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 0,
+      "expectedRobustness": "fail"
+    }
+  },
+  {
+    "id": "link-thought-wrong-type-source-type",
+    "scenarioType": "failure",
+    "bookId": "book-1",
+    "message": "sourceType 传了数字类型",
+    "mockModelOutput": {
+      "reply": "我给了错误类型的字段。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": 42,
+            "sourceId": "book-1",
+            "targetType": "book",
+            "targetId": "book-2",
+            "kind": "延伸",
+            "thought": "sourceType 是数字，应该失败。"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "DEGRADED",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "FAILED",
+      "actionCount": 0
+    },
+    "groundTruth": {
+      "expectedOutcome": "DEGRADED",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 0,
+      "expectedRobustness": "fail"
+    }
+  },
+  {
+    "id": "link-thought-with-add-note-truncated",
+    "scenarioType": "boundary",
+    "bookId": "book-1",
+    "message": "记录关联的同时也记一条笔记",
+    "mockModelOutput": {
+      "reply": "我同时给了关联和笔记，但系统只保留了一个。",
+      "actions": [
+        {
+          "type": "link_thought",
+          "data": {
+            "sourceType": "book",
+            "sourceId": "book-1",
+            "targetType": "book",
+            "targetId": "book-2",
+            "kind": "异曲同工",
+            "thought": "两本书都强调第一性原理。"
+          }
+        },
+        {
+          "type": "add_note",
+          "data": {
+            "content": "第一性原理是拆解问题的基础工具。"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "httpStatus": 200,
+      "agentStatus": "DEGRADED",
+      "parseStatus": "SUCCESS",
+      "validationStatus": "PARTIAL",
+      "actionCount": 1
+    },
+    "groundTruth": {
+      "expectedOutcome": "DEGRADED",
+      "expectedActionTypes": ["link_thought"],
+      "expectedActionCount": 1,
+      "expectedRobustness": "pass"
+    }
+  },
+  {
     "id": "failure-summary-data-not-object",
     "scenarioType": "failure",
     "bookId": "book-1",
