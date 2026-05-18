@@ -1839,11 +1839,21 @@ class Handler(BaseHTTPRequestHandler):
                 started_at = time.time()
                 full_reply = ""
                 extractor = ReplyExtractor()
+                plain_text_mode = False
                 for delta in call_deepseek_stream(request_messages):
                     full_reply += delta
-                    reply_chunk = extractor.feed(delta)
-                    if reply_chunk and not sse_write({"delta": reply_chunk}):
-                        break
+                    if plain_text_mode:
+                        if not sse_write({"delta": delta}):
+                            break
+                    else:
+                        reply_chunk = extractor.feed(delta)
+                        if reply_chunk:
+                            if not sse_write({"delta": reply_chunk}):
+                                break
+                        elif not extractor._in_reply and len(extractor._buf) > 80:
+                            plain_text_mode = True
+                            if extractor._buf and not sse_write({"delta": extractor._buf}):
+                                break
                 latency_ms = int((time.time() - started_at) * 1000)
                 model_response = ModelResponse(
                     raw_output=full_reply,
