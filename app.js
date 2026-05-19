@@ -1765,18 +1765,26 @@ async function saveBookEdit(formData) {
   restoreEditedBookPosition(editedBookId, booksScrollTop);
   showToast("保存中…");
 
-  // Upload image + sync in background
+  // Upload image + sync in background. A cover failure should not discard text/status edits.
+  let coverUploadFailed = false;
   try {
     if (pendingImage && !pendingImage.fromExisting) {
       const coverImageUrl = await uploadBookCoverImage(pendingImage);
       if (!coverImageUrl) {
-        throw new Error("封面图片还没有读取完成，请稍后重试");
+        coverUploadFailed = true;
+      } else {
+        book.coverImageUrl = coverImageUrl;
+        render();
+        restoreEditedBookPosition(editedBookId, booksScrollTop);
       }
-      book.coverImageUrl = coverImageUrl;
-      render();
     }
+  } catch (error) {
+    coverUploadFailed = true;
+  }
+
+  try {
     await syncState();
-    showToast("书籍已更新");
+    showToast(coverUploadFailed ? "书籍已更新，封面上传失败" : "书籍已更新");
   } catch (error) {
     showToast(error.message || "保存失败");
   }

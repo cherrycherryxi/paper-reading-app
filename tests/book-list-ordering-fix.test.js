@@ -445,3 +445,57 @@ test("regression: saveBookEdit scrolls back to the edited book card after rerend
   assert.equal(queriedSelector, '[data-book-card-id="book-target"]');
   assert.equal(scrollIntoViewOptions?.block, "nearest");
 });
+
+test("regression: saveBookEdit persists non-image edits when cover upload fails", async () => {
+  const hooks = createHarness();
+  const originalBook = createBook({
+    id: "book-cover-fail",
+    title: "封面失败书",
+    status: "wishlist",
+    currentPage: 10,
+    notes: "旧笔记",
+    coverImageUrl: "https://example.com/old-cover.jpg",
+  });
+  let syncCount = 0;
+  const toastMessages = [];
+
+  hooks.setCurrentUser({ id: "user-1" });
+  hooks.setAuthToken("token");
+  hooks.setState({
+    books: [originalBook],
+    sessions: [],
+    quotes: [],
+    chatHistories: {},
+  });
+  hooks.setPendingBookEditImage({
+    name: "new-cover.jpg",
+    dataUrl: "",
+    compressionPromise: Promise.reject(new Error("decode failed")),
+  });
+  hooks.setSyncState(async () => {
+    syncCount += 1;
+  });
+  hooks.setRender(() => {});
+  hooks.setCloseDialog(() => {});
+  hooks.setResetBookEditDraft(() => {});
+  hooks.setShowToast((message) => {
+    toastMessages.push(message);
+  });
+
+  await hooks.saveBookEdit(
+    createFormData({
+      bookId: "book-cover-fail",
+      currentPage: "88",
+      status: "reading",
+      notes: "新笔记",
+    })
+  );
+
+  const savedBook = hooks.getState().books[0];
+  assert.equal(syncCount, 1);
+  assert.equal(savedBook.currentPage, 88);
+  assert.equal(savedBook.status, "reading");
+  assert.equal(savedBook.notes, "新笔记");
+  assert.equal(savedBook.coverImageUrl, "https://example.com/old-cover.jpg");
+  assert.ok(toastMessages.includes("书籍已更新，封面上传失败"));
+});

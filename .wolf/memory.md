@@ -469,3 +469,4 @@
 | 17:51 | fix: 编辑书籍后回到当前卡片而不是旧滚动数值 | app.js, tests/book-list-ordering-fix.test.js, index.html | book cards now carry stable ids; saveBookEdit scrolls back to the edited card after rerender; added regression test; bumped assets to 20260519p | ~260 |
 | 18:00 | refine: 书单封面改为完整照片加模糊背景 | app.js, styles.css, index.html | uploaded covers now render with contain over a blurred same-image backdrop instead of cropping book photos; bumped assets to 20260519q | ~180 |
 | 18:04 | revert: 撤回书单封面完整照片加模糊背景方案 | app.js, styles.css, index.html | restored previous cover-crop display with 74% object-position after visual review; bumped assets to 20260519r | ~100 |
+| 22:58 | fix: 编辑书籍封面失败不再阻断其他字段同步 | app.js, tests/book-list-ordering-fix.test.js | saveBookEdit now syncs text/status/page edits even when cover upload fails; added regression test for failed cover upload path | ~160 |
