@@ -447,94 +447,26 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 
-## Session: 2026-05-16 16:00
+## Session: 2026-05-18 22:22
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
-
-## Session: 2026-05-16 17:02
-
-| Time | Action | File(s) | Outcome | ~Tokens |
-|------|--------|---------|---------|--------|
-| 17:06 | Edited ../../../log_server.py | 11→12 lines | ~199 |
-| 17:06 | Edited ../../../log_server.py | expanded (+7 lines) | ~233 |
-| 17:06 | Edited ../../../log_server.py | modified create_action() | ~279 |
-| 17:07 | Edited ../../../log_server.py | modified get_action() | ~301 |
-| 17:07 | Edited ../../../log_server.py | expanded (+14 lines) | ~345 |
-| 17:07 | Edited ../../../log_server.py | expanded (+30 lines) | ~368 |
-| 17:07 | Edited ../../../log_server.py | inline fix | ~13 |
-| 17:08 | Edited ../../../log_server.py | modified build_organize_prompt() | ~526 |
-| 17:08 | Edited ../../../log_server.py | modified do_PUT() | ~772 |
-| 17:09 | Edited ../../../index.html | expanded (+23 lines) | ~549 |
-| 17:09 | Edited ../../../app.js | expanded (+7 lines) | ~222 |
-| 17:09 | Edited ../../../app.js | added error handling | ~1204 |
-| 17:10 | Edited ../../../app.js | renderAll() → render() | ~33 |
-| 17:11 | Session end: 13 writes across 3 files (log_server.py, index.html, app.js) | 3 reads | ~66635 tok |
-| 17:46 | Edited ../../../index.html | expanded (+18 lines) | ~476 |
-| 17:46 | Edited ../../../app.js | expanded (+7 lines) | ~267 |
-| 17:46 | Edited ../../../app.js | added error handling | ~463 |
-| 17:47 | Session end: 16 writes across 3 files (log_server.py, index.html, app.js) | 3 reads | ~67875 tok |
-| 17:58 | Edited ../../../app.js | modified submitOrganizePaste() | ~208 |
-| 17:59 | Edited ../../../app.js | modified approveCandidateItem() | ~320 |
-| 17:59 | Session end: 18 writes across 3 files (log_server.py, index.html, app.js) | 3 reads | ~68403 tok |
-| 18:06 | Edited ../../../index.html | inline fix | ~36 |
-| 18:06 | Session end: 19 writes across 3 files (log_server.py, index.html, app.js) | 3 reads | ~68442 tok |
-| 18:16 | Edited ../../../app.js | 6→8 lines | ~141 |
-| 18:16 | Edited ../../../app.js | added 2 condition(s) | ~131 |
-| 18:16 | Edited ../../../app.js | added optional chaining | ~395 |
-| 18:16 | Edited ../../../styles.css | 4→4 lines | ~41 |
-| 18:17 | Edited ../../../chat.js | 8→5 lines | ~90 |
-| 18:17 | Edited ../../../styles.css | CSS: flex-direction | ~36 |
-| 18:17 | Edited ../../../index.html | 4→2 lines | ~35 |
-| 18:17 | Edited ../../../app.js | modified openBookDetailDialog() | ~125 |
-| 18:17 | Session end: 27 writes across 5 files (log_server.py, index.html, app.js, styles.css, chat.js) | 5 reads | ~85616 tok |
-| 18:22 | Edited ../../../app.js | modified renderSearchResults() | ~184 |
-| 18:22 | Session end: 28 writes across 5 files (log_server.py, index.html, app.js, styles.css, chat.js) | 5 reads | ~85800 tok |
-| 18:26 | Edited ../../../index.html | 2→6 lines | ~110 |
-| 18:26 | Edited ../../../app.js | added 1 condition(s) | ~147 |
-| 18:27 | Edited ../../../app.js | added 2 condition(s) | ~97 |
-| 18:27 | Session end: 31 writes across 5 files (log_server.py, index.html, app.js, styles.css, chat.js) | 5 reads | ~86162 tok |
-| 18:29 | Edited ../../../app.js | modified goToBookQuotes() | ~86 |
-| 18:29 | Edited ../../../app.js | modified openNewQuoteForBook() | ~28 |
-| 18:29 | Edited ../../../app.js | modified openNewSessionForBook() | ~30 |
-| 18:29 | Session end: 34 writes across 5 files (log_server.py, index.html, app.js, styles.css, chat.js) | 5 reads | ~86306 tok |
-| 19:01 | Edited ../../../chat.js | modified if() | ~98 |
-| 19:01 | Edited ../../../chat.js | modified catch() | ~66 |
-| 19:02 | Edited ../../../chat.js | modified while() | ~155 |
-| 19:02 | Edited ../../../chat.js | modified while() | ~70 |
-| 19:02 | Edited ../../../chat.js | 13→17 lines | ~181 |
-| 19:03 | Session end: 39 writes across 5 files (log_server.py, index.html, app.js, styles.css, chat.js) | 5 reads | ~86876 tok |
-
-## Session: 2026-05-16 21:06
-
-| Time | Action | File(s) | Outcome | ~Tokens |
-|------|--------|---------|---------|--------|
-| 21:06 | Edited ../../../app.js | modified renderImagePreview() | ~189 |
-| 21:07 | Session end: 1 writes across 1 files (app.js) | 1 reads | ~27363 tok |
-| 22:07 | Edited ../../../app.js | added 1 condition(s) | ~226 |
-| 22:08 | Session end: 2 writes across 1 files (app.js) | 1 reads | ~27589 tok |
-| 22:41 | Session end: 2 writes across 1 files (app.js) | 1 reads | ~27589 tok |
-| 17:50 | Edited ../../../app.js | 2→5 lines | ~51 |
-| 17:50 | Edited ../../../app.js | added error handling | ~303 |
-| 17:50 | Edited ../../../app.js | modified resetQuoteDraft() | ~83 |
-| 17:50 | Edited ../../../app.js | 3→3 lines | ~42 |
-| 17:50 | Edited ../../../app.js | join() → renderQuoteTagPicker() | ~55 |
-| 17:50 | Edited ../../../app.js | added 1 condition(s) | ~62 |
-| 17:50 | Edited ../../../app.js | added 1 condition(s) | ~127 |
-| 17:51 | Edited ../../../app.js | added 6 condition(s) | ~373 |
-| 17:51 | Edited ../../../index.html | 1→6 lines | ~99 |
-| 17:52 | Session end: 11 writes across 2 files (app.js, index.html) | 3 reads | ~48487 tok |
-| 22:50 | Edited ../../../log_server.py | modified call_deepseek_stream() | ~236 |
-| 22:50 | Edited ../../../log_server.py | 8→7 lines | ~83 |
-| 22:51 | Edited ../../../chat.js | added 1 condition(s) | ~131 |
-| 22:51 | Session end: 14 writes across 4 files (app.js, index.html, log_server.py, chat.js) | 5 reads | ~79797 tok |
-| 22:55 | Edited ../../../log_server.py | field() → len() | ~384 |
-| 22:56 | Session end: 15 writes across 4 files (app.js, index.html, log_server.py, chat.js) | 5 reads | ~80181 tok |
-
-## Session: 2026-05-17 23:58
-
-| Time | Action | File(s) | Outcome | ~Tokens |
-|------|--------|---------|---------|--------|
-| 00:07 | Edited ../../../app.js | modified formatBookTitle() | ~386 |
-| 00:07 | Edited ../../../app.js | inline fix | ~30 |
-| 12:24 | Session end: 2 writes across 1 files (app.js) | 5 reads | ~74385 tok |
+| 00:40 | fix(bug-107 P2): 记录页移动端卡片被压缩且不可滚动 | styles.css, app.js, index.html | fixed: timeline rows use content height, cards no longer clip actions, assets bumped to 20260519a | ~650 |
+| 00:52 | fix(bug-108 P2): 探讨页书籍选择器不可搜索且 iPhone 聚焦放大 | chat.js, styles.css, index.html | fixed: visible picker now filters books, selects/clears book id, and uses 16px input font | ~900 |
+| 01:08 | fix(bug-109 P2): 新增摘抄保存被图片上传和全量重绘拖慢 | app.js, log_server.py, index.html | fixed: quote dialog closes immediately, image upload/sync runs after local update, hidden book-list image reloads avoided, media responses stream/cache | ~1050 |
+| 01:22 | fix(bug-110 P2): 书籍详情缺相关摘抄内容且思想关联不可跳转 | app.js, styles.css, index.html | fixed: shows latest quote previews, opens quote details, jumps to book quotes/connections, mini connection cards navigate to connections page | ~850 |
+| 14:22 | feat: 为无封面书籍添加默认书籍插画封面 | assets/default-book-cover.jpeg, app.js, log_server.py, index.html | added project-local default cover asset, routed /assets files, and used the cover for cards without book/quote images | ~550 |
+| 14:28 | fix: 默认封面图片纠正为第 4 张女孩坐书堆插画 | assets/default-book-cover.jpeg, app.js, index.html | replaced mistaken fifth image, added default cover URL cache-buster 20260519f | ~120 |
+| 14:34 | fix: 默认封面改为重新上传的第 2 张书堆光影图 | assets/default-book-cover.jpeg, app.js, index.html | replaced square illustration that cropped faces in card cover, added cache-buster 20260519g | ~120 |
+| 14:42 | feat: 记录页卡片改为阅读会话 UI | app.js, styles.css, index.html | removed empty cover block, added page/minute ribbon with rounded card clipping, bumped assets to 20260519h | ~420 |
+| 14:55 | feat: 探讨页改成书籍上下文工作台初版 | index.html, chat.js, styles.css | added current-book context card, prompt chips, contextual welcome suggestions, bumped assets to 20260519i | ~780 |
+| 15:06 | refine: 探讨页压缩当前书籍卡片并直显提炼问题 | chat.js, styles.css, index.html | context card changed to compact single-line layout; question actions now append assistant bubbles instead of approval cards; bumped assets to 20260519j | ~260 |
+| 17:08 | refine: 探讨页空白态提示去重并统一风格 | chat.js, styles.css, index.html | removed duplicate middle suggestion buttons; welcome state now uses title/subtitle while bottom chips remain the action entry; bumped assets to 20260519k | ~180 |
+| 17:18 | fix: 书单横向封面裁剪露白且无加载失败兜底 | app.js, styles.css, index.html | landscape book covers now shift crop lower; broken cover images fallback to default cover; bumped assets to 20260519l | ~220 |
+| 17:28 | fix: Safari 拍照更换封面后微信端拉不到新图 | app.js, index.html | book cover save now waits for async image compression before upload/sync for both add and edit flows; bumped assets to 20260519m | ~260 |
+| 17:34 | refine: 书单真实封面统一下移裁剪取景 | styles.css, index.html | uploaded cover photos often place books in lower frame; non-default book covers now use 74% vertical object-position; bumped assets to 20260519n | ~120 |
+| 17:42 | feat: 书单按状态优先级排序 | app.js, tests/book-list-ordering-fix.test.js, index.html | default book list now groups reading first, finished second, wishlist last, preserving newest-created order within each group; bumped assets to 20260519o | ~220 |
+| 17:51 | fix: 编辑书籍后回到当前卡片而不是旧滚动数值 | app.js, tests/book-list-ordering-fix.test.js, index.html | book cards now carry stable ids; saveBookEdit scrolls back to the edited card after rerender; added regression test; bumped assets to 20260519p | ~260 |
+| 18:00 | refine: 书单封面改为完整照片加模糊背景 | app.js, styles.css, index.html | uploaded covers now render with contain over a blurred same-image backdrop instead of cropping book photos; bumped assets to 20260519q | ~180 |
+| 18:04 | revert: 撤回书单封面完整照片加模糊背景方案 | app.js, styles.css, index.html | restored previous cover-crop display with 74% object-position after visual review; bumped assets to 20260519r | ~100 |
+| 22:58 | fix: 编辑书籍封面失败不再阻断其他字段同步 | app.js, tests/book-list-ordering-fix.test.js | saveBookEdit now syncs text/status/page edits even when cover upload fails; added regression test for failed cover upload path | ~160 |

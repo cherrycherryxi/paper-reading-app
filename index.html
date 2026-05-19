@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content" />
     <title>🐛 又买了一本书</title>
-    <link rel="stylesheet" href="./styles.css?v=20260518a" />
+    <link rel="stylesheet" href="./styles.css?v=20260519r" />
   </head>
   <body>
     <script>
@@ -123,6 +123,7 @@
               <button id="chatBookClearPick" class="book-picker-clear" type="button" hidden aria-label="取消选择">✕</button>
               <ul id="chatBookDropdown" class="book-picker-dropdown" hidden role="listbox"></ul>
             </div>
+            <div id="chatBookContext" class="chat-book-context" hidden></div>
             <input type="hidden" id="chatBookSelect">
           </div>
           <div id="chatMessages" class="chat-messages chat-messages-inline">
@@ -132,12 +133,23 @@
               <span class="chat-deco chat-deco--3"></span>
               <span class="chat-deco chat-deco--4"></span>
               <span class="chat-deco chat-deco--5"></span>
-              <span class="chat-welcome-text">选择一本书，开始探讨。</span>
+              <div class="chat-welcome-content">
+                <span class="chat-welcome-title">选择一本书，开始探讨</span>
+                <span class="chat-welcome-subtitle">从上方选择书籍后，我会结合阅读记录、摘抄和关联来回答。</span>
+              </div>
             </div>
           </div>
-          <div class="chat-input-inline">
-            <textarea id="chatInput" rows="1" placeholder="输入你的问题或想法…"></textarea>
-            <button id="chatSendBtn" class="button button-primary" type="button">发送</button>
+          <div class="chat-composer">
+            <div class="chat-prompt-chips" id="chatPromptChips">
+              <button type="button" data-chat-prompt="总结这本书目前最重要的主题。">总结主题</button>
+              <button type="button" data-chat-prompt="基于我的阅读记录和摘抄，帮我提炼 3 个值得继续思考的问题。">提炼问题</button>
+              <button type="button" data-chat-prompt="帮我把这本书和我读过的其他书建立思想关联。">建立关联</button>
+              <button type="button" data-chat-prompt="把我刚才的想法整理成一条可保存的笔记。">整理笔记</button>
+            </div>
+            <div class="chat-input-inline">
+              <textarea id="chatInput" rows="1" placeholder="输入你的问题或想法…"></textarea>
+              <button id="chatSendBtn" class="button button-primary" type="button">发送</button>
+            </div>
           </div>
         </section>
 
@@ -501,7 +513,7 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="./app.js?v=20260518a"></script>
-    <script src="./chat.js?v=20260518a"></script>
+    <script src="./app.js?v=20260519r"></script>
+    <script src="./chat.js?v=20260519r"></script>
   </body>
 </html>
