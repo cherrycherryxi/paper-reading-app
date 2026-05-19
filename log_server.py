@@ -19,7 +19,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-print("DEEPSEEK_API_KEY:", os.getenv("DEEPSEEK_API_KEY"))
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "paper_reading_backend.db"
 UPLOAD_DIR = BASE_DIR / "uploads"
@@ -1449,12 +1448,37 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(content)
             return
 
+        if parsed.path.startswith("/assets/"):
+            target = (BASE_DIR / parsed.path.removeprefix("/")).resolve()
+            assets_dir = (BASE_DIR / "assets").resolve()
+            if not str(target).startswith(str(assets_dir)) or not target.exists() or not target.is_file():
+                self.send_error(404)
+                return
+            mime = "application/octet-stream"
+            if target.suffix.lower() in {".jpg", ".jpeg"}:
+                mime = "image/jpeg"
+            elif target.suffix.lower() == ".png":
+                mime = "image/png"
+            elif target.suffix.lower() == ".webp":
+                mime = "image/webp"
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+            self.send_header("Content-Length", str(target.stat().st_size))
+            self.end_headers()
+            with target.open("rb") as asset_file:
+                while True:
+                    chunk = asset_file.read(1024 * 256)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+            return
+
         if parsed.path.startswith("/media/"):
             target = (UPLOAD_DIR / parsed.path.removeprefix("/media/")).resolve()
             if not str(target).startswith(str(UPLOAD_DIR.resolve())) or not target.exists() or not target.is_file():
                 self.send_error(404)
                 return
-            content = target.read_bytes()
             mime = "image/jpeg"
             if target.suffix.lower() == ".png":
                 mime = "image/png"
@@ -1463,9 +1487,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", mime)
             self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+            self.send_header("Content-Length", str(target.stat().st_size))
             self.end_headers()
-            self.wfile.write(content)
+            with target.open("rb") as image_file:
+                while True:
+                    chunk = image_file.read(1024 * 256)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
             return
 
         if parsed.path == "/api/session":

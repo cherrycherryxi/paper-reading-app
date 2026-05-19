@@ -446,3 +446,26 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-05-18 22:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:40 | fix(bug-107 P2): 记录页移动端卡片被压缩且不可滚动 | styles.css, app.js, index.html | fixed: timeline rows use content height, cards no longer clip actions, assets bumped to 20260519a | ~650 |
+| 00:52 | fix(bug-108 P2): 探讨页书籍选择器不可搜索且 iPhone 聚焦放大 | chat.js, styles.css, index.html | fixed: visible picker now filters books, selects/clears book id, and uses 16px input font | ~900 |
+| 01:08 | fix(bug-109 P2): 新增摘抄保存被图片上传和全量重绘拖慢 | app.js, log_server.py, index.html | fixed: quote dialog closes immediately, image upload/sync runs after local update, hidden book-list image reloads avoided, media responses stream/cache | ~1050 |
+| 01:22 | fix(bug-110 P2): 书籍详情缺相关摘抄内容且思想关联不可跳转 | app.js, styles.css, index.html | fixed: shows latest quote previews, opens quote details, jumps to book quotes/connections, mini connection cards navigate to connections page | ~850 |
+| 14:22 | feat: 为无封面书籍添加默认书籍插画封面 | assets/default-book-cover.jpeg, app.js, log_server.py, index.html | added project-local default cover asset, routed /assets files, and used the cover for cards without book/quote images | ~550 |
+| 14:28 | fix: 默认封面图片纠正为第 4 张女孩坐书堆插画 | assets/default-book-cover.jpeg, app.js, index.html | replaced mistaken fifth image, added default cover URL cache-buster 20260519f | ~120 |
+| 14:34 | fix: 默认封面改为重新上传的第 2 张书堆光影图 | assets/default-book-cover.jpeg, app.js, index.html | replaced square illustration that cropped faces in card cover, added cache-buster 20260519g | ~120 |
+| 14:42 | feat: 记录页卡片改为阅读会话 UI | app.js, styles.css, index.html | removed empty cover block, added page/minute ribbon with rounded card clipping, bumped assets to 20260519h | ~420 |
+| 14:55 | feat: 探讨页改成书籍上下文工作台初版 | index.html, chat.js, styles.css | added current-book context card, prompt chips, contextual welcome suggestions, bumped assets to 20260519i | ~780 |
+| 15:06 | refine: 探讨页压缩当前书籍卡片并直显提炼问题 | chat.js, styles.css, index.html | context card changed to compact single-line layout; question actions now append assistant bubbles instead of approval cards; bumped assets to 20260519j | ~260 |
+| 17:08 | refine: 探讨页空白态提示去重并统一风格 | chat.js, styles.css, index.html | removed duplicate middle suggestion buttons; welcome state now uses title/subtitle while bottom chips remain the action entry; bumped assets to 20260519k | ~180 |
+| 17:18 | fix: 书单横向封面裁剪露白且无加载失败兜底 | app.js, styles.css, index.html | landscape book covers now shift crop lower; broken cover images fallback to default cover; bumped assets to 20260519l | ~220 |
+| 17:28 | fix: Safari 拍照更换封面后微信端拉不到新图 | app.js, index.html | book cover save now waits for async image compression before upload/sync for both add and edit flows; bumped assets to 20260519m | ~260 |
+| 17:34 | refine: 书单真实封面统一下移裁剪取景 | styles.css, index.html | uploaded cover photos often place books in lower frame; non-default book covers now use 74% vertical object-position; bumped assets to 20260519n | ~120 |
+| 17:42 | feat: 书单按状态优先级排序 | app.js, tests/book-list-ordering-fix.test.js, index.html | default book list now groups reading first, finished second, wishlist last, preserving newest-created order within each group; bumped assets to 20260519o | ~220 |
+| 17:51 | fix: 编辑书籍后回到当前卡片而不是旧滚动数值 | app.js, tests/book-list-ordering-fix.test.js, index.html | book cards now carry stable ids; saveBookEdit scrolls back to the edited card after rerender; added regression test; bumped assets to 20260519p | ~260 |
+| 18:00 | refine: 书单封面改为完整照片加模糊背景 | app.js, styles.css, index.html | uploaded covers now render with contain over a blurred same-image backdrop instead of cropping book photos; bumped assets to 20260519q | ~180 |
+| 18:04 | revert: 撤回书单封面完整照片加模糊背景方案 | app.js, styles.css, index.html | restored previous cover-crop display with 74% object-position after visual review; bumped assets to 20260519r | ~100 |

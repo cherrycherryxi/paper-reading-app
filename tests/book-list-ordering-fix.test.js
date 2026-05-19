@@ -135,6 +135,10 @@ function createHarness() {
     RegExp,
     setTimeout,
     clearTimeout,
+    requestAnimationFrame(callback) {
+      callback();
+      return 1;
+    },
   };
 
   const sourceWithoutBoot = appSource.replace(
@@ -257,7 +261,32 @@ test("bug exploration: renderBooks should keep newest created books first even i
 
   hooks.renderBooks();
 
-  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["《新书》", "《旧书》"]);
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["新书", "旧书"]);
+});
+
+test("renderBooks should group books by reading status before creation date", () => {
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "user-1" });
+  hooks.setState({
+    books: [
+      createBook({ id: "wishlist", title: "想读新书", status: "wishlist", createdAt: "2026-04-24T00:00:00.000Z" }),
+      createBook({ id: "finished", title: "读完旧书", status: "finished", createdAt: "2026-04-22T00:00:00.000Z" }),
+      createBook({ id: "reading", title: "在读旧书", status: "reading", createdAt: "2026-04-21T00:00:00.000Z" }),
+      createBook({ id: "reading-new", title: "在读新书", status: "reading", createdAt: "2026-04-23T00:00:00.000Z" }),
+    ],
+    sessions: [],
+    quotes: [],
+    chatHistories: {},
+  });
+
+  hooks.renderBooks();
+
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), [
+    "在读新书",
+    "在读旧书",
+    "读完旧书",
+    "想读新书",
+  ]);
 });
 
 test("bug exploration: saveBookEdit should explicitly preserve and normalize tags in source", () => {
@@ -285,12 +314,12 @@ test("preservation: status and tag filters keep returning the correct matching s
   hooks.setTagFilter("");
   hooks.setBookSearchQuery("");
   hooks.renderBooks();
-  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["《三体》", "《沙丘》"]));
+  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["三体", "沙丘"]));
 
   hooks.setStatusFilter("all");
   hooks.setTagFilter("科幻");
   hooks.renderBooks();
-  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["《三体》", "《沙丘》"]));
+  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["三体", "沙丘"]));
 });
 
 test("preservation: search keeps returning the correct matching set", () => {
@@ -310,10 +339,10 @@ test("preservation: search keeps returning the correct matching set", () => {
   hooks.setStatusFilter("all");
   hooks.setTagFilter("");
   hooks.globalSearch("刘慈欣");
-  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["《三体》", "《球状闪电》"]));
+  assert.deepEqual(new Set(hooks.getRenderedTitles()), new Set(["三体", "球状闪电"]));
 
   hooks.globalSearch("球状闪电");
-  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["《球状闪电》"]);
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["球状闪电"]);
 });
 
 test("preservation: saveBookEdit leaves unrelated fields unchanged for a normal tagged book", async () => {
@@ -365,4 +394,54 @@ test("preservation: saveBookEdit leaves unrelated fields unchanged for a normal 
   assert.equal(savedBook.currentPage, 30);
   assert.equal(savedBook.status, "reading");
   assert.equal(savedBook.notes, "新笔记");
+});
+
+test("regression: saveBookEdit scrolls back to the edited book card after rerender", async () => {
+  const hooks = createHarness();
+  const originalBook = createBook({
+    id: "book-target",
+    title: "目标书",
+    status: "reading",
+    currentPage: 20,
+    totalPages: 300,
+  });
+  let queriedSelector = "";
+  let scrollIntoViewOptions = null;
+  const targetCard = {
+    scrollIntoView(options) {
+      scrollIntoViewOptions = options;
+    },
+  };
+
+  hooks.setCurrentUser({ id: "user-1" });
+  hooks.setAuthToken("token");
+  hooks.setState({
+    books: [originalBook],
+    sessions: [],
+    quotes: [],
+    chatHistories: {},
+  });
+  hooks.els.booksList.scrollTop = 420;
+  hooks.els.booksList.querySelector = (selector) => {
+    queriedSelector = selector;
+    return targetCard;
+  };
+  hooks.setPendingBookEditImage(null);
+  hooks.setSyncState(async () => {});
+  hooks.setRender(() => {});
+  hooks.setCloseDialog(() => {});
+  hooks.setResetBookEditDraft(() => {});
+  hooks.setShowToast(() => {});
+
+  await hooks.saveBookEdit(
+    createFormData({
+      bookId: "book-target",
+      currentPage: "30",
+      status: "finished",
+      notes: "新笔记",
+    })
+  );
+
+  assert.equal(queriedSelector, '[data-book-card-id="book-target"]');
+  assert.equal(scrollIntoViewOptions?.block, "nearest");
 });

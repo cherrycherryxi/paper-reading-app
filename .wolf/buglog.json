@@ -1827,6 +1827,77 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-16T07:27:03.164Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-05-19T00:40:00+08:00",
+      "error_message": "Mobile records page cards were squeezed and could not scroll",
+      "file": "styles.css",
+      "root_cause": "The mobile active panel used a fixed-height nested scroll area while the timeline grid did not force max-content rows; session cards also clipped overflowing body content, hiding the edit/delete actions.",
+      "fix": "Pinned timeline grid rows to content height, kept session cards from shrinking/clipping, preserved touch scrolling, and bumped static asset versions.",
+      "tags": [
+        "mobile-layout",
+        "scrolling",
+        "css"
+      ],
+      "related_bugs": [
+        "bug-098"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-19T00:40:00+08:00"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-05-19T00:52:00+08:00",
+      "error_message": "Chat page book picker could not open or search and zoomed the page on iPhone focus",
+      "file": "chat.js",
+      "root_cause": "The visible chat book picker input and dropdown existed in HTML but chat.js only populated the hidden select; the picker input also used a 14px font size, triggering iOS Safari focus zoom.",
+      "fix": "Added searchable dropdown rendering, selection/clear/outside-click handlers, synchronized hidden book id state, and raised the picker input font size to 16px with cache-busted assets.",
+      "tags": [
+        "chat",
+        "book-picker",
+        "mobile",
+        "ios"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-19T00:52:00+08:00"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-05-19T01:08:00+08:00",
+      "error_message": "Saving a quote with an image blocked the UI while the server handled repeated image GETs",
+      "file": "app.js",
+      "root_cause": "addQuote waited for image upload and full state sync before closing the dialog, then called full render(), which rebuilt hidden book-list cards and caused the browser to request many /media/ images. The media route also read each image fully into memory and sent no cache header.",
+      "fix": "Close the quote dialog and update the quote page immediately, upload/sync in the background, avoid full render() after quote save, preserve pending image compression promises, and stream/cache /media/ responses.",
+      "tags": [
+        "quote",
+        "image",
+        "performance",
+        "mobile"
+      ],
+      "related_bugs": [
+        "bug-107"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-19T01:08:00+08:00"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-05-19T01:22:00+08:00",
+      "error_message": "Book detail dialog did not show related quote content and connection previews were not navigable",
+      "file": "app.js",
+      "root_cause": "openBookDetailDialog only calculated the quote count without rendering quotes into bookDetailQuotes, and mini connection cards lacked actionable data attributes and click handlers.",
+      "fix": "Render the two latest related quotes in the book detail dialog, add quote/detail navigation, add buttons to jump to all quotes or all connections for the book, and make connection previews navigate to the connections page.",
+      "tags": [
+        "book-detail",
+        "quotes",
+        "connections",
+        "navigation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-19T01:22:00+08:00"
     }
   ]
 }

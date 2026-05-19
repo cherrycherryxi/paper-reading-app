@@ -5,6 +5,11 @@
     sendBtn: document.querySelector("#chatSendBtn"),
     clearBtn: document.querySelector("#chatClearBtn"),
     bookSelect: document.querySelector("#chatBookSelect"),
+    bookInput: document.querySelector("#chatBookInput"),
+    bookDropdown: document.querySelector("#chatBookDropdown"),
+    bookClearPick: document.querySelector("#chatBookClearPick"),
+    bookContext: document.querySelector("#chatBookContext"),
+    promptChips: document.querySelector("#chatPromptChips"),
   };
 
   let history = [];
@@ -18,15 +23,137 @@
     return currentBookId || els.bookSelect?.value || "";
   }
 
+  function bookLabel(book) {
+    if (!book) return "";
+    return `${book.title}${book.author ? ` — ${book.author}` : ""}`;
+  }
+
+  function displayBookTitle(title) {
+    const clean = String(title || "这本书").replace(/^《+|》+$/g, "").trim() || "这本书";
+    return `《${clean}》`;
+  }
+
+  function getBooks() {
+    return window.paperReadingApp?.getState?.()?.books || [];
+  }
+
+  function findBook(bookId) {
+    return getBooks().find((book) => book.id === bookId);
+  }
+
+  function getBookStats(bookId) {
+    const state = window.paperReadingApp?.getState?.() || {};
+    const sessions = (state.sessions || []).filter((item) => item.bookId === bookId);
+    const quotes = (state.quotes || []).filter((item) => item.bookId === bookId);
+    const connections = (state.connections || []).filter((conn) => {
+      const quoteBookId = (quoteId) => (state.quotes || []).find((quote) => quote.id === quoteId)?.bookId || "";
+      return conn.sourceId === bookId || conn.targetId === bookId ||
+        (conn.sourceType === "quote" && quoteBookId(conn.sourceId) === bookId) ||
+        (conn.targetType === "quote" && quoteBookId(conn.targetId) === bookId);
+    });
+    const minutes = sessions.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
+    return { sessions: sessions.length, quotes: quotes.length, connections: connections.length, minutes };
+  }
+
+  function renderBookContext() {
+    if (!els.bookContext) return;
+    const book = findBook(currentBookId);
+    if (!book) {
+      els.bookContext.hidden = true;
+      els.bookContext.innerHTML = "";
+      return;
+    }
+    const stats = getBookStats(book.id);
+    const authorText = book.author ? ` · ${book.author}` : "";
+    els.bookContext.innerHTML = `
+      <span class="chat-context-label">当前</span>
+      <strong>${escapeHtml(displayBookTitle(book.title || "未命名书籍"))}</strong>
+      <span class="chat-context-meta">${escapeHtml(`${stats.quotes} 摘抄 · ${stats.connections} 关联${authorText}`)}</span>
+    `;
+    els.bookContext.hidden = false;
+  }
+
+  function syncPickerDisplay() {
+    const book = findBook(currentBookId);
+    if (els.bookInput) {
+      els.bookInput.value = book ? bookLabel(book) : "";
+    }
+    if (els.bookClearPick) {
+      els.bookClearPick.hidden = !currentBookId;
+    }
+    renderBookContext();
+  }
+
+  function hideBookDropdown() {
+    if (els.bookDropdown) {
+      els.bookDropdown.hidden = true;
+    }
+  }
+
+  function renderBookDropdown(query = "") {
+    if (!els.bookDropdown) return;
+    const books = getBooks();
+    const normalized = query.trim().toLowerCase();
+    const matches = normalized
+      ? books.filter((book) => {
+          const haystack = [book.title, book.author, ...(book.tags || [])].join(" ").toLowerCase();
+          return haystack.includes(normalized);
+        })
+      : books;
+
+    els.bookDropdown.innerHTML = "";
+    if (!matches.length) {
+      const empty = document.createElement("li");
+      empty.className = "book-picker-empty";
+      empty.textContent = normalized ? "没有匹配的书籍" : "还没有书籍";
+      els.bookDropdown.appendChild(empty);
+      els.bookDropdown.hidden = false;
+      return;
+    }
+
+    matches.forEach((book) => {
+      const item = document.createElement("li");
+      item.dataset.bookId = book.id;
+      item.setAttribute("role", "option");
+      item.innerHTML = `
+        <span class="picker-book-spine"></span>
+        <span class="picker-book-info">
+          <span class="picker-book-title">${escapeHtml(book.title)}</span>
+          <span class="picker-book-author">${escapeHtml(book.author || "未知作者")}</span>
+        </span>
+      `;
+      els.bookDropdown.appendChild(item);
+    });
+    els.bookDropdown.hidden = false;
+  }
+
+  function selectChatBook(bookId) {
+    currentBookId = bookId || "";
+    if (els.bookSelect) {
+      els.bookSelect.value = currentBookId;
+    }
+    syncPickerDisplay();
+    hideBookDropdown();
+    restoreHistory();
+  }
+
   function resetMessages() {
     if (!els.messages) return;
+    const book = findBook(activeBookId());
+    const title = book ? `围绕${displayBookTitle(book.title)}继续想` : "选择一本书，开始探讨";
+    const subtitle = book
+      ? "可以直接提问，也可以用下方快捷入口整理主题、问题和关联。"
+      : "从上方选择书籍后，我会结合阅读记录、摘抄和关联来回答。";
     els.messages.innerHTML = `<div class="chat-welcome">
       <span class="chat-deco chat-deco--1"></span>
       <span class="chat-deco chat-deco--2"></span>
       <span class="chat-deco chat-deco--3"></span>
       <span class="chat-deco chat-deco--4"></span>
       <span class="chat-deco chat-deco--5"></span>
-      <span class="chat-welcome-text">选择一本书，开始探讨。</span>
+      <div class="chat-welcome-content">
+        <span class="chat-welcome-title">${escapeHtml(title)}</span>
+        <span class="chat-welcome-subtitle">${escapeHtml(subtitle)}</span>
+      </div>
     </div>`;
   }
 
@@ -53,20 +180,22 @@
   function populateChatBookSelect(preferredValue) {
     if (!els.bookSelect) return;
     const prevValue = normalizePreferredBookValue(preferredValue) || currentBookId || els.bookSelect.value;
-    const books = window.paperReadingApp?.getState?.()?.books || [];
+    const books = getBooks();
     els.bookSelect.innerHTML = '<option value="">— 不关联书籍 —</option>';
     books.forEach((book) => {
       const option = document.createElement("option");
       option.value = book.id;
-      option.textContent = `${book.title}${book.author ? ` — ${book.author}` : ""}`;
+      option.textContent = bookLabel(book);
       els.bookSelect.appendChild(option);
     });
     if (prevValue && books.some((book) => book.id === prevValue)) {
       els.bookSelect.value = prevValue;
       currentBookId = prevValue;
+      syncPickerDisplay();
       return;
     }
     currentBookId = els.bookSelect.value || "";
+    syncPickerDisplay();
   }
 
   async function sendMessage() {
@@ -174,7 +303,62 @@
     els.clearBtn?.addEventListener("click", clearHistory);
     els.bookSelect?.addEventListener("change", () => {
       currentBookId = els.bookSelect?.value || "";
+      syncPickerDisplay();
       restoreHistory();
+    });
+    els.bookInput?.addEventListener("focus", () => {
+      const selectedBook = findBook(currentBookId);
+      const value = selectedBook && els.bookInput.value === bookLabel(selectedBook) ? "" : els.bookInput.value;
+      renderBookDropdown(value);
+    });
+    els.bookInput?.addEventListener("input", () => {
+      const selectedBook = findBook(currentBookId);
+      if (selectedBook && els.bookInput.value !== bookLabel(selectedBook)) {
+        currentBookId = "";
+        if (els.bookSelect) els.bookSelect.value = "";
+        if (els.bookClearPick) els.bookClearPick.hidden = true;
+      }
+      renderBookDropdown(els.bookInput.value);
+    });
+    els.bookInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        hideBookDropdown();
+        syncPickerDisplay();
+      }
+    });
+    els.bookDropdown?.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+    });
+    els.bookDropdown?.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+    });
+    els.bookDropdown?.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-book-id]");
+      if (!item) return;
+      selectChatBook(item.dataset.bookId);
+    });
+    els.bookClearPick?.addEventListener("click", () => {
+      selectChatBook("");
+      els.bookInput?.focus();
+      renderBookDropdown("");
+    });
+    document.addEventListener?.("click", (event) => {
+      if (!event.target.closest(".book-picker")) {
+        hideBookDropdown();
+        syncPickerDisplay();
+      }
+    });
+    els.promptChips?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-chat-prompt]");
+      if (!button || !els.input) return;
+      els.input.value = button.dataset.chatPrompt || "";
+      els.input.focus();
+    });
+    els.messages?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-chat-suggestion]");
+      if (!button || !els.input) return;
+      els.input.value = button.dataset.chatSuggestion || "";
+      els.input.focus();
     });
     els.input?.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -198,7 +382,15 @@
 
   function handleAgentActions(actions) {
     if (!actions || !actions.length) return;
-    showAgentConfirm(actions);
+    const actionable = [];
+    actions.forEach((action) => {
+      if (action?.type === "question" && action.data?.content) {
+        appendBubble("assistant", "❓ " + action.data.content);
+      } else {
+        actionable.push(action);
+      }
+    });
+    showAgentConfirm(actionable);
   }
 
   // 依次展示 actions 数组中的每一个操作卡片，前一张处理完才显示下一张
@@ -309,9 +501,6 @@
     // Only refresh the book select — do NOT call restoreHistory() here,
     // because that calls resetMessages() which destroys all pending action cards.
     populateChatBookSelect(selectedBookId);
-    if (action.type === "question" && action.data?.content) {
-      appendBubble("assistant", "❓ " + action.data.content);
-    }
     app.showToast("操作已执行");
 
     await app.loadRemoteLogs?.();

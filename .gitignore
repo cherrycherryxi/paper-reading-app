@@ -22,3 +22,6 @@ dist/
 
 # kiro文件
 .kiro/
+
+# Claude/Codex nested worktrees
+.claude/worktrees/
