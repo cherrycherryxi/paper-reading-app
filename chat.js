@@ -44,7 +44,7 @@
   function getBookStats(bookId) {
     const state = window.paperReadingApp?.getState?.() || {};
     const sessions = (state.sessions || []).filter((item) => item.bookId === bookId);
-    const quotes = (state.quotes || []).filter((item) => item.bookId === bookId);
+    const quotes = (state.quotes || []).filter((item) => item.bookId === bookId && item.kind !== "question");
     const connections = (state.connections || []).filter((conn) => {
       const quoteBookId = (quoteId) => (state.quotes || []).find((quote) => quote.id === quoteId)?.bookId || "";
       return conn.sourceId === bookId || conn.targetId === bookId ||
@@ -173,8 +173,90 @@
   function restoreHistory() {
     const bookId = activeBookId();
     history = window.paperReadingApp?.getChatHistoryForBook?.(bookId) || [];
+    const lastUser = [...history].reverse().find((item) => item?.role === "user" && item.content);
+    const recoveredActions = lastUser ? findRecoveredActions(lastUser.content) : [];
+    if (lastUser && recoveredActions.length > 0) {
+      history = completeRecoveredHistoryWithActions(history, lastUser.content, recoveredActions);
+      window.paperReadingApp?.setChatHistoryForBook?.(bookId, history);
+    }
     resetMessages();
     history.forEach((item) => appendBubble(item.role, item.content));
+    if (recoveredActions.length > 0) {
+      handleAgentActions(recoveredActions);
+    }
+  }
+
+  function findRecoveredAssistantMessage(remoteHistory, userText) {
+    if (!Array.isArray(remoteHistory)) return null;
+    for (let index = remoteHistory.length - 2; index >= 0; index -= 1) {
+      const userItem = remoteHistory[index];
+      const assistantItem = remoteHistory[index + 1];
+      if (
+        userItem?.role === "user" &&
+        userItem.content === userText &&
+        assistantItem?.role === "assistant" &&
+        typeof assistantItem.content === "string" &&
+        assistantItem.content.trim()
+      ) {
+        return assistantItem.content;
+      }
+    }
+    return null;
+  }
+
+  function findRecoveredActions(userText) {
+    const logs = window.paperReadingApp?.getRemoteLogs?.() || [];
+    const matched = logs.find((log) => {
+      if (log?.type !== "chat" || log.input !== userText || !Array.isArray(log.actions)) return false;
+      return log.actions.some((action) => action.status === "PENDING_APPROVAL");
+    });
+    return matched?.actions?.filter((action) => action.status === "PENDING_APPROVAL") || [];
+  }
+
+  function completeRecoveredHistoryWithActions(remoteHistory, userText, actions) {
+    if (!Array.isArray(remoteHistory) || !Array.isArray(actions) || actions.length !== 1) {
+      return remoteHistory;
+    }
+    const action = actions[0];
+    const content = action?.type === "question" ? String(action.data?.content || "").trim() : "";
+    if (!content) return remoteHistory;
+    const nextHistory = remoteHistory.map((item) => ({ ...item }));
+    for (let index = nextHistory.length - 2; index >= 0; index -= 1) {
+      const userItem = nextHistory[index];
+      const assistantItem = nextHistory[index + 1];
+      if (userItem?.role !== "user" || userItem.content !== userText || assistantItem?.role !== "assistant") {
+        continue;
+      }
+      const current = String(assistantItem.content || "").trim();
+      if (!current.includes(content)) {
+        assistantItem.content = current ? `${current}\n\n${content}` : content;
+      }
+      break;
+    }
+    return nextHistory;
+  }
+
+  async function recoverCompletedChatAfterLoadError(userText) {
+    try {
+      await window.paperReadingApp?.refreshSessionState?.();
+      await window.paperReadingApp?.loadRemoteLogs?.();
+      const bookId = activeBookId();
+      const remoteHistory = window.paperReadingApp?.getChatHistoryForBook?.(bookId) || [];
+      const recoveredReply = findRecoveredAssistantMessage(remoteHistory, userText);
+      if (!recoveredReply) {
+        return false;
+      }
+      const recoveredActions = findRecoveredActions(userText);
+      history = completeRecoveredHistoryWithActions(remoteHistory, userText, recoveredActions);
+      window.paperReadingApp?.setChatHistoryForBook?.(bookId, history);
+      restoreHistory();
+      if (recoveredActions.length > 0) {
+        handleAgentActions(recoveredActions);
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   function populateChatBookSelect(preferredValue) {
@@ -264,6 +346,11 @@
       }
 
       if (finalPayload) {
+        if (typeof finalPayload.reply === "string" && finalPayload.reply) {
+          thinking.classList.remove("chat-bubble-loading");
+          thinking.textContent = finalPayload.reply;
+          els.messages.scrollTop = els.messages.scrollHeight;
+        }
         const bookId = activeBookId();
         history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
         const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
@@ -274,9 +361,12 @@
         }
       }
     } catch (error) {
-      thinking.textContent = `出错了：${error.message}`;
-      thinking.classList.add("chat-error");
-      await window.paperReadingApp.loadRemoteLogs?.();
+      const recovered = await recoverCompletedChatAfterLoadError(text);
+      if (!recovered) {
+        thinking.textContent = `出错了：${error.message}`;
+        thinking.classList.add("chat-error");
+        await window.paperReadingApp.loadRemoteLogs?.();
+      }
     } finally {
       els.sendBtn.disabled = false;
     }
@@ -382,15 +472,7 @@
 
   function handleAgentActions(actions) {
     if (!actions || !actions.length) return;
-    const actionable = [];
-    actions.forEach((action) => {
-      if (action?.type === "question" && action.data?.content) {
-        appendBubble("assistant", "❓ " + action.data.content);
-      } else {
-        actionable.push(action);
-      }
-    });
-    showAgentConfirm(actionable);
+    showAgentConfirm(actions);
   }
 
   // 依次展示 actions 数组中的每一个操作卡片，前一张处理完才显示下一张

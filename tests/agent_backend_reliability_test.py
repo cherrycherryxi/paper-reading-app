@@ -13,7 +13,10 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         base_dir = Path(self.temp_dir.name)
         log_server.DB_PATH = base_dir / "test.db"
         log_server.UPLOAD_DIR = base_dir / "uploads"
+        log_server.initialize_tool_schema_provider_for_tests()
         log_server.init_db()
+        self.original_mcp_dispatcher = log_server.MCPToolDispatcher
+        log_server.MCPToolDispatcher = log_server.LocalActionDispatcherForTests
 
         self.conn = log_server.get_conn()
         self.user_id = "user-test"
@@ -54,6 +57,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
 
     def tearDown(self):
         log_server.call_deepseek = self.original_call_deepseek
+        log_server.MCPToolDispatcher = self.original_mcp_dispatcher
         self.temp_dir.cleanup()
 
     def request_json(self, method, path, payload=None, token=None):
@@ -307,6 +311,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         action_id = chat_payload["actions"][0]["id"]
         initial_action = self.fetch_action(action_id)
         self.assertEqual(initial_action["status"], "PENDING_APPROVAL")
+        self.assertEqual(initial_action["data"]["bookId"], "book-1")
 
         approve_status, approve_payload = self.request_json(
             "POST",
@@ -346,7 +351,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
             (
                 "question",
                 {"content": "接下来该怎么想？"},
-                lambda state: True,
+                lambda state: any(item.get("kind") == "question" and item.get("content") == "接下来该怎么想？" for item in state["quotes"]),
             ),
         ]
 
@@ -373,6 +378,38 @@ class AgentBackendReliabilityTests(unittest.TestCase):
             self.assertEqual(approve_status, 200)
             self.assertEqual(approve_payload["action"]["status"], "EXECUTED")
             self.assertTrue(assertion(self.load_state()))
+
+    def test_question_action_upserts_one_question_per_book(self):
+        contents = ["第一个问题？", "第二个问题？"]
+
+        for content in contents:
+            def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200, current_content=content):
+                return json.dumps(
+                    {"reply": current_content, "actions": [{"type": "question", "data": {"content": current_content}}]},
+                    ensure_ascii=False,
+                )
+
+            log_server.call_deepseek = fake_deepseek
+            _, chat_payload = self.request_json(
+                "POST",
+                "/api/chat",
+                {"message": content, "bookId": "book-1"},
+                token=self.token,
+            )
+            action_id = chat_payload["actions"][0]["id"]
+            approve_status, _ = self.request_json(
+                "POST",
+                f"/api/agent-actions/{action_id}/approve",
+                token=self.token,
+            )
+            self.assertEqual(approve_status, 200)
+
+        questions = [
+            item for item in self.load_state()["quotes"]
+            if item.get("kind") == "question" and item.get("bookId") == "book-1"
+        ]
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0]["content"], "第二个问题？")
 
     def test_approval_endpoint_returns_failed_status_when_execution_raises(self):
         conn = log_server.get_conn()

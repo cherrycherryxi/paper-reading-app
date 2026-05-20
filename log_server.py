@@ -19,6 +19,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from mcp_dispatcher import MCPToolDispatcher
+from tool_schema_provider import ToolSchema, ToolSchemaProvider
+
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "paper_reading_backend.db"
 UPLOAD_DIR = BASE_DIR / "uploads"
@@ -38,7 +41,39 @@ INITIAL_STATE = {
     "connections": [],
 }
 
-ACTION_WHITELIST = {"add_note", "add_book", "summary", "question", "tag", "link_thought"}
+
+def initialize_tool_schema_provider_for_tests() -> None:
+    ToolSchemaProvider.initialize_for_testing(
+        [
+            ToolSchema("add_note", "add_note", "新增一条摘抄或读书笔记。", {"content": str}, {"bookId": str, "tags": list}, {}, {}),
+            ToolSchema("add_book", "add_book", "把一本书加入用户的书单。", {"title": str}, {"author": str, "reason": str}, {}, {}),
+            ToolSchema("summary", "summary", "为某本书追加一段阶段性总结。", {"content": str, "bookId": str}, {}, {}, {}),
+            ToolSchema(
+                "question",
+                "question",
+                "记录一个最值得深入探究的开放问题。每本书最多保留 1 条核心问题，不要列多个候选问题。",
+                {"content": str},
+                {"bookId": str},
+                {},
+                {},
+            ),
+            ToolSchema("tag", "tag", "给一本书追加标签。", {"tags": list, "bookId": str}, {}, {}, {}),
+            ToolSchema(
+                "link_thought",
+                "link_thought",
+                "在两个已存在的 book/quote 之间建立一条跨实体关联。",
+                {"sourceType": str, "sourceId": str, "targetType": str, "targetId": str, "kind": str, "thought": str},
+                {"tags": list},
+                {
+                    "sourceType": ["book", "quote"],
+                    "targetType": ["book", "quote"],
+                    "kind": ["异曲同工", "引用", "对比", "影响", "延伸"],
+                },
+                {},
+            ),
+        ]
+    )
+
 AGENT_STATUS_OK = "OK"
 AGENT_STATUS_DEGRADED = "DEGRADED"
 AGENT_STATUS_ERROR = "ERROR"
@@ -57,19 +92,6 @@ ACTION_STATUS_EXECUTED = "EXECUTED"
 ACTION_STATUS_FAILED = "FAILED"
 METRIC_KIND_COUNTER = "counter"
 METRIC_KIND_GAUGE = "gauge"
-
-ACTION_SCHEMAS = {
-    "add_note": {"required": {"content": str}, "optional": {"bookId": str, "tags": list}},
-    "add_book": {"required": {"title": str}, "optional": {"author": str, "reason": str}},
-    "summary": {"required": {"content": str}, "optional": {}},
-    "question": {"required": {"content": str}, "optional": {}},
-    "tag": {"required": {"tags": list}, "optional": {}},
-    "link_thought": {
-        "required": {"sourceType": str, "sourceId": str, "targetType": str, "targetId": str, "kind": str, "thought": str},
-        "optional": {"tags": list},
-    },
-}
-
 
 @dataclass
 class ValidationResult:
@@ -110,6 +132,7 @@ class ExecutionResult:
     action: dict | None = None
     updated_state: dict | None = None
     error_message: str = ""
+    tool_name: str = ""
 
 
 def guess_base_url(handler: BaseHTTPRequestHandler) -> str:
@@ -129,8 +152,9 @@ def new_id(prefix: str) -> str:
 
 
 def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -568,46 +592,31 @@ class PromptBuilder:
 
     @staticmethod
     def build_system_instruction(book_id: str) -> str:
-        link_thought_schema = '{"type":"link_thought","data":{"sourceType":"book"|"quote","sourceId":string,"targetType":"book"|"quote","targetId":string,"kind":"异曲同工"|"引用"|"对比"|"影响"|"延伸","thought":string}}'
+        provider = ToolSchemaProvider.get()
+        tools_section = provider.for_prompt()
+        common_rules = """规则：
+1. reply 必须存在且是自然语言。
+2. actions 通常为 0 或 1 个。例外：add_book 可在一次回复中给出多本，最多 4 条；其他类型 action 仍最多 1 个。
+3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前书籍本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
+4. 只输出 JSON，不要输出任何额外说明。"""
         if book_id:
-            return f"""你是阅读助手。结合 user_data 和 conversation_history，直接回答，不要复述背景，中文输出。
+            scenario_rules = """5. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
+6. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前书时不要主动关联其他书。sourceId 必须是 book.id，targetId 必须是 all_books_summary 中已有书籍的 id。"""
+            header = "你是阅读助手。结合 user_data 和 conversation_history，直接回答，不要复述背景，中文输出。"
+        else:
+            scenario_rules = "5. 只有在建议明确且可执行时才返回 action；闲聊或纯解释时返回 []。"
+            header = "你是阅读助手，帮助用户理解书籍内容、发散思考、建立联系，中文输出。"
+
+        return f"""{header}
 
 输出必须是 JSON 对象：{{"reply": string, "actions": Action[]}}
 
-Action 结构只能是：
-- {{"type":"add_note","data":{{"content":string,"tags"?:string[]}}}}
-- {{"type":"add_book","data":{{"title":string,"author"?:string,"reason"?:string}}}}
-- {{"type":"summary","data":{{"content":string}}}}
-- {{"type":"question","data":{{"content":string}}}}
-- {{"type":"tag","data":{{"tags":string[]}}}}
-- {link_thought_schema}
+可用的 Action 工具（每个 action 形如 {{"type": <下方某个 action.type>, "data": {{...}}}}）：
 
-规则：
-1. reply 必须存在且是自然语言。
-2. actions 通常为 0 或 1 个。例外：当 reply 中明确列举了多本书时，可为每本书各返回一条 add_book（最多 4 条）；其他类型 action 仍最多 1 个。
-3. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
-4. 多个动作都合理时，优先级：add_note > add_book > summary > question > tag > link_thought。
-5. 如果推荐了一本具体书，优先返回 add_book。
-6. 当你在回复中发现当前书籍（book.id）与 all_books_summary 中另一本书有明显关联时，可以返回一个 link_thought action。sourceId 必须是 book.id，targetId 必须是 all_books_summary 中已有书籍的 id。
-7. 只输出 JSON，不要输出任何额外说明。"""
-        return f"""你是阅读助手，帮助用户理解书籍内容、发散思考、建立联系，中文输出。
+{tools_section}
 
-输出必须是 JSON 对象：{{"reply": string, "actions": Action[]}}
-
-Action 结构只能是：
-- {{"type":"add_note","data":{{"content":string,"tags"?:string[]}}}}
-- {{"type":"add_book","data":{{"title":string,"author"?:string,"reason"?:string}}}}
-- {{"type":"summary","data":{{"content":string}}}}
-- {{"type":"question","data":{{"content":string}}}}
-- {{"type":"tag","data":{{"tags":string[]}}}}
-- {link_thought_schema}
-
-规则：
-1. reply 必须存在且是自然语言。
-2. actions 通常为 0 或 1 个。例外：当 reply 中明确列举了多本书时，可为每本书各返回一条 add_book（最多 4 条）；其他类型 action 仍最多 1 个。
-3. 只有在建议明确且可执行时才返回 action；闲聊或纯解释时返回 []。
-4. 如果推荐了一本具体书，优先返回 add_book。
-5. 只输出 JSON，不要输出任何额外说明。"""
+{common_rules}
+{scenario_rules}"""
 
 
 class ReplyExtractor:
@@ -656,6 +665,30 @@ class ReplyExtractor:
 
 
 class ResponseParser:
+    @staticmethod
+    def _salvage_reply_from_jsonish(text: str) -> str:
+        marker = '"reply"'
+        marker_index = text.find(marker)
+        if marker_index < 0:
+            return text
+        colon_index = text.find(":", marker_index + len(marker))
+        if colon_index < 0:
+            return text
+        start = text.find('"', colon_index + 1)
+        if start < 0:
+            return text
+        actions_marker = re.search(r'"\s*,\s*"actions"\s*:', text[start + 1 :])
+        if actions_marker:
+            end = start + 1 + actions_marker.start()
+            candidate = text[start + 1 : end]
+        else:
+            end = text.rfind('"')
+            candidate = text[start + 1 : end] if end > start else text[start + 1 :]
+        try:
+            return json.loads(f'"{candidate}"')
+        except Exception:
+            return candidate.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+
     def parse(self, raw_output: str) -> ParseResult:
         text = (raw_output or "").strip()
         if not text:
@@ -673,7 +706,7 @@ class ResponseParser:
         try:
             parsed = json.loads(cleaned)
         except Exception as error:
-            return ParseResult(text, [], PARSE_DEGRADED, str(error), cleaned)
+            return ParseResult(self._salvage_reply_from_jsonish(cleaned), [], PARSE_DEGRADED, str(error), cleaned)
         reply = parsed.get("reply", "")
         actions = parsed.get("actions", [])
         if not isinstance(reply, str):
@@ -683,10 +716,58 @@ class ResponseParser:
         return ParseResult(reply, actions, parse_status, "", cleaned)
 
 
+def inject_context_into_actions(actions: list[dict], book_id: str) -> list[dict]:
+    if not book_id:
+        return actions
+    normalized: list[dict] = []
+    for item in actions:
+        if not isinstance(item, dict):
+            normalized.append(item)
+            continue
+        copied = dict(item)
+        raw_data = copied.get("data")
+        if isinstance(raw_data, dict):
+            data = dict(raw_data)
+            if copied.get("type") in {"add_note", "summary", "question", "tag"} and "bookId" not in data:
+                data["bookId"] = book_id
+            copied["data"] = data
+        normalized.append(copied)
+    return normalized
+
+
+def complete_reply_with_action_content(reply: str, valid_actions: list[dict]) -> str:
+    if len(valid_actions) != 1:
+        return reply
+    action = valid_actions[0]
+    if not isinstance(action, dict) or action.get("type") != "question":
+        return reply
+    data = action.get("data")
+    if not isinstance(data, dict):
+        return reply
+    content = str(data.get("content", "")).strip()
+    if not content:
+        return reply
+    current = str(reply or "").strip()
+    if content in current:
+        return current
+    if not current:
+        return content
+    tail = current[-40:]
+    looks_like_question_lead_in = "问题" in tail and current.endswith((":", "：", "-", "—", "——"))
+    if len(current) <= 80 or looks_like_question_lead_in:
+        return f"{current}\n\n{content}"
+    return current
+
+
 class ActionValidator:
+    def __init__(self, provider=None):
+        self.provider = provider
+
     def validate(self, actions: list[dict]) -> ActionValidationResult:
         if not actions:
             return ActionValidationResult([], VALIDATION_SUCCESS, [])
+        provider = self.provider or ToolSchemaProvider.get()
+        allowed_types = set(provider.action_types())
         errors: list[str] = []
         valid_actions: list[dict] = []
         # Allow up to 4 add_book actions; non-book actions still capped at 1
@@ -705,14 +786,13 @@ class ActionValidator:
                 continue
             action_type = action.get("type")
             data = action.get("data")
-            if action_type not in ACTION_WHITELIST:
+            if action_type not in allowed_types:
                 errors.append(f"unknown action type: {action_type}")
                 continue
             if not isinstance(data, dict):
                 errors.append(f"action data must be an object for type: {action_type}")
                 continue
-            schema = ACTION_SCHEMAS[action_type]
-            schema_errors = self._validate_schema(data, schema, action_type)
+            schema_errors = provider.validate_action_data(action_type, data)
             if schema_errors:
                 errors.extend(schema_errors)
                 continue
@@ -722,23 +802,6 @@ class ActionValidator:
         if errors:
             return ActionValidationResult([], VALIDATION_FAILED, errors)
         return ActionValidationResult(valid_actions, VALIDATION_SUCCESS, [])
-
-    @staticmethod
-    def _validate_schema(data: dict, schema: dict, action_type: str) -> list[str]:
-        errors: list[str] = []
-        allowed_fields = set(schema["required"]) | set(schema["optional"])
-        for key, expected_type in schema["required"].items():
-            value = data.get(key)
-            if value is None or not isinstance(value, expected_type):
-                errors.append(f"{action_type}.{key} is required and must be {expected_type.__name__}")
-        for key, value in data.items():
-            if key not in allowed_fields:
-                errors.append(f"{action_type}.{key} is not allowed")
-                continue
-            expected_type = schema["required"].get(key) or schema["optional"].get(key)
-            if expected_type and not isinstance(value, expected_type):
-                errors.append(f"{action_type}.{key} must be {expected_type.__name__}")
-        return errors
 
 
 class TraceManager:
@@ -1134,7 +1197,28 @@ class ActionExecutor:
                         book["tags"] = list(existing)
                         book["updatedAt"] = datetime.now().isoformat()
             elif action["type"] == "question":
-                pass
+                book_id = data.get("bookId", "")
+                quotes = state.setdefault("quotes", [])
+                existing = next(
+                    (item for item in quotes if item.get("kind") == "question" and item.get("bookId") == book_id),
+                    None,
+                )
+                if existing:
+                    existing["content"] = data.get("content", "")
+                    existing["tags"] = ["问题"]
+                    existing["updatedAt"] = datetime.now().isoformat()
+                else:
+                    quotes.insert(
+                        0,
+                        {
+                            "id": new_id("quote"),
+                            "bookId": book_id,
+                            "content": data.get("content", ""),
+                            "tags": ["问题"],
+                            "kind": "question",
+                            "createdAt": datetime.now().isoformat(),
+                        },
+                    )
             elif action["type"] == "link_thought":
                 VALID_KINDS = {"异曲同工", "引用", "对比", "影响", "延伸"}
                 kind = data.get("kind", "")
@@ -1169,99 +1253,15 @@ class ActionExecutor:
             return ExecutionResult(False, ACTION_STATUS_FAILED, action, error_message=str(error))
 
 
-def build_book_prompt(state: dict, book_id: str) -> str:
-    if not book_id:
-        return "你是一个阅读助手，帮助用户理解书籍内容、发散思考、建立联系。回答简洁有深度，中文回复。"
-
-    book = next((item for item in state["books"] if item.get("id") == book_id), None)
-    if not book:
-        return "你是一个阅读助手，回答简洁有深度，中文回复。"
-
-    if book.get("totalPages"):
-        progress = f"当前读到第 {book.get('currentPage', 0)} 页，共 {book['totalPages']} 页"
-    else:
-        progress = f"当前读到第 {book.get('currentPage', 0)} 页"
-
-    quotes = [item for item in state["quotes"] if item.get("bookId") == book_id][:20]
-    quotes_text = (
-        "\n\n".join(
-            f"[第{item.get('page') or '?'}页] {item.get('content', '')}"
-            + (f"\n我的理解：{item.get('reflection')}" if item.get("reflection") else "")
-            for item in quotes
-        )
-        if quotes
-        else "暂无摘抄"
-    )
-    return f"""你是一个阅读助手，正在和用户围绕下面这本书深入探讨：
-
-书名：{book.get('title', '')}
-作者：{book.get('author') or '未填写'}
-进度：{progress}
-标签：{' / '.join(book.get('tags', [])) if isinstance(book.get('tags'), list) and book.get('tags') else '无'}
-备注：{book.get('notes') or '无'}
-
-用户摘抄：
-{quotes_text}
-
-请基于这些上下文帮助用户理解内容、提出问题、建立联系。不要先重复背景，直接进入讨论。
-
-你现在不仅是阅读助手，还是一个"结构化笔记助手"。
-
-请严格输出 JSON，格式如下：
-
-{{
-  "reply": "给用户的回答（自然语言）",
-  "actions": [
-    {{
-      "type": "add_note",
-      "data": {{
-        "content": "从对话中提炼出的笔记",
-        "bookId": "{book_id}",
-        "tags": ["相关主题"]
-      }}
-    }},
-    {{
-      "type": "add_book",
-      "data": {{
-        "title": "书名",
-        "author": "作者",
-        "reason": "推荐理由"
-      }}
-    }},
-    {{
-      "type": "summary",
-      "data": {{
-        "content": "阶段性总结"
-      }}
-    }},
-    {{
-      "type": "question",
-      "data": {{
-        "content": "值得深入思考的问题"
-      }}
-    }},
-    {{
-      "type": "tag",
-      "data": {{
-        "tags": ["关键词"]
-      }}
-    }}
-  ]
-}}
-
-规则：
-1. actions 通常为 0 或 1 个。例外：当 reply 中明确列举了多本书时，可为每本书各返回一条 add_book（最多 4 条）；其他类型 action 仍最多 1 个。
-2. 如果多个非书籍动作都合理，只选择"最有价值"的一个
-3. 优先级如下（从高到低）：
-   - add_note（用户表达理解/观点）
-   - add_book（明确出现书籍或强关联）
-   - summary（对话较长）
-   - question（启发思考）
-   - tag（信息较弱时才用）
-4. 如果不确定，返回 []
-5. 不要输出 JSON 以外的任何内容
-6. reply 必须存在
-"""
+class LocalActionDispatcherForTests:
+    def dispatch(self, user_id: str, action: dict) -> ExecutionResult:
+        conn = get_conn()
+        try:
+            result = ActionExecutor().execute_action(conn, user_id, action)
+            result.tool_name = action.get("type", "")
+            return result
+        finally:
+            conn.close()
 
 
 def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_tokens: int = 1200) -> str:
@@ -1908,7 +1908,8 @@ class Handler(BaseHTTPRequestHandler):
                     "PARSE_COMPLETED",
                     {"parseStatus": parse_result.parse_status, "error": parse_result.error_message},
                 )
-                validated_actions = action_validator.validate(parse_result.actions)
+                actions_for_validation = inject_context_into_actions(parse_result.actions, book_id)
+                validated_actions = action_validator.validate(actions_for_validation)
                 trace_manager.log_event(
                     conn,
                     trace_id,
@@ -1918,8 +1919,6 @@ class Handler(BaseHTTPRequestHandler):
                 actions: list[dict] = []
                 for item in validated_actions.valid_actions:
                     action_data = dict(item.get("data", {}))
-                    if item["type"] in {"add_note", "summary", "tag"} and book_id and "bookId" not in action_data:
-                        action_data["bookId"] = book_id
                     persisted = state_machine.create_action(
                         conn,
                         trace_id,
@@ -1928,7 +1927,7 @@ class Handler(BaseHTTPRequestHandler):
                     )
                     trace_manager.log_event(conn, trace_id, "ACTION_CREATED", {"actionId": persisted["id"], "type": persisted["type"]})
                     actions.append(persisted)
-                reply = parse_result.reply
+                reply = complete_reply_with_action_content(parse_result.reply, validated_actions.valid_actions)
                 agent_status = AGENT_STATUS_DEGRADED if parse_result.parse_status == PARSE_DEGRADED or validated_actions.errors else AGENT_STATUS_OK
                 history = [*history, {"role": "user", "content": validation.sanitized_input}, {"role": "assistant", "content": reply}][-40:]
                 state.setdefault("chatHistories", {})[history_key] = history
@@ -2096,7 +2095,8 @@ class Handler(BaseHTTPRequestHandler):
                     "PARSE_COMPLETED",
                     {"parseStatus": parse_result.parse_status, "error": parse_result.error_message},
                 )
-                validated_actions = action_validator.validate(parse_result.actions)
+                actions_for_validation = inject_context_into_actions(parse_result.actions, book_id)
+                validated_actions = action_validator.validate(actions_for_validation)
                 trace_manager.log_event(
                     conn,
                     trace_id,
@@ -2109,8 +2109,6 @@ class Handler(BaseHTTPRequestHandler):
                 actions: list[dict] = []
                 for item in validated_actions.valid_actions:
                     action_data = dict(item.get("data", {}))
-                    if item["type"] in {"add_note", "summary", "tag"} and book_id and "bookId" not in action_data:
-                        action_data["bookId"] = book_id
                     persisted = state_machine.create_action(
                         conn,
                         trace_id,
@@ -2119,7 +2117,7 @@ class Handler(BaseHTTPRequestHandler):
                     )
                     trace_manager.log_event(conn, trace_id, "ACTION_CREATED", {"actionId": persisted["id"], "type": persisted["type"]})
                     actions.append(persisted)
-                reply = parse_result.reply
+                reply = complete_reply_with_action_content(parse_result.reply, validated_actions.valid_actions)
                 agent_status = AGENT_STATUS_DEGRADED if parse_result.parse_status == PARSE_DEGRADED or validated_actions.errors else AGENT_STATUS_OK
                 history = [*history, {"role": "user", "content": validation.sanitized_input}, {"role": "assistant", "content": reply}][-40:]
                 state.setdefault("chatHistories", {})[history_key] = history
@@ -2232,7 +2230,7 @@ class Handler(BaseHTTPRequestHandler):
             action_id = parsed.path.removeprefix("/api/agent-actions/").removesuffix("/approve")
             trace_manager = TraceManager()
             state_machine = ActionStateMachine()
-            executor = ActionExecutor()
+            dispatcher = MCPToolDispatcher()
             metrics_collector = MetricsCollector()
             try:
                 action = state_machine.transition(conn, action_id, user["id"], ACTION_STATUS_APPROVED)
@@ -2245,10 +2243,15 @@ class Handler(BaseHTTPRequestHandler):
                     action_status=ACTION_STATUS_APPROVED,
                     metric_name="agent.action.approved",
                 )
-                execution = executor.execute_action(conn, user["id"], action)
+                execution = dispatcher.dispatch(user["id"], action)
                 if execution.success:
                     final_action = state_machine.transition(conn, action_id, user["id"], ACTION_STATUS_EXECUTED)
-                    trace_manager.log_event(conn, action["traceId"], "ACTION_EXECUTED", {"actionId": action_id, "success": True})
+                    trace_manager.log_event(
+                        conn,
+                        action["traceId"],
+                        "ACTION_EXECUTED",
+                        {"actionId": action_id, "success": True, "via": "mcp", "tool": execution.tool_name},
+                    )
                     metrics_collector.record_action_metric(
                         conn,
                         user_id=user["id"],
@@ -2271,7 +2274,13 @@ class Handler(BaseHTTPRequestHandler):
                     conn,
                     action["traceId"],
                     "ACTION_EXECUTED",
-                    {"actionId": action_id, "success": False, "error": execution.error_message},
+                    {
+                        "actionId": action_id,
+                        "success": False,
+                        "via": "mcp",
+                        "tool": execution.tool_name,
+                        "error": execution.error_message,
+                    },
                 )
                 metrics_collector.record_action_metric(
                     conn,
@@ -2362,6 +2371,9 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     init_db()
+    print("[startup] fetching tool schemas from MCP server ...")
+    ToolSchemaProvider.initialize()
+    print("[startup] tool schemas loaded:", ToolSchemaProvider.get().action_types())
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"backend server listening on http://{HOST}:{PORT}")
     server.serve_forever()
