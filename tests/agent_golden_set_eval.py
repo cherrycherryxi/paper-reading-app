@@ -22,12 +22,16 @@ class GoldenSetEvaluator:
         base_dir = Path(self.temp_dir.name)
         log_server.DB_PATH = base_dir / "test.db"
         log_server.UPLOAD_DIR = base_dir / "uploads"
+        log_server.initialize_tool_schema_provider_for_tests()
         log_server.init_db()
         self._seed_user()
         self.original_call_deepseek = log_server.call_deepseek
+        self.original_mcp_dispatcher = log_server.MCPToolDispatcher
+        log_server.MCPToolDispatcher = log_server.LocalActionDispatcherForTests
 
     def close(self):
         log_server.call_deepseek = self.original_call_deepseek
+        log_server.MCPToolDispatcher = self.original_mcp_dispatcher
         self.temp_dir.cleanup()
 
     def _seed_user(self):

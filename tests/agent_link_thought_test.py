@@ -26,7 +26,10 @@ class LinkThoughtTests(unittest.TestCase):
         base_dir = Path(self.temp_dir.name)
         log_server.DB_PATH = base_dir / "test.db"
         log_server.UPLOAD_DIR = base_dir / "uploads"
+        log_server.initialize_tool_schema_provider_for_tests()
         log_server.init_db()
+        self.original_mcp_dispatcher = log_server.MCPToolDispatcher
+        log_server.MCPToolDispatcher = log_server.LocalActionDispatcherForTests
 
         self.conn = log_server.get_conn()
         self.user_id = "user-test"
@@ -62,6 +65,7 @@ class LinkThoughtTests(unittest.TestCase):
 
     def tearDown(self):
         log_server.call_deepseek = self.original_call_deepseek
+        log_server.MCPToolDispatcher = self.original_mcp_dispatcher
         self.temp_dir.cleanup()
 
     # ── helpers ──────────────────────────────────────────────────────────────
@@ -228,8 +232,7 @@ class LinkThoughtTests(unittest.TestCase):
         self.assertEqual(conn["sourceId"], "quote-1")
 
     def test_approve_invalid_kind_returns_error(self):
-        # kind passes schema validation (it's a str) but fails at execution
-        _, chat_payload = self.chat("非法 kind", model_output={
+        status, chat_payload = self.chat("非法 kind", model_output={
             "reply": "好的。", "actions": [{"type": "link_thought", "data": {
                 "sourceType": "book", "sourceId": "book-1",
                 "targetType": "book", "targetId": "book-2",
@@ -237,10 +240,10 @@ class LinkThoughtTests(unittest.TestCase):
                 "thought": "这个 kind 不合法。",
             }}],
         })
-        action_id = chat_payload["actions"][0]["id"]
-        status, payload = self.approve(action_id)
-        self.assertEqual(status, 500)
-        self.assertIn("invalid connection kind", payload.get("error", ""))
+        self.assertEqual(status, 200)
+        self.assertEqual(chat_payload["validationStatus"], "FAILED")
+        self.assertEqual(chat_payload["actions"], [])
+        self.assertTrue(any("link_thought.kind" in item for item in chat_payload["validationErrors"]))
         self.assertEqual(self.load_state().get("connections", []), [])
 
     def test_approve_nonexistent_source_book_returns_error(self):

@@ -142,7 +142,7 @@
           <div class="chat-composer">
             <div class="chat-prompt-chips" id="chatPromptChips">
               <button type="button" data-chat-prompt="总结这本书目前最重要的主题。">总结主题</button>
-              <button type="button" data-chat-prompt="基于我的阅读记录和摘抄，帮我提炼 3 个值得继续思考的问题。">提炼问题</button>
+              <button type="button" data-chat-prompt="只围绕当前这本书本身，基于我的阅读记录和摘抄，帮我提炼 1 个最值得继续追问的核心问题。不要关联其他书，不要列多个问题。">提炼问题</button>
               <button type="button" data-chat-prompt="帮我把这本书和我读过的其他书建立思想关联。">建立关联</button>
               <button type="button" data-chat-prompt="把我刚才的想法整理成一条可保存的笔记。">整理笔记</button>
             </div>
@@ -259,6 +259,10 @@
       <div class="dialog-form book-detail-dialog-body">
         <div class="section-head"><h2 id="bookDetailTitle">书籍详情</h2><p id="bookDetailMeta"></p></div>
         <div id="bookDetailIntro" class="book-detail-intro"></div>
+        <div id="bookDetailQuestionWrap" class="is-hidden">
+          <div class="section-head"><h3>核心问题</h3></div>
+          <div id="bookDetailQuestion" class="book-detail-question"></div>
+        </div>
         <div class="section-head"><h3>相关摘抄</h3></div>
         <div id="bookDetailQuotes" class="book-detail-quotes"></div>
         <div id="bookDetailConnectionsWrap" class="is-hidden">
@@ -347,7 +351,11 @@
               <option value="note">笔记</option>
             </select>
           </label>
-          <label><span>标签</span><input name="tags" type="text" placeholder="人物, 结构, 金句" /></label>
+          <label class="quote-tag-picker"><span>标签</span>
+            <div id="quoteTagChips" class="quote-tag-chip-row"></div>
+            <input id="quoteTagInput" type="text" placeholder="输入新标签后按 Enter" autocomplete="off" />
+            <input id="quoteTagsHidden" name="tags" type="hidden" />
+          </label>
         </div>
         <label><span>原文 / 笔记内容</span><textarea name="content" id="quoteContent" rows="5" placeholder="可手动输入，也可以先拍照上传再尝试 OCR。" required></textarea></label>
         <div class="quote-photo-tools">

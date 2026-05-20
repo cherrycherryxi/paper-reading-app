@@ -19,7 +19,10 @@ class AgentBackendPropertyTests(unittest.TestCase):
         base_dir = Path(self.temp_dir.name)
         log_server.DB_PATH = base_dir / "test.db"
         log_server.UPLOAD_DIR = base_dir / "uploads"
+        log_server.initialize_tool_schema_provider_for_tests()
         log_server.init_db()
+        self.original_mcp_dispatcher = log_server.MCPToolDispatcher
+        log_server.MCPToolDispatcher = log_server.LocalActionDispatcherForTests
 
         self.conn = log_server.get_conn()
         self.user_id = "user-test"
@@ -60,6 +63,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
 
     def tearDown(self):
         log_server.call_deepseek = self.original_call_deepseek
+        log_server.MCPToolDispatcher = self.original_mcp_dispatcher
         self.temp_dir.cleanup()
 
     def request_json(self, method, path, payload=None, token=None):
@@ -214,6 +218,15 @@ class AgentBackendPropertyTests(unittest.TestCase):
             if expected_status in {log_server.PARSE_DEGRADED, log_server.PARSE_FAILED}:
                 self.assertTrue(result.error_message)
 
+    def test_parser_salvages_reply_from_jsonish_output_with_unescaped_quotes(self):
+        parser = log_server.ResponseParser()
+        raw = '{"reply": "这里有三个问题：\\n\\n**1. 书写本身就是一种反抗吗？**\\n这些"低俗"情绪值得讨论。", "actions": [{"type": "question", "data": {"content": "这些"低俗"情绪？"}}]}'
+        result = parser.parse(raw)
+        self.assertEqual(result.parse_status, log_server.PARSE_DEGRADED)
+        self.assertIn("这里有三个问题", result.reply)
+        self.assertIn('这些"低俗"情绪值得讨论。', result.reply)
+        self.assertEqual(result.actions, [])
+
     def test_property_action_validation_enforces_whitelist_length_and_schema(self):
         validator = log_server.ActionValidator()
 
@@ -239,6 +252,21 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertEqual(good.validation_status, log_server.VALIDATION_SUCCESS)
         self.assertEqual(len(good.valid_actions), 1)
 
+    def test_multiple_question_actions_are_truncated_to_one_action(self):
+        validator = log_server.ActionValidator()
+        result = validator.validate(
+            [
+                {"type": "question", "data": {"content": "第一个问题？", "bookId": "book-1"}},
+                {"type": "question", "data": {"content": "第二个问题？", "bookId": "book-1"}},
+                {"type": "question", "data": {"content": "第三个问题？", "bookId": "book-1"}},
+            ]
+        )
+        self.assertEqual(result.validation_status, log_server.VALIDATION_PARTIAL)
+        self.assertEqual(len(result.valid_actions), 1)
+        content = result.valid_actions[0]["data"]["content"]
+        self.assertEqual(content, "第一个问题？")
+        self.assertTrue(any("actions length exceeds 1" in item for item in result.errors))
+
     def test_property_prompt_data_boundaries_and_context_truncation(self):
         builder = log_server.PromptBuilder()
         state = self.load_state()
@@ -260,7 +288,10 @@ class AgentBackendPropertyTests(unittest.TestCase):
         system_instruction = prompt.split("<system_instruction>\n", 1)[1].split("\n</system_instruction>", 1)[0]
         self.assertNotIn("Test Book", system_instruction)
         self.assertNotIn("Author", system_instruction)
-        self.assertIn("如果推荐了一本具体书，优先返回 add_book", system_instruction)
+        self.assertIn('action.type = "add_book"', system_instruction)
+        self.assertIn("只围绕当前书籍本身提炼 1 个", system_instruction)
+        self.assertIn("提炼问题、总结、解释当前书时不要主动关联其他书", system_instruction)
+        self.assertIn("1 个最核心、最值得继续追问的问题", system_instruction)
         self.assertIn("必须返回对应 action", system_instruction)
 
     def test_property_response_structure_validation(self):
@@ -286,6 +317,36 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIsInstance(payload["history"], list)
         self.assertEqual(payload["historyKey"], "book-1")
         self.assertEqual(payload["actions"][0]["status"], "PENDING_APPROVAL")
+
+    def test_question_action_content_completes_short_lead_in_reply(self):
+        question = "汉斯的悲剧是被教育体制决定的，还是他的顺从也参与了共谋？"
+
+        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+            return json.dumps(
+                {"reply": "基于《在轮下》的核心冲突，一个值得深挖的问题是：", "actions": [{"type": "question", "data": {"content": question}}]},
+                ensure_ascii=False,
+            )
+
+        log_server.call_deepseek = fake_deepseek
+        status, payload = self.request_json(
+            "POST",
+            "/api/chat",
+            {"message": "提炼问题", "bookId": "book-1"},
+            token=self.token,
+        )
+        self.assertEqual(status, 200)
+        self.assertIn(question, payload["reply"])
+        self.assertIn(question, payload["history"][-1]["content"])
+
+    def test_question_action_content_completes_dash_lead_in_reply(self):
+        question = "这种以做事来安顿身心、对抗虚妄的方式，其力量来源是什么？"
+
+        reply = log_server.complete_reply_with_action_content(
+            "读完《阿城精选集》，这些人物共同指向人的尊严如何安放。基于此，我为你提炼了这样一个问题——",
+            [{"type": "question", "data": {"content": question, "bookId": "book-1"}}],
+        )
+
+        self.assertIn(question, reply)
 
     def test_property_trace_and_action_ids_are_unique_across_requests(self):
         action_ids = set()
