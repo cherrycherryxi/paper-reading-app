@@ -88,6 +88,26 @@ function makeChatEl(tagName = "div") {
   return el;
 }
 
+function makeSseResponse(events) {
+  const encoder = new TextEncoder();
+  const payload = events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("");
+  return {
+    ok: true,
+    body: {
+      getReader() {
+        let done = false;
+        return {
+          async read() {
+            if (done) return { done: true, value: undefined };
+            done = true;
+            return { done: false, value: encoder.encode(payload) };
+          },
+        };
+      },
+    },
+  };
+}
+
 // ─── chat.js harness: runs real chat.js in a VM sandbox ──────────────────────
 
 function createChatHarness(overrides = {}) {
@@ -118,9 +138,12 @@ function createChatHarness(overrides = {}) {
       return { reply: "ok", history: [], actions: [] };
     throw new Error(`Unhandled apiFetch: ${url}`);
   };
+  const defaultFetch = async () => makeSseResponse([{ done: true, reply: "ok", history: [], actions: [] }]);
 
   const context = {
     console: { log() {}, error() {}, warn() {} },
+    fetch: overrides.fetch || defaultFetch,
+    TextDecoder,
     document: {
       querySelector(sel) { return getEl(sel); },
       querySelectorAll() { return []; },
@@ -130,6 +153,8 @@ function createChatHarness(overrides = {}) {
       paperReadingApp: {
         requireAuth() { return true; },
         apiFetch: overrides.apiFetch || defaultApiFetch,
+        buildApiUrl(path) { return path; },
+        getAuthToken() { return "token"; },
         getState() { return appState; },
         setChatHistoryForBook(id, h) { appState.chatHistories[id || "__general__"] = h; },
         getChatHistoryForBook(id) { return appState.chatHistories[id || "__general__"] || []; },
@@ -177,16 +202,31 @@ function createChatHarness(overrides = {}) {
 
 function makeAppEl(tagName = "div") {
   let html = "";
+  const classes = new Set();
   return {
     tagName: tagName.toUpperCase(),
     className: "", textContent: "",
     style: { display: "" }, dataset: {},
     value: "", disabled: false, open: false,
     children: [], files: [],
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    classList: {
+      add(...names) { names.forEach((name) => classes.add(name)); },
+      remove(...names) { names.forEach((name) => classes.delete(name)); },
+      toggle(name, force) {
+        const shouldAdd = force === undefined ? !classes.has(name) : Boolean(force);
+        if (shouldAdd) classes.add(name);
+        else classes.delete(name);
+        return shouldAdd;
+      },
+      contains(name) { return classes.has(name); },
+    },
     get innerHTML() { return html; },
     set innerHTML(v) { html = String(v); this.children = []; },
-    appendChild(c) { this.children.push(c); return c; },
+    appendChild(c) {
+      this.children.push(c);
+      if (c?.innerHTML) html += c.innerHTML;
+      return c;
+    },
     insertAdjacentHTML(pos, v) {
       html = pos === "beforeend" ? `${html}${v}` : `${v}${html}`;
     },
@@ -265,6 +305,7 @@ globalThis.__testHooks = {
   renderBooks,
   globalSearch,
   saveBookEdit,
+  openBookDetailDialog,
   setState(v)       { state = v; },
   getState()        { return state; },
   setCurrentUser(v) { currentUser = v; },
@@ -280,6 +321,7 @@ globalThis.__testHooks = {
   const hooks = context.__testHooks;
   return {
     ...hooks,
+    getEl,
     isConfirmCalled()   { return confirmCalled; },
     dispatchedEvents,
     localStorage: context.localStorage,
@@ -300,8 +342,8 @@ test("P0-001 regression: .toast bottom includes 64px nav-bar offset inside mobil
   assert.ok(toastMatch, ".toast rule missing inside mobile media block");
   assert.match(
     toastMatch[1],
-    /bottom:\s*calc\([^)]*64px[^)]*\)/,
-    ".toast bottom should include 64px nav-bar height (regression: was missing, toast appeared behind nav)"
+    /bottom:\s*calc\([^)]*(64px|72px)[^)]*\)/,
+    ".toast bottom should include the mobile nav-bar height (regression: was missing, toast appeared behind nav)"
   );
 });
 
@@ -323,6 +365,15 @@ test("bug-017 regression: <dialog id=deleteBookDialog> must not carry class=dial
     /\bdialog-form\b/,
     "dialog-form must be on an inner wrapper, not on the <dialog> element itself"
   );
+});
+
+test("quote form keeps default tag picker wiring", () => {
+  assert.match(indexHtml, /id="quoteTagChips"/, "quote form should render default tag chip container");
+  assert.match(indexHtml, /id="quoteTagInput"/, "quote form should render custom tag input");
+  assert.match(indexHtml, /id="quoteTagsHidden"[^>]+name="tags"/, "quote form should submit selected tags through hidden tags input");
+  assert.match(appSource, /const DEFAULT_QUOTE_TAGS = \[[^\]]*"金句"[^;]+;/, "default quote tag list should exist");
+  assert.match(appSource, /renderQuoteTagPicker\(\[\]\)/, "new quote flow should render default quote tags");
+  assert.match(appSource, /document\.getElementById\("quoteTagInput"\)\?\.addEventListener\("keydown"/, "custom quote tag input should auto-add tags on Enter");
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -366,9 +417,8 @@ test("P1-001 regression: all agent actions are shown sequentially (not just the 
   ];
 
   const harness = createChatHarness({
+    fetch: async () => makeSseResponse([{ done: true, reply: "ok", history: [], actions }]),
     apiFetch: async (url) => {
-      if (url === "/api/chat")
-        return { reply: "ok", history: [], actions };
       if (url === "/api/agent-actions/a1/approve")
         return { ok: true, action: { id: "a1", status: "EXECUTED" }, state: harness.appState };
       if (url === "/api/agent-actions/a2/reject")
@@ -424,7 +474,7 @@ test("P1-003 regression: clearHistory uses showConfirmDialog, not window.confirm
   );
   assert.equal(
     harness.getShowConfirmCalls()[0].message,
-    "清空当前账号下的探讨记录？"
+    "清空 Test Book 的探讨记录？"
   );
 });
 
@@ -440,9 +490,9 @@ test("P1-002 regression: renderTimeline and renderQuotes include delete buttons"
               currentPage: 10, totalPages: 200, notes: "", coverImageUrl: "",
               createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }],
     sessions: [{ id: "s1", bookId: "b1", date: "2026-05-01",
-                 minutes: 30, currentPage: 50, notes: "" }],
-    quotes: [{ id: "q1", bookId: "b1", text: "一段摘抄",
-               chapter: "", createdAt: "2026-05-01T00:00:00.000Z" }],
+                 startPage: 10, endPage: 50, minutes: 30, note: "" }],
+    quotes: [{ id: "q1", bookId: "b1", content: "一段摘抄",
+               kind: "quote", page: 42, tags: [], createdAt: "2026-05-01T00:00:00.000Z" }],
     chatHistories: {},
   });
 
@@ -453,8 +503,7 @@ test("P1-002 regression: renderTimeline and renderQuotes include delete buttons"
     "renderTimeline should include data-delete-session delete buttons (regression: cards had no delete button)"
   );
 
-  // quoteFilter defaults to "" in the stub; set to "all" so no quotes are filtered out
-  hooks.els.quoteFilter.value = "all";
+  hooks.els.quoteTypeChips.querySelector = () => ({ dataset: { quoteType: "all" } });
   hooks.renderQuotes();
   assert.match(
     hooks.els.quotesList.innerHTML,
@@ -549,4 +598,30 @@ test("P1-005 regression: 401 response shows toast and clears auth state", async 
     toasts.some((m) => m.includes("登录已过期")),
     "should show '登录已过期' toast on 401 (regression: 401 was silent, no user feedback)"
   );
+});
+
+test("book detail shows one core question while quote wall excludes questions", () => {
+  const hooks = createAppHarness();
+  hooks.setCurrentUser({ id: "u1", name: "Test" });
+  hooks.setState({
+    books: [{ id: "b1", title: "书", author: "A", tags: [], status: "reading",
+              currentPage: 10, totalPages: 200, notes: "", coverImageUrl: "",
+              createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }],
+    sessions: [],
+    quotes: [
+      { id: "q1", bookId: "b1", content: "普通摘抄", kind: "quote", page: 1, tags: [], createdAt: "2026-05-01T00:00:00.000Z" },
+      { id: "question-1", bookId: "b1", content: "这本书最值得继续追问什么？", kind: "question", tags: ["问题"], createdAt: "2026-05-02T00:00:00.000Z" },
+    ],
+    chatHistories: {},
+    connections: [],
+  });
+
+  hooks.openBookDetailDialog("b1");
+  assert.equal(hooks.getEl("#bookDetailQuestion").textContent, "这本书最值得继续追问什么？");
+  assert.equal(hooks.getEl("#bookDetailQuestionWrap").classList.contains("is-hidden"), false);
+
+  hooks.els.quoteTypeChips.querySelector = () => ({ dataset: { quoteType: "all" } });
+  hooks.renderQuotes();
+  assert.match(hooks.els.quotesList.innerHTML, /普通摘抄/);
+  assert.doesNotMatch(hooks.els.quotesList.innerHTML, /这本书最值得继续追问什么？/);
 });

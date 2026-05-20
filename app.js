@@ -26,6 +26,7 @@ const bookStatusOrder = {
 const quoteKindMap = {
   quote: "摘抄",
   note: "笔记",
+  question: "问题",
 };
 
 const els = {
@@ -384,6 +385,10 @@ function getBookSessions(bookId) {
   return state.sessions.filter((item) => item.bookId === bookId);
 }
 
+function isRegularQuote(item) {
+  return item?.kind !== "question";
+}
+
 function getBookMetrics(bookId) {
   const sessions = getBookSessions(bookId);
   return {
@@ -394,7 +399,7 @@ function getBookMetrics(bookId) {
 }
 
 function getQuoteCount(bookId) {
-  return state.quotes.filter((item) => item.bookId === bookId).length;
+  return state.quotes.filter((item) => item.bookId === bookId && isRegularQuote(item)).length;
 }
 
 function getConnectionCount(itemId) {
@@ -555,6 +560,26 @@ async function loadSession() {
   dispatchUserChange();
 }
 
+async function refreshSessionState({ renderPage = false } = {}) {
+  if (!authToken) {
+    return false;
+  }
+  const data = await apiFetch("/api/session");
+  currentUser = data.user || null;
+  state = data.state || structuredClone(initialState);
+  if (!state.chatHistories) {
+    state.chatHistories = {};
+  }
+  if (!Array.isArray(state.connections)) {
+    state.connections = [];
+  }
+  if (renderPage) {
+    render();
+    dispatchUserChange();
+  }
+  return true;
+}
+
 async function loadRemoteLogs() {
   if (!currentUser?.id) {
     remoteLogs = [];
@@ -573,20 +598,22 @@ async function loadRemoteLogs() {
 
 function renderHero() {
   const minutes = state.sessions.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
+  const quoteCount = state.quotes.filter(isRegularQuote).length;
   els.heroBooks.textContent = state.books.length;
   els.heroMinutes.textContent = minutes;
-  els.heroQuotes.textContent = state.quotes.length;
+  els.heroQuotes.textContent = quoteCount;
 }
 
 function renderSummary() {
   const finishedBooks = state.books.filter((item) => item.status === "finished").length;
   const readingBooks = state.books.filter((item) => item.status === "reading").length;
   const completionRate = state.books.length ? Math.round((finishedBooks / state.books.length) * 100) : 0;
+  const quoteCount = state.quotes.filter(isRegularQuote).length;
   const stats = [
     { label: "阅读中", value: readingBooks, icon: "📖" },
     { label: "书单总数", value: state.books.length, icon: "📚" },
     { label: "阅读记录", value: state.sessions.length, icon: "🕐" },
-    { label: "摘抄卡片", value: state.quotes.length, icon: "✍️" },
+    { label: "摘抄卡片", value: quoteCount, icon: "✍️" },
   ];
 
   els.meSummary.innerHTML = stats
@@ -692,7 +719,7 @@ function matchBooks(query) {
 }
 
 function matchQuotes(query) {
-  return state.quotes.filter((quote) => fuzzyMatch(quote.content || "", query));
+  return state.quotes.filter((quote) => isRegularQuote(quote) && fuzzyMatch(quote.content || "", query));
 }
 
 function compareBooksForList(a, b) {
@@ -1003,6 +1030,7 @@ function renderQuotes() {
   const filter = els.quoteTypeChips?.querySelector('.filter-chip.active')?.dataset.quoteType || 'all';
   const searchRaw = (els.quoteSearch?.value || "").trim().toLowerCase();
   const quotes = [...state.quotes]
+    .filter(isRegularQuote)
     .filter((item) => filter === "all" || item.kind === filter)
     .filter((item) => {
       if (!searchRaw) return true;
@@ -1798,8 +1826,21 @@ function openBookDetailDialog(bookId) {
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
+  const bookQuestion = state.quotes
+    .filter((q) => q.bookId === bookId && q.kind === "question")
+    .sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
+  const questionWrap = document.getElementById("bookDetailQuestionWrap");
+  const questionEl = document.getElementById("bookDetailQuestion");
+  if (questionWrap && questionEl && bookQuestion?.content) {
+    questionEl.textContent = bookQuestion.content;
+    questionWrap.classList.remove("is-hidden");
+  } else if (questionWrap && questionEl) {
+    questionEl.textContent = "";
+    questionWrap.classList.add("is-hidden");
+  }
+
   const bookQuotes = state.quotes
-    .filter((q) => q.bookId === bookId)
+    .filter((q) => q.bookId === bookId && isRegularQuote(q))
     .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   if (els.bookDetailQuotes) {
     const previewQuotes = bookQuotes.slice(0, 2);
@@ -2584,7 +2625,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   }, { passive: true });
 
   wrapperEl._comboboxUpdate = (quotes) => {
-    allQuotes = quotes;
+    allQuotes = (quotes || []).filter(isRegularQuote);
     if (isOpen) buildList(textInput.value);
   };
   wrapperEl._comboboxReset = () => {
@@ -3054,7 +3095,9 @@ window.paperReadingApp = {
   apiFetch,
   buildApiUrl,
   getAuthToken: () => authToken,
+  refreshSessionState,
   loadRemoteLogs,
+  getRemoteLogs: () => remoteLogs,
   clearChatHistory,
   showConfirmDialog,
   getChatHistoryForBook(bookId) {

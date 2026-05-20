@@ -16,7 +16,10 @@ class OCRRecognitionFixTests(unittest.TestCase):
         base_dir = Path(self.temp_dir.name)
         log_server.DB_PATH = base_dir / "test.db"
         log_server.UPLOAD_DIR = base_dir / "uploads"
+        log_server.initialize_tool_schema_provider_for_tests()
         log_server.init_db()
+        self.original_mcp_dispatcher = log_server.MCPToolDispatcher
+        log_server.MCPToolDispatcher = log_server.LocalActionDispatcherForTests
 
         self.conn = log_server.get_conn()
         self.user_id = "user-test"
@@ -47,6 +50,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
                 delattr(log_server, "call_kimi_vision")
         else:
             log_server.call_kimi_vision = self.original_call_kimi_vision
+        log_server.MCPToolDispatcher = self.original_mcp_dispatcher
         self.temp_dir.cleanup()
 
     def request_json(self, method, path, payload=None, token=None):
