@@ -1,28 +1,46 @@
+# Local data
+*.db
+*.db-journal
+app_state.db
+app_state.db-journal
+uploads/
+
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
 .venv/
+venv/
 
-# 数据库
-*.db
-
-# 上传文件
-uploads/
-
-# 环境变量
+# Secrets
 .env
+.env.local
 
-# macOS
+# IDE / OS
 .DS_Store
-
-# 日志
-*.log
-
-# 前端构建（如果以后有）
-dist/
-
-# kiro文件
+Thumbs.db
+.vscode/
+.idea/
 .kiro/
 
+# Logs
+*.log
+
+# Build / dist
+dist/
+build/
+
 # Claude/Codex nested worktrees
+.claude/
 .claude/worktrees/
+
+# OpenWolf local runtime state
+.wolf/
+.wolf/token-ledger.json
+.wolf/cron-state.json
+.wolf/designqc-captures/
+.wolf/designqc-report.json
+.wolf/hooks/_session.json
+.wolf/suggestions.json
