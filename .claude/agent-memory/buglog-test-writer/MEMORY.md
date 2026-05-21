@@ -1,1 +1,0 @@
-- [Regression Test Coverage](regression-tests-summary.md) — 9 JS regression tests written for fixed bugs (P0/P1), all passing

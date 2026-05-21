@@ -23,7 +23,7 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "paper_reading_backend.db"
+DB_PATH = BASE_DIR / "app_state.db"
 
 VALID_CONNECTION_KINDS = {"异曲同工", "引用", "对比", "影响", "延伸"}
 EntityType = Literal["book", "quote"]
