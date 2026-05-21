@@ -575,7 +575,7 @@ def save_image(user_id: str, data_url: str, filename: str = "") -> str:
 
 
 class AgentRequestValidator:
-    def validate_chat_request(self, message: str, book_id: str, user_state: dict) -> ValidationResult:
+    def validate_chat_request(self, message: str, book_id: str, user_state: dict, quote_id: str = "") -> ValidationResult:
         sanitized = " ".join(message.split())
         if not sanitized:
             return ValidationResult(False, "message is required", "")
@@ -585,6 +585,12 @@ class AgentRequestValidator:
             return ValidationResult(False, "message appears excessively repetitive", "")
         if book_id and not any(item.get("id") == book_id for item in user_state.get("books", [])):
             return ValidationResult(False, "bookId does not exist", "")
+        if quote_id:
+            quote = next((item for item in user_state.get("quotes", []) if item.get("id") == quote_id), None)
+            if not quote:
+                return ValidationResult(False, "quoteId does not exist", "")
+            if book_id and quote.get("bookId") != book_id:
+                return ValidationResult(False, "quoteId does not belong to bookId", "")
         return ValidationResult(True, "", sanitized)
 
     @staticmethod
@@ -627,13 +633,37 @@ def compress_chat_history_if_needed(
     return compressed
 
 
+def resolve_quote_book_id(user_state: dict, quote_id: str, fallback_book_id: str = "") -> str:
+    if not quote_id:
+        return fallback_book_id
+    quote = next((item for item in user_state.get("quotes", []) if item.get("id") == quote_id), None)
+    return str(quote.get("bookId", "") if quote else fallback_book_id).strip()
+
+
+def chat_context_from_payload(user_state: dict, payload: dict) -> dict:
+    fallback_book_id = str(payload.get("bookId", "")).strip()
+    context = normalize_chat_context(payload.get("context"), fallback_book_id)
+    legacy_quote_id = str(payload.get("quoteId", "")).strip()
+    if context.get("type") != "quote" and legacy_quote_id:
+        quote_book_id = resolve_quote_book_id(user_state, legacy_quote_id, fallback_book_id)
+        context = normalize_chat_context({"type": "quote", "bookId": quote_book_id, "quoteId": legacy_quote_id})
+    return context
+
+
 class PromptBuilder:
-    def build_chat_prompt(self, user_state: dict, book_id: str, chat_history: list[dict]) -> str:
+    def build_chat_prompt(self, user_state: dict, book_id: str, chat_history: list[dict], quote_id: str = "") -> str:
         book = next((item for item in user_state.get("books", []) if item.get("id") == book_id), None)
         quotes = [item for item in user_state.get("quotes", []) if item.get("bookId") == book_id][:20] if book_id else []
+        focused_quote = next((item for item in user_state.get("quotes", []) if item.get("id") == quote_id), None) if quote_id else None
         book_payload = {
             "book": book or {},
             "quotes": quotes,
+            "focused_quote": focused_quote or {},
+            "context": {
+                "type": "quote" if focused_quote else ("book" if book_id else "global"),
+                "bookId": book_id,
+                "quoteId": quote_id if focused_quote else "",
+            },
             "all_books_summary": [
                 {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")}
                 for b in user_state.get("books", [])
@@ -641,7 +671,7 @@ class PromptBuilder:
             "existing_connections": user_state.get("connections", [])[:20],
         }
         history_payload = chat_history[-40:]
-        system_instruction = self.build_system_instruction(book_id)
+        system_instruction = self.build_system_instruction(book_id, bool(focused_quote))
         return (
             "<system_instruction>\n"
             f"{system_instruction}\n"
@@ -656,15 +686,20 @@ class PromptBuilder:
         )
 
     @staticmethod
-    def build_system_instruction(book_id: str) -> str:
+    def build_system_instruction(book_id: str, has_focused_quote: bool = False) -> str:
         provider = ToolSchemaProvider.get()
         tools_section = provider.for_prompt()
         common_rules = """规则：
 1. reply 必须存在且是自然语言。
 2. actions 通常为 0 或 1 个。例外：add_book 可在一次回复中给出多本，最多 4 条；其他类型 action 仍最多 1 个。
-3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前书籍本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
+3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前上下文本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
 4. 只输出 JSON，不要输出任何额外说明。"""
-        if book_id:
+        if has_focused_quote:
+            scenario_rules = """5. 当前上下文包含 focused_quote 时，优先围绕这条摘抄解释、追问或整理；不要泛泛总结整本书。
+6. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
+7. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前摘抄时不要主动关联其他书。sourceId 必须是 focused_quote.id 或 book.id，targetId 必须是 all_books_summary 中已有书籍的 id 或 quotes 中已有摘抄的 id。"""
+            header = "你是阅读助手。当前讨论对象是一条摘抄，结合 focused_quote、book、quotes 和 conversation_history，直接回答，中文输出。"
+        elif book_id:
             scenario_rules = """5. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
 6. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前书时不要主动关联其他书。sourceId 必须是 book.id，targetId 必须是 all_books_summary 中已有书籍的 id。"""
             header = "你是阅读助手。结合 user_data 和 conversation_history，直接回答，不要复述背景，中文输出。"
@@ -1875,9 +1910,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             payload = self._read_json()
             message = str(payload.get("message", "")).strip()
-            context = normalize_chat_context(payload.get("context"), str(payload.get("bookId", "")).strip())
-            book_id = chat_context_book_id(context)
             state = load_state(conn, user["id"])
+            context = chat_context_from_payload(state, payload)
+            book_id = chat_context_book_id(context)
+            quote_id = str(context.get("quoteId", "")).strip()
             trace_id = new_id("trace")
             validator = AgentRequestValidator()
             prompt_builder = PromptBuilder()
@@ -1888,9 +1924,9 @@ class Handler(BaseHTTPRequestHandler):
             metrics_collector = MetricsCollector()
             history_key = chat_context_history_key(context)
             history = state.get("chatHistories", {}).get(history_key, [])
-            validation = validator.validate_chat_request(message, book_id, state)
+            validation = validator.validate_chat_request(message, book_id, state, quote_id)
             trace_manager.create_trace(conn, trace_id=trace_id, user_id=user["id"], message=message, book_id=book_id)
-            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "context": context, "historyLength": len(history)})
+            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "context": context, "historyKey": history_key, "historyLength": len(history)})
             if not validation.is_valid:
                 trace_manager.update_trace(
                     conn,
@@ -1922,7 +1958,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Log-Token")
             self.end_headers()
             history = compress_chat_history_if_needed(conn, user["id"], history_key, history, state)
-            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
+            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history, quote_id)
             request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": validation.sanitized_input}]
             trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history)})
 
@@ -2097,9 +2133,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             payload = self._read_json()
             message = str(payload.get("message", "")).strip()
-            context = normalize_chat_context(payload.get("context"), str(payload.get("bookId", "")).strip())
-            book_id = chat_context_book_id(context)
             state = load_state(conn, user["id"])
+            context = chat_context_from_payload(state, payload)
+            book_id = chat_context_book_id(context)
+            quote_id = str(context.get("quoteId", "")).strip()
             trace_id = new_id("trace")
             validator = AgentRequestValidator()
             prompt_builder = PromptBuilder()
@@ -2110,9 +2147,9 @@ class Handler(BaseHTTPRequestHandler):
             metrics_collector = MetricsCollector()
             history_key = chat_context_history_key(context)
             history = state.get("chatHistories", {}).get(history_key, [])
-            validation = validator.validate_chat_request(message, book_id, state)
+            validation = validator.validate_chat_request(message, book_id, state, quote_id)
             trace_manager.create_trace(conn, trace_id=trace_id, user_id=user["id"], message=message, book_id=book_id)
-            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "context": context, "historyLength": len(history)})
+            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "context": context, "historyKey": history_key, "historyLength": len(history)})
             if not validation.is_valid:
                 trace_manager.update_trace(
                     conn,
@@ -2137,7 +2174,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             history = compress_chat_history_if_needed(conn, user["id"], history_key, history, state)
-            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history)
+            system_prompt = prompt_builder.build_chat_prompt(state, book_id, history, quote_id)
             request_messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": validation.sanitized_input}]
             trace_manager.log_event(conn, trace_id, "PROMPT_CONSTRUCTED", {"historyLength": len(history)})
 
@@ -2430,7 +2467,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             state = load_state(conn, user["id"])
             payload = self._read_json() if self.command == "DELETE" and int(self.headers.get("Content-Length", "0")) > 0 else {}
-            context = normalize_chat_context(payload.get("context"), str(payload.get("bookId", "")).strip())
+            context = chat_context_from_payload(state, payload)
             history_key = chat_context_history_key(context)
             state.setdefault("chatHistories", {})[history_key] = []
             state.setdefault("chatContexts", {})[history_key] = context

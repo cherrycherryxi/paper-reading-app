@@ -125,6 +125,7 @@ const els = {
   connectionsList: document.querySelector("#connectionsList"),
   connectionSearch: document.querySelector("#connectionSearch"),
   connectionKindChips: document.querySelector("#connectionKindChips"),
+  quoteDetailChatBtn: document.querySelector("#quoteDetailChatBtn"),
   quoteDetailConnectBtn: document.querySelector("#quoteDetailConnectBtn"),
   mobileTabs: document.querySelectorAll(".mobile-tab"),
 };
@@ -1694,6 +1695,15 @@ function openQuoteDetail(quoteId) {
   quoteDetailDlg.showModal();
 }
 
+function goToQuoteChat(quoteId) {
+  if (!requireAuth("使用探讨功能")) return;
+  const quote = state.quotes.find((q) => q.id === quoteId);
+  if (!quote) return;
+  document.getElementById("quoteDetailDialog")?.close();
+  activateTab("chat");
+  window.paperReadingApp?.switchChatToQuote?.(quote.bookId, quote.id);
+}
+
 function openNewQuoteForBook(bookId) {
   if (!requireAuth("新增摘抄")) return;
   activateTab("quote");
@@ -2487,15 +2497,17 @@ async function runOcrFromImage() {
 
 async function clearChatHistory() {
   try {
-    const activeBookId = window.paperReadingApp?.getActiveChatBookId?.() || "";
-    const context = normalizeChatContext(null, activeBookId);
+    const context = normalizeChatContext(
+      window.paperReadingApp?.getActiveChatContext?.(),
+      window.paperReadingApp?.getActiveChatBookId?.() || ""
+    );
     const historyKey = chatContextHistoryKey(context);
     await apiFetch(
       "/api/chat-history",
       {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context, bookId: activeBookId }),
+        body: JSON.stringify({ context, bookId: context.bookId || "" }),
       },
       true
     );
@@ -2938,6 +2950,11 @@ function bindEvents() {
     const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
     document.getElementById("quoteDetailDialog").close();
     openConnectionDialog({ sourceType: "quote", sourceId: quoteId });
+  });
+
+  els.quoteDetailChatBtn?.addEventListener("click", () => {
+    const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
+    goToQuoteChat(quoteId);
   });
 
   document.getElementById("quoteDetailConnections")?.addEventListener("click", (event) => {
