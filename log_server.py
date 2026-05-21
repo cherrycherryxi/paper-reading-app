@@ -38,6 +38,7 @@ INITIAL_STATE = {
     "sessions": [],
     "quotes": [],
     "chatHistories": {},
+    "chatContexts": {},
     "connections": [],
 }
 
@@ -301,19 +302,83 @@ def verify_password(password: str, encoded: str) -> bool:
     return hmac.compare_digest(candidate, digest)
 
 
+def normalize_chat_context(context: dict | None = None, fallback_book_id: str = "") -> dict:
+    if isinstance(context, dict):
+        context_type = str(context.get("type", "")).strip()
+        if context_type == "book":
+            book_id = str(context.get("bookId", "")).strip()
+            return {"type": "book", "bookId": book_id} if book_id else {"type": "global"}
+        if context_type == "quote":
+            book_id = str(context.get("bookId", "")).strip()
+            quote_id = str(context.get("quoteId", "")).strip()
+            if book_id and quote_id:
+                return {"type": "quote", "bookId": book_id, "quoteId": quote_id}
+            if book_id:
+                return {"type": "book", "bookId": book_id}
+        if context_type == "global":
+            return {"type": "global"}
+    fallback = str(fallback_book_id or "").strip()
+    return {"type": "book", "bookId": fallback} if fallback else {"type": "global"}
+
+
+def chat_context_history_key(context: dict | None) -> str:
+    normalized = normalize_chat_context(context)
+    if normalized["type"] == "book":
+        return f"book:{normalized['bookId']}"
+    if normalized["type"] == "quote":
+        return f"quote:{normalized['quoteId']}"
+    return "global"
+
+
+def context_from_history_key(history_key: str) -> dict:
+    key = str(history_key or "").strip()
+    if not key or key in {"__general__", "global"}:
+        return {"type": "global"}
+    if key.startswith("book:"):
+        return normalize_chat_context({"type": "book", "bookId": key[5:]})
+    if key.startswith("quote:"):
+        return normalize_chat_context({"type": "quote", "quoteId": key[6:]})
+    return normalize_chat_context({"type": "book", "bookId": key})
+
+
+def chat_context_book_id(context: dict | None) -> str:
+    normalized = normalize_chat_context(context)
+    return str(normalized.get("bookId", "")).strip()
+
+
 def sanitize_state(payload: dict | None) -> dict:
     payload = payload or {}
     chat_histories = payload.get("chatHistories")
     if not isinstance(chat_histories, dict):
         legacy_history = payload.get("chatHistory")
         chat_histories = {"__general__": legacy_history} if isinstance(legacy_history, list) else {}
+    raw_contexts = payload.get("chatContexts")
+    raw_contexts = raw_contexts if isinstance(raw_contexts, dict) else {}
+    migrated_histories: dict[str, list] = {}
+    migrated_contexts: dict[str, dict] = {}
+    for key, value in chat_histories.items():
+        if not isinstance(value, list):
+            continue
+        raw_context = raw_contexts.get(str(key))
+        context = normalize_chat_context(raw_context) if isinstance(raw_context, dict) else context_from_history_key(str(key))
+        history_key = chat_context_history_key(context)
+        if history_key not in migrated_histories:
+            migrated_histories[history_key] = value
+            migrated_contexts[history_key] = context
+
+    for key, value in raw_contexts.items():
+        if not isinstance(value, dict):
+            continue
+        context = normalize_chat_context(value)
+        history_key = chat_context_history_key(context)
+        if history_key in migrated_histories:
+            migrated_contexts[history_key] = context
     return {
         "books": payload.get("books") if isinstance(payload.get("books"), list) else [],
         "sessions": payload.get("sessions") if isinstance(payload.get("sessions"), list) else [],
         "quotes": payload.get("quotes") if isinstance(payload.get("quotes"), list) else [],
-        "chatHistories": {
-            str(key): value for key, value in chat_histories.items() if isinstance(value, list)
-        },
+        "chatHistories": migrated_histories,
+        "chatContexts": migrated_contexts,
         "connections": payload.get("connections") if isinstance(payload.get("connections"), list) else [],
     }
 
@@ -1810,7 +1875,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             payload = self._read_json()
             message = str(payload.get("message", "")).strip()
-            book_id = str(payload.get("bookId", "")).strip()
+            context = normalize_chat_context(payload.get("context"), str(payload.get("bookId", "")).strip())
+            book_id = chat_context_book_id(context)
             state = load_state(conn, user["id"])
             trace_id = new_id("trace")
             validator = AgentRequestValidator()
@@ -1820,11 +1886,11 @@ class Handler(BaseHTTPRequestHandler):
             trace_manager = TraceManager()
             state_machine = ActionStateMachine()
             metrics_collector = MetricsCollector()
-            history_key = book_id or "__general__"
+            history_key = chat_context_history_key(context)
             history = state.get("chatHistories", {}).get(history_key, [])
             validation = validator.validate_chat_request(message, book_id, state)
             trace_manager.create_trace(conn, trace_id=trace_id, user_id=user["id"], message=message, book_id=book_id)
-            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "historyLength": len(history)})
+            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "context": context, "historyLength": len(history)})
             if not validation.is_valid:
                 trace_manager.update_trace(
                     conn,
@@ -1931,6 +1997,7 @@ class Handler(BaseHTTPRequestHandler):
                 agent_status = AGENT_STATUS_DEGRADED if parse_result.parse_status == PARSE_DEGRADED or validated_actions.errors else AGENT_STATUS_OK
                 history = [*history, {"role": "user", "content": validation.sanitized_input}, {"role": "assistant", "content": reply}][-40:]
                 state.setdefault("chatHistories", {})[history_key] = history
+                state.setdefault("chatContexts", {})[history_key] = context
                 save_state(conn, user["id"], state)
                 trace_manager.update_trace(
                     conn,
@@ -1983,6 +2050,7 @@ class Handler(BaseHTTPRequestHandler):
                     "actions": actions,
                     "history": history,
                     "historyKey": history_key,
+                    "context": context,
                 })
             except Exception as error:
                 trace_manager.update_trace(
@@ -2029,7 +2097,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             payload = self._read_json()
             message = str(payload.get("message", "")).strip()
-            book_id = str(payload.get("bookId", "")).strip()
+            context = normalize_chat_context(payload.get("context"), str(payload.get("bookId", "")).strip())
+            book_id = chat_context_book_id(context)
             state = load_state(conn, user["id"])
             trace_id = new_id("trace")
             validator = AgentRequestValidator()
@@ -2039,11 +2108,11 @@ class Handler(BaseHTTPRequestHandler):
             trace_manager = TraceManager()
             state_machine = ActionStateMachine()
             metrics_collector = MetricsCollector()
-            history_key = book_id or "__general__"
+            history_key = chat_context_history_key(context)
             history = state.get("chatHistories", {}).get(history_key, [])
             validation = validator.validate_chat_request(message, book_id, state)
             trace_manager.create_trace(conn, trace_id=trace_id, user_id=user["id"], message=message, book_id=book_id)
-            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "historyLength": len(history)})
+            trace_manager.log_event(conn, trace_id, "REQUEST_RECEIVED", {"bookId": book_id, "context": context, "historyLength": len(history)})
             if not validation.is_valid:
                 trace_manager.update_trace(
                     conn,
@@ -2121,6 +2190,7 @@ class Handler(BaseHTTPRequestHandler):
                 agent_status = AGENT_STATUS_DEGRADED if parse_result.parse_status == PARSE_DEGRADED or validated_actions.errors else AGENT_STATUS_OK
                 history = [*history, {"role": "user", "content": validation.sanitized_input}, {"role": "assistant", "content": reply}][-40:]
                 state.setdefault("chatHistories", {})[history_key] = history
+                state.setdefault("chatContexts", {})[history_key] = context
                 save_state(conn, user["id"], state)
                 trace_manager.update_trace(
                     conn,
@@ -2173,6 +2243,7 @@ class Handler(BaseHTTPRequestHandler):
                         "actions": actions,
                         "history": history,
                         "historyKey": history_key,
+                        "context": context,
                     }
                 )
             except Exception as error:
@@ -2359,8 +2430,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             state = load_state(conn, user["id"])
             payload = self._read_json() if self.command == "DELETE" and int(self.headers.get("Content-Length", "0")) > 0 else {}
-            history_key = str(payload.get("bookId", "")).strip() or "__general__"
+            context = normalize_chat_context(payload.get("context"), str(payload.get("bookId", "")).strip())
+            history_key = chat_context_history_key(context)
             state.setdefault("chatHistories", {})[history_key] = []
+            state.setdefault("chatContexts", {})[history_key] = context
             save_state(conn, user["id"], state)
             conn.close()
             self._send_json({"ok": True})

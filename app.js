@@ -6,6 +6,7 @@ const initialState = {
   sessions: [],
   quotes: [],
   chatHistories: {},
+  chatContexts: {},
   connections: [],
 };
 
@@ -200,6 +201,83 @@ function bindBookCoverImageFallback(card) {
   if (img.complete && img.naturalWidth > 0) {
     img.dispatchEvent(new Event("load"));
   }
+}
+
+function normalizeChatContext(context = null, fallbackBookId = "") {
+  if (context && typeof context === "object") {
+    if (context.type === "book") {
+      const bookId = String(context.bookId || "").trim();
+      return bookId ? { type: "book", bookId } : { type: "global" };
+    }
+    if (context.type === "quote") {
+      const bookId = String(context.bookId || "").trim();
+      const quoteId = String(context.quoteId || "").trim();
+      if (bookId && quoteId) return { type: "quote", bookId, quoteId };
+      if (bookId) return { type: "book", bookId };
+    }
+    if (context.type === "global") {
+      return { type: "global" };
+    }
+  }
+  const bookId = String(fallbackBookId || "").trim();
+  return bookId ? { type: "book", bookId } : { type: "global" };
+}
+
+function chatContextHistoryKey(context) {
+  const normalized = normalizeChatContext(context);
+  if (normalized.type === "book") return `book:${normalized.bookId}`;
+  if (normalized.type === "quote") return `quote:${normalized.quoteId}`;
+  return "global";
+}
+
+function contextFromHistoryKey(historyKey) {
+  const key = String(historyKey || "").trim();
+  if (!key || key === "__general__" || key === "global") return { type: "global" };
+  if (key.startsWith("book:")) return normalizeChatContext({ type: "book", bookId: key.slice(5) });
+  return normalizeChatContext({ type: "book", bookId: key });
+}
+
+function normalizeChatState(rawState = {}) {
+  const sourceHistories = rawState.chatHistories && typeof rawState.chatHistories === "object"
+    ? rawState.chatHistories
+    : {};
+  const rawContexts = rawState.chatContexts && typeof rawState.chatContexts === "object"
+    ? rawState.chatContexts
+    : {};
+  const chatHistories = {};
+  const chatContexts = {};
+  Object.entries(sourceHistories).forEach(([key, value]) => {
+    if (!Array.isArray(value)) return;
+    const context = rawContexts[key] && typeof rawContexts[key] === "object"
+      ? normalizeChatContext(rawContexts[key])
+      : contextFromHistoryKey(key);
+    const historyKey = chatContextHistoryKey(context);
+    if (!chatHistories[historyKey]) {
+      chatHistories[historyKey] = value;
+      chatContexts[historyKey] = context;
+    }
+  });
+  Object.entries(rawContexts).forEach(([key, value]) => {
+    if (!value || typeof value !== "object") return;
+    const context = normalizeChatContext(value);
+    const historyKey = chatContextHistoryKey(context);
+    if (chatHistories[historyKey]) chatContexts[historyKey] = context;
+  });
+  return { chatHistories, chatContexts };
+}
+
+function normalizeStateShape(rawState) {
+  const base = rawState || structuredClone(initialState);
+  const chat = normalizeChatState(base);
+  return {
+    ...base,
+    books: Array.isArray(base.books) ? base.books : [],
+    sessions: Array.isArray(base.sessions) ? base.sessions : [],
+    quotes: Array.isArray(base.quotes) ? base.quotes : [],
+    connections: Array.isArray(base.connections) ? base.connections : [],
+    chatHistories: chat.chatHistories,
+    chatContexts: chat.chatContexts,
+  };
 }
 
 async function apiFetch(path, options = {}, requiresAuth = true) {
@@ -521,19 +599,13 @@ async function syncState() {
     },
     true
   );
-  state = data.state || structuredClone(initialState);
-  if (!state.chatHistories) {
-    state.chatHistories = {};
-  }
-  if (!Array.isArray(state.connections)) {
-    state.connections = [];
-  }
+  state = normalizeStateShape(data.state);
 }
 
 async function loadSession() {
   if (!authToken) {
     currentUser = null;
-    state = structuredClone(initialState);
+    state = normalizeStateShape(initialState);
     remoteLogs = [];
     render();
     return;
@@ -542,18 +614,12 @@ async function loadSession() {
   try {
     const data = await apiFetch("/api/session");
     currentUser = data.user || null;
-    state = data.state || structuredClone(initialState);
-    if (!state.chatHistories) {
-      state.chatHistories = {};
-    }
-    if (!Array.isArray(state.connections)) {
-      state.connections = [];
-    }
+    state = normalizeStateShape(data.state);
     await loadRemoteLogs();
   } catch {
     setAuthToken("");
     currentUser = null;
-    state = structuredClone(initialState);
+    state = normalizeStateShape(initialState);
     remoteLogs = [];
   }
   render();
@@ -566,13 +632,7 @@ async function refreshSessionState({ renderPage = false } = {}) {
   }
   const data = await apiFetch("/api/session");
   currentUser = data.user || null;
-  state = data.state || structuredClone(initialState);
-  if (!state.chatHistories) {
-    state.chatHistories = {};
-  }
-  if (!Array.isArray(state.connections)) {
-    state.connections = [];
-  }
+  state = normalizeStateShape(data.state);
   if (renderPage) {
     render();
     dispatchUserChange();
@@ -1227,7 +1287,7 @@ function activateTab(tabName) {
 async function loginSuccess(payload) {
   setAuthToken(payload.token);
   currentUser = payload.user || null;
-  state = payload.state || structuredClone(initialState);
+  state = normalizeStateShape(payload.state);
   await loadRemoteLogs();
   render();
   dispatchUserChange();
@@ -1292,7 +1352,7 @@ async function logout() {
   } catch {}
   setAuthToken("");
   currentUser = null;
-  state = structuredClone(initialState);
+  state = normalizeStateShape(initialState);
   remoteLogs = [];
   render();
   dispatchUserChange();
@@ -1513,6 +1573,17 @@ function deleteBook(bookId) {
     state.quotes = state.quotes.filter((item) => item.bookId !== bookId);
     if (state.chatHistories && typeof state.chatHistories === "object") {
       delete state.chatHistories[bookId];
+      delete state.chatHistories[`book:${bookId}`];
+    }
+    if (state.chatContexts && typeof state.chatContexts === "object") {
+      delete state.chatContexts[bookId];
+      delete state.chatContexts[`book:${bookId}`];
+      Object.entries(state.chatContexts).forEach(([key, context]) => {
+        if (context?.bookId === bookId) {
+          delete state.chatContexts[key];
+          delete state.chatHistories[key];
+        }
+      });
     }
     state.connections = (state.connections || []).filter((c) =>
       c.sourceId !== bookId && c.targetId !== bookId &&
@@ -2050,7 +2121,7 @@ async function approveCandidateItem(actionId, btn) {
   btn.textContent = "保存中…";
   try {
     const data = await apiFetch(`/api/agent-actions/${actionId}/approve`, { method: "POST" });
-    state = data.state || state;
+    state = normalizeStateShape(data.state || state);
     render();
     const item = document.getElementById(`candidate-${actionId}`);
     if (item) {
@@ -2213,7 +2284,7 @@ function importData(file) {
   reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result));
-      state = {
+      state = normalizeStateShape({
         books: Array.isArray(parsed.books) ? parsed.books : [],
         sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
         quotes: Array.isArray(parsed.quotes) ? parsed.quotes : [],
@@ -2223,8 +2294,9 @@ function importData(file) {
             : Array.isArray(parsed.chatHistory)
               ? { "__general__": parsed.chatHistory }
               : {},
+        chatContexts: typeof parsed.chatContexts === "object" && parsed.chatContexts ? parsed.chatContexts : {},
         connections: Array.isArray(parsed.connections) ? parsed.connections : [],
-      };
+      });
       await syncState();
       render();
       showToast("数据已导入");
@@ -2416,16 +2488,21 @@ async function runOcrFromImage() {
 async function clearChatHistory() {
   try {
     const activeBookId = window.paperReadingApp?.getActiveChatBookId?.() || "";
+    const context = normalizeChatContext(null, activeBookId);
+    const historyKey = chatContextHistoryKey(context);
     await apiFetch(
       "/api/chat-history",
       {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookId: activeBookId }),
+        body: JSON.stringify({ context, bookId: activeBookId }),
       },
       true
     );
-    state.chatHistories[activeBookId || "__general__"] = [];
+    state.chatHistories = state.chatHistories || {};
+    state.chatContexts = state.chatContexts || {};
+    state.chatHistories[historyKey] = [];
+    state.chatContexts[historyKey] = context;
   } catch (error) {
     showToast(error.message);
   }
@@ -3100,11 +3177,29 @@ window.paperReadingApp = {
   getRemoteLogs: () => remoteLogs,
   clearChatHistory,
   showConfirmDialog,
+  normalizeChatContext,
+  chatContextHistoryKey,
+  getChatHistoryForContext(context) {
+    return state.chatHistories?.[chatContextHistoryKey(context)] || [];
+  },
+  setChatHistoryForContext(context, history) {
+    const normalized = normalizeChatContext(context);
+    const historyKey = chatContextHistoryKey(normalized);
+    state.chatHistories = state.chatHistories || {};
+    state.chatContexts = state.chatContexts || {};
+    state.chatHistories[historyKey] = Array.isArray(history) ? history : [];
+    state.chatContexts[historyKey] = normalized;
+  },
   getChatHistoryForBook(bookId) {
-    return state.chatHistories?.[bookId || "__general__"] || [];
+    return state.chatHistories?.[chatContextHistoryKey(normalizeChatContext(null, bookId))] || [];
   },
   setChatHistoryForBook(bookId, history) {
-    state.chatHistories[bookId || "__general__"] = Array.isArray(history) ? history : [];
+    const context = normalizeChatContext(null, bookId);
+    const historyKey = chatContextHistoryKey(context);
+    state.chatHistories = state.chatHistories || {};
+    state.chatContexts = state.chatContexts || {};
+    state.chatHistories[historyKey] = Array.isArray(history) ? history : [];
+    state.chatContexts[historyKey] = context;
   },
 };
 

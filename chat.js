@@ -23,6 +23,26 @@
     return currentBookId || els.bookSelect?.value || "";
   }
 
+  function activeChatContext() {
+    const bookId = activeBookId();
+    return window.paperReadingApp?.normalizeChatContext?.(null, bookId) || (bookId ? { type: "book", bookId } : { type: "global" });
+  }
+
+  function getChatHistory(context) {
+    if (window.paperReadingApp?.getChatHistoryForContext) {
+      return window.paperReadingApp.getChatHistoryForContext(context);
+    }
+    return window.paperReadingApp?.getChatHistoryForBook?.(context?.bookId || "") || [];
+  }
+
+  function setChatHistory(context, nextHistory) {
+    if (window.paperReadingApp?.setChatHistoryForContext) {
+      window.paperReadingApp.setChatHistoryForContext(context, nextHistory);
+      return;
+    }
+    window.paperReadingApp?.setChatHistoryForBook?.(context?.bookId || "", nextHistory);
+  }
+
   function bookLabel(book) {
     if (!book) return "";
     return `${book.title}${book.author ? ` — ${book.author}` : ""}`;
@@ -171,13 +191,13 @@
   }
 
   function restoreHistory() {
-    const bookId = activeBookId();
-    history = window.paperReadingApp?.getChatHistoryForBook?.(bookId) || [];
+    const context = activeChatContext();
+    history = getChatHistory(context);
     const lastUser = [...history].reverse().find((item) => item?.role === "user" && item.content);
     const recoveredActions = lastUser ? findRecoveredActions(lastUser.content) : [];
     if (lastUser && recoveredActions.length > 0) {
       history = completeRecoveredHistoryWithActions(history, lastUser.content, recoveredActions);
-      window.paperReadingApp?.setChatHistoryForBook?.(bookId, history);
+      setChatHistory(context, history);
     }
     resetMessages();
     history.forEach((item) => appendBubble(item.role, item.content));
@@ -240,15 +260,15 @@
     try {
       await window.paperReadingApp?.refreshSessionState?.();
       await window.paperReadingApp?.loadRemoteLogs?.();
-      const bookId = activeBookId();
-      const remoteHistory = window.paperReadingApp?.getChatHistoryForBook?.(bookId) || [];
+      const context = activeChatContext();
+      const remoteHistory = getChatHistory(context);
       const recoveredReply = findRecoveredAssistantMessage(remoteHistory, userText);
       if (!recoveredReply) {
         return false;
       }
       const recoveredActions = findRecoveredActions(userText);
       history = completeRecoveredHistoryWithActions(remoteHistory, userText, recoveredActions);
-      window.paperReadingApp?.setChatHistoryForBook?.(bookId, history);
+      setChatHistory(context, history);
       restoreHistory();
       if (recoveredActions.length > 0) {
         handleAgentActions(recoveredActions);
@@ -295,6 +315,27 @@
     els.sendBtn.disabled = true;
 
     try {
+      const context = activeChatContext();
+      if (typeof fetch !== "function") {
+        const finalPayload = await window.paperReadingApp.apiFetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ context, bookId: currentBookId, message: text }),
+        });
+        if (typeof finalPayload.reply === "string" && finalPayload.reply) {
+          thinking.classList.remove("chat-bubble-loading");
+          thinking.textContent = finalPayload.reply;
+          els.messages.scrollTop = els.messages.scrollHeight;
+        }
+        history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
+        const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
+        setChatHistory(finalPayload.context || context, history);
+        await window.paperReadingApp.loadRemoteLogs?.();
+        if (actions.length > 0) {
+          handleAgentActions(actions);
+        }
+        return;
+      }
       const url = window.paperReadingApp.buildApiUrl("/api/chat/stream");
       const token = window.paperReadingApp.getAuthToken();
       const response = await fetch(url, {
@@ -304,6 +345,7 @@
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
+          context,
           bookId: currentBookId,
           message: text,
         }),
@@ -351,10 +393,10 @@
           thinking.textContent = finalPayload.reply;
           els.messages.scrollTop = els.messages.scrollHeight;
         }
-        const bookId = activeBookId();
+        const responseContext = finalPayload.context || context;
         history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
         const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
-        window.paperReadingApp.setChatHistoryForBook(bookId, history);
+        setChatHistory(responseContext, history);
         await window.paperReadingApp.loadRemoteLogs?.();
         if (actions.length > 0) {
           handleAgentActions(actions);

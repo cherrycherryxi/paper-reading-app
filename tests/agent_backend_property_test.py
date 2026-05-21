@@ -309,14 +309,40 @@ class AgentBackendPropertyTests(unittest.TestCase):
             token=self.token,
         )
         self.assertEqual(status, 200)
-        for key in ["traceId", "agentStatus", "parseStatus", "validationStatus", "reply", "actions", "history", "historyKey"]:
+        for key in ["traceId", "agentStatus", "parseStatus", "validationStatus", "reply", "actions", "history", "historyKey", "context"]:
             self.assertIn(key, payload)
         self.assertIsInstance(payload["traceId"], str)
         self.assertIsInstance(payload["reply"], str)
         self.assertIsInstance(payload["actions"], list)
         self.assertIsInstance(payload["history"], list)
-        self.assertEqual(payload["historyKey"], "book-1")
+        self.assertEqual(payload["historyKey"], "book:book-1")
+        self.assertEqual(payload["context"], {"type": "book", "bookId": "book-1"})
         self.assertEqual(payload["actions"][0]["status"], "PENDING_APPROVAL")
+
+    def test_property_legacy_chat_history_keys_migrate_to_context_keys(self):
+        state = log_server.sanitize_state(
+            {
+                "books": [],
+                "sessions": [],
+                "quotes": [],
+                "chatHistories": {
+                    "book-1": [{"role": "user", "content": "legacy book"}],
+                    "__general__": [{"role": "user", "content": "legacy global"}],
+                    "quote:quote-1": [{"role": "user", "content": "quote context"}],
+                },
+                "chatContexts": {
+                    "quote:quote-1": {"type": "quote", "bookId": "book-1", "quoteId": "quote-1"},
+                },
+                "connections": [],
+            }
+        )
+
+        self.assertEqual(state["chatHistories"]["book:book-1"][0]["content"], "legacy book")
+        self.assertEqual(state["chatHistories"]["global"][0]["content"], "legacy global")
+        self.assertEqual(state["chatHistories"]["quote:quote-1"][0]["content"], "quote context")
+        self.assertEqual(state["chatContexts"]["book:book-1"], {"type": "book", "bookId": "book-1"})
+        self.assertEqual(state["chatContexts"]["global"], {"type": "global"})
+        self.assertEqual(state["chatContexts"]["quote:quote-1"], {"type": "quote", "bookId": "book-1", "quoteId": "quote-1"})
 
     def test_question_action_content_completes_short_lead_in_reply(self):
         question = "汉斯的悲剧是被教育体制决定的，还是他的顺从也参与了共谋？"
