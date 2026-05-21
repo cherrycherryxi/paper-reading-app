@@ -113,6 +113,7 @@ function makeSseResponse(events) {
 function createChatHarness(overrides = {}) {
   const elMap = new Map();
   const apiCalls = [];
+  const fetchCalls = [];
   const toasts = [];
   const showConfirmDialogCalls = [];
   let confirmCalled = false;
@@ -138,7 +139,10 @@ function createChatHarness(overrides = {}) {
       return { reply: "ok", history: [], actions: [] };
     throw new Error(`Unhandled apiFetch: ${url}`);
   };
-  const defaultFetch = async () => makeSseResponse([{ done: true, reply: "ok", history: [], actions: [] }]);
+  const defaultFetch = async (url, opts) => {
+    fetchCalls.push({ url, opts });
+    return makeSseResponse([{ done: true, reply: "ok", history: [], actions: [] }]);
+  };
 
   const context = {
     console: { log() {}, error() {}, warn() {} },
@@ -156,6 +160,26 @@ function createChatHarness(overrides = {}) {
         buildApiUrl(path) { return path; },
         getAuthToken() { return "token"; },
         getState() { return appState; },
+        normalizeChatContext(context = null, fallbackBookId = "") {
+          if (context?.type === "quote" && context.bookId && context.quoteId) {
+            return { type: "quote", bookId: context.bookId, quoteId: context.quoteId };
+          }
+          const bookId = context?.type === "book" ? context.bookId : fallbackBookId;
+          return bookId ? { type: "book", bookId } : { type: "global" };
+        },
+        chatContextHistoryKey(context) {
+          if (context?.type === "quote") return `quote:${context.quoteId}`;
+          if (context?.type === "book") return `book:${context.bookId}`;
+          return "global";
+        },
+        getChatHistoryForContext(context) {
+          const key = this.chatContextHistoryKey(context);
+          return appState.chatHistories[key] || [];
+        },
+        setChatHistoryForContext(context, history) {
+          const key = this.chatContextHistoryKey(context);
+          appState.chatHistories[key] = history;
+        },
         setChatHistoryForBook(id, h) { appState.chatHistories[id || "__general__"] = h; },
         getChatHistoryForBook(id) { return appState.chatHistories[id || "__general__"] || []; },
         loadRemoteLogs: async () => {},
@@ -188,13 +212,15 @@ function createChatHarness(overrides = {}) {
 
   return {
     input, sendBtn, clearBtn, messages, bookSel,
-    apiCalls, toasts,
+    apiCalls, fetchCalls, toasts,
     isConfirmCalled()        { return confirmCalled; },
     getShowConfirmCalls()    { return showConfirmDialogCalls; },
     getConfirmContainer()    {
       return messages.children.find((c) => c.className === "agent-confirm") || null;
     },
+    getEl,
     appState,
+    paperReadingApp: context.window.paperReadingApp,
   };
 }
 
@@ -306,6 +332,8 @@ globalThis.__testHooks = {
   globalSearch,
   saveBookEdit,
   openBookDetailDialog,
+  openQuoteDetail,
+  goToQuoteChat,
   setState(v)       { state = v; },
   getState()        { return state; },
   setCurrentUser(v) { currentUser = v; },
@@ -313,6 +341,7 @@ globalThis.__testHooks = {
   setSyncState(fn)  { syncState = fn; },
   setRender(fn)     { render = fn; },
   setShowToast(fn)  { showToast = fn; },
+  setSwitchChatToQuote(fn) { window.paperReadingApp.switchChatToQuote = fn; },
 };
 `;
 
@@ -478,6 +507,75 @@ test("P1-003 regression: clearHistory uses showConfirmDialog, not window.confirm
   );
 });
 
+test("quote-scoped chat sends structured quote context and stores quote history", async () => {
+  const harness = createChatHarness();
+  harness.appState.quotes = [
+    { id: "quote-1", bookId: "book-1", content: "这是一条需要讨论的摘抄", kind: "quote" },
+  ];
+
+  harness.paperReadingApp.switchChatToQuote("book-1", "quote-1");
+  harness.input.value = "围绕这条摘抄聊聊";
+  await harness.sendBtn.dispatch("click");
+
+  assert.equal(harness.fetchCalls.length, 1, "send should use the streaming chat endpoint once");
+  const body = JSON.parse(harness.fetchCalls[0].opts.body);
+  assert.deepEqual(
+    body.context,
+    { type: "quote", bookId: "book-1", quoteId: "quote-1" },
+    "chat request should carry quote scope through structured context"
+  );
+  assert.ok(
+    Array.isArray(harness.appState.chatHistories["quote:quote-1"]),
+    "final payload history should be stored under the quote-scoped context key"
+  );
+  assert.equal(harness.appState.chatHistories["quote:quote-1"].length, 0);
+});
+
+test("quote-scoped clear history prompts for current quote and preserves active quote context", async () => {
+  let clearedContext = null;
+  const harness = createChatHarness({
+    paperReadingApp: {
+      clearChatHistory: async () => {
+        clearedContext = harness.paperReadingApp.getActiveChatContext();
+      },
+    },
+  });
+  harness.appState.quotes = [
+    { id: "quote-1", bookId: "book-1", content: "这是一条需要讨论的摘抄", kind: "quote" },
+  ];
+
+  harness.paperReadingApp.switchChatToQuote("book-1", "quote-1");
+  harness.clearBtn.dispatch("click");
+
+  assert.equal(harness.getShowConfirmCalls().length, 1);
+  assert.equal(harness.getShowConfirmCalls()[0].message, "清空 当前摘抄 的探讨记录？");
+  await harness.getShowConfirmCalls()[0].onConfirm();
+  assert.deepEqual(
+    clearedContext,
+    { type: "quote", bookId: "book-1", quoteId: "quote-1" },
+    "clear history should operate on the active quote context"
+  );
+});
+
+test("quote context can return to whole-book context", () => {
+  const harness = createChatHarness();
+  harness.appState.quotes = [
+    { id: "quote-1", bookId: "book-1", content: "这是一条需要讨论的摘抄", kind: "quote" },
+  ];
+
+  harness.paperReadingApp.switchChatToQuote("book-1", "quote-1");
+  assert.deepEqual(harness.paperReadingApp.getActiveChatContext(), { type: "quote", bookId: "book-1", quoteId: "quote-1" });
+
+  const clearButton = { closest: (selector) => (selector === "[data-clear-quote-context]" ? clearButton : null) };
+  harness.getEl("#chatBookContext").dispatch("click", { target: clearButton });
+
+  assert.deepEqual(
+    harness.paperReadingApp.getActiveChatContext(),
+    { type: "book", bookId: "book-1" },
+    "switching back to a book should clear quote scope"
+  );
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 // app.js VM tests
 // ════════════════════════════════════════════════════════════════════════════════
@@ -510,6 +608,35 @@ test("P1-002 regression: renderTimeline and renderQuotes include delete buttons"
     /data-delete-quote/,
     "renderQuotes should include data-delete-quote delete buttons (regression: cards had no delete button)"
   );
+});
+
+test("quote detail go-to-chat routes through switchChatToQuote", () => {
+  const hooks = createAppHarness();
+  hooks.setCurrentUser({ id: "u1" });
+  hooks.setAuthToken("tok");
+  hooks.setState({
+    books: [{ id: "book-1", title: "书", author: "A", tags: [], status: "reading" }],
+    sessions: [],
+    quotes: [{ id: "quote-1", bookId: "book-1", content: "一段摘抄", kind: "quote", page: 42, tags: [] }],
+    chatHistories: {},
+    chatContexts: {},
+    connections: [],
+  });
+
+  let routed = null;
+  hooks.setSwitchChatToQuote((bookId, quoteId) => {
+    routed = { bookId, quoteId };
+  });
+  hooks.getEl("#quoteDetailDialog").open = true;
+
+  hooks.goToQuoteChat("quote-1");
+
+  assert.deepEqual(
+    routed,
+    { bookId: "book-1", quoteId: "quote-1" },
+    "quote detail chat entry should route with the quote's owning book and quote id"
+  );
+  assert.equal(hooks.getEl("#quoteDetailDialog").open, false, "quote detail dialog should close before entering chat");
 });
 
 test("P1-003 regression: deleteSession and deleteQuote use showConfirmDialog, not window.confirm", () => {
