@@ -289,10 +289,47 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertNotIn("Test Book", system_instruction)
         self.assertNotIn("Author", system_instruction)
         self.assertIn('action.type = "add_book"', system_instruction)
-        self.assertIn("只围绕当前书籍本身提炼 1 个", system_instruction)
+        self.assertIn("只围绕当前上下文本身提炼 1 个", system_instruction)
         self.assertIn("提炼问题、总结、解释当前书时不要主动关联其他书", system_instruction)
         self.assertIn("1 个最核心、最值得继续追问的问题", system_instruction)
         self.assertIn("必须返回对应 action", system_instruction)
+
+    def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
+        state = self.load_state()
+        state["quotes"] = [
+            {
+                "id": "quote-1",
+                "bookId": "book-1",
+                "kind": "quote",
+                "content": "这是一条需要讨论的摘抄",
+                "page": 12,
+                "tags": ["摘抄"],
+            }
+        ]
+        conn = log_server.get_conn()
+        log_server.save_state(conn, self.user_id, state)
+        conn.close()
+
+        observed = {}
+
+        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+            observed["prompt"] = messages[0]["content"]
+            return json.dumps({"reply": "ok", "actions": []}, ensure_ascii=False)
+
+        log_server.call_deepseek = fake_deepseek
+        status, payload = self.request_json(
+            "POST",
+            "/api/chat",
+            {"message": "围绕这条摘抄聊聊", "context": {"type": "quote", "bookId": "book-1", "quoteId": "quote-1"}},
+            token=self.token,
+        )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["historyKey"], "quote:quote-1")
+        self.assertEqual(payload["context"], {"type": "quote", "bookId": "book-1", "quoteId": "quote-1"})
+        self.assertIn('"type": "quote"', observed["prompt"])
+        self.assertIn('"focused_quote"', observed["prompt"])
+        self.assertIn("这是一条需要讨论的摘抄", observed["prompt"])
 
     def test_property_response_structure_validation(self):
         def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
@@ -309,14 +346,40 @@ class AgentBackendPropertyTests(unittest.TestCase):
             token=self.token,
         )
         self.assertEqual(status, 200)
-        for key in ["traceId", "agentStatus", "parseStatus", "validationStatus", "reply", "actions", "history", "historyKey"]:
+        for key in ["traceId", "agentStatus", "parseStatus", "validationStatus", "reply", "actions", "history", "historyKey", "context"]:
             self.assertIn(key, payload)
         self.assertIsInstance(payload["traceId"], str)
         self.assertIsInstance(payload["reply"], str)
         self.assertIsInstance(payload["actions"], list)
         self.assertIsInstance(payload["history"], list)
-        self.assertEqual(payload["historyKey"], "book-1")
+        self.assertEqual(payload["historyKey"], "book:book-1")
+        self.assertEqual(payload["context"], {"type": "book", "bookId": "book-1"})
         self.assertEqual(payload["actions"][0]["status"], "PENDING_APPROVAL")
+
+    def test_property_legacy_chat_history_keys_migrate_to_context_keys(self):
+        state = log_server.sanitize_state(
+            {
+                "books": [],
+                "sessions": [],
+                "quotes": [],
+                "chatHistories": {
+                    "book-1": [{"role": "user", "content": "legacy book"}],
+                    "__general__": [{"role": "user", "content": "legacy global"}],
+                    "quote:quote-1": [{"role": "user", "content": "quote context"}],
+                },
+                "chatContexts": {
+                    "quote:quote-1": {"type": "quote", "bookId": "book-1", "quoteId": "quote-1"},
+                },
+                "connections": [],
+            }
+        )
+
+        self.assertEqual(state["chatHistories"]["book:book-1"][0]["content"], "legacy book")
+        self.assertEqual(state["chatHistories"]["global"][0]["content"], "legacy global")
+        self.assertEqual(state["chatHistories"]["quote:quote-1"][0]["content"], "quote context")
+        self.assertEqual(state["chatContexts"]["book:book-1"], {"type": "book", "bookId": "book-1"})
+        self.assertEqual(state["chatContexts"]["global"], {"type": "global"})
+        self.assertEqual(state["chatContexts"]["quote:quote-1"], {"type": "quote", "bookId": "book-1", "quoteId": "quote-1"})
 
     def test_question_action_content_completes_short_lead_in_reply(self):
         question = "汉斯的悲剧是被教育体制决定的，还是他的顺从也参与了共谋？"
