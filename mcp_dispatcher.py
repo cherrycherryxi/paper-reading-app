@@ -157,7 +157,7 @@ async def _call_tool_async(tool_name: str, arguments: dict) -> dict:
             return {"ok": False, "error": "empty tool result"}
 
 
-# ── 同步入口：供 log_server.py 的 BaseHTTPRequestHandler 直接调用 ─────────────
+# ── 同步入口：供 app_server.py 的 BaseHTTPRequestHandler 直接调用 ─────────────
 
 class MCPToolDispatcher:
     """

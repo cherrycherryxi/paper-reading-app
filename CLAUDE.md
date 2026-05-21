@@ -19,13 +19,13 @@ This is a mobile-first (iPhone 12) paper book reading tracker with a Python back
 - `chat.js` — AI chat panel loaded as a separate IIFE; reads/writes state through `window.paperReadingApp`
 - `styles.css` — all styles
 
-**Backend** (`log_server.py`):
+**Backend** (`app_server.py`):
 - Pure-stdlib Python HTTP server (`ThreadingHTTPServer`), no framework
-- SQLite (`paper_reading_backend.db`) stores: users, sessions, user_state (books/quotes/notes as JSON blob), model_logs, agent_traces, agent_actions, agent_trace_events, agent_metrics
+- SQLite (`app_state.db`) stores: users, sessions, user_state (books/quotes/notes as JSON blob), model_logs, agent_traces, agent_actions, agent_trace_events, agent_metrics
 - Images stored under `uploads/<user-id>/`
 - API keys read from environment: `DEEPSEEK_API_KEY` (chat + OCR fallback) and `MOONSHOT_API_KEY` (vision OCR via Kimi)
 
-**Agent pipeline** (all in `log_server.py`):
+**Agent pipeline** (all in `app_server.py`):
 1. `AgentRequestValidator` — validates/sanitizes user input
 2. `PromptBuilder` — builds system prompt with book context
 3. `call_deepseek()` — LLM call to DeepSeek API
@@ -43,7 +43,7 @@ Allowed agent actions: `add_note`, `add_book`, `summary`, `question`, `tag`.
 
 ```bash
 # 1. Start backend (requires API keys in env)
-DEEPSEEK_API_KEY=sk-... MOONSHOT_API_KEY=sk-... python3 log_server.py
+DEEPSEEK_API_KEY=sk-... MOONSHOT_API_KEY=sk-... python3 app_server.py
 
 # 2. Serve frontend
 python3 -m http.server 4173
@@ -62,25 +62,25 @@ Debug logs UI: `http://127.0.0.1:8787/debug/logs`
 python3 -m pytest tests/ -v
 
 # Run a single Python test file
-python3 -m unittest tests/agent_backend_property_test.py -v
+python3 -m unittest tests/agent/agent_backend_property_test.py -v
 
 # Run golden-set evaluation (requires live API keys)
-python3 tests/agent_golden_set_eval.py
+python3 tests/agent/agent_golden_set_eval.py
 ```
 
 **JS tests** (Node built-in test runner, no install needed):
 ```bash
 # Run a single JS test file
-node --test tests/chat-agent-approval.test.js
-node --test tests/global-search.test.js
-node --test tests/ui-redesign.test.js
+node --test tests/frontend/chat-agent-approval.test.js
+node --test tests/frontend/global-search.test.js
+node --test tests/frontend/ui-redesign.test.js
 ```
 
-Python tests use a temp directory for the DB — they never touch `paper_reading_backend.db`. JS tests load `chat.js` or `app.js` into a vm sandbox with DOM stubs.
+Python tests use a temp directory for the DB — they never touch `app_state.db`. JS tests load `chat.js` or `app.js` into a vm sandbox with DOM stubs.
 
 ## Key Conventions
 
-- **State shape** is enforced by `sanitize_state()` in `log_server.py`: `{books, sessions, quotes, chatHistories}`. Any save/load goes through this sanitizer.
+- **State shape** is enforced by `sanitize_state()` in `app_server.py`: `{books, sessions, quotes, chatHistories}`. Any save/load goes through this sanitizer.
 - **Auth** uses `X-Auth-Token` header (token stored in `localStorage` under key `paper-reading-auth-token-v1`). The backend resolves the user via `resolve_user_from_token()`.
 - **Cross-module events**: `app.js` fires `paper-reading-data-changed` and `paper-reading-user-changed` custom events on `window`; `chat.js` listens to these to stay in sync without direct coupling.
 - **Agent action approval flow**: the chat UI shows a confirm button before executing any agent action. The JS in `chat.js` calls `POST /api/agent/actions/:id/approve` then `POST /api/agent/actions/:id/execute`.

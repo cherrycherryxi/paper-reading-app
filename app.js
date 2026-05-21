@@ -909,7 +909,7 @@ function buildQuoteSearchCard(quote) {
   return card;
 }
 
-function renderSearchResults(matchedBooks, matchedQuotes) {
+function renderSearchResults(matchedBooks) {
   els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍`;
 
   if (!matchedBooks.length) {
@@ -958,7 +958,7 @@ function globalSearch(query) {
     tagStrip.style.display = "none";
   }
 
-  renderSearchResults(matchBooks(normalized), matchQuotes(normalized));
+  renderSearchResults(matchBooks(normalized));
 }
 
 function renderBooks() {
