@@ -14,6 +14,7 @@
 
   let history = [];
   let currentBookId = "";
+  let currentQuoteId = "";
 
   function normalizePreferredBookValue(preferredValue) {
     return typeof preferredValue === "string" ? preferredValue : "";
@@ -23,9 +24,15 @@
     return currentBookId || els.bookSelect?.value || "";
   }
 
+  function activeQuoteId() {
+    return currentQuoteId || "";
+  }
+
   function activeChatContext() {
     const bookId = activeBookId();
-    return window.paperReadingApp?.normalizeChatContext?.(null, bookId) || (bookId ? { type: "book", bookId } : { type: "global" });
+    const quoteId = currentQuoteId || "";
+    const rawContext = quoteId ? { type: "quote", bookId, quoteId } : null;
+    return window.paperReadingApp?.normalizeChatContext?.(rawContext, bookId) || (quoteId ? { type: "quote", bookId, quoteId } : (bookId ? { type: "book", bookId } : { type: "global" }));
   }
 
   function getChatHistory(context) {
@@ -61,6 +68,19 @@
     return getBooks().find((book) => book.id === bookId);
   }
 
+  function getQuotes() {
+    return window.paperReadingApp?.getState?.()?.quotes || [];
+  }
+
+  function findQuote(quoteId) {
+    return getQuotes().find((quote) => quote.id === quoteId);
+  }
+
+  function quotePreview(quote) {
+    const text = String(quote?.content || "").replace(/\s+/g, " ").trim();
+    return text.length > 36 ? `${text.slice(0, 36)}...` : text;
+  }
+
   function getBookStats(bookId) {
     const state = window.paperReadingApp?.getState?.() || {};
     const sessions = (state.sessions || []).filter((item) => item.bookId === bookId);
@@ -81,6 +101,18 @@
     if (!book) {
       els.bookContext.hidden = true;
       els.bookContext.innerHTML = "";
+      return;
+    }
+    const quote = currentQuoteId ? findQuote(currentQuoteId) : null;
+    if (quote) {
+      const preview = quotePreview(quote);
+      els.bookContext.innerHTML = `
+        <span class="chat-context-label">摘抄</span>
+        <strong>${escapeHtml(displayBookTitle(book.title || "未命名书籍"))}</strong>
+        <span class="chat-context-meta">${escapeHtml(preview || "当前摘抄")}</span>
+        <button class="chat-context-clear" type="button" data-clear-quote-context aria-label="回到整本书">回到整本书</button>
+      `;
+      els.bookContext.hidden = false;
       return;
     }
     const stats = getBookStats(book.id);
@@ -149,6 +181,7 @@
 
   function selectChatBook(bookId) {
     currentBookId = bookId || "";
+    currentQuoteId = "";
     if (els.bookSelect) {
       els.bookSelect.value = currentBookId;
     }
@@ -160,8 +193,13 @@
   function resetMessages() {
     if (!els.messages) return;
     const book = findBook(activeBookId());
-    const title = book ? `围绕${displayBookTitle(book.title)}继续想` : "选择一本书，开始探讨";
-    const subtitle = book
+    const quote = findQuote(activeQuoteId());
+    const title = quote && book
+      ? `围绕这条摘抄继续想`
+      : book ? `围绕${displayBookTitle(book.title)}继续想` : "选择一本书，开始探讨";
+    const subtitle = quote && book
+      ? `${displayBookTitle(book.title)} · ${quotePreview(quote)}`
+      : book
       ? "可以直接提问，也可以用下方快捷入口整理主题、问题和关联。"
       : "从上方选择书籍后，我会结合阅读记录、摘抄和关联来回答。";
     els.messages.innerHTML = `<div class="chat-welcome">
@@ -416,9 +454,10 @@
 
   function clearHistory() {
     const bookId = activeBookId();
+    const quote = findQuote(activeQuoteId());
     const books = window.paperReadingApp?.getState?.()?.books || [];
     const book = books.find((b) => b.id === bookId);
-    const scope = book ? book.title : "当前书籍";
+    const scope = quote ? "当前摘抄" : (book ? book.title : "当前书籍");
     window.paperReadingApp?.showConfirmDialog?.({
       message: `清空 ${scope} 的探讨记录？`,
       confirmLabel: "确认清空",
@@ -435,6 +474,7 @@
     els.clearBtn?.addEventListener("click", clearHistory);
     els.bookSelect?.addEventListener("change", () => {
       currentBookId = els.bookSelect?.value || "";
+      currentQuoteId = "";
       syncPickerDisplay();
       restoreHistory();
     });
@@ -447,6 +487,7 @@
       const selectedBook = findBook(currentBookId);
       if (selectedBook && els.bookInput.value !== bookLabel(selectedBook)) {
         currentBookId = "";
+        currentQuoteId = "";
         if (els.bookSelect) els.bookSelect.value = "";
         if (els.bookClearPick) els.bookClearPick.hidden = true;
       }
@@ -474,6 +515,13 @@
       els.bookInput?.focus();
       renderBookDropdown("");
     });
+    els.bookContext?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-clear-quote-context]");
+      if (!button) return;
+      currentQuoteId = "";
+      syncPickerDisplay();
+      restoreHistory();
+    });
     document.addEventListener?.("click", (event) => {
       if (!event.target.closest(".book-picker")) {
         hideBookDropdown();
@@ -483,7 +531,9 @@
     els.promptChips?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-chat-prompt]");
       if (!button || !els.input) return;
-      els.input.value = button.dataset.chatPrompt || "";
+      els.input.value = currentQuoteId && (button.dataset.chatPrompt || "").includes("当前这本书")
+        ? "只围绕当前这条摘抄，并结合它所属书籍的阅读记录，帮我提炼 1 个最值得继续追问的核心问题。不要关联其他书，不要列多个问题。"
+        : button.dataset.chatPrompt || "";
       els.input.focus();
     });
     els.messages?.addEventListener("click", (event) => {
@@ -503,10 +553,16 @@
     });
 
     window.addEventListener("paper-reading-data-changed", () => {
+      if (currentQuoteId && findQuote(currentQuoteId)?.bookId !== activeBookId()) {
+        currentQuoteId = "";
+      }
       populateChatBookSelect(activeBookId());
     });
     window.addEventListener("paper-reading-user-changed", () => {
       currentBookId = activeBookId();
+      if (currentQuoteId && findQuote(currentQuoteId)?.bookId !== currentBookId) {
+        currentQuoteId = "";
+      }
       populateChatBookSelect();
       restoreHistory();
     });
@@ -633,8 +689,17 @@
 
   window.populateChatBookSelect = populateChatBookSelect;
   window.paperReadingApp.getActiveChatBookId = activeBookId;
+  window.paperReadingApp.getActiveChatContext = activeChatContext;
   window.paperReadingApp.switchChatToBook = (bookId) => {
+    currentQuoteId = "";
     populateChatBookSelect(bookId);
+    restoreHistory();
+  };
+  window.paperReadingApp.switchChatToQuote = (bookId, quoteId) => {
+    currentBookId = bookId || "";
+    currentQuoteId = quoteId || "";
+    populateChatBookSelect(currentBookId);
+    syncPickerDisplay();
     restoreHistory();
   };
 

@@ -625,3 +625,12 @@ test("book detail shows one core question while quote wall excludes questions", 
   assert.match(hooks.els.quotesList.innerHTML, /普通摘抄/);
   assert.doesNotMatch(hooks.els.quotesList.innerHTML, /这本书最值得继续追问什么？/);
 });
+
+test("quote detail can enter quote-scoped chat context", () => {
+  assert.match(indexHtml, /id="quoteDetailChatBtn"[^>]*>去聊</, "quote detail should expose a chat entry button");
+  assert.match(appSource, /function goToQuoteChat\(quoteId\)/, "app should route quote detail to chat");
+  assert.match(appSource, /switchChatToQuote\?\.\(quote\.bookId,\s*quote\.id\)/, "quote chat entry should pass both bookId and quoteId");
+  assert.match(chatSource, /type:\s*"quote"/, "chat context should carry quote scope as structured context");
+  assert.match(chatSource, /body:\s*JSON\.stringify\(\{\s*context,/, "chat request should send structured context");
+  assert.match(appSource, /chatContextHistoryKey\(context\)/, "quote-scoped chat history should use context-derived keys");
+});
