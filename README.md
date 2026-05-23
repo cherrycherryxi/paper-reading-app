@@ -159,6 +159,14 @@ export MOONSHOT_API_KEY="..."     # 选填，OCR 用
 
 打开 `http://127.0.0.1:8787`。如果用手机访问，把 `127.0.0.1` 换成电脑的局域网 IP，例如 `http://<LAN-IP>:8787`。
 
+开发阶段可以用自动重启模式替代 `start_backend.sh`：
+
+```bash
+./scripts/dev_backend.sh           # 监听源码改动，自动重启 App Server
+```
+
+它会监控 Python、HTML、CSS、JS、Markdown 源文件；`uploads/`、`data/`、`.venv/` 等运行时目录不会触发重启。
+
 **4. 评测**
 
 ```bash

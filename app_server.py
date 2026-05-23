@@ -8,8 +8,10 @@ import hmac
 import imghdr
 import json
 import secrets
+import socket
 import sqlite3
 import time
+import threading
 import uuid
 import os
 from datetime import datetime
@@ -31,7 +33,31 @@ PORT = 8787
 # 服务端密钥只从环境变量读取，不要放到前端或提交到仓库。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
+MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
 AUTH_TOKEN = ""
+KIMI_VISION_TIMEOUT_SECONDS = 150
+KIMI_VISION_MAX_TOKENS = int(os.getenv("KIMI_VISION_MAX_TOKENS", "4096"))
+KIMI_VISION_MAX_ATTEMPTS = 2
+KIMI_VISION_MIN_INTERVAL_SECONDS = 8
+OCR_MAX_TAGS = 4
+OCR_MAX_TAG_LENGTH = 12
+OCR_FORBIDDEN_TAGS = {
+    "小说",
+    "文学",
+    "月亮虎",
+    "书",
+    "书籍",
+    "摘抄",
+    "文字",
+    "阅读",
+    "作品",
+    "文章",
+    "章节",
+    "作者",
+    "人物",
+}
+KIMI_VISION_RATE_LOCK = threading.Lock()
+KIMI_VISION_LAST_REQUEST_AT = 0.0
 
 INITIAL_STATE = {
     "books": [],
@@ -410,6 +436,351 @@ def save_state(conn: sqlite3.Connection, user_id: str, state: dict) -> dict:
     return sanitized
 
 
+def normalize_ocr_text(text: str) -> str:
+    value = str(text or "").strip()
+    if not value or value == "未发现划线文字":
+        return ""
+    value = value.replace("\r\n", "\n").replace("\r", "\n")
+    value = re.sub(r"[ \t]+", " ", value)
+    value = re.sub(r"(?<=[\u4e00-\u9fff])[ \t]+(?=[\u4e00-\u9fff])", "", value)
+    value = re.sub(r"\s+([，。！？；：、）】》」』])", r"\1", value)
+    value = re.sub(r"([（【《「『])\s+", r"\1", value)
+    value = re.sub(r"\n{3,}", "\n\n", value)
+    lines = [line.strip() for line in value.split("\n")]
+    return "\n".join(lines).strip()
+
+
+@dataclass
+class OcrExtractionResult:
+    text: str
+    tags: list[str]
+    structured: bool = False
+
+
+@dataclass
+class KimiVisionResult:
+    content: str
+    diagnostics: dict
+
+
+def normalize_ocr_tags(raw) -> list[str]:
+    if isinstance(raw, list):
+        candidates = raw
+    else:
+        candidates = re.split(r"[,，、\s]+", str(raw or ""))
+    tags: list[str] = []
+    for item in candidates:
+        tag = re.sub(r"[#＃\[\]【】「」'\"`]+", "", str(item or "")).strip()
+        if not tag or len(tag) > OCR_MAX_TAG_LENGTH or tag in OCR_FORBIDDEN_TAGS or tag in tags:
+            continue
+        tags.append(tag)
+        if len(tags) >= OCR_MAX_TAGS:
+            break
+    return tags
+
+
+def filter_ocr_tags_for_quote(tags, state: dict, quote: dict | None) -> list[str]:
+    book = None
+    if quote:
+        book = next((item for item in state.get("books", []) if item.get("id") == quote.get("bookId")), None)
+    forbidden = set(OCR_FORBIDDEN_TAGS)
+    if book:
+        for value in (book.get("title"), book.get("author")):
+            text = str(value or "").strip()
+            if not text:
+                continue
+            forbidden.add(text)
+            forbidden.update(part.strip() for part in re.split(r"[\s:：,，·・《》〈〉（）()【】\[\]-]+", text) if part.strip())
+
+    filtered: list[str] = []
+    for tag in normalize_ocr_tags(tags):
+        if tag in forbidden:
+            continue
+        if any(len(value) >= 2 and (tag == value or tag in value) for value in forbidden):
+            continue
+        filtered.append(tag)
+    return filtered[:OCR_MAX_TAGS]
+
+
+def merge_tags(existing, generated) -> list[str]:
+    merged: list[str] = []
+    for tag in normalize_ocr_tags(existing) + normalize_ocr_tags(generated):
+        if tag not in merged:
+            merged.append(tag)
+    return merged
+
+
+def parse_ocr_extraction(output: str) -> OcrExtractionResult:
+    raw = str(output or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw).strip()
+    try:
+        payload = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        match = re.search(r"\{[\s\S]*\}", raw)
+        if not match:
+            return OcrExtractionResult(normalize_ocr_text(raw), [])
+        try:
+            payload = json.loads(match.group(0))
+        except (TypeError, json.JSONDecodeError):
+            return OcrExtractionResult(normalize_ocr_text(raw), [])
+    if not isinstance(payload, dict):
+        return OcrExtractionResult(normalize_ocr_text(raw), [])
+
+    text = payload.get("text")
+    if text is None:
+        text = payload.get("content")
+    if text is None:
+        text = payload.get("originalText")
+    if isinstance(text, str):
+        nested = parse_ocr_extraction(text)
+        if nested.text or nested.tags:
+            return OcrExtractionResult(
+                nested.text,
+                normalize_ocr_tags(payload.get("tags")) or nested.tags,
+                True,
+            )
+    return OcrExtractionResult(
+        normalize_ocr_text(str(text or "")),
+        normalize_ocr_tags(payload.get("tags")),
+        True,
+    )
+
+
+def should_rescue_ocr_result(result: OcrExtractionResult) -> bool:
+    text = normalize_ocr_text(result.text)
+    if not text:
+        return True
+    if text.startswith("{") or text.startswith('"text"') or '"text"' in text[:24]:
+        return True
+    if result.structured and len(text) < 220 and text[-1] not in "。！？.!?」』”’）)]】》":
+        return True
+    return False
+
+
+OCR_PROMPT = """你是 OCR 摘抄提取器。
+
+任务：
+从图片中只提取用户划线、标记或框选的正文内容。
+如果没有明显划线、标记或框选，则提取图片中最主要的正文段落。
+
+整理规则：
+1. 保持原文意思和措辞，不总结、不改写、不补写。
+2. 合并 OCR 错误断行，但保留真实自然段。
+3. 删除中文字符之间异常插入的空格。
+4. 保留英文单词内部空格，保留数字与单位之间的合理空格。
+5. 去除页码、页眉、页脚、重复书名、章节标题等噪声。
+6. 不输出与正文无关的说明。
+
+输出：
+只输出 JSON，不要 Markdown，不要解释：
+{"text":"整理后的原文文本","tags":["标签1","标签2"]}
+
+标签规则：
+1. tags 给出 1-4 个当前摘抄最适合的中文短标签。
+2. 标签必须是这段文字的具体主题、概念、问题意识或方法，不要用书籍体裁、书名、作者名、章节名。
+3. 禁止输出这些无效标签：小说、文学、月亮虎、书名、作者、摘抄、阅读、作品。
+4. 好标签示例：记忆、死亡、身份认同、权力、欲望、时间、家庭关系、战争创伤、组织、激励、方法。
+5. 坏标签示例：小说、文学、月亮虎、某某著、第一章、划线内容、这段话。
+6. 标签不要超过 12 个字，不要带 #，不要输出句子。
+7. 只有当图片里完全没有可读正文时，text 才为空字符串，tags 才为空数组。"""
+
+
+OCR_TRANSCRIPTION_RESCUE_PROMPT = """上一次结构化 OCR 没有提取到文字。现在不要判断划线、标记或标签。
+
+请把图片中所有清晰可读的中文正文按阅读顺序完整转写出来。
+要求：
+1. 只输出正文纯文本，不要 JSON，不要 Markdown，不要解释。
+2. 保留自然段，合并拍照造成的断行。
+3. 删除页眉、页脚、页码、脚注序号和重复噪声。
+4. 除非图片完全没有可读正文，否则不要输出空字符串。"""
+
+
+def call_ocr_with_fallback(image_data_url: str, trace_event=None) -> OcrExtractionResult:
+    def emit(event_type: str, metadata: dict) -> None:
+        if trace_event:
+            trace_event(event_type, metadata)
+
+    def call_phase(phase: str, prompt: str) -> str:
+        content = [
+            {"type": "image_url", "image_url": {"url": image_data_url}},
+            {"type": "text", "text": prompt},
+        ]
+        phase_started_at = time.perf_counter()
+        emit("KIMI_REQUEST_STARTED", {"phase": phase})
+        try:
+            response = call_kimi_vision([{"role": "user", "content": content}])
+        except Exception as error:
+            emit(
+                "KIMI_REQUEST_FAILED",
+                {
+                    "phase": phase,
+                    "latencyMs": int((time.perf_counter() - phase_started_at) * 1000),
+                    "error": str(error),
+                },
+            )
+            raise
+        output = response.content if isinstance(response, KimiVisionResult) else str(response or "")
+        emit(
+            "KIMI_REQUEST_FINISHED",
+            {
+                "phase": phase,
+                "latencyMs": int((time.perf_counter() - phase_started_at) * 1000),
+                "outputChars": len(output or ""),
+                **(response.diagnostics if isinstance(response, KimiVisionResult) else {}),
+            },
+        )
+        return output
+
+    emit("OCR_EXTRACTION_STARTED", {"mode": "structured"})
+    output = call_phase("structured", OCR_PROMPT)
+    result = parse_ocr_extraction(output)
+    needs_rescue = should_rescue_ocr_result(result)
+    emit(
+        "OCR_EXTRACTION_PARSED",
+        {"phase": "structured", "textChars": len(result.text), "tagCount": len(result.tags), "needsRescue": needs_rescue},
+    )
+    if not needs_rescue:
+        return result
+
+    emit("OCR_RESCUE_STARTED", {"reason": "empty_or_suspect_structured_result"})
+    rescue_output = call_phase("plain_text_rescue", OCR_TRANSCRIPTION_RESCUE_PROMPT)
+    rescue_result = parse_ocr_extraction(rescue_output)
+    rescue_text = normalize_ocr_text(rescue_result.text or rescue_output)
+    emit("OCR_RESCUE_PARSED", {"textChars": len(rescue_text)})
+    return OcrExtractionResult(rescue_text, rescue_result.tags, rescue_result.structured)
+
+def throttle_kimi_vision_request() -> None:
+    global KIMI_VISION_LAST_REQUEST_AT
+    with KIMI_VISION_RATE_LOCK:
+        elapsed = time.monotonic() - KIMI_VISION_LAST_REQUEST_AT
+        wait_seconds = KIMI_VISION_MIN_INTERVAL_SECONDS - elapsed
+        if wait_seconds > 0:
+            time.sleep(wait_seconds)
+        KIMI_VISION_LAST_REQUEST_AT = time.monotonic()
+
+
+def start_background_ocr(target, *args) -> None:
+    thread = threading.Thread(target=target, args=args, daemon=True)
+    thread.start()
+
+
+def _run_quote_ocr_job(
+    user_id: str,
+    username: str,
+    quote_id: str,
+    image_data_url: str,
+    base_content: str,
+    trace_id: str = "",
+    request_started_at: float = 0.0,
+) -> None:
+    conn = get_conn()
+    trace_manager = TraceManager()
+
+    def elapsed_ms() -> int:
+        if not request_started_at:
+            return 0
+        return int((time.perf_counter() - request_started_at) * 1000)
+
+    def trace_event(event_type: str, metadata: dict) -> None:
+        if not trace_id:
+            return
+        trace_manager.log_event(conn, trace_id, event_type, {**metadata, "elapsedMs": elapsed_ms()})
+
+    try:
+        trace_event("BACKGROUND_JOB_STARTED", {"quoteId": quote_id})
+        result = call_ocr_with_fallback(image_data_url, trace_event=trace_event)
+        cleaned = result.text
+        state = load_state(conn, user_id)
+        quote = next((item for item in state.get("quotes", []) if item.get("id") == quote_id), None)
+        generated_tags = filter_ocr_tags_for_quote(result.tags, state, quote)
+        if quote:
+            current_content = str(quote.get("content") or "")
+            if cleaned and (not current_content.strip() or current_content == base_content):
+                quote["content"] = cleaned
+                quote.pop("ocrText", None)
+            elif cleaned:
+                quote["ocrText"] = cleaned
+            if cleaned and generated_tags:
+                quote["tags"] = merge_tags(quote.get("tags", []), generated_tags)
+            quote["ocrStatus"] = "done" if cleaned else "failed"
+            quote["ocrSource"] = "后端 OCR"
+            quote["ocrUpdatedAt"] = now_iso()
+            if not cleaned:
+                quote["ocrError"] = "未识别到有效正文"
+            else:
+                quote.pop("ocrError", None)
+            save_state(conn, user_id, state)
+            trace_event(
+                "QUOTE_UPDATED",
+                {
+                    "quoteId": quote_id,
+                    "ocrStatus": quote.get("ocrStatus", ""),
+                    "textChars": len(cleaned),
+                    "tagCount": len(generated_tags),
+                },
+            )
+        total_latency_ms = elapsed_ms()
+        if trace_id:
+            trace_manager.update_trace(
+                conn,
+                trace_id,
+                status=AGENT_STATUS_OK if cleaned else AGENT_STATUS_ERROR,
+                latency_ms=total_latency_ms,
+                output_tokens=estimate_tokens(cleaned),
+                error_message="" if cleaned else "未识别到有效正文",
+            )
+        append_log(
+            conn,
+            user_id=user_id,
+            username=username,
+            type_="ocr",
+            model=MOONSHOT_VISION_MODEL,
+            prompt=f"{OCR_PROMPT}\n\n--- rescue ---\n{OCR_TRANSCRIPTION_RESCUE_PROMPT}",
+            input_=f"quote:{quote_id}:image:data-url",
+            output=json.dumps({"text": cleaned, "tags": generated_tags}, ensure_ascii=False),
+            trace_id=trace_id,
+            latency_ms=total_latency_ms,
+            output_tokens=estimate_tokens(cleaned),
+            parse_status="success" if cleaned else "empty",
+        )
+    except Exception as error:
+        trace_event("BACKGROUND_JOB_FAILED", {"quoteId": quote_id, "error": str(error)})
+        state = load_state(conn, user_id)
+        quote = next((item for item in state.get("quotes", []) if item.get("id") == quote_id), None)
+        if quote:
+            quote["ocrStatus"] = "failed"
+            quote["ocrError"] = str(error)
+            quote["ocrUpdatedAt"] = now_iso()
+            save_state(conn, user_id, state)
+        total_latency_ms = elapsed_ms()
+        if trace_id:
+            trace_manager.update_trace(
+                conn,
+                trace_id,
+                status=AGENT_STATUS_ERROR,
+                latency_ms=total_latency_ms,
+                error_message=str(error),
+            )
+        append_log(
+            conn,
+            user_id=user_id,
+            username=username,
+            type_="ocr",
+            model=MOONSHOT_VISION_MODEL,
+            prompt=OCR_PROMPT,
+            input_=f"quote:{quote_id}:image:data-url",
+            output="",
+            error=str(error),
+            trace_id=trace_id,
+            latency_ms=total_latency_ms,
+            parse_status="error",
+        )
+    finally:
+        conn.close()
+
+
 def create_session(conn: sqlite3.Connection, user_id: str) -> str:
     token = secrets.token_urlsafe(32)
     now = now_iso()
@@ -572,6 +943,27 @@ def save_image(user_id: str, data_url: str, filename: str = "") -> str:
     file_path = user_dir / safe_name
     file_path.write_bytes(binary)
     return f"/media/{user_id}/{safe_name}"
+
+
+def media_url_to_data_url(user_id: str, image_url: str) -> str:
+    url = str(image_url or "").strip()
+    marker = f"/media/{user_id}/"
+    if marker not in url:
+        raise ValueError("imageUrl does not belong to current user")
+    relative = url[url.index(marker) + len("/media/") :]
+    target = (UPLOAD_DIR / relative).resolve()
+    if not str(target).startswith(str(UPLOAD_DIR.resolve())) or not target.exists() or not target.is_file():
+        raise ValueError("image file not found")
+    suffix = target.suffix.lower()
+    mime = "image/jpeg"
+    if suffix == ".png":
+        mime = "image/png"
+    elif suffix == ".webp":
+        mime = "image/webp"
+    elif suffix in {".gif"}:
+        mime = "image/gif"
+    encoded = base64.b64encode(target.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
 
 
 class AgentRequestValidator:
@@ -905,7 +1297,16 @@ class ActionValidator:
 
 
 class TraceManager:
-    def create_trace(self, conn: sqlite3.Connection, *, trace_id: str, user_id: str, message: str, book_id: str) -> None:
+    def create_trace(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        trace_id: str,
+        user_id: str,
+        message: str,
+        book_id: str,
+        request_type: str = "chat",
+    ) -> None:
         now = now_iso()
         conn.execute(
             """
@@ -913,9 +1314,9 @@ class TraceManager:
                 trace_id, user_id, request_type, status, parse_status, validation_status,
                 latency_ms, input_tokens, output_tokens, message, book_id, error_message, created_at, updated_at
             )
-            VALUES (?, ?, 'chat', ?, ?, ?, 0, 0, 0, ?, ?, '', ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, '', ?, ?)
             """,
-            (trace_id, user_id, AGENT_STATUS_OK, "", "", message, book_id, now, now),
+            (trace_id, user_id, request_type, AGENT_STATUS_OK, "", "", message, book_id, now, now),
         )
         conn.commit()
 
@@ -1437,41 +1838,81 @@ def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", m
         raise RuntimeError(str(error.reason)) from error
 
 
-def call_kimi_vision(messages: list[dict], max_tokens: int = 1200) -> str:
+def call_kimi_vision(messages: list[dict], max_tokens: int = KIMI_VISION_MAX_TOKENS) -> KimiVisionResult:
     if not MOONSHOT_API_KEY:
         raise RuntimeError("MOONSHOT_API_KEY is not configured")
 
-    request = Request(
-        "https://api.moonshot.ai/v1/chat/completions",
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {MOONSHOT_API_KEY}",
-        },
-        data=json.dumps(
-            {
-                "model": "kimi-k2.6",
-                "messages": messages,
-                "max_tokens": max_tokens,
-            }
-        ).encode("utf-8"),
-    )
+    request_body = {
+        "model": MOONSHOT_VISION_MODEL,
+        "messages": messages,
+        "max_tokens": max_tokens,
+    }
+    if MOONSHOT_VISION_MODEL in {"kimi-k2.5", "kimi-k2.6"}:
+        request_body["thinking"] = {"type": "disabled"}
 
-    try:
-        with urlopen(request, timeout=120) as response:
-            data = json.loads(response.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"].strip()
-    except HTTPError as error:
-        payload = error.read().decode("utf-8", errors="ignore")
-        if error.code == 401:
-            raise RuntimeError("OCR API 密钥无效或未配置") from error
-        if error.code == 429:
-            raise RuntimeError("OCR 请求过于频繁，请稍后再试") from error
-        if error.code == 503:
-            raise RuntimeError("OCR 服务暂时不可用，图片可能过大，请稍后再试") from error
-        raise RuntimeError(payload or f"HTTP {error.code}") from error
-    except URLError as error:
-        raise RuntimeError(str(error.reason)) from error
+    payload = json.dumps(request_body).encode("utf-8")
+
+    for attempt in range(KIMI_VISION_MAX_ATTEMPTS):
+        request = Request(
+            "https://api.moonshot.ai/v1/chat/completions",
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {MOONSHOT_API_KEY}",
+            },
+            data=payload,
+        )
+        try:
+            throttle_kimi_vision_request()
+            with urlopen(request, timeout=KIMI_VISION_TIMEOUT_SECONDS) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                choice = data["choices"][0]
+                message = choice.get("message") or {}
+                content = str(message.get("content") or "").strip()
+                reasoning_content = str(message.get("reasoning_content") or "")
+                usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+                return KimiVisionResult(
+                    content=content,
+                    diagnostics={
+                        "finishReason": choice.get("finish_reason") or "",
+                        "responseModel": data.get("model") or "",
+                        "contentChars": len(content),
+                        "reasoningChars": len(reasoning_content),
+                        "usage": {
+                            "promptTokens": usage.get("prompt_tokens", 0),
+                            "completionTokens": usage.get("completion_tokens", 0),
+                            "totalTokens": usage.get("total_tokens", 0),
+                        },
+                        "thinking": request_body.get("thinking", {}),
+                        "maxTokens": max_tokens,
+                    },
+                )
+        except HTTPError as error:
+            error_payload = error.read().decode("utf-8", errors="ignore")
+            if error.code == 401:
+                raise RuntimeError("OCR API 密钥无效或未配置") from error
+            if error.code == 429:
+                raise RuntimeError("OCR 请求过于频繁，请稍后再试") from error
+            if error.code == 503 and attempt + 1 < KIMI_VISION_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            if error.code == 503:
+                raise RuntimeError("OCR 服务暂时不可用，图片可能过大，请稍后再试") from error
+            raise RuntimeError(error_payload or f"HTTP {error.code}") from error
+        except (TimeoutError, socket.timeout) as error:
+            if attempt + 1 < KIMI_VISION_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            raise RuntimeError("OCR 读取超时，请稍后重试") from error
+        except URLError as error:
+            if isinstance(error.reason, (TimeoutError, socket.timeout)) and attempt + 1 < KIMI_VISION_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            if isinstance(error.reason, (TimeoutError, socket.timeout)):
+                raise RuntimeError("OCR 读取超时，请稍后重试") from error
+            raise RuntimeError(str(error.reason)) from error
+
+    raise RuntimeError("OCR 读取超时，请稍后重试")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1869,32 +2310,28 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": "imageDataUrl is required"}, 400)
                 return
 
-            prompt = '请提取图片中所有被划线标注的文字，按出现顺序列出，每条单独一行，不需要其他解释。如果没有发现划线内容，回复"未发现划线文字"。'
+            prompt = OCR_PROMPT
             try:
-                content = [
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                    {"type": "text", "text": prompt},
-                ]
-                output = call_kimi_vision([{"role": "user", "content": content}])
+                result = call_ocr_with_fallback(data_url)
                 append_log(
                     conn,
                     user_id=user["id"],
                     username=user["username"],
                     type_="ocr",
-                    model="kimi-k2.6",
-                    prompt=prompt,
+                    model=MOONSHOT_VISION_MODEL,
+                    prompt=f"{prompt}\n\n--- rescue ---\n{OCR_TRANSCRIPTION_RESCUE_PROMPT}",
                     input_="image:data-url",
-                    output=output,
+                    output=json.dumps({"text": result.text, "tags": result.tags}, ensure_ascii=False),
                 )
                 conn.close()
-                self._send_json({"text": output, "source": "backend-ocr"})
+                self._send_json({"text": result.text, "tags": result.tags, "source": "backend-ocr"})
             except Exception as error:
                 append_log(
                     conn,
                     user_id=user["id"],
                     username=user["username"],
                     type_="ocr",
-                    model="kimi-k2.6",
+                    model=MOONSHOT_VISION_MODEL,
                     prompt=prompt,
                     input_="image:data-url",
                     output="",
@@ -1902,6 +2339,163 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 conn.close()
                 self._send_json({"error": str(error)}, 500)
+            return
+
+        if parsed.path == "/api/quotes/ocr":
+            request_started_at = time.perf_counter()
+            conn, user = self._require_user()
+            if not conn:
+                return
+            payload = self._read_json()
+            data_url = str(payload.get("imageDataUrl", "")).strip()
+            image_url_from_payload = str(payload.get("imageUrl", "")).strip()
+            book_id = str(payload.get("bookId", "")).strip()
+            if not book_id:
+                conn.close()
+                self._send_json({"error": "bookId is required"}, 400)
+                return
+
+            state = load_state(conn, user["id"])
+            if not any(item.get("id") == book_id for item in state.get("books", [])):
+                conn.close()
+                self._send_json({"error": "bookId does not exist"}, 400)
+                return
+
+            quote_id = str(payload.get("quoteId", "") or payload.get("id", "")).strip() or new_id("quote")
+            content_text = normalize_ocr_text(str(payload.get("content", "") or ""))
+            now = now_iso()
+            trace_id = new_id("trace")
+            trace_manager = TraceManager()
+            trace_manager.create_trace(
+                conn,
+                trace_id=trace_id,
+                user_id=user["id"],
+                message=f"quote_ocr:{quote_id}",
+                book_id=book_id,
+                request_type="ocr",
+            )
+            trace_manager.log_event(
+                conn,
+                trace_id,
+                "REQUEST_RECEIVED",
+                {
+                    "quoteId": quote_id,
+                    "bookId": book_id,
+                    "hasImageDataUrl": bool(data_url),
+                    "hasImageUrl": bool(image_url_from_payload),
+                    "contentChars": len(content_text),
+                    "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
+                },
+            )
+            quote = next((item for item in state.get("quotes", []) if item.get("id") == quote_id), None)
+            image_url = image_url_from_payload or str((quote or {}).get("imageUrl", "") or "").strip()
+            if data_url:
+                try:
+                    image_url = save_image(user["id"], data_url, str(payload.get("filename", "")).strip())
+                    trace_manager.log_event(
+                        conn,
+                        trace_id,
+                        "IMAGE_SAVED",
+                        {
+                            "quoteId": quote_id,
+                            "imageUrl": image_url,
+                            "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
+                        },
+                    )
+                except Exception as error:
+                    trace_manager.update_trace(
+                        conn,
+                        trace_id,
+                        status=AGENT_STATUS_ERROR,
+                        latency_ms=int((time.perf_counter() - request_started_at) * 1000),
+                        error_message=f"image upload failed: {error}",
+                    )
+                    conn.close()
+                    self._send_json({"error": f"image upload failed: {error}"}, 400)
+                    return
+            elif image_url:
+                try:
+                    data_url = media_url_to_data_url(user["id"], image_url)
+                    trace_manager.log_event(
+                        conn,
+                        trace_id,
+                        "IMAGE_LOADED",
+                        {
+                            "quoteId": quote_id,
+                            "imageUrl": image_url,
+                            "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
+                        },
+                    )
+                except Exception as error:
+                    trace_manager.update_trace(
+                        conn,
+                        trace_id,
+                        status=AGENT_STATUS_ERROR,
+                        latency_ms=int((time.perf_counter() - request_started_at) * 1000),
+                        error_message=f"image load failed: {error}",
+                    )
+                    conn.close()
+                    self._send_json({"error": f"image load failed: {error}"}, 400)
+                    return
+            else:
+                trace_manager.update_trace(
+                    conn,
+                    trace_id,
+                    status=AGENT_STATUS_ERROR,
+                    latency_ms=int((time.perf_counter() - request_started_at) * 1000),
+                    error_message="imageDataUrl or imageUrl is required",
+                )
+                conn.close()
+                self._send_json({"error": "imageDataUrl or imageUrl is required"}, 400)
+                return
+
+            quote_payload = {
+                "id": quote_id,
+                "bookId": book_id,
+                "page": int(payload.get("page") or 0),
+                "kind": str(payload.get("kind", "quote") or "quote"),
+                "content": content_text,
+                "reflection": str(payload.get("reflection", "") or "").strip(),
+                "tags": normalize_ocr_tags(payload.get("tags") if isinstance(payload.get("tags"), list) else []),
+                "imageUrl": image_url,
+                "ocrSource": "后端 OCR",
+                "ocrStatus": "pending",
+                "ocrTraceId": trace_id,
+                "ocrRequestedAt": now,
+                "ocrUpdatedAt": now,
+            }
+            if quote:
+                quote.update(quote_payload)
+                quote.pop("ocrText", None)
+                quote.pop("ocrError", None)
+                quote.setdefault("createdAt", now)
+            else:
+                quote_payload["createdAt"] = now
+                state.setdefault("quotes", []).insert(0, quote_payload)
+
+            state = save_state(conn, user["id"], state)
+            trace_manager.log_event(
+                conn,
+                trace_id,
+                "DRAFT_SAVED",
+                {
+                    "quoteId": quote_id,
+                    "ocrStatus": "pending",
+                    "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
+                },
+            )
+            conn.close()
+            start_background_ocr(
+                _run_quote_ocr_job,
+                user["id"],
+                user["username"],
+                quote_id,
+                data_url,
+                content_text,
+                trace_id,
+                request_started_at,
+            )
+            self._send_json({"state": state, "quoteId": quote_id, "status": "pending", "traceId": trace_id}, 202)
             return
 
         if parsed.path == "/api/chat/stream":

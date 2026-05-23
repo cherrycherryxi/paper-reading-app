@@ -1,5 +1,5 @@
-// Regression test for bug-098: quote card content truncation
-// Verifies renderQuotes() shows full content without -webkit-line-clamp
+// Regression coverage for compact quote cards:
+// renderQuotes() may visually clamp list cards, but quote detail must keep full content.
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -33,6 +33,7 @@ function createElementStub() {
     close() {},
     reset() {},
     setAttribute() {},
+    removeAttribute() {},
     closest() { return null; },
   };
 }
@@ -69,9 +70,11 @@ function createHarness() {
   const instrumented = `${sourceWithoutBoot}
 globalThis.__testHooks = {
   renderQuotes,
+  openQuoteDetail,
   els,
   setState(v) { state = v; },
   setCurrentUser(v) { currentUser = v; },
+  getQuoteDetailContent() { return document.getElementById("quoteDetailContent").textContent; },
   getQuotesListMarkup() { return els.quotesList.innerHTML; },
 };
 `;
@@ -79,16 +82,17 @@ globalThis.__testHooks = {
   return context.__testHooks;
 }
 
-test("renderQuotes: card does NOT apply entry-card-note-clamp (bug-098)", () => {
+test("renderQuotes: list card clamps long quote while detail keeps full content", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
+  const fullContent = "这是一段很长的摘抄内容，应该完整保留在详情中，但列表卡片只显示前几行。".repeat(5);
   h.setState({
     books: [{ id: "b1", title: "测试书", author: "作者", tags: [], status: "reading",
                currentPage: 0, totalPages: 100, notes: "", coverImageUrl: "",
                createdAt: "2026-01-01T00:00:00.000Z" }],
     quotes: [{
       id: "q1", bookId: "b1",
-      content: "这是一段很长的摘抄内容，应该完整显示在卡片上，不能被截断。".repeat(5),
+      content: fullContent,
       kind: "quote", page: 42, tags: ["测试"], reflection: "",
       imageUrl: "", createdAt: "2026-01-01T00:00:00.000Z",
     }],
@@ -96,8 +100,11 @@ test("renderQuotes: card does NOT apply entry-card-note-clamp (bug-098)", () => 
   });
   h.renderQuotes();
   const html = h.getQuotesListMarkup();
-  assert.ok(!html.includes("entry-card-note-clamp"), "摘抄卡片不应含 entry-card-note-clamp class（4行截断）");
-  assert.ok(html.includes("这是一段很长的摘抄内容"), "摘抄内容应完整出现在卡片中");
+  assert.ok(html.includes("entry-card-note-clamp"), "摘抄列表卡片应使用紧凑截断样式");
+  assert.ok(html.includes("这是一段很长的摘抄内容"), "摘抄内容仍应存在于卡片 DOM 中");
+
+  h.openQuoteDetail("q1");
+  assert.equal(h.getQuoteDetailContent(), fullContent, "摘抄详情应显示完整正文");
 });
 
 test("renderQuotes: empty state shows login message when no user", () => {
