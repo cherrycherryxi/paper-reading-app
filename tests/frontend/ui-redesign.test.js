@@ -5,8 +5,10 @@ const path = require("node:path");
 
 const stylesPath = path.join(__dirname, "..", "..", "styles.css");
 const indexPath = path.join(__dirname, "..", "..", "index.html");
+const appJsPath = path.join(__dirname, "..", "..", "app.js");
 const styles = fs.readFileSync(stylesPath, "utf8");
 const indexHtml = fs.readFileSync(indexPath, "utf8");
+const appSource = fs.readFileSync(appJsPath, "utf8");
 
 function getRuleBlock(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -61,6 +63,87 @@ test("property: grid cards use white surfaces, radius-md, and card shadows", () 
   assert.match(cards, /background:\s*var\(--color-surface\);/);
   assert.match(cards, /border-radius:\s*var\(--radius-md\);/);
   assert.match(cards, /box-shadow:\s*var\(--shadow-card\);/);
+});
+
+test("property: book and quote grids use compact, equal-height card behavior", () => {
+  const compactLists = getRuleBlock(".book-list,\n.quote-list");
+  assert.match(compactLists, /align-items:\s*stretch;/);
+
+  const compactCards = getRuleBlock(".book-grid-card,\n.quote-grid-card");
+  assert.match(compactCards, /display:\s*flex;/);
+  assert.match(compactCards, /flex-direction:\s*column;/);
+  assert.match(compactCards, /height:\s*100%;/);
+  assert.match(compactCards, /overflow:\s*hidden;/);
+
+  const cardTitle = getRuleBlock(".book-grid-body h3,\n.entry-card-body h3");
+  assert.match(cardTitle, /line-clamp:\s*2;/);
+  assert.match(cardTitle, /-webkit-line-clamp:\s*2;/);
+
+  const quoteNote = getRuleBlock(".entry-card-note-clamp");
+  assert.match(quoteNote, /line-clamp:\s*5;/);
+  assert.match(quoteNote, /-webkit-line-clamp:\s*5;/);
+  assert.match(appSource, /<p class="entry-card-note entry-card-note-clamp">\$\{escapeHtml\(quoteContent\)\}<\/p>/);
+});
+
+test("regression: quote OCR can start from an image-only draft", () => {
+  assert.doesNotMatch(
+    indexHtml,
+    /<textarea name="content" id="quoteContent"[^>]*required/,
+    "Quote content textarea must allow image-only drafts"
+  );
+  assert.match(appSource, /apiFetch\(\s*["']\/api\/quotes\/ocr["']/);
+  assert.match(appSource, /showToast\("已开始后台识别，可以继续编辑"\)/);
+  assert.match(appSource, /function scheduleOcrStatusRefresh\(/);
+});
+
+test("regression: stale pending OCR cards stop looking actively in progress", () => {
+  assert.match(appSource, /function isStalePendingOcr\(quote, now = Date\.now\(\)\)/);
+  assert.match(appSource, /now - startedAt > 10 \* 60 \* 1000/);
+  assert.match(appSource, /quote\.ocrStatus === "pending" && !isStalePendingOcr\(quote\)/);
+  assert.match(appSource, /识别任务可能已中断，请编辑后重新点击识别。/);
+});
+
+test("regression: quote OCR keeps enough image resolution for book-page text", () => {
+  assert.match(appSource, /const QUOTE_IMAGE_MAX_PX = 1800;/);
+  assert.match(appSource, /const QUOTE_IMAGE_QUALITY = 0\.92;/);
+  assert.match(appSource, /resizeImageToDataUrl\(file, QUOTE_IMAGE_MAX_PX, QUOTE_IMAGE_QUALITY\)/);
+});
+
+test("regression: quote OCR completion syncs generated tags into the open form", () => {
+  assert.match(appSource, /function syncOpenQuoteFormFromState\(/);
+  assert.match(appSource, /renderQuoteTagPicker\(mergedTags\)/);
+  assert.match(appSource, /const ocrBaseContent = normalizeOcrText\(els\.quoteForm\.dataset\.ocrBaseContent \|\| ""\);/);
+  assert.match(appSource, /currentContent === ocrBaseContent/);
+  assert.match(appSource, /els\.quoteForm\.dataset\.ocrBaseContent = requestContent;/);
+  assert.match(appSource, /delete els\.quoteForm\.dataset\.ocrBaseContent;/);
+  assert.match(appSource, /识别完成，原文和标签已自动填入。/);
+  assert.match(appSource, /tags:\s*normalizeTags\(els\.quoteForm\.querySelector\('\[name="tags"\]'\)\?\.value \|\| ""\)/);
+});
+
+test("regression: AI quote tags stay selected without being added to default picker tags", () => {
+  assert.match(appSource, /const pickerTags = \[\.\.\.new Set\(\[\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.getCustomQuoteTags\(\)\]\)\];/);
+  assert.match(appSource, /const selectedOnlyTags = selectedQuoteTags\.filter\(\(tag\) => !pickerTags\.includes\(tag\)\);/);
+  assert.match(appSource, /data-selected-only-tag="true"/);
+  assert.doesNotMatch(appSource, /\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.getCustomQuoteTags\(\), \.\.\.selectedQuoteTags/);
+});
+
+test("regression: book list status chip stays visible over the cover image", () => {
+  assert.match(
+    appSource,
+    /<div class="book-card-cover[\s\S]*?<span class="book-status-chip" data-status="\$\{book\.status\}"/,
+    "Book status chip must be rendered inside the cover layer"
+  );
+
+  const coverStatusChip = getRuleBlock(".book-card-cover .book-status-chip");
+  assert.match(coverStatusChip, /position:\s*absolute;/);
+  assert.match(coverStatusChip, /top:\s*8px;/);
+  assert.match(coverStatusChip, /left:\s*8px;/);
+  assert.match(coverStatusChip, /z-index:\s*1;/);
+  assert.match(coverStatusChip, /display:\s*inline-flex;/);
+  assert.match(coverStatusChip, /margin-left:\s*0;/);
+
+  assert.match(styles, /\.chip-dot--paused\s*\{\s*background:\s*var\(--status-paused-dot\);/);
+  assert.match(styles, /\.book-status-chip\[data-status="paused"\]\s*\{[\s\S]*background:\s*var\(--status-paused-bg\);/);
 });
 
 test("property: chat bubbles use black AI / white user surfaces", () => {

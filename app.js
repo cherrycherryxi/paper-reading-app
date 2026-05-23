@@ -1,5 +1,7 @@
 const AUTH_TOKEN_KEY = "paper-reading-auth-token-v1";
 const DEFAULT_BOOK_COVER_URL = "./assets/default-book-cover.jpeg?v=20260519g";
+const QUOTE_IMAGE_MAX_PX = 1800;
+const QUOTE_IMAGE_QUALITY = 0.92;
 
 const initialState = {
   books: [],
@@ -15,6 +17,12 @@ const statusMap = {
   wishlist: "想读",
   paused: "暂停",
   finished: "已读完",
+};
+
+const ocrStatusMap = {
+  pending: "识别中",
+  done: "识别完成",
+  failed: "识别失败",
 };
 
 const bookStatusOrder = {
@@ -148,6 +156,7 @@ let _bookDetailCurrentId = "";
 let _organizeCurrentBookId = "";
 let _candidatesCurrentBookId = "";
 let searchDebounceTimer = null;
+let ocrRefreshTimer = null;
 let remoteLogs = [];
 
 function isTabActive(tabName) {
@@ -290,10 +299,15 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(buildApiUrl(path), {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(buildApiUrl(path), {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    throw new Error("无法连接后端服务，请确认已启动 ./scripts/dev_backend.sh 或 app_server.py");
+  }
 
   const isJson = response.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await response.json() : null;
@@ -376,10 +390,16 @@ function renderQuoteTagPicker(initialTags) {
   _syncQuoteTagsInput();
   const container = document.getElementById("quoteTagChips");
   if (!container) return;
-  const all = [...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags(), ...selectedQuoteTags])];
-  container.innerHTML = all.map((t) =>
-    `<button type="button" class="tag-chip-pick${selectedQuoteTags.includes(t) ? " tag-chip-pick--active" : ""}" data-pick-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`
-  ).join("");
+  const pickerTags = [...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags()])];
+  const selectedOnlyTags = selectedQuoteTags.filter((tag) => !pickerTags.includes(tag));
+  container.innerHTML = [
+    ...pickerTags.map((t) =>
+      `<button type="button" class="tag-chip-pick${selectedQuoteTags.includes(t) ? " tag-chip-pick--active" : ""}" data-pick-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`
+    ),
+    ...selectedOnlyTags.map((t) =>
+      `<button type="button" class="tag-chip-pick tag-chip-pick--active tag-chip-pick--selected-only" data-selected-only-tag="true" data-pick-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`
+    ),
+  ].join("");
 }
 
 function parseExcelDateToIso(raw) {
@@ -409,6 +429,27 @@ function normalizeBookStatus(raw, startedAt, finishedAt) {
   if (finishedAt) return "finished";
   if (startedAt) return "reading";
   return "wishlist";
+}
+
+function normalizeOcrText(text) {
+  return String(text || "")
+    .trim()
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/([\u4e00-\u9fff])[ \t]+([\u4e00-\u9fff])/g, "$1$2")
+    .replace(/\s+([，。！？；：、）】》」』])/g, "$1")
+    .replace(/([（【《「『])\s+/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .trim();
+}
+
+function isStalePendingOcr(quote, now = Date.now()) {
+  if (quote?.ocrStatus !== "pending") return false;
+  const startedAt = Date.parse(quote.ocrUpdatedAt || quote.ocrRequestedAt || quote.createdAt || "");
+  return Number.isFinite(startedAt) && now - startedAt > 10 * 60 * 1000;
 }
 
 function escapeHtml(text) {
@@ -624,6 +665,7 @@ async function loadSession() {
     remoteLogs = [];
   }
   render();
+  scheduleOcrStatusRefresh();
   dispatchUserChange();
 }
 
@@ -639,6 +681,34 @@ async function refreshSessionState({ renderPage = false } = {}) {
     dispatchUserChange();
   }
   return true;
+}
+
+function hasPendingOcrQuotes() {
+  return state.quotes.some((quote) => quote.ocrStatus === "pending" && !isStalePendingOcr(quote));
+}
+
+function scheduleOcrStatusRefresh(delayMs = 5000) {
+  if (ocrRefreshTimer) {
+    clearTimeout(ocrRefreshTimer);
+  }
+  if (!hasPendingOcrQuotes()) {
+    ocrRefreshTimer = null;
+    return;
+  }
+  ocrRefreshTimer = setTimeout(async () => {
+    ocrRefreshTimer = null;
+    try {
+      await refreshSessionState({ renderPage: true });
+      if (hasPendingOcrQuotes()) {
+        scheduleOcrStatusRefresh(5000);
+      } else {
+        await loadRemoteLogs();
+        showToast("图片文字识别已完成");
+      }
+    } catch {
+      if (hasPendingOcrQuotes()) scheduleOcrStatusRefresh(8000);
+    }
+  }, delayMs);
 }
 
 async function loadRemoteLogs() {
@@ -1116,6 +1186,16 @@ function renderQuotes() {
   els.quotesList.innerHTML = quotes
     .map((quote) => {
       const book = state.books.find((item) => item.id === quote.bookId);
+      const ocrStatus = String(quote.ocrStatus || "").trim();
+      const ocrBadge = ocrStatus
+        ? `<span class="quote-ocr-badge quote-ocr-badge--${escapeHtml(ocrStatus)}">${escapeHtml(ocrStatusMap[ocrStatus] || ocrStatus)}</span>`
+        : "";
+      const quoteContent = quote.content || quote.ocrText ||
+        (ocrStatus === "pending" && isStalePendingOcr(quote)
+          ? "识别任务可能已中断，请编辑后重新点击识别。"
+          : ocrStatus === "pending"
+          ? "图片文字识别中，稍后回来继续编辑。"
+          : (ocrStatus === "failed" ? (quote.ocrError || "识别失败，可重新编辑或重试。") : ""));
       return `
         <article class="quote-grid-card" data-quote-id="${escapeHtml(quote.id)}">
           <div class="entry-card-cover">
@@ -1123,9 +1203,9 @@ function renderQuotes() {
             <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">
-            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
+            <h3>${book ? formatBookTitle(book.title) : "未知书籍"}${ocrBadge}</h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
-            <p class="entry-card-note">${escapeHtml(quote.content)}</p>
+            <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quoteContent)}</p>
             <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}</p>
             <div class="entry-card-actions">
               <button class="card-action-btn" data-edit-quote="${escapeHtml(quote.id)}" type="button">编辑</button>
@@ -1206,8 +1286,43 @@ function renderOcrStatus() {
     : "请先登录后再使用 OCR。";
 }
 
+function syncOpenQuoteFormFromState() {
+  if (!els.quoteDialog?.open) return;
+  const quoteId = String(els.quoteForm.querySelector('[name="id"]')?.value || "").trim();
+  if (!quoteId) return;
+  const quote = state.quotes.find((item) => item.id === quoteId);
+  if (!quote) return;
+
+  const remoteTags = Array.isArray(quote.tags) ? quote.tags : [];
+  if (remoteTags.length) {
+    const mergedTags = [...new Set([...selectedQuoteTags, ...remoteTags])];
+    if (mergedTags.length !== selectedQuoteTags.length) {
+      renderQuoteTagPicker(mergedTags);
+    }
+  }
+
+  if (quote.ocrStatus === "done") {
+    const contentEl = els.quoteContent;
+    const recognizedText = quote.content || quote.ocrText || "";
+    const ocrBaseContent = normalizeOcrText(els.quoteForm.dataset.ocrBaseContent || "");
+    const currentContent = normalizeOcrText(contentEl.value);
+    if (recognizedText && (!currentContent || (ocrBaseContent && currentContent === ocrBaseContent))) {
+      contentEl.value = recognizedText;
+    }
+    delete els.quoteForm.dataset.ocrBaseContent;
+    delete els.quoteForm.dataset.ocrQuoteId;
+    els.ocrStatus.textContent = remoteTags.length
+      ? "识别完成，原文和标签已自动填入。"
+      : "识别完成，原文已自动填入。";
+  } else if (quote.ocrStatus === "failed") {
+    delete els.quoteForm.dataset.ocrBaseContent;
+    delete els.quoteForm.dataset.ocrQuoteId;
+    els.ocrStatus.textContent = quote.ocrError || "识别失败，可稍后重试。";
+  }
+}
+
 function renderImagePreview() {
-  const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl;
+  const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl || resolveImageUrl(pendingQuoteImage?.savedUrl || "");
   if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
     if (els.quotePreviewImg) els.quotePreviewImg.removeAttribute("src");
@@ -1255,6 +1370,7 @@ function render() {
   renderBookSelect(els.sessionBookSelect);
   renderBookSelect(els.quoteBookSelect);
   renderOcrStatus();
+  syncOpenQuoteFormFromState();
   renderImagePreview();
   renderBookImagePreview();
 }
@@ -1379,6 +1495,7 @@ async function uploadImageIfNeeded() {
 
 async function uploadQuoteImage(image) {
   if (!image) return "";
+  if (image.savedUrl && !image.dataUrl && !image.compressionPromise) return image.savedUrl;
   let dataUrl = image.dataUrl || "";
   if (!dataUrl && image.compressionPromise) {
     dataUrl = await image.compressionPromise;
@@ -1636,8 +1753,10 @@ function openQuoteDetail(quoteId) {
 
   document.getElementById("quoteDetailBook").textContent =
     book ? `${formatBookTitle(book.title)} · ${book.author || ""}`.trim().replace(/·\s*$/, "") : "未知书籍";
+  const ocrStatus = String(quote.ocrStatus || "").trim();
+  const ocrText = ocrStatus ? ` · ${ocrStatusMap[ocrStatus] || ocrStatus}` : "";
   document.getElementById("quoteDetailMeta").textContent =
-    `${quoteKindMap[quote.kind] || "摘抄"} · 第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}`;
+    `${quoteKindMap[quote.kind] || "摘抄"} · 第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}${ocrText}`;
 
   const imgWrap = document.getElementById("quoteDetailImage");
   const img = document.getElementById("quoteDetailImg");
@@ -1649,7 +1768,13 @@ function openQuoteDetail(quoteId) {
     img.removeAttribute("src");
   }
 
-  document.getElementById("quoteDetailContent").textContent = quote.content || "";
+  document.getElementById("quoteDetailContent").textContent =
+    quote.content || quote.ocrText ||
+    (ocrStatus === "pending" && isStalePendingOcr(quote)
+      ? "识别任务可能已中断，请编辑后重新点击识别。"
+      : ocrStatus === "pending"
+      ? "图片文字识别中，稍后回来继续编辑。"
+      : (ocrStatus === "failed" ? (quote.ocrError || "识别失败，可重新编辑或重试。") : ""));
 
   const reflEl = document.getElementById("quoteDetailReflection");
   if (quote.reflection) {
@@ -1715,6 +1840,9 @@ function openNewQuoteForBook(bookId) {
   renderQuoteTagPicker([]);
   document.getElementById("quoteContent").value = "";
   els.quoteForm.querySelector('[name="reflection"]').value = "";
+  if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
+  pendingQuoteImage = null;
+  renderImagePreview();
   els.quoteDialog.showModal();
 }
 
@@ -1742,8 +1870,13 @@ function editQuote(quoteId) {
   els.quoteForm.querySelector('[name="page"]').value = quote.page || "";
   els.quoteForm.querySelector('[name="kind"]').value = quote.kind || "quote";
   renderQuoteTagPicker(quote.tags || []);
-  document.getElementById("quoteContent").value = quote.content || "";
+  document.getElementById("quoteContent").value = quote.content || quote.ocrText || "";
   els.quoteForm.querySelector('[name="reflection"]').value = quote.reflection || "";
+  if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
+  pendingQuoteImage = quote.imageUrl
+    ? { name: "existing-quote-image", savedUrl: quote.imageUrl, dataUrl: null, objectUrl: "", ocrSource: quote.ocrSource || "" }
+    : null;
+  renderImagePreview();
   els.quoteDialog.showModal();
 }
 
@@ -2206,11 +2339,15 @@ async function addQuote(formData) {
 
   const existingId = String(formData.get("id") || "").trim();
   const bookId = String(formData.get("bookId"));
-  const content = String(formData.get("content")).trim();
+  const content = normalizeOcrText(formData.get("content"));
   if (!bookId) { showToast("先选择一本书"); return; }
-  if (!content) { showToast("卡片内容不能为空"); return; }
 
   const pendingImage = pendingQuoteImage;
+  const existingQuote = existingId ? state.quotes.find((q) => q.id === existingId) : null;
+  if (!content && !pendingImage && !existingQuote?.imageUrl) {
+    showToast("请输入内容，或先拍照保存图片草稿");
+    return;
+  }
   let quoteId = existingId;
 
   if (existingId) {
@@ -2224,6 +2361,7 @@ async function addQuote(formData) {
       content,
       reflection: String(formData.get("reflection")).trim(),
       tags: normalizeTags(formData.get("tags")),
+      ocrStatus: content && state.quotes[idx].ocrStatus === "pending" ? "done" : state.quotes[idx].ocrStatus,
     };
   } else {
     quoteId = createId("quote");
@@ -2237,6 +2375,7 @@ async function addQuote(formData) {
       tags: normalizeTags(formData.get("tags")),
       imageUrl: "",
       ocrSource: pendingImage?.ocrSource || "",
+      ocrStatus: "",
       createdAt: new Date().toISOString(),
     });
   }
@@ -2443,7 +2582,7 @@ async function handleQuoteImageChange(file) {
   renderImagePreview();
   showToast("图片已载入，可以直接保存，也可以先做 OCR");
   // Compress in background — needed for OCR/upload
-  const compressionPromise = resizeImageToDataUrl(file);
+  const compressionPromise = resizeImageToDataUrl(file, QUOTE_IMAGE_MAX_PX, QUOTE_IMAGE_QUALITY);
   pendingQuoteImage.compressionPromise = compressionPromise;
   compressionPromise.then((dataUrl) => {
     if (pendingQuoteImage) pendingQuoteImage.dataUrl = dataUrl;
@@ -2452,42 +2591,78 @@ async function handleQuoteImageChange(file) {
 
 async function runOcrFromImage() {
   if (!requireAuth("执行 OCR")) return;
-  if (!pendingQuoteImage) {
-    showToast("先拍照或选择一张图片");
+  const bookId = String(els.quoteForm.querySelector('[name="bookId"]')?.value || "").trim();
+  if (!bookId) {
+    showToast("先选择一本书");
     return;
   }
-  if (!pendingQuoteImage.dataUrl) {
-    showToast("图片还在处理中，请稍候…");
+  const existingQuoteId = String(els.quoteForm.querySelector('[name="id"]')?.value || "").trim();
+  const existingQuote = existingQuoteId ? state.quotes.find((quote) => quote.id === existingQuoteId) : null;
+  const savedImageUrl = pendingQuoteImage?.savedUrl || existingQuote?.imageUrl || "";
+  if (!pendingQuoteImage && !savedImageUrl) {
+    showToast("先拍照或选择一张图片");
     return;
   }
 
   els.ocrButton.disabled = true;
-  els.ocrStatus.textContent = "正在通过后端识别图片文字…";
+  els.ocrStatus.textContent = "正在保存图片草稿…";
   try {
+    let dataUrl = pendingQuoteImage?.dataUrl || "";
+    if (!dataUrl && pendingQuoteImage?.compressionPromise) {
+      dataUrl = await pendingQuoteImage.compressionPromise;
+    }
+    if (!dataUrl && !savedImageUrl) {
+      showToast("图片还在处理中，请稍候…");
+      return;
+    }
+    const requestContent = normalizeOcrText(els.quoteContent.value);
+
     const data = await apiFetch(
-      "/api/ocr",
+      "/api/quotes/ocr",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: pendingQuoteImage.dataUrl }),
+        body: JSON.stringify({
+          quoteId: existingQuoteId,
+          bookId,
+          page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
+          kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
+          content: requestContent,
+          reflection: String(els.quoteForm.querySelector('[name="reflection"]')?.value || "").trim(),
+          tags: normalizeTags(els.quoteForm.querySelector('[name="tags"]')?.value || ""),
+          imageDataUrl: dataUrl,
+          imageUrl: savedImageUrl,
+          filename: pendingQuoteImage?.name || "quote-image",
+        }),
       },
       true
     );
-    const text = String(data.text || "").trim();
-    if (!text || text === "未发现划线文字") {
-      els.ocrStatus.textContent = "未发现划线内容，建议重拍或手动输入。";
-      showToast("未发现划线文字");
-      return;
+    if (data.state) {
+      state = normalizeStateShape(data.state);
     }
-    els.quoteContent.value = els.quoteContent.value.trim()
-      ? `${els.quoteContent.value.trim()}\n\n${text}`
-      : text;
-    pendingQuoteImage.ocrSource = "后端 OCR";
+    const quoteId = data.quoteId || existingQuoteId;
+    const quote = state.quotes.find((item) => item.id === quoteId);
+    if (quoteId) {
+      els.quoteForm.querySelector('[name="id"]').value = quoteId;
+      els.quoteForm.dataset.ocrQuoteId = quoteId;
+      els.quoteForm.dataset.ocrBaseContent = requestContent;
+    }
+    if (quote?.imageUrl) {
+      if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
+      pendingQuoteImage = { name: "existing-quote-image", savedUrl: quote.imageUrl, dataUrl: null, objectUrl: "", ocrSource: quote.ocrSource || "后端 OCR" };
+      renderImagePreview();
+    }
+    renderHero();
+    renderSummary();
+    renderQuotes();
+    if (isTabActive("connections")) renderConnections();
+    if (isTabActive("books")) renderBooks();
+    scheduleOcrStatusRefresh();
     await loadRemoteLogs();
-    els.ocrStatus.textContent = "识别完成，结果已填入内容框。";
-    showToast("OCR 识别完成");
+    els.ocrStatus.textContent = "已开始后台识别，可以继续编辑我的理解。";
+    showToast("已开始后台识别，可以继续编辑");
   } catch (error) {
-    els.ocrStatus.textContent = `识别失败：${error.message}`;
+    els.ocrStatus.textContent = `启动识别失败：${error.message}`;
     showToast(error.message);
     await loadRemoteLogs();
   } finally {
