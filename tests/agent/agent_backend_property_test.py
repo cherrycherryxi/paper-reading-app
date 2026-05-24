@@ -227,6 +227,20 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIn('这些"低俗"情绪值得讨论。', result.reply)
         self.assertEqual(result.actions, [])
 
+    def test_reply_extractor_keeps_unescaped_quotes_inside_streamed_reply(self):
+        extractor = app_server.ReplyExtractor()
+        raw = '{"reply": "宇宙里不存在统一的\"现在\"。所谓\"发明时间\"更像叙事工具。", "actions": []}'
+        streamed = "".join(extractor.feed(ch) for ch in raw)
+
+        self.assertEqual(streamed, '宇宙里不存在统一的"现在"。所谓"发明时间"更像叙事工具。')
+
+    def test_reply_extractor_stops_at_actions_field_not_inner_quote(self):
+        extractor = app_server.ReplyExtractor()
+        chunks = ['{"reply": "前半段', '带着"引号"', '继续", "actions": [{"type": "tag"}]}']
+        streamed = "".join(extractor.feed(chunk) for chunk in chunks)
+
+        self.assertEqual(streamed, '前半段带着"引号"继续')
+
     def test_property_action_validation_enforces_whitelist_length_and_schema(self):
         validator = app_server.ActionValidator()
 
