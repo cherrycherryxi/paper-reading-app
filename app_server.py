@@ -1125,6 +1125,7 @@ class ReplyExtractor:
         self._in_reply = False
         self._escape = False
         self._done = False
+        self._pending_quote = ""
 
     def feed(self, chunk: str) -> str:
         if self._done:
@@ -1145,15 +1146,46 @@ class ReplyExtractor:
         for ch in text:
             if self._done:
                 break
+            if self._pending_quote:
+                self._pending_quote += ch
+                if self._is_complete_reply_terminator(self._pending_quote):
+                    self._done = True
+                    self._pending_quote = ""
+                elif not self._could_be_reply_terminator(self._pending_quote):
+                    out.append(self._pending_quote)
+                    self._pending_quote = ""
+                continue
             if self._escape:
                 self._escape = False
                 out.append(_ESCAPE_MAP.get(ch, ch))
             elif ch == "\\":
                 self._escape = True
             elif ch == '"':
-                self._done = True
+                self._pending_quote = ch
             else:
                 out.append(ch)
+
+    @staticmethod
+    def _could_be_reply_terminator(value: str) -> bool:
+        if not value.startswith('"'):
+            return False
+        rest = value[1:]
+        stripped = rest.lstrip()
+        if not stripped:
+            return True
+        if not stripped.startswith(","):
+            return False
+        after_comma = stripped[1:].lstrip()
+        if not after_comma:
+            return True
+        if not after_comma.startswith('"'):
+            return False
+        key = after_comma[1:]
+        return "actions".startswith(key)
+
+    @staticmethod
+    def _is_complete_reply_terminator(value: str) -> bool:
+        return re.match(r'^"\s*,\s*"actions', value) is not None
 
 
 class ResponseParser:
