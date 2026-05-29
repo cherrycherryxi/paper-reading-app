@@ -70,8 +70,8 @@ class TermsConsentTests(unittest.TestCase):
                         "terms_accepted_at must be set when termsAccepted=True at register time")
 
     def test_legal_pages_are_served_by_backend(self):
-        # GET /privacy.html and /terms.html via Handler do_GET
-        for path in ("/privacy.html", "/terms.html"):
+        # GET /privacy.html, /terms.html, /landing.html via Handler do_GET
+        for path in ("/privacy.html", "/terms.html", "/landing.html"):
             handler = app_server.Handler.__new__(app_server.Handler)
             handler.path = path
             handler.command = "GET"
