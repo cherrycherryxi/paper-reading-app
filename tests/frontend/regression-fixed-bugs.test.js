@@ -922,6 +922,25 @@ test("P1 ToS consent: legal pages exist and reference the product", () => {
   }
 });
 
+test("P2 landing: /landing.html exists with hero CTA, features section, and links to /terms.html + /privacy.html + /", () => {
+  const root = path.join(__dirname, "..", "..");
+  const html = fs.readFileSync(path.join(root, "landing.html"), "utf8");
+  assert.match(html, /<h1[^>]*class="hero-title"/, "landing must have hero h1");
+  assert.match(html, /免费开始/, "landing must include 免费开始 CTA");
+  assert.match(html, /id="features"/, "landing must include features section");
+  assert.match(html, /href="\/terms\.html"/, "landing must link to /terms.html");
+  assert.match(html, /href="\/privacy\.html"/, "landing must link to /privacy.html");
+  assert.match(html, /href="\/"/, "landing must include CTA back to app");
+  assert.match(html, /<meta name="description"/, "landing must have meta description for SEO");
+});
+
+test("P2 landing: auth panel includes 了解这是什么 link pointing to /landing.html", () => {
+  assert.match(indexHtml, /href="\/landing\.html"/,
+    "index.html must include link to /landing.html (auth panel CTA)");
+  assert.match(indexHtml, /auth-landing-link/,
+    "must use .auth-landing-link CSS class");
+});
+
 test("P0 account-export: backend exposes GET /api/account/export with full payload + Content-Disposition", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
   assert.match(src, /parsed\.path\s*==\s*"\/api\/account\/export"/,

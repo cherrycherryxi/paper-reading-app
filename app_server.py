@@ -2399,6 +2399,7 @@ class Handler(BaseHTTPRequestHandler):
             "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
             "/privacy.html": ("privacy.html", "text/html; charset=utf-8"),
             "/terms.html": ("terms.html", "text/html; charset=utf-8"),
+            "/landing.html": ("landing.html", "text/html; charset=utf-8"),
         }
         if parsed.path in _STATIC:
             filename, mime = _STATIC[parsed.path]

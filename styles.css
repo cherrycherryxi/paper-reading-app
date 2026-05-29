@@ -2838,3 +2838,13 @@ button.conn-mini-card:hover {
   color: var(--color-soft-accent-strong, #4c6b3e);
   text-decoration: underline;
 }
+
+.auth-landing-link {
+  font-size: 13px;
+  color: var(--color-ink-muted, #6b7280);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.auth-landing-link:hover {
+  color: var(--color-ink, #3d4a3f);
+}

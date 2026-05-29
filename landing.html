@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>又买了一本书 · 与你的纸质书共读</title>
+  <meta name="description" content="为纸质书阅读者打造的 iPhone 优先工具：追踪书单与阅读时长、拍照保存摘抄、与 AI 探讨每本书的脉络与延伸。" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <style>
+    :root {
+      --ink: #3d4a3f;
+      --ink-soft: #5a6a5e;
+      --ink-muted: #8a958f;
+      --bg: #f6f4ee;
+      --surface: #ffffff;
+      --sage: #e6ecd9;
+      --sage-strong: #4c6b3e;
+      --accent: #b8c69a;
+      --border: rgba(60, 70, 60, .12);
+      --shadow: 0 12px 40px rgba(60, 60, 50, .08);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--sage-strong); }
+    .landing { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 600; }
+    .brand-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--sage-strong);
+    }
+    .nav-actions { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+    .nav-link { color: var(--ink-soft); text-decoration: none; }
+    .nav-link:hover { color: var(--ink); }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      background: var(--sage-strong);
+      color: #fff;
+      border-radius: 999px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow); color: #fff; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 48px;
+      align-items: center;
+      margin-bottom: 72px;
+    }
+    .hero-title {
+      font-size: 44px;
+      line-height: 1.15;
+      letter-spacing: -.5px;
+      margin: 0 0 16px;
+    }
+    .hero-subtitle {
+      font-size: 17px;
+      color: var(--ink-soft);
+      margin: 0 0 28px;
+      max-width: 480px;
+    }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-cta-secondary {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 16px;
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .hero-art {
+      background: var(--surface);
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      aspect-ratio: 9 / 14;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .mock-row {
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--border);
+    }
+    .mock-row strong { color: var(--ink); font-weight: 600; }
+    .mock-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+    .mock-row.sage { background: var(--sage); border-color: transparent; color: var(--ink); }
+    .mock-bubble {
+      background: var(--sage);
+      border-radius: 14px 14px 14px 4px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--ink);
+      align-self: flex-start;
+      max-width: 80%;
+    }
+    .mock-bubble.user {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px 14px 4px 14px;
+      align-self: flex-end;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 72px;
+    }
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .feature-icon {
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: var(--sage);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      font-size: 18px;
+    }
+    .feature h3 { margin: 0 0 6px; font-size: 17px; }
+    .feature p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+    .why {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 36px;
+      margin-bottom: 64px;
+    }
+    .why h2 { margin: 0 0 20px; font-size: 22px; }
+    .why ul { margin: 0; padding-left: 1.2em; color: var(--ink-soft); }
+    .why li { margin-bottom: 10px; }
+    .why li strong { color: var(--ink); }
+
+    .cta-final {
+      text-align: center;
+      padding: 48px 24px;
+    }
+    .cta-final h2 { font-size: 28px; margin: 0 0 12px; }
+    .cta-final p { color: var(--ink-soft); margin: 0 0 24px; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-muted);
+    }
+    footer a { color: var(--ink-muted); text-decoration: none; margin: 0 12px; }
+    footer a:hover { color: var(--ink); }
+
+    @media (max-width: 720px) {
+      .hero { grid-template-columns: 1fr; gap: 28px; margin-bottom: 48px; }
+      .hero-title { font-size: 32px; }
+      .features { grid-template-columns: 1fr; gap: 14px; margin-bottom: 48px; }
+      .why { padding: 24px; }
+      .nav-actions .nav-link { display: none; }
+      .hero-art { max-width: 320px; margin: 0 auto; aspect-ratio: 9 / 12; }
+    }
+  </style>
+</head>
+<body>
+  <main class="landing">
+    <nav class="nav">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>又买了一本书</span>
+      </div>
+      <div class="nav-actions">
+        <a class="nav-link" href="#features">功能</a>
+        <a class="nav-link" href="/terms.html">条款</a>
+        <a class="btn-primary" href="/">免费开始</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <h1 class="hero-title">买书容易，<br/>读完才算。</h1>
+        <p class="hero-subtitle">为纸质书阅读者打造的一站式工具：追踪书单与阅读时长，拍照保存摘抄，与 AI 探讨每本书的脉络与延伸——所有数据归你所有，随时导出。</p>
+        <div class="hero-ctas">
+          <a class="btn-primary" href="/">免费开始</a>
+          <a class="hero-cta-secondary" href="#why">为什么选择我们 →</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="mock-row"><span class="mock-dot"></span><div><strong>《三体》</strong><div style="font-size:11px;color:var(--ink-muted);">阅读中 · 138/470</div></div></div>
+        <div class="mock-row sage"><span class="mock-dot" style="background:#7a9054"></span><div><strong>《人类简史》</strong><div style="font-size:11px;color:var(--ink-soft);">已读完 · 4.5 ⭐</div></div></div>
+        <div class="mock-row"><span class="mock-dot" style="background:#c89e5d"></span><div><strong>《置身事内》</strong><div style="font-size:11px;color:var(--ink-muted);">想读</div></div></div>
+        <div style="border-top:1px dashed var(--border);margin:6px 0;"></div>
+        <div class="mock-bubble user">这本书第三章的论证逻辑是什么？</div>
+        <div class="mock-bubble">作者先从…接着引入…最后用…的例子收束。要不要我帮你补一条核心问题？</div>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <article class="feature">
+        <div class="feature-icon">📚</div>
+        <h3>纸质书优先</h3>
+        <p>三种状态（想读 / 在读 / 已读）、阅读会话计时、跨书关联——为离线阅读体验而设计。</p>
+      </article>
+      <article class="feature">
+        <div class="feature-icon">📷</div>
+        <h3>一拍即存的摘抄</h3>
+        <p>对准书页拍照，AI 自动识别正文文本与建议标签。再也不必手敲长段落。</p>
+      </article>
+      <article class="feature">
+        <div class="feature-icon">💬</div>
+        <h3>与 AI 共读</h3>
+        <p>把你的笔记和摘抄作为上下文，与 AI 探讨概念、补充观点、生成核心问题。</p>
+      </article>
+    </section>
+
+    <section id="why" class="why">
+      <h2>我们做了什么不一样的事</h2>
+      <ul>
+        <li><strong>数据属于你。</strong>一键完整导出 JSON，一键彻底注销账号——所有数据连同上传图片永久删除。</li>
+        <li><strong>隐私至上。</strong>无任何商业追踪 SDK，密码 PBKDF2 加盐哈希存储，登录会话 90 天自动过期。</li>
+        <li><strong>透明限流。</strong>AI 端点按用户限额，防止滥用、控制成本，配额信息清晰可见。</li>
+        <li><strong>移动优先。</strong>iPhone 12 尺寸原生设计，PWA 添加到主屏即用，离线友好。</li>
+      </ul>
+    </section>
+
+    <section class="cta-final">
+      <h2>把你的书架变成一段共读旅程。</h2>
+      <p>免费注册，1 分钟开始你的第一本书。</p>
+      <a class="btn-primary" href="/">免费开始 →</a>
+    </section>
+  </main>
+
+  <footer>
+    <a href="/privacy.html">隐私政策</a>·<a href="/terms.html">用户协议</a>·<a href="/">登录</a>
+  </footer>
+</body>
+</html>
