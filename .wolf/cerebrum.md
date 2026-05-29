@@ -64,6 +64,8 @@
 
 - **[2026-05-14] filter select → text search 重构模式。** 记录/摘抄/关联三个页面原来用 `<select>` 做 book 过滤，改为 `<input type="search">` + `input` 事件监听。渲染函数从读 `select.value`（精确 bookId）改为读 `input.value` 做 haystack 模糊匹配（书名 + 作者 + 笔记内容）。空搜索时 fallback 到默认行为（记录/关联：全量，摘抄：全部）。`els` 里对应条目同步更名（`sessionBookFilter` → `sessionSearch` 等）。
 
+- **[2026-05-29] 自定义 `display` 的元素必须补一条 `[hidden]` CSS 覆盖规则。** 浏览器 UA 样式表的 `[hidden] { display: none }` 优先级极低，凡是对元素写了 `display: flex/grid/block` 的 CSS 类，`hidden` 属性就会失效，元素仍显示。Fix：在同一 CSS 文件里补写 `.your-class[hidden] { display: none }`，确保 JS 用 `el.hidden = true/false` 能正常工作。
+
 ## Decision Log
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.

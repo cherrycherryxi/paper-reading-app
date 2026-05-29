@@ -42,15 +42,12 @@ Allowed agent actions: `add_note`, `add_book`, `summary`, `question`, `tag`.
 ## Running the App
 
 ```bash
-# 1. Start backend (requires API keys in env)
+# Start backend — serves both API and static frontend files
 DEEPSEEK_API_KEY=sk-... MOONSHOT_API_KEY=sk-... python3 app_server.py
-
-# 2. Serve frontend
-python3 -m http.server 4173
 ```
 
-Frontend: `http://127.0.0.1:4173` (desktop) or `http://<LAN-IP>:4173` (iPhone).  
-Backend: port `8787`. Set `backendBaseUrl` in `index.html` config block to your LAN IP when testing on device.
+Frontend + Backend: `http://127.0.0.1:8787` (desktop) or `http://<LAN-IP>:8787` (iPhone).  
+Static files (`index.html`, `app.js`, `chat.js`, `styles.css`) are served by the backend directly — no separate frontend server needed.
 
 Debug logs UI: `http://127.0.0.1:8787/debug/logs`
 

@@ -60,9 +60,11 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.conn.commit()
         self.conn.close()
         self.original_call_deepseek = app_server.call_deepseek
+        self.original_call_deepseek_stream = app_server.call_deepseek_stream
 
     def tearDown(self):
         app_server.call_deepseek = self.original_call_deepseek
+        app_server.call_deepseek_stream = self.original_call_deepseek_stream
         app_server.MCPToolDispatcher = self.original_mcp_dispatcher
         self.temp_dir.cleanup()
 
@@ -96,6 +98,37 @@ class AgentBackendPropertyTests(unittest.TestCase):
 
         payload = json.loads(handler.wfile.getvalue().decode("utf-8"))
         return handler._status_code, payload
+
+    def request_sse_events(self, method, path, payload=None, token=None):
+        body = json.dumps(payload or {}, ensure_ascii=False).encode("utf-8")
+        headers = {"Content-Type": "application/json", "Content-Length": str(len(body))}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        handler = app_server.Handler.__new__(app_server.Handler)
+        handler.path = path
+        handler.command = method
+        handler.headers = headers
+        handler.rfile = BytesIO(body)
+        handler.wfile = BytesIO()
+        handler._status_code = None
+        handler.send_response = lambda code: setattr(handler, "_status_code", code)
+        handler.send_header = lambda *args, **kwargs: None
+        handler.end_headers = lambda: None
+
+        if method == "POST":
+            handler.do_POST()
+        else:
+            raise ValueError(f"Unsupported method: {method}")
+
+        raw = handler.wfile.getvalue().decode("utf-8")
+        events = []
+        for part in raw.split("\n\n"):
+            part = part.strip()
+            if not part.startswith("data: "):
+                continue
+            events.append(json.loads(part[6:]))
+        return handler._status_code, events
 
     def load_state(self):
         conn = app_server.get_conn()
@@ -227,6 +260,24 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIn('这些"低俗"情绪值得讨论。', result.reply)
         self.assertEqual(result.actions, [])
 
+    def test_parser_salvages_valid_actions_when_reply_json_is_malformed(self):
+        parser = app_server.ResponseParser()
+        raw = '{"reply": "这句"不成 JSON"，但 actions 是完整的", "actions": [{"type": "question", "data": {"content": "我们应该追问什么？"}}]}'
+        result = parser.parse(raw)
+
+        self.assertEqual(result.parse_status, app_server.PARSE_DEGRADED)
+        self.assertIn("这句", result.reply)
+        self.assertEqual(result.actions, [{"type": "question", "data": {"content": "我们应该追问什么？"}}])
+
+    def test_parser_prefers_json_block_when_model_outputs_text_then_json(self):
+        parser = app_server.ResponseParser()
+        raw = '先说了一段自然语言。\n\n```json\n{"reply":"结构化回答","actions":[{"type":"question","data":{"content":"追问什么？"}}]}\n```'
+        result = parser.parse(raw)
+
+        self.assertEqual(result.parse_status, app_server.PARSE_MARKDOWN_CLEANED)
+        self.assertEqual(result.reply, "结构化回答")
+        self.assertEqual(result.actions, [{"type": "question", "data": {"content": "追问什么？"}}])
+
     def test_reply_extractor_keeps_unescaped_quotes_inside_streamed_reply(self):
         extractor = app_server.ReplyExtractor()
         raw = '{"reply": "宇宙里不存在统一的\"现在\"。所谓\"发明时间\"更像叙事工具。", "actions": []}'
@@ -240,6 +291,13 @@ class AgentBackendPropertyTests(unittest.TestCase):
         streamed = "".join(extractor.feed(chunk) for chunk in chunks)
 
         self.assertEqual(streamed, '前半段带着"引号"继续')
+
+    def test_reply_extractor_marks_actions_first_json_as_structured_buffer(self):
+        extractor = app_server.ReplyExtractor()
+        streamed = extractor.feed('{"actions": [{"type": "question", "data": {"content": "why"}}], ')
+
+        self.assertEqual(streamed, "")
+        self.assertTrue(extractor.is_buffering_structured_response())
 
     def test_property_action_validation_enforces_whitelist_length_and_schema(self):
         validator = app_server.ActionValidator()
@@ -369,6 +427,35 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertEqual(payload["historyKey"], "book:book-1")
         self.assertEqual(payload["context"], {"type": "book", "bookId": "book-1"})
         self.assertEqual(payload["actions"][0]["status"], "PENDING_APPROVAL")
+
+    def test_streaming_chat_retries_non_stream_when_stream_finish_reason_is_not_stop(self):
+        def fake_stream(messages, model="deepseek-chat", max_tokens=2400):
+            yield "半截回答："
+            yield "《激情耗尽》（薇塔·萨克"
+            return "length"
+
+        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+            return json.dumps({"reply": "完整回答", "actions": []}, ensure_ascii=False)
+
+        app_server.call_deepseek_stream = fake_stream
+        app_server.call_deepseek = fake_deepseek
+
+        status, events = self.request_sse_events(
+            "POST",
+            "/api/chat/stream",
+            {"message": "从摘抄去聊", "bookId": "book-1"},
+            token=self.token,
+        )
+
+        self.assertEqual(status, 200)
+        payload = events[-1]
+        self.assertTrue(payload["done"])
+        self.assertEqual(payload["reply"], "完整回答")
+        self.assertEqual(payload["history"][-1]["content"], "完整回答")
+
+        trace_status, trace_payload = self.request_json("GET", f"/api/agent-traces/{payload['traceId']}", token=self.token)
+        self.assertEqual(trace_status, 200)
+        self.assertTrue(any(event["eventType"] == "STREAM_RETRY" for event in trace_payload["events"]))
 
     def test_property_legacy_chat_history_keys_migrate_to_context_keys(self):
         state = app_server.sanitize_state(

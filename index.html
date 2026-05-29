@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content" />
     <title>🐛 又买了一本书</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="读书" />
     <link rel="stylesheet" href="./styles.css?v=20260519r" />
+    <script>
+      // PWA cache-bust: reload if server has a newer build
+      (function () {
+        var CLIENT_VERSION = "20260529a";
+        fetch("/api/build-version")
+          .then(function (r) { return r.json(); })
+          .then(function (d) { if (d.version !== CLIENT_VERSION) location.reload(true); })
+          .catch(function () {});
+      })();
+    </script>
   </head>
   <body>
     <script>
@@ -124,6 +138,11 @@
               <ul id="chatBookDropdown" class="book-picker-dropdown" hidden role="listbox"></ul>
             </div>
             <div id="chatBookContext" class="chat-book-context" hidden></div>
+            <div id="chatQuotePin" class="chat-quote-pin" hidden>
+              <div class="chat-quote-pin-book" id="chatQuotePinBook"></div>
+              <div class="chat-quote-pin-text" id="chatQuotePinText"></div>
+              <button type="button" class="chat-quote-pin-toggle" id="chatQuotePinToggle" hidden>展开全文</button>
+            </div>
             <input type="hidden" id="chatBookSelect">
           </div>
           <div id="chatMessages" class="chat-messages chat-messages-inline">
@@ -138,6 +157,9 @@
                 <span class="chat-welcome-subtitle">从上方选择书籍后，我会结合阅读记录、摘抄和关联来回答。</span>
               </div>
             </div>
+          </div>
+          <div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>
+            <button id="chatScrollBtn" class="chat-scroll-btn" type="button" aria-label="回到最新">↓ 最新</button>
           </div>
           <div class="chat-composer">
             <div class="chat-prompt-chips" id="chatPromptChips">

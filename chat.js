@@ -10,6 +10,12 @@
     bookClearPick: document.querySelector("#chatBookClearPick"),
     bookContext: document.querySelector("#chatBookContext"),
     promptChips: document.querySelector("#chatPromptChips"),
+    quotePin: document.querySelector("#chatQuotePin"),
+    quotePinBook: document.querySelector("#chatQuotePinBook"),
+    quotePinText: document.querySelector("#chatQuotePinText"),
+    quotePinToggle: document.querySelector("#chatQuotePinToggle"),
+    scrollBtnRow: document.querySelector("#chatScrollBtnRow"),
+    scrollBtn: document.querySelector("#chatScrollBtn"),
   };
 
   let history = [];
@@ -101,6 +107,7 @@
     if (!book) {
       els.bookContext.hidden = true;
       els.bookContext.innerHTML = "";
+      if (els.quotePin) els.quotePin.hidden = true;
       return;
     }
     const quote = currentQuoteId ? findQuote(currentQuoteId) : null;
@@ -113,8 +120,38 @@
         <button class="chat-context-clear" type="button" data-clear-quote-context aria-label="回到整本书">回到整本书</button>
       `;
       els.bookContext.hidden = false;
+
+      if (els.quotePin) {
+        const content = String(quote.content || quote.ocrText || "").trim();
+        if (content) {
+          if (els.quotePinBook) els.quotePinBook.textContent = displayBookTitle(book.title);
+          if (els.quotePinText) {
+            // Preserve the expanded state when re-rendering the same quote content
+            // (e.g., every document click calls syncPickerDisplay → renderBookContext).
+            // Only collapse when switching to a different quote.
+            const sameContent = els.quotePinText.textContent === content;
+            const keepExpanded = sameContent && els.quotePinText.classList.contains("is-expanded");
+            els.quotePinText.textContent = content;
+            if (keepExpanded) {
+              els.quotePinText.classList.add("is-expanded");
+            } else {
+              els.quotePinText.classList.remove("is-expanded");
+            }
+            if (els.quotePinToggle) {
+              const isLong = content.length > 40;
+              els.quotePinToggle.hidden = !isLong;
+              els.quotePinToggle.textContent = keepExpanded ? "收起" : "展开全文";
+            }
+          }
+          els.quotePin.hidden = false;
+        } else {
+          els.quotePin.hidden = true;
+        }
+      }
       return;
     }
+
+    if (els.quotePin) els.quotePin.hidden = true;
     const stats = getBookStats(book.id);
     const authorText = book.author ? ` · ${book.author}` : "";
     els.bookContext.innerHTML = `
@@ -192,6 +229,7 @@
 
   function resetMessages() {
     if (!els.messages) return;
+    if (els.scrollBtnRow) els.scrollBtnRow.hidden = true;
     const book = findBook(activeBookId());
     const quote = findQuote(activeQuoteId());
     const title = quote && book
@@ -215,16 +253,167 @@
     </div>`;
   }
 
-  function appendBubble(role, text) {
+  function applyMdInline(text) {
+    return text
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+  }
+
+  function renderMiniMarkdown(raw) {
+    const escaped = String(raw || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    const lines = escaped.split("\n");
+    const out = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Fenced code block
+      if (trimmed.startsWith("```")) {
+        const codeLines = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith("```")) {
+          codeLines.push(lines[i]);
+          i++;
+        }
+        if (i < lines.length) i++; // consume closing ```
+        out.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+        continue;
+      }
+
+      // Headers (# ## ###)
+      const hm = trimmed.match(/^(#{1,3}) (.+)/);
+      if (hm) {
+        out.push(`<h${hm[1].length}>${applyMdInline(hm[2])}</h${hm[1].length}>`);
+        i++;
+        continue;
+      }
+
+      // Bullet list (collect run)
+      if (/^[-*] /.test(trimmed)) {
+        const items = [];
+        while (i < lines.length && /^[-*] /.test(lines[i].trim())) {
+          items.push(`<li>${applyMdInline(lines[i].trim().slice(2))}</li>`);
+          i++;
+        }
+        out.push(`<ul>${items.join("")}</ul>`);
+        continue;
+      }
+
+      // Ordered list (collect run)
+      if (/^\d+\. /.test(trimmed)) {
+        const items = [];
+        while (i < lines.length && /^\d+\. /.test(lines[i].trim())) {
+          items.push(`<li>${applyMdInline(lines[i].trim().replace(/^\d+\. /, ""))}</li>`);
+          i++;
+        }
+        out.push(`<ol>${items.join("")}</ol>`);
+        continue;
+      }
+
+      // Empty line → paragraph break (avoid duplicate <br>s)
+      if (trimmed === "") {
+        const last = out[out.length - 1];
+        if (last && last !== "<br>") out.push("<br>");
+        i++;
+        continue;
+      }
+
+      // Regular line
+      out.push(`<span>${applyMdInline(line)}</span><br>`);
+      i++;
+    }
+
+    // Strip trailing <br>
+    while (out.length && out[out.length - 1] === "<br>") out.pop();
+    return out.join("");
+  }
+
+  const SVG_COPY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const SVG_RETRY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.52"/></svg>';
+
+  function finalizeAssistantBubble(bubble, text, userText) {
+    bubble.innerHTML = "";
+
+    const contentEl = document.createElement("div");
+    contentEl.className = "chat-bubble-content";
+    contentEl.innerHTML = renderMiniMarkdown(text);
+    bubble.appendChild(contentEl);
+
+    const actionsBar = document.createElement("div");
+    actionsBar.className = "chat-bubble-actions";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "chat-action-btn";
+    copyBtn.type = "button";
+    copyBtn.title = "复制";
+    copyBtn.innerHTML = SVG_COPY;
+    copyBtn.addEventListener("click", () => {
+      const app = window.paperReadingApp;
+      navigator.clipboard.writeText(text).then(() => {
+        app?.showToast?.("已复制");
+      }).catch(() => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          app?.showToast?.("已复制");
+        } catch {}
+      });
+    });
+    actionsBar.appendChild(copyBtn);
+
+    if (userText) {
+      const retryBtn = document.createElement("button");
+      retryBtn.className = "chat-action-btn";
+      retryBtn.type = "button";
+      retryBtn.title = "重试";
+      retryBtn.innerHTML = SVG_RETRY;
+      retryBtn.addEventListener("click", () => {
+        bubble.remove();
+        actionsBar.remove();
+        if (history.length > 0 && history[history.length - 1]?.role === "assistant") {
+          history.pop();
+          setChatHistory(activeChatContext(), history);
+        }
+        retryMessage(userText);
+      });
+      actionsBar.appendChild(retryBtn);
+    }
+
+    bubble.parentNode?.appendChild(actionsBar);
+  }
+
+  function scrollToBottom() {
+    els.messages.scrollTop = els.messages.scrollHeight;
+    if (els.scrollBtnRow) els.scrollBtnRow.hidden = true;
+  }
+
+  function appendBubble(role, text, userText) {
     if (!els.messages) return null;
     const welcome = els.messages.querySelector(".chat-welcome");
     if (welcome) welcome.remove();
 
     const bubble = document.createElement("div");
     bubble.className = `chat-bubble chat-bubble-${role}`;
-    bubble.textContent = text;
     els.messages.appendChild(bubble);
-    els.messages.scrollTop = els.messages.scrollHeight;
+    if (role === "assistant" && text) {
+      finalizeAssistantBubble(bubble, text, userText || null);
+    } else {
+      bubble.textContent = text;
+    }
+    scrollToBottom();
     return bubble;
   }
 
@@ -238,7 +427,11 @@
       setChatHistory(context, history);
     }
     resetMessages();
-    history.forEach((item) => appendBubble(item.role, item.content));
+    let lastUserText = "";
+    history.forEach((item) => {
+      if (item.role === "user") lastUserText = item.content;
+      appendBubble(item.role, item.content, item.role === "assistant" ? lastUserText : undefined);
+    });
     if (recoveredActions.length > 0) {
       handleAgentActions(recoveredActions);
     }
@@ -338,20 +531,7 @@
     syncPickerDisplay();
   }
 
-  async function sendMessage() {
-    const text = els.input?.value.trim();
-    if (!text) return;
-
-    if (!window.paperReadingApp?.requireAuth?.("使用探讨功能")) {
-      return;
-    }
-
-    els.input.value = "";
-    appendBubble("user", text);
-    const thinking = appendBubble("assistant", "");
-    thinking.classList.add("chat-bubble-loading");
-    els.sendBtn.disabled = true;
-
+  async function _doStreamAndFinalize(text, thinking) {
     try {
       const context = activeChatContext();
       if (typeof fetch !== "function") {
@@ -362,8 +542,8 @@
         });
         if (typeof finalPayload.reply === "string" && finalPayload.reply) {
           thinking.classList.remove("chat-bubble-loading");
-          thinking.textContent = finalPayload.reply;
-          els.messages.scrollTop = els.messages.scrollHeight;
+          finalizeAssistantBubble(thinking, finalPayload.reply, text);
+          scrollToBottom();
         }
         history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
         const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
@@ -382,11 +562,7 @@
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          context,
-          bookId: currentBookId,
-          message: text,
-        }),
+        body: JSON.stringify({ context, bookId: currentBookId, message: text }),
       });
 
       if (!response.ok) {
@@ -417,7 +593,7 @@
           if (evt.delta) {
             thinking.classList.remove("chat-bubble-loading");
             thinking.textContent += evt.delta;
-            els.messages.scrollTop = els.messages.scrollHeight;
+            scrollToBottom();
           }
           if (evt.done) {
             finalPayload = evt;
@@ -428,8 +604,8 @@
       if (finalPayload) {
         if (typeof finalPayload.reply === "string" && finalPayload.reply) {
           thinking.classList.remove("chat-bubble-loading");
-          thinking.textContent = finalPayload.reply;
-          els.messages.scrollTop = els.messages.scrollHeight;
+          finalizeAssistantBubble(thinking, finalPayload.reply, text);
+          scrollToBottom();
         }
         const responseContext = finalPayload.context || context;
         history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
@@ -447,6 +623,33 @@
         thinking.classList.add("chat-error");
         await window.paperReadingApp.loadRemoteLogs?.();
       }
+    }
+  }
+
+  async function sendMessage() {
+    const text = els.input?.value.trim();
+    if (!text) return;
+    if (!window.paperReadingApp?.requireAuth?.("使用探讨功能")) return;
+
+    els.input.value = "";
+    els.input.style.height = "auto";
+    appendBubble("user", text);
+    const thinking = appendBubble("assistant", "");
+    thinking.classList.add("chat-bubble-loading");
+    els.sendBtn.disabled = true;
+    try {
+      await _doStreamAndFinalize(text, thinking);
+    } finally {
+      els.sendBtn.disabled = false;
+    }
+  }
+
+  async function retryMessage(userText) {
+    const thinking = appendBubble("assistant", "");
+    thinking.classList.add("chat-bubble-loading");
+    els.sendBtn.disabled = true;
+    try {
+      await _doStreamAndFinalize(userText, thinking);
     } finally {
       els.sendBtn.disabled = false;
     }
@@ -528,6 +731,11 @@
         syncPickerDisplay();
       }
     });
+    els.quotePinToggle?.addEventListener("click", () => {
+      if (!els.quotePinText || !els.quotePinToggle) return;
+      const expanded = els.quotePinText.classList.toggle("is-expanded");
+      els.quotePinToggle.textContent = expanded ? "收起" : "展开全文";
+    });
     els.promptChips?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-chat-prompt]");
       if (!button || !els.input) return;
@@ -550,6 +758,23 @@
           sendMessage();
         }
       }
+    });
+
+    els.input?.addEventListener("input", () => {
+      const ta = els.input;
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    });
+
+    els.messages?.addEventListener("scroll", () => {
+      const m = els.messages;
+      const atBottom = m.scrollHeight - m.scrollTop - m.clientHeight < 80;
+      if (els.scrollBtnRow) els.scrollBtnRow.hidden = atBottom;
+    });
+
+    els.scrollBtn?.addEventListener("click", () => {
+      scrollToBottom();
+      if (els.scrollBtnRow) els.scrollBtnRow.hidden = true;
     });
 
     window.addEventListener("paper-reading-data-changed", () => {
@@ -598,33 +823,38 @@
     `;
 
     els.messages.appendChild(container);
-    els.messages.scrollTop = els.messages.scrollHeight;
+    scrollToBottom();
 
     const confirmBtn = container.querySelector('.agent-confirm-btn');
     const cancelBtn = container.querySelector('.agent-cancel-btn');
 
     let handled = false;
 
-    confirmBtn.onclick = async () => {
-      if (handled) return;
+    async function tryExecute() {
       handled = true;
       confirmBtn.disabled = true;
       cancelBtn.disabled = true;
       confirmBtn.textContent = "执行中...";
-      let succeeded = true;
       try {
         await approveAction(action);
         confirmBtn.textContent = "已完成 ✅";
+        setTimeout(() => {
+          container.remove();
+          appendBubble("system", `✅ 已执行：${renderActionText(action)}`);
+          _showNextAgentAction(remaining);
+        }, 600);
       } catch (e) {
-        confirmBtn.textContent = "失败 ❌";
-        succeeded = false;
         console.error("approveAction error:", e);
+        confirmBtn.textContent = "重试";
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        handled = false;
       }
-      setTimeout(() => {
-        container.remove();
-        appendBubble("system", succeeded ? `✅ 已执行：${renderActionText(action)}` : `❌ 执行失败：${renderActionText(action)}`);
-        _showNextAgentAction(remaining);
-      }, 600);
+    }
+
+    confirmBtn.onclick = async () => {
+      if (handled) return;
+      await tryExecute();
     };
 
     cancelBtn.onclick = async () => {

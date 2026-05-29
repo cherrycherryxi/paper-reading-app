@@ -478,3 +478,137 @@
 | fix(bug-111 P1) | 新增摘抄时未清空上一条草稿图片和 OCR 状态 → `openNewQuoteForBook()` 补充 `pendingQuoteImage = null` + `renderImagePreview()`；click handler 清除 `ocrBaseContent` / `ocrQuoteId` dataset；`lastQuoteBookId` 保留。回归测试：`regression-fixed-bugs.test.js` "new quote button clears previous draft while preserving last selected book" |
 | fix(bug-112 P1) | 从摘抄「去聊」的历史混入整本书探讨历史 → chatHistories key 改为结构化格式：`book:<bookId>` / `quote:<quoteId>`；`sanitize_state()` 自动迁移旧裸 bookId 和 `__general__`。设计决策：摘抄对话不出现在整本书历史里属预期行为。后端回归：`test_quote_scoped_chat_uses_quote_history_key_and_prompt_context` + `test_property_legacy_chat_history_keys_migrate_to_context_keys` |
 | fix(bug-113 P1) | 流式回复 `finish_reason=length` 时截断入库 → 捕获 `StopIteration` 返回值；非 `stop` 时非流式重试，完整回复覆盖截断内容；`ResponseParser` 新增 fenced JSON 提取和 jsonish salvage 分支（含 unescaped 引号时抢救 reply/actions）。后端回归：`test_streaming_chat_retries_non_stream_when_stream_finish_reason_is_not_stop` + `test_reply_extractor_*` × 2 + `test_parser_*` × 3 |
+| 21:12 | Edited app.js | added optional chaining | ~89 |
+| 21:12 | Edited app.js | inline fix | ~98 |
+| 21:12 | Edited app.js | added 1 condition(s) | ~84 |
+| 21:12 | Session end: 3 writes across 1 files (app.js) | 1 reads | ~29151 tok |
+| 22:12 | Created ../../.claude/plans/mellow-yawning-flute.md | — | ~440 |
+| 22:24 | Edited chat.js | 12→16 lines | ~242 |
+| 22:24 | Edited chat.js | added error handling | ~1029 |
+| 22:24 | Edited chat.js | added 1 condition(s) | ~154 |
+| 22:25 | Edited chat.js | modified if() | ~191 |
+| 22:25 | Edited chat.js | modified if() | ~86 |
+| 22:25 | Edited chat.js | added 7 condition(s) | ~573 |
+| 22:25 | Edited chat.js | added 1 condition(s) | ~126 |
+| 22:25 | Edited index.html | 3→8 lines | ~133 |
+| 22:26 | Edited styles.css | expanded (+47 lines) | ~258 |
+| 22:26 | Edited styles.css | expanded (+68 lines) | ~411 |
+| 22:28 | Edited tests/frontend/regression-fixed-bugs.test.js | modified goToQuoteChat() | ~1785 |
+| 22:30 | Edited tests/frontend/regression-fixed-bugs.test.js | 3→4 lines | ~76 |
+| 22:31 | Session end: 16 writes across 6 files (app.js, mellow-yawning-flute.md, chat.js, index.html, styles.css) | 5 reads | ~70276 tok |
+
+## Session: 2026-05-27 22:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-27 22:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:54 | Edited chat.js | added 2 condition(s) | ~694 |
+| 22:54 | Edited chat.js | modified appendBubble() | ~162 |
+| 22:54 | Edited chat.js | added 1 condition(s) | ~71 |
+| 22:55 | Edited chat.js | modified _doStreamAndFinalize() | ~1288 |
+| 22:55 | Edited styles.css | expanded (+12 lines) | ~159 |
+| 22:55 | Edited tests/frontend/regression-fixed-bugs.test.js | modified renderMiniMarkdown() | ~764 |
+| 22:56 | Session end: 6 writes across 3 files (chat.js, styles.css, regression-fixed-bugs.test.js) | 4 reads | ~73374 tok |
+| 23:14 | Edited styles.css | CSS: width | ~72 |
+| 23:14 | Edited styles.css | CSS: width | ~70 |
+| 23:15 | Edited styles.css | CSS: -webkit-line-clamp, -webkit-box-orient, max-height | ~44 |
+| 23:15 | Session end: 9 writes across 3 files (chat.js, styles.css, regression-fixed-bugs.test.js) | 5 reads | ~81854 tok |
+| 11:21 | Edited chat.js | modified if() | ~328 |
+| 11:21 | Edited chat.js | added 1 condition(s) | ~120 |
+| 11:22 | Session end: 11 writes across 3 files (chat.js, styles.css, regression-fixed-bugs.test.js) | 5 reads | ~82433 tok |
+| 11:31 | Edited styles.css | 28→28 lines | ~162 |
+| 11:31 | Edited styles.css | 9→9 lines | ~48 |
+| 11:31 | Edited chat.js | 60 → 40 | ~14 |
+| 11:31 | Edited styles.css | 20→23 lines | ~118 |
+| 11:31 | Edited tests/frontend/regression-fixed-bugs.test.js | 2→2 lines | ~36 |
+| 11:31 | Edited tests/frontend/regression-fixed-bugs.test.js | "expand toggle should be h" → "expand toggle should be h" | ~31 |
+| 11:32 | Edited tests/frontend/regression-fixed-bugs.test.js | 2→2 lines | ~44 |
+| 11:32 | Session end: 18 writes across 3 files (chat.js, styles.css, regression-fixed-bugs.test.js) | 5 reads | ~82917 tok |
+| 12:30 | Edited index.html | 2→6 lines | ~99 |
+| 12:30 | Session end: 19 writes across 4 files (chat.js, styles.css, regression-fixed-bugs.test.js, index.html) | 6 reads | ~83023 tok |
+| 12:40 | Session end: 19 writes across 4 files (chat.js, styles.css, regression-fixed-bugs.test.js, index.html) | 6 reads | ~83023 tok |
+| 12:43 | Edited app_server.py | 7→8 lines | ~132 |
+| 12:43 | Session end: 20 writes across 5 files (chat.js, styles.css, regression-fixed-bugs.test.js, index.html, app_server.py) | 7 reads | ~83155 tok |
+| 18:35 | Session end: 20 writes across 5 files (chat.js, styles.css, regression-fixed-bugs.test.js, index.html, app_server.py) | 8 reads | ~84228 tok |
+| 23:01 | Created ../../.claude/daily-logs/2026-05-28.md | — | ~332 |
+| 23:01 | Session end: 21 writes across 6 files (chat.js, styles.css, regression-fixed-bugs.test.js, index.html, app_server.py) | 8 reads | ~84584 tok |
+
+## Session: 2026-05-28 23:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:12 | Edited ../../.claude/scripts/weekly-report.sh | expanded (+6 lines) | ~63 |
+| 23:12 | Session end: 1 writes across 1 files (weekly-report.sh) | 1 reads | ~68 tok |
+| 23:16 | Session end: 1 writes across 1 files (weekly-report.sh) | 1 reads | ~68 tok |
+| 23:17 | Edited ../../.claude/scripts/weekly-report.sh | 4→2 lines | ~47 |
+| 23:17 | Session end: 2 writes across 1 files (weekly-report.sh) | 1 reads | ~118 tok |
+
+## Session: 2026-05-28 23:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:34 | Edited ../../.claude/scripts/weekly-report.sh | removed 4 lines | ~9 |
+| 23:37 | Created ../../Library/LaunchAgents/com.huangnanqi.weekly-report.plist | — | ~301 |
+| 23:38 | Session end: 2 writes across 2 files (weekly-report.sh, com.huangnanqi.weekly-report.plist) | 0 reads | ~332 tok |
+
+## Session: 2026-05-28 23:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:12 | Edited ../../.claude/statusline-command.sh | — | ~335 |
+| 00:12 | Edited ../../.claude/settings.json | 2→6 lines | ~40 |
+| 00:12 | Session end: 2 writes across 2 files (statusline-command.sh, settings.json) | 3 reads | ~840 tok |
+
+## Session: 2026-05-28 00:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-28 00:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-28 00:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:29 | Edited CLAUDE.md | backend() → files() | ~99 |
+| 11:30 | Edited chat.js | modified if() | ~138 |
+| 11:30 | Edited chat.js | 2→3 lines | ~27 |
+| 11:30 | fix CLAUDE.md 端口说明（去掉 4173，统一为 8787）；feat Shift+Enter 换行 + textarea 自动增高（input 事件 scrollHeight，发送后重置） | CLAUDE.md, chat.js | done | ~200 |
+| 11:30 | Session end: 3 writes across 2 files (CLAUDE.md, chat.js) | 4 reads | ~10872 tok |
+| 11:35 | Edited scripts/dev_backend.py | 8→10 lines | ~41 |
+| 11:35 | Session end: 4 writes across 3 files (CLAUDE.md, chat.js, dev_backend.py) | 5 reads | ~10913 tok |
+| 11:36 | Session end: 4 writes across 3 files (CLAUDE.md, chat.js, dev_backend.py) | 5 reads | ~10913 tok |
+| 11:38 | Edited index.html | 2→3 lines | ~59 |
+| 11:39 | Edited index.html | 3→2 lines | ~31 |
+| 11:39 | Edited index.html | 2→5 lines | ~68 |
+| 11:39 | Edited styles.css | expanded (+17 lines) | ~117 |
+| 11:39 | Edited chat.js | 5→7 lines | ~107 |
+| 11:40 | Edited chat.js | added 2 condition(s) | ~184 |
+| 11:40 | Edited chat.js | added 1 condition(s) | ~56 |
+| 11:40 | Edited chat.js | inline fix | ~5 |
+| 11:40 | Edited chat.js | modified scrollToBottom() | ~42 |
+| 11:44 | feat: 「回到最新」按钮（chatScrollBtnRow 兄弟元素，scroll 事件监听 80px 阈值，scrollToBottom helper 统一 6 处滚底+隐藏按钮） | chat.js, index.html, styles.css | done | ~400 |
+| 11:44 | Session end: 13 writes across 5 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 7 reads | ~34798 tok |
+| 11:52 | Edited chat.js | added 1 condition(s) | ~46 |
+| 11:52 | Edited app_server.py | 5→6 lines | ~49 |
+| 11:52 | Edited app_server.py | 3→7 lines | ~70 |
+| 11:53 | Edited index.html | added 1 condition(s) | ~150 |
+| 11:55 | fix: scrollBtnRow 在 resetMessages() 时重置 hidden；fix: PWA 版本检测（BUILD_VERSION + /api/build-version + index.html 内联 reload） | chat.js, app_server.py, index.html | done | ~300 |
+| 11:55 | Session end: 17 writes across 6 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 8 reads | ~72648 tok |
+| 12:00 | Edited tests/frontend/regression-fixed-bugs.test.js | expanded (+61 lines) | ~765 |
+| 12:01 | test: scroll button hidden after resetMessages + PWA version check 两个回归测试 | tests/frontend/regression-fixed-bugs.test.js | 25/25 pass | ~300 |
+| 12:02 | Session end: 18 writes across 7 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 9 reads | ~84022 tok |
+| 12:05 | Edited styles.css | 5→9 lines | ~41 |
+| 12:05 | Edited tests/frontend/regression-fixed-bugs.test.js | expanded (+10 lines) | ~177 |
+| 12:05 | Session end: 20 writes across 7 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 9 reads | ~84240 tok |
+| 12:15 | Edited chat.js | modified tryExecute() | ~226 |
+| 12:15 | Edited tests/frontend/regression-fixed-bugs.test.js | added 2 condition(s) | ~514 |
+| 12:16 | feat: agent action 失败重试按钮（tryExecute 内聚，失败后 handled=false + 按钮改「重试」+ 按钮重启用，成功路径不变）+ 回归测试 | chat.js, tests/frontend/regression-fixed-bugs.test.js | 27/27 pass | ~300 |
+| 12:16 | Session end: 22 writes across 7 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 9 reads | ~85718 tok |
