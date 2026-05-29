@@ -3,6 +3,10 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-05-29 | 商业化路线图（12 项 P0–P3）建立；Task #1 完成：4 个 AI 端点（chat/chat-stream/ocr/quotes-ocr）加每用户每小时+每天限流，可由 RATE_LIMIT_HOUR/DAY 环境变量覆盖；429 含友好中文 message + Retry-After 头；apiFetch + chat.js 流式分支均识别 429 并区分错误 UI（amber .chat-rate-limited）；新表 rate_limit_counters；9 个新回归测试通过；E2E 验证 req3→429 | app_server.py, app.js, chat.js, styles.css, tests/agent/rate_limit_test.py, tests/frontend/regression-fixed-bugs.test.js, tests/frontend/chat-agent-approval.test.js | done | ~7500 |
+| 2026-05-29 | Task #2/#3 会话过期 + 数据导出/账户删除：SESSION_LIFETIME_DAYS=90 滚动 + /api/logout-all；/api/account/export + DELETE /api/account（confirmUsername 校验，级联 9 表 + uploads 目录）；前端按钮三连；14 backend + 5 frontend 测试 | app_server.py, app.js, index.html, styles.css | done | ~7500 |
+| 2026-05-29 | Task #5/#6 隐私协议/用户协议 + 错误监控：/privacy.html + /terms.html + users.terms_accepted_at + 注册必勾；server_errors 表 + log_server_error helper + Handler.handle_one_request 包装捕获异常 + /debug/errors viewer；10 backend + 3 frontend 测试 | app_server.py, privacy.html, terms.html | done | ~6500 |
+| 2026-05-29 | Task #7 落地页：/landing.html（hero+mock 截图+features+CTA+footer，移动响应式，SEO meta）；登录抽屉头加 "了解这是什么 →"；2 frontend 静态断言 | landing.html, app_server.py, index.html, styles.css | done | ~3500 |
+| 2026-05-29 | 会话总结：6 个商业化任务（P0×3 全 + P1×2/3 + P2×1）；6 commit；111 Python + 40 frontend regression 全过；剩余 P1-4（密码重置需 SMTP）、P2-8/9（分层+支付）、P3 三项 | (multi) | session-end | ~30000 |
 | 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
 | 2026-05-15 | Connection 交互完善：关联卡片侧面可点击跳转书籍/摘抄、编辑 thought/kind/tags、摘抄详情 conn-mini-card 展示 thought 并可点击导航、摘抄卡片显示关联数 badge | app.js, styles.css | done | ~900 |
 | 2026-05-15 | link_thought golden-set 8 条（normal/failure/boundary）+ 12 个 unittest（验证层+执行层），58 cases 57 通过 | data/golden_set.json, tests/agent_link_thought_test.py | done | ~800 |
@@ -634,3 +638,48 @@
 | 15:39 | Edited styles.css | CSS: border | ~43 |
 | 15:40 | Edited tests/frontend/chat-agent-approval.test.js | 2→4 lines | ~69 |
 | 15:44 | Edited tests/frontend/regression-fixed-bugs.test.js | added error handling | ~720 |
+| 15:47 | Edited app_server.py | 4→9 lines | ~105 |
+| 15:47 | Edited app_server.py | modified _parse_iso_to_epoch() | ~486 |
+| 15:47 | Edited app_server.py | expanded (+11 lines) | ~210 |
+| 15:48 | Created tests/agent/session_expiry_test.py | — | ~2030 |
+| 15:48 | Edited index.html | 4→5 lines | ~92 |
+| 15:48 | Edited app.js | added optional chaining | ~262 |
+| 15:49 | Edited app.js | 2→3 lines | ~68 |
+| 15:49 | Edited app.js | 1→2 lines | ~31 |
+| 15:49 | Edited app.js | modified logoutAllDevices() | ~175 |
+| 15:49 | Edited app.js | inline fix | ~27 |
+| 15:49 | Edited tests/frontend/regression-fixed-bugs.test.js | modified gc_expired_sessions() | ~375 |
+| 15:51 | Edited app_server.py | modified exists() | ~844 |
+| 16:00 | Edited app_server.py | modified exists() | ~944 |
+| 16:01 | Created tests/agent/account_export_delete_test.py | — | ~2404 |
+| 16:01 | Edited index.html | 6→8 lines | ~216 |
+| 16:01 | Edited app.js | 1→3 lines | ~54 |
+| 16:01 | Edited app.js | added error handling | ~616 |
+| 16:02 | Edited app.js | 2→4 lines | ~99 |
+| 16:02 | Edited styles.css | expanded (+8 lines) | ~62 |
+| 16:02 | Edited tests/frontend/regression-fixed-bugs.test.js | modified deleteAccount() | ~653 |
+| 16:02 | Edited tests/frontend/regression-fixed-bugs.test.js | 2→2 lines | ~40 |
+| 16:04 | Created privacy.html | — | ~841 |
+| 16:05 | Created terms.html | — | ~687 |
+| 16:05 | Edited app_server.py | 9→11 lines | ~185 |
+| 16:05 | Edited app_server.py | 7→12 lines | ~160 |
+| 16:05 | Edited app_server.py | 20→25 lines | ~330 |
+| 16:06 | Edited index.html | 7→11 lines | ~206 |
+| 16:06 | Edited app.js | added 1 condition(s) | ~231 |
+| 16:06 | Edited styles.css | expanded (+18 lines) | ~134 |
+| 16:06 | Created tests/agent/terms_consent_test.py | — | ~1098 |
+| 16:07 | Edited tests/frontend/regression-fixed-bugs.test.js | modified for() | ~308 |
+| 16:08 | Edited app_server.py | expanded (+15 lines) | ~308 |
+| 16:08 | Edited app_server.py | added 1 import(s) | ~72 |
+| 16:08 | Edited app_server.py | modified log_server_error() | ~592 |
+| 16:08 | Edited app_server.py | modified handle_one_request() | ~550 |
+| 16:09 | Edited app_server.py | modified _authorized_for_admin() | ~795 |
+| 16:09 | Created tests/agent/server_errors_test.py | — | ~1759 |
+| 16:09 | Edited tests/agent/server_errors_test.py | modified test_handle_one_request_catches_unhandled_exception_and_logs() | ~522 |
+| 16:11 | Edited tests/frontend/regression-fixed-bugs.test.js | modified log_server_error() | ~251 |
+| 16:13 | Created landing.html | — | ~2341 |
+| 16:14 | Edited app_server.py | 3→4 lines | ~66 |
+| 16:14 | Edited index.html | 2→5 lines | ~66 |
+| 16:14 | Edited styles.css | CSS: font-size, white-space, auth-landing-link | ~85 |
+| 16:14 | Edited tests/agent/terms_consent_test.py | modified test_legal_pages_are_served_by_backend() | ~57 |
+| 16:14 | Edited tests/frontend/regression-fixed-bugs.test.js | modified for() | ~433 |
