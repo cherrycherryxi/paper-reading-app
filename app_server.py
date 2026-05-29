@@ -250,10 +250,40 @@ def new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:16]}"
 
 
+_WAL_INITIALIZED = False
+_WAL_LOCK = threading.Lock()
+
+
 def get_conn() -> sqlite3.Connection:
+    """Open a SQLite connection with production-friendly PRAGMAs.
+
+    SQLite's default rollback journal serializes ALL readers behind any
+    writer, which falls over at ~50 concurrent users. WAL mode lets readers
+    and writers proceed in parallel and is the single highest-leverage tuning
+    knob short of switching to Postgres.
+
+    `journal_mode` is per-database (set once, persists in the file); the
+    others are per-connection (re-applied on each open)."""
+    global _WAL_INITIALIZED
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA busy_timeout = 5000")
+    try:
+        conn.execute("PRAGMA busy_timeout = 5000")
+        # NORMAL durability is still safe across power loss for committed
+        # transactions; FULL adds extra fsyncs that we don't need.
+        conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA cache_size = -20000")  # 20 MB
+        conn.execute("PRAGMA temp_store = MEMORY")
+    except sqlite3.Error:
+        pass
+    if not _WAL_INITIALIZED:
+        with _WAL_LOCK:
+            if not _WAL_INITIALIZED:
+                try:
+                    conn.execute("PRAGMA journal_mode = WAL")
+                except sqlite3.Error:
+                    pass
+                _WAL_INITIALIZED = True
     return conn
 
 
