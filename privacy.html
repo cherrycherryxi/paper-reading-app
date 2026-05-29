@@ -6,6 +6,11 @@
   <title>隐私政策 · 又买了一本书</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
+    /* The app's main styles.css applies `html, body { overflow: hidden;
+       height: 100vh }` inside its mobile @media block so the SPA layout
+       stays fixed without page-scroll. Legal pages, however, are plain
+       documents that MUST scroll — override that here. */
+    html, body { overflow: auto !important; height: auto !important; }
     .legal-page {
       max-width: 720px;
       margin: 0 auto;

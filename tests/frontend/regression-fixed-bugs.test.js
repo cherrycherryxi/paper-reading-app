@@ -1095,16 +1095,39 @@ test("Landing routing: / serves landing, /app + /index.html serve the SPA shell"
     "backend _STATIC must keep /index.html → index.html for legacy PWA installs");
 });
 
-test("Landing signup deep-link: app.js opens auth drawer and switches to register tab on #signup", () => {
+test("Landing auth deep-links: app.js opens drawer on #signup (register tab) AND #login (login tab)", () => {
   assert.match(appSource, /function maybeHandleSignupIntent/,
     "app.js must define maybeHandleSignupIntent");
   assert.match(appSource, /function switchAuthTab/,
-    "app.js must define switchAuthTab so #signup can target the register tab");
-  assert.match(appSource, /location\.hash\s*!==?\s*"#signup"/,
-    "maybeHandleSignupIntent must look for the #signup hash");
+    "app.js must define switchAuthTab");
+  assert.match(appSource, /location\.hash\s*===?\s*"#signup"[\s\S]{0,80}targetTab\s*=\s*"register"/,
+    "must map #signup → register tab");
+  assert.match(appSource, /location\.hash\s*===?\s*"#login"[\s\S]{0,80}targetTab\s*=\s*"login"/,
+    "must map #login → login tab");
   // loadSession must trigger the intent at the end of the unauthenticated branch
   assert.match(appSource, /async function loadSession[\s\S]{0,400}maybeHandleSignupIntent\(\)/,
     "loadSession must call maybeHandleSignupIntent after determining auth state");
+});
+
+test("Landing footer 「登录」 links must deep-link to /app#login (not /app)", () => {
+  const root = path.join(__dirname, "..", "..");
+  const html = fs.readFileSync(path.join(root, "landing.html"), "utf8");
+  // /app#login must appear in both nav and footer
+  const matches = html.match(/href="\/app#login"/g) || [];
+  assert.ok(matches.length >= 2,
+    `landing must have at least 2 /app#login links (nav + footer), found ${matches.length}`);
+});
+
+test("Legal pages must scroll on mobile (override the SPA's overflow: hidden global rule)", () => {
+  const root = path.join(__dirname, "..", "..");
+  for (const name of ["privacy.html", "terms.html"]) {
+    const html = fs.readFileSync(path.join(root, name), "utf8");
+    // The override must use !important to win against styles.css's @media block.
+    assert.match(html, /html,\s*body\s*\{\s*overflow:\s*auto\s*!important/,
+      `${name} must explicitly override the SPA's overflow:hidden so users can scroll`);
+    assert.match(html, /height:\s*auto\s*!important/,
+      `${name} must reset the SPA's height:100vh so content can grow naturally`);
+  }
 });
 
 test("P2 landing: auth panel includes 了解这是什么 link pointing to /landing.html", () => {
