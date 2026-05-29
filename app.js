@@ -674,6 +674,7 @@ async function loadSession() {
     state = normalizeStateShape(initialState);
     remoteLogs = [];
     render();
+    maybeHandleSignupIntent();
     return;
   }
 
@@ -691,6 +692,7 @@ async function loadSession() {
   render();
   scheduleOcrStatusRefresh();
   dispatchUserChange();
+  maybeHandleSignupIntent();
 }
 
 async function refreshSessionState({ renderPage = false } = {}) {
@@ -1539,6 +1541,31 @@ function maybeOpenResetPasswordDialog() {
   if (!els.resetPasswordDialog) return;
   els.resetPasswordToken.value = m[1];
   els.resetPasswordDialog.showModal();
+}
+
+function switchAuthTab(tabName) {
+  // tabName: "login" or "register"
+  document.querySelectorAll(".auth-tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.authTab === tabName);
+  });
+  const targetId = `authTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+  document.querySelectorAll(".auth-form-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.id === targetId);
+  });
+}
+
+function maybeHandleSignupIntent() {
+  // Landing CTA deep-links here as /app#signup. Open the auth drawer and
+  // switch to the register tab so the user lands directly on the sign-up
+  // form instead of an empty book list.
+  if (typeof location === "undefined") return;
+  if (location.hash !== "#signup") return;
+  if (currentUser) return;  // already signed in — no point
+  openMeDrawer();
+  switchAuthTab("register");
+  if (typeof history !== "undefined") {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
 }
 
 function maybeShowPlusReturnToast() {

@@ -6,6 +6,18 @@
   <title>又买了一本书 · 与你的纸质书共读</title>
   <meta name="description" content="为纸质书阅读者打造的 iPhone 优先工具：追踪书单与阅读时长、拍照保存摘抄、与 AI 探讨每本书的脉络与延伸。" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <script>
+    // Already signed-in visitors should never see the landing page — bounce
+    // them straight into the app. This runs synchronously before any paint
+    // so there's no flash of marketing content for returning users.
+    (function () {
+      try {
+        if (localStorage.getItem("paper-reading-auth-token-v1")) {
+          location.replace("/app");
+        }
+      } catch (e) { /* private mode etc. — fall through to landing */ }
+    })();
+  </script>
   <style>
     :root {
       --ink: #3d4a3f;
@@ -204,7 +216,8 @@
       <div class="nav-actions">
         <a class="nav-link" href="#features">功能</a>
         <a class="nav-link" href="/terms.html">条款</a>
-        <a class="btn-primary" href="/">免费开始</a>
+        <a class="nav-link" href="/app">登录</a>
+        <a class="btn-primary" href="/app#signup">免费开始</a>
       </div>
     </nav>
 
@@ -213,7 +226,7 @@
         <h1 class="hero-title">买书容易，<br/>读完才算。</h1>
         <p class="hero-subtitle">为纸质书阅读者打造的一站式工具：追踪书单与阅读时长，拍照保存摘抄，与 AI 探讨每本书的脉络与延伸——所有数据归你所有，随时导出。</p>
         <div class="hero-ctas">
-          <a class="btn-primary" href="/">免费开始</a>
+          <a class="btn-primary" href="/app#signup">免费开始</a>
           <a class="hero-cta-secondary" href="#why">为什么选择我们 →</a>
         </div>
       </div>
@@ -258,12 +271,12 @@
     <section class="cta-final">
       <h2>把你的书架变成一段共读旅程。</h2>
       <p>免费注册，1 分钟开始你的第一本书。</p>
-      <a class="btn-primary" href="/">免费开始 →</a>
+      <a class="btn-primary" href="/app#signup">免费开始 →</a>
     </section>
   </main>
 
   <footer>
-    <a href="/privacy.html">隐私政策</a>·<a href="/terms.html">用户协议</a>·<a href="/">登录</a>
+    <a href="/privacy.html">隐私政策</a>·<a href="/terms.html">用户协议</a>·<a href="/app">登录</a>
   </footer>
 </body>
 </html>

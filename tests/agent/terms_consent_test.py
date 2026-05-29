@@ -69,6 +69,49 @@ class TermsConsentTests(unittest.TestCase):
         self.assertTrue(row["terms_accepted_at"],
                         "terms_accepted_at must be set when termsAccepted=True at register time")
 
+    def test_root_serves_landing_page(self):
+        # New routing: / serves landing.html (the marketing entry); /app
+        # serves the actual app; /index.html stays for legacy PWA installs.
+        handler = app_server.Handler.__new__(app_server.Handler)
+        handler.path = "/"
+        handler.command = "GET"
+        handler.headers = {}
+        handler.rfile = BytesIO(b"")
+        handler.wfile = BytesIO()
+        handler._status_code = None
+        handler.send_response = lambda c: setattr(handler, "_status_code", c)
+        handler.send_header = lambda *a, **k: None
+        handler.end_headers = lambda: None
+        handler.do_GET()
+        self.assertEqual(handler._status_code, 200)
+        body = handler.wfile.getvalue().decode("utf-8")
+        self.assertIn("hero-title", body,
+                      "/ must serve landing.html (marketing page with hero-title)")
+        self.assertIn("免费开始", body,
+                      "/ landing must include the 免费开始 CTA")
+
+    def test_app_path_serves_index_html(self):
+        # /app is the new app URL; /index.html stays for PWA-installed users
+        # who bookmarked the old path. Both must serve the SPA shell.
+        for path in ("/app", "/index.html"):
+            handler = app_server.Handler.__new__(app_server.Handler)
+            handler.path = path
+            handler.command = "GET"
+            handler.headers = {}
+            handler.rfile = BytesIO(b"")
+            handler.wfile = BytesIO()
+            handler._status_code = None
+            handler.send_response = lambda c: setattr(handler, "_status_code", c)
+            handler.send_header = lambda *a, **k: None
+            handler.end_headers = lambda: None
+            handler.do_GET()
+            self.assertEqual(handler._status_code, 200, f"{path} should serve 200")
+            body = handler.wfile.getvalue().decode("utf-8")
+            # PAPER_READING_APP_CONFIG is the SPA's window-level config block;
+            # it lives in index.html only, never in landing.html.
+            self.assertIn("PAPER_READING_APP_CONFIG", body,
+                          f"{path} must serve the app shell (index.html)")
+
     def test_legal_pages_are_served_by_backend(self):
         # GET /privacy.html, /terms.html, /landing.html via Handler do_GET
         for path in ("/privacy.html", "/terms.html", "/landing.html"):

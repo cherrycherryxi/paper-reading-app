@@ -2952,9 +2952,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
 
-        # Serve frontend static files
+        # Serve frontend static files.
+        # Routing:
+        #   /              → landing.html (shareable entry, redirects logged-in users to /app)
+        #   /app           → index.html (the actual app)
+        #   /index.html    → index.html (legacy PWA installs that bookmarked this path)
+        #   /landing.html  → landing.html (canonical landing URL also kept for compat)
         _STATIC = {
-            "/": ("index.html", "text/html; charset=utf-8"),
+            "/": ("landing.html", "text/html; charset=utf-8"),
+            "/app": ("index.html", "text/html; charset=utf-8"),
             "/index.html": ("index.html", "text/html; charset=utf-8"),
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
             "/chat.js": ("chat.js", "application/javascript; charset=utf-8"),
