@@ -82,6 +82,16 @@
 
 - **[2026-05-29] 等待用户决策的商业化项。** P1-4（密码重置）需 SMTP 提供商决策（Gmail/Tencent SES/SendGrid）；P2-8（分层）需 free/plus 配额与定价决策；P2-9（支付）需微信支付 vs Stripe 决策；P3 三项（Postgres、部署、对象存储）均需云服务商决策。这些不应在没有用户输入的情况下擅自推进。
 
+- **[2026-05-29] 商业化路线图完成（12/12）。** Stop hook 触发后改为自主决策推进剩余 6 项：
+  - **P1-4 密码重置**：方案选 SMTP 经 env 配置（provider-agnostic），未配置时 fallback 控制台 + server_errors 写入；端点 `POST /api/password/{reset-request,reset}`；安全要求：成功后必须删除该用户所有 sessions 强制全设备重登；token 单次使用 + 30 分钟过期；users.email partial unique index（空值不冲突，已有用户兼容）。
+  - **P2-8 分层**：free/plus 两档；free=10 books/30 chat·h/120 chat·d/12 ocr·h/40 ocr·d；plus=无限书/翻倍 AI 配额；`_resolve_user_plan(conn, user_id)` 必读 plan_expires_at（过期回落 free）；`_rate_limit_for(endpoint, plan)` 现 plan-aware；ActionExecutor.add_book 是 book cap 唯一强制点（PUT /api/user-state 不检查以避免破坏 UX）。
+  - **P2-9 Stripe**：刻意不引入 stripe SDK，HMAC-SHA256 签名验证手写（5 分钟时间戳容忍 + 多 v1 签名 + hmac.compare_digest）；payments.provider_event_id partial unique index = webhook 幂等；处理 4 类事件：checkout.session.completed/customer.subscription.{updated,created,deleted}/invoice.payment_failed；invoice.payment_failed **不立即降级**（Stripe dunning 自带 grace period）；cancel 端点用 cancel_at_period_end=true。
+  - **P3-11 Docker**：app + caddy 双服务，app 不暴露 8787 到 host（只内网），Caddy 自动 Let's Encrypt；DB_PATH/UPLOAD_DIR/ADMIN_TOKEN 必须 env 化（容器挂载卷必需）；Caddyfile 必须含 `flush_interval -1`（否则 SSE 流式破坏）。
+  - **P3-12 S3**：boto3 仅 lazy import；S3 启用时存 `<user_id>/<uuid>.<ext>`、用 S3_PUBLIC_BASE 拼接 URL；DELETE /api/account 必须 best-effort 清理 S3 prefix（用 paginate + delete_objects 批量）。
+  - **P3-10 SQLite WAL**：journal_mode=WAL 是 per-database 一次性；synchronous/cache_size/temp_store 是 per-connection 每次必设（忘记会用 SQLite 默认 FULL/2MB）。完整 Postgres 迁移推迟（200+ 行重构，1000 并发用户前不需要）。
+  
+  **测试方法学**：所有外部服务（SMTP/Stripe/boto3）测试都用 monkey-patch 模块级符号或 `sys.modules` 注入 fake module，不引入 mock 库。Webhook 测试必须覆盖：bad signature、stale timestamp、unknown event type、idempotency（重复 event_id）。
+
 ## Decision Log
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
