@@ -84,6 +84,14 @@ SMTP_PASS = os.getenv("SMTP_PASS", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@paper-reading.app")
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "http://127.0.0.1:8787")
 
+# Stripe (P2-9). When STRIPE_SECRET_KEY is empty, billing endpoints return
+# "billing_not_configured" so the frontend can show the upgrade button as
+# disabled in dev. Webhook signature uses STRIPE_WEBHOOK_SECRET.
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_PLUS = os.getenv("STRIPE_PRICE_PLUS", "")  # price_xxx id for Plus subscription
+STRIPE_API_BASE = "https://api.stripe.com/v1"
+
 # Per-plan limits. _rate_limit_for(endpoint, plan) reads this; free is the
 # default for any new user. `book_cap = 0` means unlimited.
 PLAN_LIMITS = {
@@ -375,6 +383,28 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_password_reset_user
             ON password_reset_tokens (user_id);
+
+        CREATE TABLE IF NOT EXISTS payments (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            provider TEXT NOT NULL DEFAULT 'stripe',
+            provider_customer_id TEXT NOT NULL DEFAULT '',
+            provider_subscription_id TEXT NOT NULL DEFAULT '',
+            provider_event_id TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT '',
+            amount_cents INTEGER NOT NULL DEFAULT 0,
+            currency TEXT NOT NULL DEFAULT '',
+            current_period_end TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_payments_user
+            ON payments (user_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_subscription
+            ON payments (provider_subscription_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_event_unique
+            ON payments (provider_event_id) WHERE provider_event_id != '';
         """
     )
     user_cols = {
@@ -1177,6 +1207,228 @@ def consume_password_reset_token(
     )
     conn.commit()
     return row["user_id"], ""
+
+
+def stripe_request(
+    method: str, endpoint: str, *, params: dict | None = None, idempotency_key: str = ""
+) -> dict:
+    """Minimal Stripe REST client using stdlib urllib. Raises RuntimeError on
+    HTTP errors after capturing the response body."""
+    if not STRIPE_SECRET_KEY:
+        raise RuntimeError("billing_not_configured")
+    from urllib.parse import urlencode
+    url = f"{STRIPE_API_BASE.rstrip('/')}/{endpoint.lstrip('/')}"
+    body = urlencode(params or {}, doseq=True).encode("utf-8") if params else b""
+    req = Request(url, data=body, method=method.upper())
+    req.add_header("Authorization", f"Bearer {STRIPE_SECRET_KEY}")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    if idempotency_key:
+        req.add_header("Idempotency-Key", idempotency_key)
+    try:
+        with urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"stripe_http_{e.code}: {detail[:400]}") from e
+    except URLError as e:
+        raise RuntimeError(f"stripe_network_error: {e}") from e
+
+
+def verify_stripe_webhook_signature(
+    payload: bytes, header: str, secret: str, *, tolerance_seconds: int = 300
+) -> bool:
+    """Verify Stripe-Signature header per
+    https://stripe.com/docs/webhooks#verify-manually — independent of the
+    stripe SDK so the runtime stays stdlib-only."""
+    if not secret or not header:
+        return False
+    parts = {}
+    for piece in header.split(","):
+        if "=" in piece:
+            k, _, v = piece.strip().partition("=")
+            parts.setdefault(k, []).append(v)
+    timestamp = parts.get("t", [""])[0]
+    signatures = parts.get("v1", [])
+    if not timestamp or not signatures:
+        return False
+    try:
+        ts = int(timestamp)
+    except ValueError:
+        return False
+    if abs(time.time() - ts) > tolerance_seconds:
+        return False
+    signed = f"{timestamp}.".encode("utf-8") + payload
+    expected = hmac.new(secret.encode("utf-8"), signed, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, sig) for sig in signatures)
+
+
+def create_stripe_checkout_session(
+    *, user_id: str, user_email: str, success_url: str, cancel_url: str
+) -> str:
+    """Create a Stripe Checkout Session for a Plus subscription. Returns the
+    hosted Checkout URL to redirect the user to."""
+    if not STRIPE_PRICE_PLUS:
+        raise RuntimeError("billing_not_configured")
+    params = {
+        "mode": "subscription",
+        "line_items[0][price]": STRIPE_PRICE_PLUS,
+        "line_items[0][quantity]": "1",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        # Capture our user id so the webhook can map back to the right account.
+        "client_reference_id": user_id,
+        "metadata[user_id]": user_id,
+        "subscription_data[metadata][user_id]": user_id,
+    }
+    if user_email:
+        params["customer_email"] = user_email
+    resp = stripe_request(
+        "POST", "/checkout/sessions",
+        params=params,
+        idempotency_key=f"checkout-{user_id}-{int(time.time())}",
+    )
+    return resp.get("url", "")
+
+
+def apply_billing_event(conn: sqlite3.Connection, event: dict) -> str:
+    """Apply a parsed Stripe webhook event to local state. Returns one of
+    {"handled", "ignored", "duplicate", "user_not_found"}.
+
+    Recognized event types:
+      - checkout.session.completed  → upgrade to plus
+      - customer.subscription.updated/deleted → sync plan_expires_at + plan
+      - invoice.payment_failed → record + leave plan_expires_at alone (grace
+        period until subscription is deleted)
+    """
+    event_id = event.get("id", "")
+    event_type = event.get("type", "")
+    if not event_id:
+        return "ignored"
+    # Idempotency: bail if we've seen this event id before.
+    seen = conn.execute(
+        "SELECT 1 FROM payments WHERE provider_event_id = ?", (event_id,)
+    ).fetchone()
+    if seen:
+        return "duplicate"
+
+    data = (event.get("data") or {}).get("object") or {}
+
+    def _user_id_from_obj(obj):
+        return (
+            obj.get("client_reference_id")
+            or (obj.get("metadata") or {}).get("user_id", "")
+        )
+
+    if event_type == "checkout.session.completed":
+        user_id = _user_id_from_obj(data)
+        subscription_id = data.get("subscription", "")
+        customer_id = data.get("customer", "")
+        if not user_id:
+            return "user_not_found"
+        # Activate Plus immediately; plan_expires_at will be filled by the
+        # subscription.updated event with current_period_end.
+        conn.execute(
+            "UPDATE users SET plan = 'plus' WHERE id = ?", (user_id,)
+        )
+        conn.execute(
+            "INSERT INTO payments (id, user_id, provider, provider_customer_id,"
+            " provider_subscription_id, provider_event_id, status, amount_cents,"
+            " currency, current_period_end, created_at, updated_at)"
+            " VALUES (?, ?, 'stripe', ?, ?, ?, ?, ?, ?, '', ?, ?)",
+            (
+                new_id("pay"), user_id, customer_id, subscription_id, event_id,
+                "active", int(data.get("amount_total") or 0),
+                str(data.get("currency") or ""),
+                now_iso(), now_iso(),
+            ),
+        )
+        conn.commit()
+        return "handled"
+
+    if event_type in ("customer.subscription.updated",
+                      "customer.subscription.created"):
+        subscription_id = data.get("id", "")
+        # Map subscription → user via payments table (created at checkout)
+        row = conn.execute(
+            "SELECT user_id FROM payments WHERE provider_subscription_id = ?"
+            " ORDER BY created_at DESC LIMIT 1",
+            (subscription_id,),
+        ).fetchone()
+        if not row:
+            user_id = _user_id_from_obj(data)
+        else:
+            user_id = row["user_id"]
+        if not user_id:
+            return "user_not_found"
+        period_end = data.get("current_period_end")
+        period_end_iso = ""
+        if period_end:
+            period_end_iso = datetime.fromtimestamp(int(period_end)).isoformat(timespec="seconds")
+        status = data.get("status", "")
+        # status='active' or 'trialing' → user is plus; canceled/incomplete → free
+        new_plan = "plus" if status in ("active", "trialing") else "free"
+        conn.execute(
+            "UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?",
+            (new_plan, period_end_iso if new_plan == "plus" else "", user_id),
+        )
+        conn.execute(
+            "INSERT INTO payments (id, user_id, provider, provider_subscription_id,"
+            " provider_event_id, status, current_period_end, created_at, updated_at)"
+            " VALUES (?, ?, 'stripe', ?, ?, ?, ?, ?, ?)",
+            (
+                new_id("pay"), user_id, subscription_id, event_id, status,
+                period_end_iso, now_iso(), now_iso(),
+            ),
+        )
+        conn.commit()
+        return "handled"
+
+    if event_type == "customer.subscription.deleted":
+        subscription_id = data.get("id", "")
+        row = conn.execute(
+            "SELECT user_id FROM payments WHERE provider_subscription_id = ?"
+            " ORDER BY created_at DESC LIMIT 1",
+            (subscription_id,),
+        ).fetchone()
+        if not row:
+            return "user_not_found"
+        conn.execute(
+            "UPDATE users SET plan = 'free', plan_expires_at = '' WHERE id = ?",
+            (row["user_id"],),
+        )
+        conn.execute(
+            "INSERT INTO payments (id, user_id, provider, provider_subscription_id,"
+            " provider_event_id, status, created_at, updated_at)"
+            " VALUES (?, ?, 'stripe', ?, ?, 'canceled', ?, ?)",
+            (
+                new_id("pay"), row["user_id"], subscription_id, event_id,
+                now_iso(), now_iso(),
+            ),
+        )
+        conn.commit()
+        return "handled"
+
+    if event_type == "invoice.payment_failed":
+        subscription_id = data.get("subscription", "")
+        row = conn.execute(
+            "SELECT user_id FROM payments WHERE provider_subscription_id = ?"
+            " ORDER BY created_at DESC LIMIT 1",
+            (subscription_id,),
+        ).fetchone()
+        user_id = row["user_id"] if row else ""
+        conn.execute(
+            "INSERT INTO payments (id, user_id, provider, provider_subscription_id,"
+            " provider_event_id, status, created_at, updated_at)"
+            " VALUES (?, ?, 'stripe', ?, ?, 'payment_failed', ?, ?)",
+            (
+                new_id("pay"), user_id, subscription_id, event_id,
+                now_iso(), now_iso(),
+            ),
+        )
+        conn.commit()
+        return "handled"
+
+    return "ignored"
 
 
 def gc_expired_password_reset_tokens(conn: sqlite3.Connection) -> int:
@@ -3175,6 +3427,113 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
             self._send_json({"ok": True, "message": "密码已更新，请用新密码登录。"})
+            return
+
+        if parsed.path == "/api/billing/checkout":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            if not STRIPE_SECRET_KEY or not STRIPE_PRICE_PLUS:
+                conn.close()
+                self._send_json(
+                    {"error": "billing_not_configured",
+                     "message": "支付暂未启用，请稍后再试。"},
+                    503,
+                )
+                return
+            row = conn.execute(
+                "SELECT email FROM users WHERE id = ?", (user["id"],)
+            ).fetchone()
+            conn.close()
+            base = APP_PUBLIC_URL.rstrip("/")
+            try:
+                checkout_url = create_stripe_checkout_session(
+                    user_id=user["id"],
+                    user_email=(row["email"] if row else "") or "",
+                    success_url=f"{base}/#plus-success={{CHECKOUT_SESSION_ID}}",
+                    cancel_url=f"{base}/#plus-canceled",
+                )
+            except RuntimeError as exc:
+                log_server_error(
+                    None, user_id=user["id"], method="POST",
+                    path="/api/billing/checkout", status_code=502, error=exc,
+                )
+                self._send_json(
+                    {"error": "stripe_error",
+                     "message": "无法创建结账会话，请稍后重试。"},
+                    502,
+                )
+                return
+            self._send_json({"url": checkout_url})
+            return
+
+        if parsed.path == "/api/billing/webhook":
+            # Public; relies on Stripe-Signature header for auth.
+            length = int(self.headers.get("Content-Length", "0"))
+            payload = self.rfile.read(length) if length > 0 else b""
+            sig_header = self.headers.get("Stripe-Signature", "")
+            if not verify_stripe_webhook_signature(
+                payload, sig_header, STRIPE_WEBHOOK_SECRET
+            ):
+                self._send_json({"error": "invalid_signature"}, 400)
+                return
+            try:
+                event = json.loads(payload.decode("utf-8"))
+            except Exception:
+                self._send_json({"error": "invalid_payload"}, 400)
+                return
+            conn = get_conn()
+            try:
+                status = apply_billing_event(conn, event)
+            except Exception as exc:
+                log_server_error(
+                    conn, method="POST", path="/api/billing/webhook",
+                    status_code=500, error=exc,
+                )
+                conn.close()
+                self._send_json({"error": "internal_error"}, 500)
+                return
+            conn.close()
+            self._send_json({"ok": True, "status": status})
+            return
+
+        if parsed.path == "/api/billing/cancel":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            if not STRIPE_SECRET_KEY:
+                conn.close()
+                self._send_json({"error": "billing_not_configured"}, 503)
+                return
+            row = conn.execute(
+                "SELECT provider_subscription_id FROM payments"
+                " WHERE user_id = ? AND provider_subscription_id != ''"
+                " ORDER BY created_at DESC LIMIT 1",
+                (user["id"],),
+            ).fetchone()
+            conn.close()
+            if not row or not row["provider_subscription_id"]:
+                self._send_json({"error": "no_active_subscription"}, 404)
+                return
+            try:
+                # cancel_at_period_end=true → user keeps Plus until current
+                # billing cycle ends, then auto-downgrades.
+                stripe_request(
+                    "POST",
+                    f"/subscriptions/{row['provider_subscription_id']}",
+                    params={"cancel_at_period_end": "true"},
+                    idempotency_key=f"cancel-{user['id']}-{int(time.time())}",
+                )
+            except RuntimeError as exc:
+                log_server_error(
+                    None, user_id=user["id"], method="POST",
+                    path="/api/billing/cancel", status_code=502, error=exc,
+                )
+                self._send_json({"error": "stripe_error"}, 502)
+                return
+            self._send_json(
+                {"ok": True, "message": "已为你设置在本计费周期结束后取消订阅。"}
+            )
             return
 
         if parsed.path == "/api/upload-image":

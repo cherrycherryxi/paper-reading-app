@@ -888,6 +888,45 @@ test("P0 session-expiry: frontend wires #logoutAllBtn to logoutAllDevices via sh
     "logoutAllDevices must call /api/logout-all");
 });
 
+test("P2 Stripe billing: backend defines payments table, 3 endpoints, idempotent webhook with HMAC verification", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /CREATE TABLE IF NOT EXISTS payments/,
+    "init_db must create payments table");
+  assert.match(src, /idx_payments_event_unique/,
+    "payments must have unique event_id index for webhook idempotency");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/billing\/checkout"/,
+    "must expose POST /api/billing/checkout");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/billing\/webhook"/,
+    "must expose POST /api/billing/webhook");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/billing\/cancel"/,
+    "must expose POST /api/billing/cancel");
+  assert.match(src, /def verify_stripe_webhook_signature/,
+    "must define HMAC signature verifier");
+  assert.match(src, /hmac\.compare_digest/,
+    "signature verification must use hmac.compare_digest (constant-time)");
+  assert.match(src, /def apply_billing_event/,
+    "must define event dispatcher");
+  // Event types we handle
+  for (const evt of [
+    "checkout.session.completed",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+    "invoice.payment_failed",
+  ]) {
+    assert.match(src, new RegExp(evt.replace(/\./g, "\\.")),
+      `webhook must handle ${evt}`);
+  }
+});
+
+test("P2 Stripe billing: frontend wires #planUpgradeBtn to startUpgradeFlow which fetches /api/billing/checkout", () => {
+  assert.match(appSource, /async function startUpgradeFlow/,
+    "app.js must define startUpgradeFlow");
+  assert.match(appSource, /\/api\/billing\/checkout/,
+    "startUpgradeFlow must call /api/billing/checkout");
+  assert.match(appSource, /function maybeShowPlusReturnToast/,
+    "must handle the post-checkout #plus-success / #plus-canceled redirect");
+});
+
 test("P2 plan tiers: backend defines PLAN_LIMITS dict with free/plus, plan-aware _rate_limit_for, and /api/account/plan endpoint", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
   assert.match(src, /PLAN_LIMITS\s*=\s*\{/, "must define PLAN_LIMITS dict");

@@ -24,6 +24,10 @@ services:
       SMTP_FROM: ${SMTP_FROM:-no-reply@example.com}
       # — Admin token for /debug/* pages —
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      # — Stripe billing (optional) —
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_PLUS: ${STRIPE_PRICE_PLUS:-}
       # — Rate-limit overrides (optional) —
       RATE_LIMIT_HOUR: ${RATE_LIMIT_HOUR:-}
       RATE_LIMIT_DAY: ${RATE_LIMIT_DAY:-}
