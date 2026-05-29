@@ -1118,6 +1118,58 @@ test("Landing footer 「登录」 links must deep-link to /app#login (not /app)"
     `landing must have at least 2 /app#login links (nav + footer), found ${matches.length}`);
 });
 
+test("Me drawer actions list: each row has descriptive title + helper text", () => {
+  // Regression for user feedback that the old flex-of-buttons didn't tell
+  // users what each action does (导出数据 vs 完整账号导出, 导入数据 vs Excel).
+  assert.match(indexHtml, /class="me-action-list"/,
+    "me drawer must use the new descriptive list layout");
+  for (const label of [
+    "退出所有设备", "导出书单备份", "完整账号导出",
+    "导入数据", "从 Excel 批量加书", "注销账号",
+  ]) {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Title may carry a trailing qualifier in parens (e.g. "完整账号导出（GDPR/PIPL 合规）")
+    assert.match(indexHtml, new RegExp(`me-action-title[^>]*>${escaped}`),
+      `me drawer must have an action titled ${label}`);
+  }
+  // Helper text must appear for the 3 actions users specifically asked about
+  for (const hint of [
+    /撤销.*?所有.*?登录会话/,
+    /JSON 文件[\s\S]{0,200}书单/,
+    /AI 调用日志/,
+    /\.json.*?恢复/,
+    /\.xlsx.*?批量添加/,
+  ]) {
+    assert.match(indexHtml, hint,
+      `helper text must explain action format/purpose: ${hint}`);
+  }
+});
+
+test("Admin-only sections hidden until body.is-admin is set by dispatchUserChange", () => {
+  // Regression: regular users seeing 模型日志 panel (developer-only telemetry).
+  assert.match(indexHtml, /class="subpanel logs-collapsible admin-only"/,
+    "model logs panel must be marked admin-only");
+  assert.match(styles, /\.admin-only\s*\{\s*display:\s*none/,
+    "styles.css must hide .admin-only by default");
+  assert.match(styles, /body\.is-admin\s+\.admin-only/,
+    "styles.css must reveal .admin-only when body.is-admin is set");
+  assert.match(appSource, /classList\.toggle\("is-admin",\s*currentUser\?\.is_admin\s*===\s*true\)/,
+    "dispatchUserChange must flip body.is-admin based on currentUser.is_admin");
+});
+
+test("Backend session/login/register responses include user.is_admin field", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /def is_admin_username/,
+    "must define is_admin_username helper");
+  assert.match(src, /ADMIN_USERNAMES\s*=\s*os\.getenv/,
+    "must read ADMIN_USERNAMES from env");
+  // All three user-returning endpoints must include is_admin
+  assert.match(src, /user_dict\["is_admin"\]\s*=\s*is_admin_username/,
+    "/api/session and /api/register must set is_admin via helper");
+  assert.match(src, /"is_admin":\s*is_admin_username\(row\["username"\]\)/,
+    "/api/login response must include is_admin");
+});
+
 test("Legal pages must scroll on mobile (override the SPA's overflow: hidden global rule)", () => {
   const root = path.join(__dirname, "..", "..");
   for (const name of ["privacy.html", "terms.html"]) {

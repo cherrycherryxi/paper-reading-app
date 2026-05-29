@@ -24,6 +24,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:-no-reply@example.com}
       # — Admin token for /debug/* pages —
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      # — Comma-separated usernames that see operator-only UI (model logs etc.) —
+      ADMIN_USERNAMES: ${ADMIN_USERNAMES:-}
       # — Stripe billing (optional) —
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}

@@ -243,17 +243,53 @@
           <button id="logoutBtn" class="button button-ghost button-small" type="button">退出登录</button>
         </div>
         <div id="planSummary" class="plan-summary" hidden></div>
-        <div class="me-drawer-actions">
-          <button class="button button-ghost" id="logoutAllBtn" type="button">退出所有设备</button>
-          <button class="button button-ghost" id="exportButton" type="button">导出数据</button>
-          <button class="button button-ghost" id="exportAccountBtn" type="button">完整账号导出</button>
-          <label class="button button-ghost file-button">导入数据<input type="file" id="importInput" accept="application/json" /></label>
-          <label class="button button-ghost file-button">导入Excel<input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /></label>
-          <button class="button button-ghost danger-text" id="deleteAccountBtn" type="button">注销账号</button>
-        </div>
-        <details class="subpanel logs-collapsible">
+        <ul class="me-action-list">
+          <li class="me-action">
+            <div class="me-action-info">
+              <div class="me-action-title">退出所有设备</div>
+              <div class="me-action-desc">撤销你在所有手机、平板、电脑上的登录会话，下次都需要重新登录。</div>
+            </div>
+            <button class="button button-ghost button-small" id="logoutAllBtn" type="button">执行</button>
+          </li>
+          <li class="me-action">
+            <div class="me-action-info">
+              <div class="me-action-title">导出书单备份</div>
+              <div class="me-action-desc">下载 JSON 文件，包含书单 / 阅读记录 / 摘抄 / 对话历史 / 跨书关联。可以用「导入数据」恢复，或迁移到新账号。</div>
+            </div>
+            <button class="button button-ghost button-small" id="exportButton" type="button">下载</button>
+          </li>
+          <li class="me-action">
+            <div class="me-action-info">
+              <div class="me-action-title">完整账号导出（GDPR/PIPL 合规）</div>
+              <div class="me-action-desc">在「导出书单备份」基础上额外包含：AI 调用日志、Agent 执行轨迹、上传图片清单。供你行使数据知情权。</div>
+            </div>
+            <button class="button button-ghost button-small" id="exportAccountBtn" type="button">下载</button>
+          </li>
+          <li class="me-action">
+            <div class="me-action-info">
+              <div class="me-action-title">导入数据</div>
+              <div class="me-action-desc">从「导出书单备份」生成的 <code>.json</code> 文件恢复。会替换当前账号的全部内容。</div>
+            </div>
+            <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importInput" accept="application/json" /></label>
+          </li>
+          <li class="me-action">
+            <div class="me-action-info">
+              <div class="me-action-title">从 Excel 批量加书</div>
+              <div class="me-action-desc">从 <code>.xlsx</code> 表格批量添加书单。表格首行需含「书名」列（可选：作者 / 状态 / 标签 / 总页数 / 开始时间 / 完成时间 / 译者 / 简介 / 喜欢程度）。已存在的书不会重复。</div>
+            </div>
+            <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /></label>
+          </li>
+          <li class="me-action me-action--danger">
+            <div class="me-action-info">
+              <div class="me-action-title">注销账号</div>
+              <div class="me-action-desc">永久删除你的全部数据，包括上传图片、聊天记录、服务端日志。不可恢复。</div>
+            </div>
+            <button class="button button-ghost button-small danger-text" id="deleteAccountBtn" type="button">删除</button>
+          </li>
+        </ul>
+        <details class="subpanel logs-collapsible admin-only">
           <summary class="subpanel-head row-head">
-            <div><h3>模型日志</h3></div>
+            <div><h3>模型日志（管理员）</h3></div>
             <span class="logs-collapse-indicator">展开</span>
           </summary>
           <div class="toolbar"><button id="clearLogsBtn" class="button button-ghost" type="button">清空日志</button></div>

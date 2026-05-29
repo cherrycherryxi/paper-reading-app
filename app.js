@@ -346,6 +346,14 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
 }
 
 function dispatchUserChange() {
+  // Flip `body.is-admin` so admin-only sections (model logs panel etc.)
+  // appear for accounts listed in backend ADMIN_USERNAMES. Server-side
+  // /debug/* endpoints are separately gated by ADMIN_TOKEN; /api/model-logs
+  // already scopes results to the logged-in user, so CSS-only gating here
+  // is for UX clarity, not data isolation.
+  if (typeof document !== "undefined" && document.body) {
+    document.body.classList.toggle("is-admin", currentUser?.is_admin === true);
+  }
   window.dispatchEvent(new CustomEvent("paper-reading-user-changed"));
 }
 

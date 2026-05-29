@@ -41,6 +41,17 @@ MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
 # ADMIN_TOKEN gates /debug/* HTML viewers. When empty, the pages are open;
 # set this in production via env so only operators can see error logs.
 AUTH_TOKEN = os.getenv("ADMIN_TOKEN", "")
+# ADMIN_USERNAMES is a comma-separated list of usernames who see operator-only
+# UI in the app (model logs panel, etc.). Defaults to the project author's
+# account so dev sessions Just Work; production should set it explicitly.
+ADMIN_USERNAMES = os.getenv("ADMIN_USERNAMES", "Huangnanxi")
+
+
+def is_admin_username(username: str) -> bool:
+    if not username or not ADMIN_USERNAMES:
+        return False
+    allow = {u.strip() for u in ADMIN_USERNAMES.split(",") if u.strip()}
+    return username in allow
 KIMI_VISION_TIMEOUT_SECONDS = 150
 KIMI_VISION_MAX_TOKENS = int(os.getenv("KIMI_VISION_MAX_TOKENS", "4096"))
 KIMI_VISION_MAX_ATTEMPTS = 2
@@ -3038,7 +3049,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             state = load_state(conn, user["id"])
             conn.close()
-            self._send_json({"user": dict(user), "state": state})
+            user_dict = dict(user)
+            user_dict["is_admin"] = is_admin_username(user["username"])
+            self._send_json({"user": user_dict, "state": state})
             return
 
         if parsed.path == "/api/model-logs":
@@ -3401,7 +3414,9 @@ class Handler(BaseHTTPRequestHandler):
             user = conn.execute("SELECT id, username, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
             state = load_state(conn, user_id)
             conn.close()
-            self._send_json({"token": token, "user": dict(user), "state": state}, 201)
+            user_dict = dict(user)
+            user_dict["is_admin"] = is_admin_username(user["username"])
+            self._send_json({"token": token, "user": user_dict, "state": state}, 201)
             return
 
         if parsed.path == "/api/login":
@@ -3423,7 +3438,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(
                 {
                     "token": token,
-                    "user": {"id": row["id"], "username": row["username"], "created_at": row["created_at"]},
+                    "user": {
+                        "id": row["id"],
+                        "username": row["username"],
+                        "created_at": row["created_at"],
+                        "is_admin": is_admin_username(row["username"]),
+                    },
                     "state": state,
                 }
             )
