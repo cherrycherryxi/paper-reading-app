@@ -72,6 +72,16 @@
 
 - **[2026-05-29] E2E 测试端口冲突。** 杀 server 时务必先 `lsof -i :8787 -t | xargs kill -9; sleep 1`，否则旧 server 还在监听，curl 拿到的是旧响应。系统 `python3` 没装 mcp，必须用 `.venv/bin/python` 跑 `app_server.py`。
 
+- **[2026-05-29] 商业化基础设施约定。** 本会话已构建以下基础设施，后续功能必须遵守：
+  - **限流**：所有 AI 端点必须经过 `_enforce_rate_limit(conn, user_id, endpoint)`；新端点要在 `RATE_LIMITS` dict 里登记。
+  - **错误监控**：未捕获异常自动入 `server_errors` 表（Handler.handle_one_request 包装）。可在 /debug/errors 查看。手动调用 `log_server_error(conn, ...)` 记录已 catch 的异常上下文。
+  - **会话过期**：90 天滚动，token 过期自动删除并返回 None。所有 `resolve_user_from_token` 调用都已覆盖。
+  - **GDPR/PIPL**：用户必须可以通过 `/api/account/export`（GET）和 `/api/account`（DELETE，confirmUsername 校验）行使数据权利。新增任何用户数据表时必须把它加入 DELETE /api/account 的级联删除列表。
+  - **注册同意**：`/api/register` 强制 `termsAccepted=true`；users.terms_accepted_at 记录时间戳；新增任何用户协议变更时务必更新 /terms.html 和 /privacy.html。
+  - **CORS 端点**：所有 fetch 响应都要带 `Access-Control-Allow-Origin: *` 头（Handler 已统一）。
+
+- **[2026-05-29] 等待用户决策的商业化项。** P1-4（密码重置）需 SMTP 提供商决策（Gmail/Tencent SES/SendGrid）；P2-8（分层）需 free/plus 配额与定价决策；P2-9（支付）需微信支付 vs Stripe 决策；P3 三项（Postgres、部署、对象存储）均需云服务商决策。这些不应在没有用户输入的情况下擅自推进。
+
 ## Decision Log
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
