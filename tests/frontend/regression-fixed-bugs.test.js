@@ -1029,23 +1029,42 @@ test("P1 ToS consent: legal pages exist and reference the product", () => {
   }
 });
 
-test("P2 landing: /landing.html exists with hero CTA, features section, and links to /terms.html + /privacy.html + /app", () => {
+test("P2 landing: /landing.html has hero, 4 feature showcases, CTAs and legal links", () => {
   const root = path.join(__dirname, "..", "..");
   const html = fs.readFileSync(path.join(root, "landing.html"), "utf8");
   assert.match(html, /<h1[^>]*class="hero-title"/, "landing must have hero h1");
   assert.match(html, /免费开始/, "landing must include 免费开始 CTA");
-  assert.match(html, /id="features"/, "landing must include features section");
+  assert.match(html, /id="features"/, "landing must include features anchor");
+  // Four showcase eyebrows must all appear in order (feature panels)
+  for (const label of ["纸质书优先", "一拍即存的摘抄", "与 AI 共读", "跨书关联"]) {
+    assert.match(html, new RegExp(`showcase-eyebrow[^>]*>${label}<`),
+      `landing must include showcase for ${label}`);
+  }
+  // Real-content evidence (sourced from the Huangnanxi account)
+  assert.match(html, /《月亮虎》/, "quote showcase must reference 《月亮虎》");
+  assert.match(html, /《你的脚比头年轻》/,
+    "connection showcase must reference 《你的脚比头年轻》");
+  assert.match(html, /quote-moontiger\.jpeg/,
+    "quote showcase must reference the real photo asset");
   assert.match(html, /href="\/terms\.html"/, "landing must link to /terms.html");
   assert.match(html, /href="\/privacy\.html"/, "landing must link to /privacy.html");
   assert.match(html, /href="\/app#signup"/,
-    "免费开始 CTA must deep-link to /app#signup so the app opens the register form");
-  assert.match(html, /href="\/app"/, "landing must link to /app (login)");
+    "免费开始 CTA must deep-link to /app#signup");
   assert.match(html, /<meta name="description"/, "landing must have meta description for SEO");
   // Already-logged-in visitors must be redirected away from marketing
   assert.match(html, /paper-reading-auth-token-v1/,
     "landing must contain auth-redirect script (checks localStorage)");
   assert.match(html, /location\.replace\("\/app"\)/,
     "landing must redirect signed-in visitors to /app via location.replace");
+});
+
+test("P2 landing: quote photo asset exists and is reasonably small for fast load", () => {
+  const root = path.join(__dirname, "..", "..");
+  const photoPath = path.join(root, "assets", "landing", "quote-moontiger.jpeg");
+  const stat = fs.statSync(photoPath);
+  assert.ok(stat.isFile(), "assets/landing/quote-moontiger.jpeg must exist");
+  assert.ok(stat.size < 350_000,
+    `quote photo should be < 350KB for fast landing load, got ${stat.size}`);
 });
 
 test("Landing routing: / serves landing, /app + /index.html serve the SPA shell", () => {
