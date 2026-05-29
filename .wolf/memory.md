@@ -7,6 +7,8 @@
 | 2026-05-29 | Task #5/#6 隐私协议/用户协议 + 错误监控：/privacy.html + /terms.html + users.terms_accepted_at + 注册必勾；server_errors 表 + log_server_error helper + Handler.handle_one_request 包装捕获异常 + /debug/errors viewer；10 backend + 3 frontend 测试 | app_server.py, privacy.html, terms.html | done | ~6500 |
 | 2026-05-29 | Task #7 落地页：/landing.html（hero+mock 截图+features+CTA+footer，移动响应式，SEO meta）；登录抽屉头加 "了解这是什么 →"；2 frontend 静态断言 | landing.html, app_server.py, index.html, styles.css | done | ~3500 |
 | 2026-05-29 | 会话总结：6 个商业化任务（P0×3 全 + P1×2/3 + P2×1）；6 commit；111 Python + 40 frontend regression 全过；剩余 P1-4（密码重置需 SMTP）、P2-8/9（分层+支付）、P3 三项 | (multi) | session-end | ~30000 |
+| 2026-05-29 | 续推（Stop hook 触发自主决策）：P1-4 密码重置（SMTP+控制台 fallback、users.email、partial unique index）；P2-8 PLAN_LIMITS（free/plus、book_cap、ActionExecutor.add_book 强制）；P2-9 Stripe 集成（无 SDK 依赖、HMAC 验证 + 幂等、checkout/cancel）；P3-11 生产部署（Dockerfile+docker-compose+Caddyfile+.env.example）；P3-12 S3 对象存储（boto3 lazy import、save_image 自动切换）；P3-10 SQLite WAL 调优 | app_server.py, app.js, index.html, styles.css, Dockerfile, docker-compose.yml, Caddyfile, .dockerignore, .env.example + 5 新 tests | done | ~25000 |
+| 2026-05-29 | 🎉 商业化路线图 12/12 全部完成（共 13 个 feature commit，3500+ 行净增加，50+ 新回归测试）；157 Python + 46 frontend regression 全过；从 personal MVP 升级到可商业化产品 | (multi) | milestone | ~55000 |
 | 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
 | 2026-05-15 | Connection 交互完善：关联卡片侧面可点击跳转书籍/摘抄、编辑 thought/kind/tags、摘抄详情 conn-mini-card 展示 thought 并可点击导航、摘抄卡片显示关联数 badge | app.js, styles.css | done | ~900 |
 | 2026-05-15 | link_thought golden-set 8 条（normal/failure/boundary）+ 12 个 unittest（验证层+执行层），58 cases 57 通过 | data/golden_set.json, tests/agent_link_thought_test.py | done | ~800 |
@@ -683,3 +685,67 @@
 | 16:14 | Edited styles.css | CSS: font-size, white-space, auth-landing-link | ~85 |
 | 16:14 | Edited tests/agent/terms_consent_test.py | modified test_legal_pages_are_served_by_backend() | ~57 |
 | 16:14 | Edited tests/frontend/regression-fixed-bugs.test.js | modified for() | ~433 |
+| 16:18 | Session end: 60 writes across 15 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 9 reads | ~154194 tok |
+| 16:19 | Edited app_server.py | expanded (+11 lines) | ~307 |
+| 16:19 | Edited app_server.py | expanded (+8 lines) | ~182 |
+| 16:19 | Edited app_server.py | expanded (+12 lines) | ~268 |
+| 16:20 | Edited app_server.py | added error handling | ~883 |
+| 16:20 | Edited app_server.py | modified _is_valid_email() | ~488 |
+| 16:21 | Edited app_server.py | modified _is_valid_email() | ~1584 |
+| 16:21 | Created tests/agent/password_reset_test.py | — | ~2879 |
+| 16:23 | Edited app_server.py | modified create_password_reset_token() | ~188 |
+| 16:23 | Edited app_server.py | inline fix | ~12 |
+| 16:23 | Edited index.html | 17→19 lines | ~378 |
+| 16:24 | Edited index.html | expanded (+25 lines) | ~487 |
+| 16:24 | Edited app.js | expanded (+8 lines) | ~194 |
+| 16:24 | Edited app.js | added optional chaining | ~790 |
+| 16:24 | Edited app.js | expanded (+19 lines) | ~333 |
+| 16:25 | Edited app.js | 4→6 lines | ~46 |
+| 16:25 | Edited styles.css | expanded (+15 lines) | ~139 |
+| 16:25 | Edited tests/frontend/regression-fixed-bugs.test.js | modified send_email_via_smtp() | ~685 |
+| 16:26 | Edited app.js | added 1 condition(s) | ~84 |
+| 16:26 | Edited app.js | added 1 condition(s) | ~48 |
+| 16:26 | Edited app.js | 7→7 lines | ~100 |
+| 16:27 | Edited app_server.py | expanded (+20 lines) | ~247 |
+| 16:27 | Edited app_server.py | 2→6 lines | ~107 |
+| 16:27 | Edited app_server.py | modified _resolve_user_plan() | ~385 |
+| 16:28 | Edited app_server.py | modified check_and_record_rate_limit() | ~138 |
+| 16:28 | Edited app_server.py | expanded (+41 lines) | ~603 |
+| 16:29 | Edited app_server.py | expanded (+11 lines) | ~421 |
+| 16:29 | Created tests/agent/plan_tier_test.py | — | ~2213 |
+| 16:30 | Edited index.html | 3→4 lines | ~59 |
+| 16:30 | Edited app.js | 1→2 lines | ~32 |
+| 16:30 | Edited app.js | added error handling | ~441 |
+| 16:30 | Edited app.js | modified openMeDrawer() | ~47 |
+| 16:30 | Edited styles.css | modified media() | ~392 |
+| 16:31 | Edited tests/frontend/regression-fixed-bugs.test.js | modified _rate_limit_for() | ~461 |
+| 16:31 | Edited tests/frontend/regression-fixed-bugs.test.js | 2→6 lines | ~102 |
+| 16:32 | Created Dockerfile | — | ~289 |
+| 16:32 | Created .dockerignore | — | ~103 |
+| 16:32 | Created docker-compose.yml | — | ~543 |
+| 16:33 | Created Caddyfile | — | ~386 |
+| 16:33 | Edited app_server.py | 12→17 lines | ~255 |
+| 16:33 | Edited app_server.py | 6→5 lines | ~93 |
+| 16:33 | Edited app_server.py | modified init_db() | ~43 |
+| 16:34 | Edited docker-compose.yml | 4→7 lines | ~83 |
+| 16:34 | Created tests/agent/deployment_config_test.py | — | ~1368 |
+| 16:36 | Edited app_server.py | expanded (+22 lines) | ~422 |
+| 16:36 | Edited app_server.py | expanded (+8 lines) | ~174 |
+| 16:37 | Edited app_server.py | modified stripe_request() | ~2542 |
+| 16:37 | Edited app_server.py | modified verify_stripe_webhook_signature() | ~1404 |
+| 16:37 | Edited app.js | added error handling | ~222 |
+| 16:37 | Edited app.js | added optional chaining | ~232 |
+| 16:37 | Edited app.js | modified if() | ~56 |
+| 16:38 | Edited docker-compose.yml | 2→6 lines | ~77 |
+| 16:39 | Created tests/agent/billing_test.py | — | ~3752 |
+| 16:39 | Edited tests/frontend/regression-fixed-bugs.test.js | modified verify_stripe_webhook_signature() | ~575 |
+| 16:41 | Edited app_server.py | expanded (+11 lines) | ~198 |
+| 16:41 | Edited app_server.py | modified _is_object_storage_configured() | ~543 |
+| 16:41 | Edited app_server.py | modified _mime_from_suffix() | ~847 |
+| 16:41 | Edited app_server.py | modified exists() | ~161 |
+| 16:42 | Edited docker-compose.yml | expanded (+7 lines) | ~145 |
+| 16:42 | Edited requirements.txt | 3→7 lines | ~82 |
+| 16:42 | Created tests/agent/object_storage_test.py | — | ~1596 |
+| 16:44 | Edited app_server.py | modified get_conn() | ~403 |
+| 16:44 | Created tests/agent/db_concurrency_test.py | — | ~560 |
+| 16:44 | Edited app_server.py | modified get_conn() | ~391 |
