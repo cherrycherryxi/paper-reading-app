@@ -1541,6 +1541,21 @@ function maybeOpenResetPasswordDialog() {
   els.resetPasswordDialog.showModal();
 }
 
+function maybeShowPlusReturnToast() {
+  if (typeof location === "undefined") return;
+  if (location.hash.startsWith("#plus-success")) {
+    showToast?.("订阅生效中，刷新片刻即可看到 Plus 标识 ✨");
+    if (typeof history !== "undefined") {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  } else if (location.hash === "#plus-canceled") {
+    showToast?.("已取消支付，欢迎随时回来 ✨");
+    if (typeof history !== "undefined") {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  }
+}
+
 async function handleLogin(formData) {
   const username = String(formData.get("username")).trim();
   const password = String(formData.get("password")).trim();
@@ -2600,7 +2615,33 @@ function renderPlanSummary(info) {
   `;
   els.planSummary.hidden = false;
   const btn = els.planSummary.querySelector("#planUpgradeBtn");
-  if (btn) btn.addEventListener("click", () => showToast("Plus 升级功能即将上线 ✨"));
+  if (btn) btn.addEventListener("click", () => startUpgradeFlow(btn));
+}
+
+async function startUpgradeFlow(btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "跳转中…";
+  }
+  try {
+    const result = await apiFetch("/api/billing/checkout", { method: "POST" });
+    if (result?.url) {
+      location.href = result.url;
+      return;
+    }
+    throw new Error("missing_checkout_url");
+  } catch (error) {
+    if (error?.message?.includes("not_configured") || /503/.test(error?.message || "")) {
+      showToast("Plus 升级即将上线，敬请期待 ✨");
+    } else {
+      showToast(error.message || "无法跳转支付页");
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "升级 Plus";
+    }
+  }
 }
 
 async function exportAccount() {
@@ -3654,6 +3695,7 @@ render();
 activateTab("books");
 loadSession();
 maybeOpenResetPasswordDialog();
+maybeShowPlusReturnToast();
 if (typeof window !== "undefined" && window.addEventListener) {
   window.addEventListener("hashchange", maybeOpenResetPasswordDialog);
 }
