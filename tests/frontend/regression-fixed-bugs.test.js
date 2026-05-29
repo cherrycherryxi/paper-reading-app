@@ -888,6 +888,26 @@ test("P0 session-expiry: frontend wires #logoutAllBtn to logoutAllDevices via sh
     "logoutAllDevices must call /api/logout-all");
 });
 
+test("P1 ToS consent: register form has required termsAccepted checkbox linking to /terms.html and /privacy.html", () => {
+  assert.match(indexHtml, /name="termsAccepted"[^>]*required/,
+    "register form must include a required termsAccepted checkbox");
+  assert.match(indexHtml, /href="\/terms\.html"/,
+    "register form must link to /terms.html");
+  assert.match(indexHtml, /href="\/privacy\.html"/,
+    "register form must link to /privacy.html");
+  assert.match(appSource, /termsAccepted/,
+    "app.js handleRegister must validate and forward termsAccepted");
+});
+
+test("P1 ToS consent: legal pages exist and reference the product", () => {
+  const root = path.join(__dirname, "..", "..");
+  for (const name of ["privacy.html", "terms.html"]) {
+    const html = fs.readFileSync(path.join(root, name), "utf8");
+    assert.match(html, /又买了一本书/, `${name} should mention the product name`);
+    assert.match(html, /<h1/, `${name} should have an h1`);
+  }
+});
+
 test("P0 account-export: backend exposes GET /api/account/export with full payload + Content-Disposition", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
   assert.match(src, /parsed\.path\s*==\s*"\/api\/account\/export"/,

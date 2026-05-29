@@ -313,6 +313,11 @@ def init_db() -> None:
             ON rate_limit_counters (updated_at);
         """
     )
+    user_cols = {
+        row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
+    }
+    if "terms_accepted_at" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN terms_accepted_at TEXT NOT NULL DEFAULT ''")
     existing_cols = {
         row["name"] for row in conn.execute("PRAGMA table_info(model_logs)").fetchall()
     }
@@ -2270,6 +2275,8 @@ class Handler(BaseHTTPRequestHandler):
             "/chat.js": ("chat.js", "application/javascript; charset=utf-8"),
             "/styles.css": ("styles.css", "text/css; charset=utf-8"),
             "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+            "/privacy.html": ("privacy.html", "text/html; charset=utf-8"),
+            "/terms.html": ("terms.html", "text/html; charset=utf-8"),
         }
         if parsed.path in _STATIC:
             filename, mime = _STATIC[parsed.path]
@@ -2578,8 +2585,12 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._read_json()
             username = str(payload.get("username", "")).strip()
             password = str(payload.get("password", "")).strip()
+            terms_accepted = bool(payload.get("termsAccepted", False))
             if len(username) < 2 or len(password) < 4:
                 self._send_json({"error": "Invalid username or password"}, 400)
+                return
+            if not terms_accepted:
+                self._send_json({"error": "请先阅读并同意《用户协议》和《隐私政策》"}, 400)
                 return
 
             conn = get_conn()
@@ -2591,8 +2602,9 @@ class Handler(BaseHTTPRequestHandler):
 
             user_id = new_id("user")
             conn.execute(
-                "INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                (user_id, username, hash_password(password), now_iso()),
+                "INSERT INTO users (id, username, password_hash, created_at, terms_accepted_at)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (user_id, username, hash_password(password), now_iso(), now_iso()),
             )
             conn.execute(
                 "INSERT INTO user_state (user_id, state_json, updated_at) VALUES (?, ?, ?)",
