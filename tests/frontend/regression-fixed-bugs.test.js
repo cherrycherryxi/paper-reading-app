@@ -1029,7 +1029,7 @@ test("P1 ToS consent: legal pages exist and reference the product", () => {
   }
 });
 
-test("P2 landing: /landing.html exists with hero CTA, features section, and links to /terms.html + /privacy.html + /", () => {
+test("P2 landing: /landing.html exists with hero CTA, features section, and links to /terms.html + /privacy.html + /app", () => {
   const root = path.join(__dirname, "..", "..");
   const html = fs.readFileSync(path.join(root, "landing.html"), "utf8");
   assert.match(html, /<h1[^>]*class="hero-title"/, "landing must have hero h1");
@@ -1037,8 +1037,37 @@ test("P2 landing: /landing.html exists with hero CTA, features section, and link
   assert.match(html, /id="features"/, "landing must include features section");
   assert.match(html, /href="\/terms\.html"/, "landing must link to /terms.html");
   assert.match(html, /href="\/privacy\.html"/, "landing must link to /privacy.html");
-  assert.match(html, /href="\/"/, "landing must include CTA back to app");
+  assert.match(html, /href="\/app#signup"/,
+    "免费开始 CTA must deep-link to /app#signup so the app opens the register form");
+  assert.match(html, /href="\/app"/, "landing must link to /app (login)");
   assert.match(html, /<meta name="description"/, "landing must have meta description for SEO");
+  // Already-logged-in visitors must be redirected away from marketing
+  assert.match(html, /paper-reading-auth-token-v1/,
+    "landing must contain auth-redirect script (checks localStorage)");
+  assert.match(html, /location\.replace\("\/app"\)/,
+    "landing must redirect signed-in visitors to /app via location.replace");
+});
+
+test("Landing routing: / serves landing, /app + /index.html serve the SPA shell", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /"\/":\s*\("landing\.html"/,
+    "backend _STATIC must map / → landing.html");
+  assert.match(src, /"\/app":\s*\("index\.html"/,
+    "backend _STATIC must map /app → index.html");
+  assert.match(src, /"\/index\.html":\s*\("index\.html"/,
+    "backend _STATIC must keep /index.html → index.html for legacy PWA installs");
+});
+
+test("Landing signup deep-link: app.js opens auth drawer and switches to register tab on #signup", () => {
+  assert.match(appSource, /function maybeHandleSignupIntent/,
+    "app.js must define maybeHandleSignupIntent");
+  assert.match(appSource, /function switchAuthTab/,
+    "app.js must define switchAuthTab so #signup can target the register tab");
+  assert.match(appSource, /location\.hash\s*!==?\s*"#signup"/,
+    "maybeHandleSignupIntent must look for the #signup hash");
+  // loadSession must trigger the intent at the end of the unauthenticated branch
+  assert.match(appSource, /async function loadSession[\s\S]{0,400}maybeHandleSignupIntent\(\)/,
+    "loadSession must call maybeHandleSignupIntent after determining auth state");
 });
 
 test("P2 landing: auth panel includes 了解这是什么 link pointing to /landing.html", () => {
