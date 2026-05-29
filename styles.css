@@ -2813,6 +2813,67 @@ button.conn-mini-card:hover {
   margin-bottom: 16px;
 }
 
+/* Settings-row style list for the Me drawer actions. Each row carries a
+   title + 1-line description so users know what each button actually does
+   (regression: users couldn't tell 导出数据 vs 完整账号导出 apart). */
+.me-action-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.me-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.me-action:last-child { border-bottom: none; }
+.me-action-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.me-action-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.35;
+}
+.me-action-desc {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  margin-top: 4px;
+  line-height: 1.55;
+}
+.me-action-desc code {
+  background: rgba(60, 70, 60, .06);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.me-action .button-small {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.me-action.me-action--danger {
+  background: rgba(185, 28, 28, .03);
+}
+
+/* Admin-only sections are hidden unless the logged-in user is marked
+   is_admin by the backend (controlled via ADMIN_USERNAMES env var). The
+   class toggle happens after /api/session resolves. */
+.admin-only { display: none; }
+body.is-admin .admin-only { display: revert; }
+
 .danger-text {
   color: #b91c1c;
   border-color: rgba(185, 28, 28, .3);
