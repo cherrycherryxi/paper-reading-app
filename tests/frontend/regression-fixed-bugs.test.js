@@ -1020,6 +1020,24 @@ test("P1 ToS consent: register form has required termsAccepted checkbox linking 
     "app.js handleRegister must validate and forward termsAccepted");
 });
 
+test("P1 ToS consent: terms checkbox must override global input width:100% so it renders as a checkbox not a text field", () => {
+  // Regression for bug where the global `input { width: 100%; padding;
+  // appearance: none }` rule turned the disclaimer checkbox into a full-width
+  // empty box and forced the span to wrap one character per line.
+  const block = styles.match(/\.terms-check input\[type="checkbox"\]\s*\{[^}]+\}/);
+  assert.ok(block, "must define .terms-check input[type='checkbox'] override block");
+  const decls = block[0];
+  assert.match(decls, /width:\s*\d+px/,
+    "checkbox must have a fixed pixel width to defeat the global input { width: 100% }");
+  assert.match(decls, /padding:\s*0/,
+    "checkbox must clear the global input padding so it doesn't render tall");
+  assert.match(decls, /-webkit-appearance:\s*checkbox/,
+    "checkbox must restore the native checkbox appearance after the global `appearance: none`");
+  // The span next to it must not inherit the bold label-span styling.
+  assert.match(styles, /\.terms-check span\s*\{[^}]*font-weight:\s*400/,
+    ".terms-check span must override the global `label span { font-weight: 700 }` so the disclaimer reads like body copy");
+});
+
 test("P1 ToS consent: legal pages exist and reference the product", () => {
   const root = path.join(__dirname, "..", "..");
   for (const name of ["privacy.html", "terms.html"]) {

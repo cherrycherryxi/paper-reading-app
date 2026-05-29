@@ -2824,15 +2824,35 @@ button.conn-mini-card:hover {
 .terms-check {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
   color: var(--color-ink-muted, #6b7280);
   line-height: 1.5;
   padding: 4px 0;
 }
+/* Override the global `input { width: 100%; padding: 13px 14px;
+   appearance: none; border-radius: ... }` rule that would otherwise turn
+   the checkbox into a full-width text-field-looking box and force the
+   disclaimer span to wrap one CJK character per line. */
 .terms-check input[type="checkbox"] {
-  margin-top: 3px;
-  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  margin: 1px 0 0;
+  border-radius: 4px;
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  background: var(--color-surface);
+  flex: 0 0 auto;
+}
+/* Defeat the global `label span { font-weight: 700 }`; the disclaimer
+   should read like body copy, not a form-field label. */
+.terms-check span {
+  font-weight: 400;
+  font-size: 13px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .terms-check a {
   color: var(--color-soft-accent-strong, #4c6b3e);
