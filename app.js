@@ -1555,14 +1555,17 @@ function switchAuthTab(tabName) {
 }
 
 function maybeHandleSignupIntent() {
-  // Landing CTA deep-links here as /app#signup. Open the auth drawer and
-  // switch to the register tab so the user lands directly on the sign-up
-  // form instead of an empty book list.
+  // Landing deep-links: /app#signup → open auth drawer on register tab;
+  // /app#login → open auth drawer on login tab. Either way the user lands
+  // on the form they expected instead of the empty book list.
   if (typeof location === "undefined") return;
-  if (location.hash !== "#signup") return;
+  let targetTab = null;
+  if (location.hash === "#signup") targetTab = "register";
+  else if (location.hash === "#login") targetTab = "login";
+  if (!targetTab) return;
   if (currentUser) return;  // already signed in — no point
   openMeDrawer();
-  switchAuthTab("register");
+  switchAuthTab(targetTab);
   if (typeof history !== "undefined") {
     history.replaceState(null, "", location.pathname + location.search);
   }
