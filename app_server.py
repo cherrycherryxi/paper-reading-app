@@ -12,6 +12,7 @@ import socket
 import sqlite3
 import time
 import threading
+import traceback
 import uuid
 import os
 from datetime import datetime
@@ -311,6 +312,21 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_rate_limit_updated_at
             ON rate_limit_counters (updated_at);
+
+        CREATE TABLE IF NOT EXISTS server_errors (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL DEFAULT '',
+            method TEXT NOT NULL DEFAULT '',
+            path TEXT NOT NULL DEFAULT '',
+            status_code INTEGER NOT NULL DEFAULT 500,
+            error_class TEXT NOT NULL DEFAULT '',
+            error_message TEXT NOT NULL DEFAULT '',
+            traceback TEXT NOT NULL DEFAULT '',
+            client_ip TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_server_errors_created_at
+            ON server_errors (created_at DESC);
         """
     )
     user_cols = {
@@ -955,6 +971,66 @@ def check_and_record_rate_limit(
             except Exception:
                 pass
             raise
+
+
+def log_server_error(
+    conn: sqlite3.Connection | None,
+    *,
+    user_id: str = "",
+    method: str = "",
+    path: str = "",
+    status_code: int = 500,
+    error: BaseException | None = None,
+    error_message: str = "",
+    client_ip: str = "",
+) -> str:
+    """Insert one row into server_errors. Returns the row id. Best-effort —
+    never raises (errors here cannot escape into the request flow). Truncates
+    long fields to bound table size."""
+    error_class = error.__class__.__name__ if error else ""
+    msg = error_message or (str(error) if error else "")
+    tb = traceback.format_exc() if error else ""
+    own_conn = False
+    try:
+        if conn is None:
+            conn = get_conn()
+            own_conn = True
+        err_id = new_id("err")
+        conn.execute(
+            "INSERT INTO server_errors (id, user_id, method, path, status_code,"
+            " error_class, error_message, traceback, client_ip, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                err_id,
+                (user_id or "")[:64],
+                (method or "")[:8],
+                (path or "")[:512],
+                int(status_code),
+                error_class[:80],
+                msg[:500],
+                tb[:4000],
+                (client_ip or "")[:64],
+                now_iso(),
+            ),
+        )
+        conn.commit()
+        return err_id
+    except Exception:
+        return ""
+    finally:
+        if own_conn and conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def gc_old_server_errors(conn: sqlite3.Connection, keep_days: int = 30) -> int:
+    """Delete server_errors rows older than keep_days. Returns deleted count."""
+    cutoff = datetime.utcfromtimestamp(time.time() - keep_days * 86400).isoformat() + "Z"
+    cursor = conn.execute("DELETE FROM server_errors WHERE created_at < ?", (cutoff,))
+    conn.commit()
+    return cursor.rowcount or 0
 
 
 def gc_old_rate_limit_rows(conn: sqlite3.Connection, keep_days: int = 3) -> int:
@@ -2180,6 +2256,52 @@ def call_kimi_vision(messages: list[dict], max_tokens: int = KIMI_VISION_MAX_TOK
 class Handler(BaseHTTPRequestHandler):
     server_version = "PaperReadingBackend/1.0"
 
+    def handle_one_request(self) -> None:
+        """Wrap the default dispatcher so unhandled exceptions land in the
+        server_errors table instead of bubbling up to a torn connection."""
+        try:
+            super().handle_one_request()
+        except Exception as exc:
+            method = getattr(self, "command", "") or ""
+            path = getattr(self, "path", "") or ""
+            client_ip = ""
+            try:
+                client_ip = self.client_address[0] if self.client_address else ""
+            except Exception:
+                pass
+            user_id = ""
+            try:
+                token = self._get_token()
+                if token:
+                    conn = get_conn()
+                    row = conn.execute(
+                        "SELECT user_id FROM sessions WHERE token=?", (token,)
+                    ).fetchone()
+                    if row:
+                        user_id = row["user_id"]
+                    conn.close()
+            except Exception:
+                pass
+            log_server_error(
+                None,
+                user_id=user_id,
+                method=method,
+                path=path,
+                status_code=500,
+                error=exc,
+                client_ip=client_ip,
+            )
+            try:
+                body = json.dumps({"error": "internal server error"}).encode("utf-8")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception:
+                pass
+
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -2518,6 +2640,48 @@ class Handler(BaseHTTPRequestHandler):
             </body>
             </html>
             """
+            self._send_html(html)
+            return
+
+        if parsed.path == "/debug/errors":
+            if not self._authorized_for_admin():
+                self._send_html("<h1>Unauthorized</h1>", 401)
+                return
+            conn = get_conn()
+            rows = conn.execute(
+                "SELECT id, user_id, method, path, status_code, error_class,"
+                " error_message, traceback, client_ip, created_at"
+                " FROM server_errors ORDER BY created_at DESC LIMIT 100"
+            ).fetchall()
+            conn.close()
+            from html import escape as _esc
+            cards = []
+            for r in rows:
+                cards.append(
+                    f"""
+                    <article style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+                      <header style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                        <code style="background:#fef2f2;color:#b91c1c;padding:2px 8px;border-radius:6px;">{_esc(r['error_class'] or '?')}</code>
+                        <small style="color:#6b7280;">{_esc(r['created_at'])}</small>
+                      </header>
+                      <div style="margin-top:6px;font-weight:600;">{_esc(r['method'])} {_esc(r['path'])} · {r['status_code']}</div>
+                      <div style="margin-top:4px;color:#374151;">{_esc(r['error_message'])}</div>
+                      <details style="margin-top:8px;">
+                        <summary style="cursor:pointer;color:#6b7280;">traceback / context</summary>
+                        <pre style="background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;">{_esc(r['traceback'] or '(no traceback captured)')}</pre>
+                        <div style="font-size:12px;color:#6b7280;">user: {_esc(r['user_id'] or '(anon)')} · ip: {_esc(r['client_ip'] or '?')}</div>
+                      </details>
+                    </article>
+                    """
+                )
+            html = f"""<!doctype html>
+            <html><head><meta charset="utf-8"><title>Server Errors</title>
+            <style>body{{font-family:-apple-system,sans-serif;background:#f9fafb;margin:0;padding:24px;}}
+            h1{{font-size:22px;margin:0 0 16px;}}main{{max-width:900px;margin:0 auto;}}</style>
+            </head><body><main>
+            <h1>服务端错误 · 最近 {len(rows)} 条</h1>
+            {''.join(cards) if cards else '<p style="color:#6b7280;">暂无错误。</p>'}
+            </main></body></html>"""
             self._send_html(html)
             return
 

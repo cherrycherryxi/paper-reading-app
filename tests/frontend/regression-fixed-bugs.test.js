@@ -888,6 +888,20 @@ test("P0 session-expiry: frontend wires #logoutAllBtn to logoutAllDevices via sh
     "logoutAllDevices must call /api/logout-all");
 });
 
+test("P1 server-error monitoring: backend defines server_errors table, log_server_error helper, and /debug/errors viewer", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /CREATE TABLE IF NOT EXISTS server_errors/,
+    "init_db must create server_errors table");
+  assert.match(src, /def log_server_error\(/,
+    "must expose log_server_error helper");
+  assert.match(src, /def handle_one_request\(self\)/,
+    "Handler must override handle_one_request to catch unhandled exceptions");
+  assert.match(src, /parsed\.path\s*==\s*"\/debug\/errors"/,
+    "must expose /debug/errors viewer page");
+  assert.match(src, /_authorized_for_admin/,
+    "/debug/errors must be admin-gated");
+});
+
 test("P1 ToS consent: register form has required termsAccepted checkbox linking to /terms.html and /privacy.html", () => {
   assert.match(indexHtml, /name="termsAccepted"[^>]*required/,
     "register form must include a required termsAccepted checkbox");
