@@ -84,6 +84,17 @@ SMTP_PASS = os.getenv("SMTP_PASS", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@paper-reading.app")
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "http://127.0.0.1:8787")
 
+# Object storage (P3-12). When S3_BUCKET + access keys are set, save_image
+# uploads to S3-compatible storage (AWS S3, Cloudflare R2, Tencent COS, Aliyun
+# OSS — all expose S3 protocol) instead of writing to local disk. Bucket must
+# be publicly readable behind S3_PUBLIC_BASE for serving.
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "")  # blank → AWS default
+S3_REGION = os.getenv("S3_REGION", "us-east-1")
+S3_BUCKET = os.getenv("S3_BUCKET", "")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "")
+S3_PUBLIC_BASE = os.getenv("S3_PUBLIC_BASE", "")  # e.g. https://cdn.example.com
+
 # Stripe (P2-9). When STRIPE_SECRET_KEY is empty, billing endpoints return
 # "billing_not_configured" so the frontend can show the upgrade button as
 # disabled in dev. Webhook signature uses STRIPE_WEBHOOK_SECRET.
@@ -1583,11 +1594,51 @@ def decode_data_url(data_url: str) -> tuple[bytes, str]:
     return base64.b64decode(encoded), mime_type
 
 
+def _is_object_storage_configured() -> bool:
+    return bool(S3_BUCKET and S3_ACCESS_KEY and S3_SECRET_KEY)
+
+
+def _upload_to_object_storage(
+    key: str, binary: bytes, content_type: str
+) -> str:
+    """Upload to S3-compatible storage using boto3. Lazy import keeps boto3
+    optional (the app runs without it when storage is not configured).
+    Returns the public URL composed from S3_PUBLIC_BASE."""
+    try:
+        import boto3  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError(
+            "boto3 is required when S3_BUCKET is configured; "
+            "pip install boto3 or unset S3_* env vars"
+        ) from exc
+    kwargs = {
+        "aws_access_key_id": S3_ACCESS_KEY,
+        "aws_secret_access_key": S3_SECRET_KEY,
+        "region_name": S3_REGION,
+    }
+    if S3_ENDPOINT:
+        kwargs["endpoint_url"] = S3_ENDPOINT
+    client = boto3.client("s3", **kwargs)
+    client.put_object(
+        Bucket=S3_BUCKET,
+        Key=key,
+        Body=binary,
+        ContentType=content_type,
+        CacheControl="public, max-age=31536000, immutable",
+    )
+    base = S3_PUBLIC_BASE.rstrip("/") if S3_PUBLIC_BASE else \
+        f"{(S3_ENDPOINT or 'https://s3.amazonaws.com').rstrip('/')}/{S3_BUCKET}"
+    return f"{base}/{key}"
+
+
 def save_image(user_id: str, data_url: str, filename: str = "") -> str:
     binary, mime_type = decode_data_url(data_url)
     detected = imghdr.what(None, binary)
     extension = detected or mime_type.split("/")[-1] or "jpg"
     safe_name = f"{uuid.uuid4().hex[:16]}.{extension}"
+    if _is_object_storage_configured():
+        key = f"{user_id}/{safe_name}"
+        return _upload_to_object_storage(key, binary, mime_type or "image/jpeg")
     user_dir = UPLOAD_DIR / user_id
     user_dir.mkdir(parents=True, exist_ok=True)
     file_path = user_dir / safe_name
@@ -1595,8 +1646,35 @@ def save_image(user_id: str, data_url: str, filename: str = "") -> str:
     return f"/media/{user_id}/{safe_name}"
 
 
+def _mime_from_suffix(suffix: str) -> str:
+    suffix = (suffix or "").lower()
+    if suffix == ".png":
+        return "image/png"
+    if suffix == ".webp":
+        return "image/webp"
+    if suffix == ".gif":
+        return "image/gif"
+    return "image/jpeg"
+
+
 def media_url_to_data_url(user_id: str, image_url: str) -> str:
     url = str(image_url or "").strip()
+    # Object-storage URL: must start with one of our recognized bases AND
+    # contain the user's prefix to enforce per-user isolation.
+    if _is_object_storage_configured() and (
+        (S3_PUBLIC_BASE and url.startswith(S3_PUBLIC_BASE))
+        or f"/{user_id}/" in url
+    ):
+        if f"/{user_id}/" not in url:
+            raise ValueError("imageUrl does not belong to current user")
+        try:
+            with urlopen(Request(url, headers={"User-Agent": "paper-reading-backend"}), timeout=15) as resp:
+                binary = resp.read()
+                mime = resp.headers.get("Content-Type", "") or _mime_from_suffix(Path(url).suffix)
+        except (HTTPError, URLError) as exc:
+            raise ValueError(f"object storage fetch failed: {exc}") from exc
+        encoded = base64.b64encode(binary).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
     marker = f"/media/{user_id}/"
     if marker not in url:
         raise ValueError("imageUrl does not belong to current user")
@@ -1604,16 +1682,44 @@ def media_url_to_data_url(user_id: str, image_url: str) -> str:
     target = (UPLOAD_DIR / relative).resolve()
     if not str(target).startswith(str(UPLOAD_DIR.resolve())) or not target.exists() or not target.is_file():
         raise ValueError("image file not found")
-    suffix = target.suffix.lower()
-    mime = "image/jpeg"
-    if suffix == ".png":
-        mime = "image/png"
-    elif suffix == ".webp":
-        mime = "image/webp"
-    elif suffix in {".gif"}:
-        mime = "image/gif"
+    mime = _mime_from_suffix(target.suffix)
     encoded = base64.b64encode(target.read_bytes()).decode("ascii")
     return f"data:{mime};base64,{encoded}"
+
+
+def delete_object_storage_prefix(prefix: str) -> int:
+    """Delete every object under prefix in S3. Returns count deleted.
+    Best-effort: missing boto3 or S3 errors are silently absorbed so account
+    deletion still completes for local data."""
+    if not _is_object_storage_configured():
+        return 0
+    try:
+        import boto3  # type: ignore
+    except ImportError:
+        return 0
+    kwargs = {
+        "aws_access_key_id": S3_ACCESS_KEY,
+        "aws_secret_access_key": S3_SECRET_KEY,
+        "region_name": S3_REGION,
+    }
+    if S3_ENDPOINT:
+        kwargs["endpoint_url"] = S3_ENDPOINT
+    try:
+        client = boto3.client("s3", **kwargs)
+        paginator = client.get_paginator("list_objects_v2")
+        total = 0
+        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=prefix):
+            contents = page.get("Contents") or []
+            if not contents:
+                continue
+            client.delete_objects(
+                Bucket=S3_BUCKET,
+                Delete={"Objects": [{"Key": o["Key"]} for o in contents]},
+            )
+            total += len(contents)
+        return total
+    except Exception:
+        return 0
 
 
 class AgentRequestValidator:
@@ -4404,6 +4510,8 @@ class Handler(BaseHTTPRequestHandler):
                     shutil.rmtree(user_uploads, ignore_errors=True)
                 except Exception:
                     pass
+            # Remove S3 objects under this user's prefix, best-effort.
+            delete_object_storage_prefix(f"{user_id}/")
             conn.close()
             self._send_json({"ok": True, "deleted": True})
             return
