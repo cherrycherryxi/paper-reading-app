@@ -29,6 +29,7 @@ DB_PATH = BASE_DIR / "app_state.db"
 UPLOAD_DIR = BASE_DIR / "uploads"
 HOST = "0.0.0.0"
 PORT = 8787
+BUILD_VERSION = "20260529a"
 
 # 服务端密钥只从环境变量读取，不要放到前端或提交到仓库。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
@@ -1085,7 +1086,7 @@ class PromptBuilder:
 1. reply 必须存在且是自然语言。
 2. actions 通常为 0 或 1 个。例外：add_book 可在一次回复中给出多本，最多 4 条；其他类型 action 仍最多 1 个。
 3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前上下文本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
-4. 只输出 JSON，不要输出任何额外说明。"""
+4. 只输出 JSON，不要输出任何额外说明；不要在 JSON 前后添加自然语言，也不要使用 Markdown 代码块。"""
         if has_focused_quote:
             scenario_rules = """5. 当前上下文包含 focused_quote 时，优先围绕这条摘抄解释、追问或整理；不要泛泛总结整本书。
 6. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
@@ -1141,6 +1142,17 @@ class ReplyExtractor:
             self._process(chunk, out)
         return "".join(out)
 
+    def is_buffering_structured_response(self) -> bool:
+        text = (self._buf or "").lstrip()
+        if not text:
+            return False
+        if text.startswith("```"):
+            fenced = text[3:].lstrip()
+            if fenced.startswith("json"):
+                return True
+            text = fenced
+        return text.startswith("{") or text.startswith("json") or '"reply"' in text or '"actions"' in text
+
     def _process(self, text: str, out: list) -> None:
         _ESCAPE_MAP = {'"': '"', "\\": "\\", "n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f"}
         for ch in text:
@@ -1190,6 +1202,53 @@ class ReplyExtractor:
 
 class ResponseParser:
     @staticmethod
+    def _extract_fenced_json(text: str) -> str:
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)```", text, re.IGNORECASE)
+        return match.group(1).strip() if match else ""
+
+    @staticmethod
+    def _extract_balanced_json_array(text: str, start: int) -> str:
+        if start < 0 or start >= len(text) or text[start] != "[":
+            return ""
+        depth = 0
+        in_string = False
+        escape = False
+        for index in range(start, len(text)):
+            ch = text[index]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+                if depth == 0:
+                    return text[start : index + 1]
+        return ""
+
+    @classmethod
+    def _salvage_actions_from_jsonish(cls, text: str) -> list[dict]:
+        marker = re.search(r'"actions"\s*:\s*\[', text)
+        if not marker:
+            return []
+        array_start = text.find("[", marker.start())
+        candidate = cls._extract_balanced_json_array(text, array_start)
+        if not candidate:
+            return []
+        try:
+            actions = json.loads(candidate)
+        except Exception:
+            return []
+        return actions if isinstance(actions, list) else []
+
+    @staticmethod
     def _salvage_reply_from_jsonish(text: str) -> str:
         marker = '"reply"'
         marker_index = text.find(marker)
@@ -1219,7 +1278,11 @@ class ResponseParser:
             return ParseResult("", [], PARSE_FAILED, "empty model output", "")
         cleaned = text
         parse_status = PARSE_SUCCESS
-        if cleaned.startswith("```"):
+        fenced_json = self._extract_fenced_json(cleaned)
+        if fenced_json:
+            cleaned = fenced_json
+            parse_status = PARSE_MARKDOWN_CLEANED
+        elif cleaned.startswith("```"):
             parts = cleaned.split("```")
             if len(parts) >= 2:
                 cleaned = parts[1]
@@ -1230,7 +1293,13 @@ class ResponseParser:
         try:
             parsed = json.loads(cleaned)
         except Exception as error:
-            return ParseResult(self._salvage_reply_from_jsonish(cleaned), [], PARSE_DEGRADED, str(error), cleaned)
+            return ParseResult(
+                self._salvage_reply_from_jsonish(cleaned),
+                self._salvage_actions_from_jsonish(cleaned),
+                PARSE_DEGRADED,
+                str(error),
+                cleaned,
+            )
         reply = parsed.get("reply", "")
         actions = parsed.get("actions", [])
         if not isinstance(reply, str):
@@ -1850,6 +1919,7 @@ def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", m
         ).encode("utf-8"),
     )
     try:
+        finish_reason = ""
         with urlopen(request, timeout=120) as response:
             for raw_line in response:
                 line = raw_line.decode("utf-8").strip()
@@ -1858,11 +1928,14 @@ def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", m
                 if line.startswith("data: "):
                     try:
                         chunk = json.loads(line[6:])
-                        content = chunk.get("choices", [{}])[0].get("delta", {}).get("content") or ""
+                        choice = chunk.get("choices", [{}])[0]
+                        finish_reason = choice.get("finish_reason") or finish_reason
+                        content = choice.get("delta", {}).get("content") or ""
                         if content:
                             yield content
                     except (json.JSONDecodeError, IndexError, KeyError):
                         pass
+        return finish_reason
     except HTTPError as error:
         payload = error.read().decode("utf-8", errors="ignore")
         raise RuntimeError(payload or f"HTTP {error.code}") from error
@@ -2008,6 +2081,7 @@ class Handler(BaseHTTPRequestHandler):
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
             "/chat.js": ("chat.js", "application/javascript; charset=utf-8"),
             "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+            "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
         }
         if parsed.path in _STATIC:
             filename, mime = _STATIC[parsed.path]
@@ -2113,6 +2187,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/health":
             self._send_json({"ok": True, "time": now_iso()})
+            return
+
+        if parsed.path == "/api/build-version":
+            self._send_json({"version": BUILD_VERSION})
             return
 
         if parsed.path == "/debug/logs":
@@ -2602,7 +2680,14 @@ class Handler(BaseHTTPRequestHandler):
                 full_reply = ""
                 extractor = ReplyExtractor()
                 plain_text_mode = False
-                for delta in call_deepseek_stream(request_messages):
+                stream = call_deepseek_stream(request_messages)
+                stream_finish_reason = ""
+                while True:
+                    try:
+                        delta = next(stream)
+                    except StopIteration as stop:
+                        stream_finish_reason = str(stop.value or "").strip()
+                        break
                     full_reply += delta
                     if plain_text_mode:
                         if not sse_write({"delta": delta}):
@@ -2613,9 +2698,19 @@ class Handler(BaseHTTPRequestHandler):
                             if not sse_write({"delta": reply_chunk}):
                                 break
                         elif not extractor._in_reply and len(extractor._buf) > 80:
+                            if extractor.is_buffering_structured_response():
+                                continue
                             plain_text_mode = True
                             if extractor._buf and not sse_write({"delta": extractor._buf}):
                                 break
+                if stream_finish_reason and stream_finish_reason != "stop":
+                    trace_manager.log_event(
+                        conn,
+                        trace_id,
+                        "STREAM_RETRY",
+                        {"finishReason": stream_finish_reason, "outputPreview": full_reply[:300]},
+                    )
+                    full_reply = call_deepseek(request_messages)
                 latency_ms = int((time.time() - started_at) * 1000)
                 model_response = ModelResponse(
                     raw_output=full_reply,

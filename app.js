@@ -526,6 +526,11 @@ function getConnectionCount(itemId) {
   return (state.connections || []).filter((c) => c.sourceId === itemId || c.targetId === itemId).length;
 }
 
+function getQuoteChatCount(quoteId) {
+  const history = state.chatHistories?.[`quote:${quoteId}`] || [];
+  return history.filter((m) => m.role === "user").length;
+}
+
 function resolveConnectionSide(type, id) {
   if (type === "book") {
     const book = state.books.find((b) => b.id === id);
@@ -1206,7 +1211,7 @@ function renderQuotes() {
             <h3>${book ? formatBookTitle(book.title) : "未知书籍"}${ocrBadge}</h3>
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
             <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quoteContent)}</p>
-            <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}</p>
+            <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}${getQuoteChatCount(quote.id) > 0 ? ` <span class="quote-conn-badge">💬 ${getQuoteChatCount(quote.id)}</span>` : ""}</p>
             <div class="entry-card-actions">
               <button class="card-action-btn" data-edit-quote="${escapeHtml(quote.id)}" type="button">编辑</button>
               <button class="card-action-btn card-action-danger" data-delete-quote="${escapeHtml(quote.id)}" type="button">删除</button>
@@ -1546,6 +1551,8 @@ function resetQuoteDraft() {
   if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   pendingQuoteImage = null;
   els.quoteForm.reset();
+  delete els.quoteForm.dataset.ocrBaseContent;
+  delete els.quoteForm.dataset.ocrQuoteId;
   document.querySelector("#quoteBookCombobox")?._comboboxReset?.();
   renderImagePreview();
   renderQuoteTagPicker([]);
@@ -1791,6 +1798,11 @@ function openQuoteDetail(quoteId) {
     document.getElementById("quoteDetailDialog").close();
     editQuote(quoteId);
   };
+
+  const chatCount = getQuoteChatCount(quoteId);
+  if (els.quoteDetailChatBtn) {
+    els.quoteDetailChatBtn.textContent = chatCount > 0 ? `继续探讨（${chatCount} 条）` : "去聊";
+  }
 
   const quoteDetailDlg = document.getElementById("quoteDetailDialog");
   quoteDetailDlg.dataset.openQuoteId = quoteId;
@@ -3069,13 +3081,11 @@ function bindEvents() {
   });
   els.openQuoteDialogBtn?.addEventListener("click", () => {
     if (!requireAuth("新增摘抄")) return;
+    resetQuoteDraft();
     document.getElementById("quoteId").value = "";
-    renderQuoteTagPicker([]);
     if (lastQuoteBookId) {
       els.quoteForm.querySelector('[name="bookId"]').value = lastQuoteBookId;
       quoteComboWrap?._comboboxSetValue?.(lastQuoteBookId);
-    } else {
-      quoteComboWrap?._comboboxReset?.();
     }
     els.quoteDialog.showModal();
   });

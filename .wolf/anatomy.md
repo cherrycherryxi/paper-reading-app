@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-17T16:07:34.225Z
-> Files: 70 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T04:15:34.343Z
+> Files: 77 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -13,38 +13,42 @@
 
 ## ../../.claude/
 
-- `settings.json` (~338 tok)
+- `settings.json` (~372 tok)
+- `statusline-command.sh` — Claude Code status line (~335 tok)
 
 ## ../../.claude/daily-logs/
 
 - `2026-05-15.md` — 日报 2026-05-15 (~247 tok)
+- `2026-05-28.md` — 日报 2026-05-28 (~311 tok)
 
 ## ../../.claude/plans/
 
 - `agent-federated-pony.md` — 思想碰撞（Cross-Book Connection）功能实现计划 (~1250 tok)
 - `idempotent-wishing-kurzweil.md` — UI 迭代计划 v2 — 7 项优化 (~1223 tok)
+- `mellow-yawning-flute.md` — 探讨页 UI/UX 优化建议 (~412 tok)
 
 ## ../../.claude/scripts/
 
 - `weekly-report.sh` (~274 tok)
 
+## ../../Library/LaunchAgents/
+
+- `com.huangnanqi.weekly-report.plist` (~301 tok)
+
 ## ./
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~37 tok)
-- `app.js` — Run an async save operation while disabling the submit button and showing a (~28880 tok)
-- `chat.js` — els: normalizePreferredBookValue, activeBookId, syncPickerDisplay + 18 more (~4850 tok)
-- `CLAUDE.md` — OpenWolf (~1073 tok)
-- `index.html` — 🐛 又买了一本书 (~7279 tok)
+- `app_server.py` — import: initialize_tool_schema_provider_for_tests, guess_base_url, now_iso, new_id + 10 more (~37526 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
+- `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
+- `CLAUDE.md` — OpenWolf (~1077 tok)
+- `index.html` — 🐛 又买了一本书 (~7944 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)
-- `styles.css` — Styles: 149 rules, 51 vars (~12740 tok)
+- `styles.css` — Styles: 148 rules, 55 vars (~15363 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
-
-## assets/
-
-- `default-book-cover.jpeg` — Default illustration cover for books without cover images (~164 KB)
 
 ## .claude/
 
@@ -98,10 +102,17 @@
 - `requirements.md` — Requirements Document (~3686 tok)
 - `tasks.md` — Implementation Plan: UI Redesign — ChaTin App Aesthetic (~3323 tok)
 
+## assets/
+
+
 ## data/
 
 - `golden_set_baseline.json` (~68 tok)
 - `golden_set.json` (~11660 tok)
+
+## scripts/
+
+- `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1582 tok)
 
 ## tests/
 
@@ -116,6 +127,10 @@
 - `ocr_recognition_fix_test.py` — Tests: bug_exploration_ocr_should_use_kimi_vision_helper, preservation_chat_route_still_uses_deepseek_chat, preservation_unauthenticated_ocr_return... (~1623 tok)
 - `quote-content-display.test.js` — Regression test for bug-098: quote card content truncation (~1122 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~1581 tok)
+
+## tests/frontend/
+
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~11819 tok)
 
 ## wechat-miniprogram/
 

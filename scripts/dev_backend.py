@@ -19,6 +19,8 @@ WATCH_DIRS = {
 IGNORE_DIR_NAMES = {
     ".git",
     ".venv",
+    ".wolf",
+    ".claude",
     "__pycache__",
     "uploads",
     "data",

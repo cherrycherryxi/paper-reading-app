@@ -229,7 +229,9 @@ function createChatHarness(overrides = {}) {
 function makeAppEl(tagName = "div") {
   let html = "";
   const classes = new Set();
-  return {
+  const listeners = new Map();
+  const queryChildren = new Map();
+  const el = {
     tagName: tagName.toUpperCase(),
     className: "", textContent: "",
     style: { display: "" }, dataset: {},
@@ -256,14 +258,26 @@ function makeAppEl(tagName = "div") {
     insertAdjacentHTML(pos, v) {
       html = pos === "beforeend" ? `${html}${v}` : `${v}${html}`;
     },
-    addEventListener() {}, removeEventListener() {},
-    querySelector() { return makeAppEl("button"); },
+    addEventListener(type, handler) { listeners.set(type, handler); },
+    removeEventListener(type) { listeners.delete(type); },
+    dispatch(type, event = {}) {
+      const handler = listeners.get(type);
+      return handler ? handler(event) : undefined;
+    },
+    querySelector(sel) {
+      if (!queryChildren.has(sel)) queryChildren.set(sel, makeAppEl("input"));
+      return queryChildren.get(sel);
+    },
     querySelectorAll() { return []; },
     showModal() { this.open = true; },
     close()     { this.open = false; },
-    reset() {}, setAttribute() {}, closest() { return null; },
+    reset() {
+      for (const child of queryChildren.values()) child.value = "";
+    },
+    setAttribute() {}, removeAttribute() {}, closest() { return null; },
     focus() {}, blur() {}, matches() { return false; },
   };
+  return el;
 }
 
 // ─── app.js harness: runs real app.js in a VM sandbox ────────────────────────
@@ -285,6 +299,8 @@ function createAppHarness(overrides = {}) {
       querySelectorAll()   { return []; },
       createElement(tag)   { return makeAppEl(tag); },
       getElementById(id)   { return getEl(`#${id}`); },
+      addEventListener()   {},
+      removeEventListener(){},
     },
     window: {
       PAPER_READING_APP_CONFIG: { backendBaseUrl: "" },
@@ -342,6 +358,8 @@ globalThis.__testHooks = {
   setRender(fn)     { render = fn; },
   setShowToast(fn)  { showToast = fn; },
   setSwitchChatToQuote(fn) { window.paperReadingApp.switchChatToQuote = fn; },
+  bindEvents,
+  setLastQuoteBookId(v) { lastQuoteBookId = v; },
 };
 `;
 
@@ -403,6 +421,52 @@ test("quote form keeps default tag picker wiring", () => {
   assert.match(appSource, /const DEFAULT_QUOTE_TAGS = \[[^\]]*"金句"[^;]+;/, "default quote tag list should exist");
   assert.match(appSource, /renderQuoteTagPicker\(\[\]\)/, "new quote flow should render default quote tags");
   assert.match(appSource, /document\.getElementById\("quoteTagInput"\)\?\.addEventListener\("keydown"/, "custom quote tag input should auto-add tags on Enter");
+});
+
+test("new quote button clears previous draft while preserving last selected book", () => {
+  const hooks = createAppHarness();
+  hooks.setCurrentUser({ id: "user-1", username: "tester" });
+  hooks.setAuthToken("token");
+  hooks.setLastQuoteBookId("book-1");
+  hooks.setState({
+    books: [{ id: "book-1", title: "Test Book", author: "A", status: "reading", tags: [] }],
+    quotes: [], sessions: [], chatHistories: {},
+  });
+
+  const pageField = hooks.els.quoteForm.querySelector('[name="page"]');
+  const kindField = hooks.els.quoteForm.querySelector('[name="kind"]');
+  const bookField = hooks.els.quoteForm.querySelector('[name="bookId"]');
+  const reflectionField = hooks.els.quoteForm.querySelector('[name="reflection"]');
+  const idField = hooks.getEl("#quoteId");
+  const ocrBaseContent = "上一条手动输入的摘抄";
+  hooks.els.quoteContent.value = ocrBaseContent;
+  pageField.value = "88";
+  kindField.value = "note";
+  bookField.value = "book-1";
+  reflectionField.value = "上一条理解";
+  idField.value = "quote-old";
+  hooks.els.quoteForm.dataset.ocrBaseContent = ocrBaseContent;
+  hooks.els.quoteForm.dataset.ocrQuoteId = "quote-old";
+  hooks.els.quoteForm.reset = () => {
+    hooks.els.quoteContent.value = "";
+    pageField.value = "";
+    kindField.value = "";
+    bookField.value = "";
+    reflectionField.value = "";
+    idField.value = "";
+  };
+
+  hooks.bindEvents();
+  hooks.els.openQuoteDialogBtn.dispatch("click");
+
+  assert.equal(hooks.els.quoteContent.value, "", "new quote should not carry over previous manual content");
+  assert.equal(reflectionField.value, "", "new quote should not carry over previous reflection");
+  assert.equal(pageField.value, "", "new quote should not carry over previous page");
+  assert.equal(idField.value, "", "new quote should not edit the previous quote");
+  assert.equal(hooks.els.quoteForm.dataset.ocrBaseContent, undefined, "new quote should clear stale OCR base content");
+  assert.equal(hooks.els.quoteForm.dataset.ocrQuoteId, undefined, "new quote should clear stale OCR quote id");
+  assert.equal(bookField.value, "book-1", "new quote should preserve the last selected book");
+  assert.equal(hooks.els.quoteDialog.open, true, "new quote dialog should open");
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -484,6 +548,45 @@ test("P1-001 regression: all agent actions are shown sequentially (not just the 
   const btn3 = card.querySelector(".agent-confirm-btn");
   assert.ok(btn3, "action-3 confirm button missing");
   await btn3.onclick();
+});
+
+test("agent action retry: failed action shows retry button, retry succeeds on second attempt", async () => {
+  let approveCallCount = 0;
+  const harness = createChatHarness({
+    fetch: async () => makeSseResponse([{
+      done: true, reply: "ok", history: [], actions: [
+        { id: "r1", type: "add_note", data: { note: "重试测试" }, status: "PENDING_APPROVAL" },
+      ],
+    }]),
+    apiFetch: async (url) => {
+      if (url === "/api/agent-actions/r1/approve") {
+        approveCallCount++;
+        if (approveCallCount === 1) throw new Error("网络错误");
+        return { ok: true, action: { id: "r1", status: "EXECUTED" }, state: harness.appState };
+      }
+      throw new Error(`Unhandled: ${url}`);
+    },
+  });
+
+  harness.input.value = "test retry";
+  await harness.sendBtn.dispatch("click");
+
+  const card = harness.getConfirmContainer();
+  assert.ok(card, "confirm card should appear");
+  const confirmBtn = card.querySelector(".agent-confirm-btn");
+  const cancelBtn = card.querySelector(".agent-cancel-btn");
+
+  // First attempt — fails
+  await confirmBtn.onclick();
+  assert.equal(approveCallCount, 1, "approve should have been called once");
+  assert.equal(confirmBtn.textContent, "重试", "button should read 重试 after failure");
+  assert.equal(confirmBtn.disabled, false, "retry button should be re-enabled");
+  assert.equal(cancelBtn.disabled, false, "cancel button should be re-enabled after failure");
+
+  // Second attempt — succeeds; card is removed via setTimeout (stubbed as fn())
+  await confirmBtn.onclick();
+  assert.equal(approveCallCount, 2, "approve should have been called again on retry");
+  assert.equal(confirmBtn.textContent, "已完成 ✅", "button should show success after retry");
 });
 
 test("P1-003 regression: clearHistory uses showConfirmDialog, not window.confirm", () => {
@@ -760,4 +863,201 @@ test("quote detail can enter quote-scoped chat context", () => {
   assert.match(chatSource, /type:\s*"quote"/, "chat context should carry quote scope as structured context");
   assert.match(chatSource, /body:\s*JSON\.stringify\(\{\s*context,/, "chat request should send structured context");
   assert.match(appSource, /chatContextHistoryKey\(context\)/, "quote-scoped chat history should use context-derived keys");
+});
+
+// ── Feature: Markdown rendering + copy button ──────────────────────────────
+
+test("feat: chat.js exposes renderMiniMarkdown, applyMdInline, finalizeAssistantBubble", () => {
+  assert.match(chatSource, /function renderMiniMarkdown\(raw\)/, "renderMiniMarkdown should be defined");
+  assert.match(chatSource, /function applyMdInline\(text\)/, "applyMdInline should be defined");
+  assert.match(chatSource, /function finalizeAssistantBubble\(bubble, text, userText\)/, "finalizeAssistantBubble should be defined");
+  assert.match(chatSource, /finalizeAssistantBubble\(thinking, finalPayload\.reply, text\)/, "stream completion should finalize with markdown and pass userText");
+  assert.match(indexHtml, /id="chatQuotePin"/, "index.html should include quote pin element");
+  assert.match(chatSource, /els\.quotePin/, "chat.js should reference quotePin element");
+});
+
+test("feat: assistant bubble after streaming has .chat-bubble-content and action buttons", async () => {
+  const markdownReply = "**加粗文字**\n\n普通段落";
+  const harness = createChatHarness({
+    fetch: async () => makeSseResponse([{
+      done: true,
+      reply: markdownReply,
+      history: [
+        { role: "user", content: "问题" },
+        { role: "assistant", content: markdownReply },
+      ],
+      actions: [],
+      context: { type: "book", bookId: "book-1" },
+    }]),
+  });
+  harness.bookSel.value = "book-1";
+  harness.input.value = "问题";
+  await harness.sendBtn.dispatch("click");
+
+  const assistantBubble = harness.messages.children.find(
+    (c) => (c.className || "").includes("chat-bubble-assistant")
+  );
+  assert.ok(assistantBubble, "assistant bubble should be appended");
+
+  const contentEl = assistantBubble.querySelector(".chat-bubble-content");
+  assert.ok(contentEl, "assistant bubble should have .chat-bubble-content child");
+  assert.ok(contentEl.innerHTML.includes("<strong>"), ".chat-bubble-content should render **bold** as <strong>");
+  assert.ok(!contentEl.innerHTML.includes("**"), "raw ** markers should not appear in rendered output");
+
+  // Actions bar is a sibling after the bubble, not inside it
+  const actionsBar = harness.messages.children.find(
+    (c) => (c.className || "").includes("chat-bubble-actions")
+  );
+  assert.ok(actionsBar, "messages container should have a .chat-bubble-actions sibling after the bubble");
+
+  const copyBtn = actionsBar.children.find((c) => (c.className || "").includes("chat-action-btn") && (c.title || "") === "复制");
+  assert.ok(copyBtn, "actions bar should contain a copy button with title '复制'");
+
+  const retryBtn = actionsBar.children.find((c) => (c.className || "").includes("chat-action-btn") && (c.title || "") === "重试");
+  assert.ok(retryBtn, "actions bar should contain a retry button with title '重试'");
+});
+
+test("feat: appendBubble with existing assistant text (history restore) also uses markdown", async () => {
+  const mdContent = "## 章节标题\n- 要点一\n- 要点二";
+  const harness = createChatHarness({
+    fetch: async () => makeSseResponse([{
+      done: true,
+      reply: "ok",
+      history: [
+        { role: "user", content: "回顾" },
+        { role: "assistant", content: mdContent },
+      ],
+      actions: [],
+      context: { type: "book", bookId: "book-1" },
+    }]),
+  });
+  harness.appState.chatHistories["book:book-1"] = [
+    { role: "user", content: "回顾" },
+    { role: "assistant", content: mdContent },
+  ];
+  harness.bookSel.value = "book-1";
+  // Trigger restoreHistory by changing book select
+  harness.bookSel.dispatch("change");
+
+  const assistantBubble = harness.messages.children.find(
+    (c) => (c.className || "").includes("chat-bubble-assistant")
+  );
+  assert.ok(assistantBubble, "restored assistant bubble should exist");
+  const contentEl = assistantBubble.querySelector(".chat-bubble-content");
+  assert.ok(contentEl, "restored bubble should have .chat-bubble-content");
+  assert.ok(contentEl.innerHTML.includes("<h2>"), "## header should render as <h2>");
+  assert.ok(contentEl.innerHTML.includes("<ul>"), "bullet list should render as <ul>");
+});
+
+// ── Feature: Quote pin card ────────────────────────────────────────────────
+
+test("feat: quote pin shows when in quote context and hides when in book context", () => {
+  // content must be > 40 chars to trigger the expand toggle (36 × 2 = 72 chars)
+  const quoteContent = "这是一条比较长的摘抄内容，用来测试引用卡片是否会在摘抄上下文中正确显示。".repeat(2);
+  const harness = createChatHarness();
+  harness.appState.books = [{ id: "book-1", title: "测试书", author: "A", tags: [], notes: "" }];
+  harness.appState.quotes = [
+    { id: "q-1", bookId: "book-1", content: quoteContent, kind: "quote", page: 5, tags: [] },
+  ];
+
+  const quotePin = harness.getEl("#chatQuotePin");
+  const quotePinText = harness.getEl("#chatQuotePinText");
+  const quotePinToggle = harness.getEl("#chatQuotePinToggle");
+
+  // Switch to quote context
+  harness.paperReadingApp.switchChatToQuote("book-1", "q-1");
+
+  assert.equal(quotePin.hidden, false, "quote pin should be visible in quote context");
+  assert.equal(quotePinText.textContent, quoteContent, "quote pin text should show full quote content");
+  assert.equal(quotePinToggle.hidden, false, "toggle button should be visible for long quote");
+
+  // Switch back to book context
+  harness.paperReadingApp.switchChatToBook("book-1");
+
+  assert.equal(quotePin.hidden, true, "quote pin should be hidden in book context");
+});
+
+test("feat: short quote hides the expand toggle on the pin card", () => {
+  const shortContent = "短摘抄";
+  const harness = createChatHarness();
+  harness.appState.books = [{ id: "book-1", title: "书", author: "", tags: [], notes: "" }];
+  harness.appState.quotes = [
+    { id: "q-short", bookId: "book-1", content: shortContent, kind: "quote", page: 1, tags: [] },
+  ];
+
+  harness.paperReadingApp.switchChatToQuote("book-1", "q-short");
+
+  const quotePinToggle = harness.getEl("#chatQuotePinToggle");
+  assert.equal(quotePinToggle.hidden, true, "expand toggle should be hidden for short quotes (≤40 chars)");
+});
+
+test("scroll-to-bottom button row: CSS [hidden] override prevents display:flex from showing hidden element", () => {
+  // .chat-scroll-btn-row sets display:flex which overrides the UA [hidden]{display:none} rule.
+  // Without an explicit [hidden] override at higher specificity, the button shows permanently.
+  assert.match(
+    styles,
+    /\.chat-scroll-btn-row\[hidden\]\s*\{[^}]*display\s*:\s*none/,
+    ".chat-scroll-btn-row[hidden] must explicitly set display:none to override the display:flex rule"
+  );
+});
+
+test("scroll-to-bottom button is hidden when resetMessages is called via clearHistory", async () => {
+  const harness = createChatHarness();
+
+  // Simulate the button being visible (user had scrolled up mid-conversation)
+  const scrollBtnRow = harness.getEl("#chatScrollBtnRow");
+  scrollBtnRow.hidden = false;
+
+  // Trigger clearHistory — the confirm handler calls resetMessages()
+  harness.clearBtn.dispatch("click");
+
+  assert.equal(harness.getShowConfirmCalls().length, 1, "clear dialog should appear");
+  await harness.getShowConfirmCalls()[0].onConfirm();
+
+  assert.equal(
+    scrollBtnRow.hidden,
+    true,
+    "scroll-to-bottom button row must be hidden after resetMessages (regression: button stayed visible after clearing chat)"
+  );
+});
+
+test("PWA version check: index.html guard script matches BUILD_VERSION in app_server.py", () => {
+  const appServerSource = fs.readFileSync(
+    path.join(__dirname, "..", "..", "app_server.py"),
+    "utf8"
+  );
+
+  assert.match(
+    indexHtml,
+    /CLIENT_VERSION\s*=/,
+    "index.html should declare CLIENT_VERSION for PWA cache-busting"
+  );
+  assert.match(
+    indexHtml,
+    /\/api\/build-version/,
+    "index.html version guard should fetch /api/build-version"
+  );
+  assert.match(
+    indexHtml,
+    /location\.reload\(true\)/,
+    "index.html version guard should call location.reload(true) on version mismatch"
+  );
+
+  const clientVersionMatch = indexHtml.match(/CLIENT_VERSION\s*=\s*["']([^"']+)["']/);
+  assert.ok(clientVersionMatch, "CLIENT_VERSION should be a string literal in index.html");
+
+  const serverVersionMatch = appServerSource.match(/BUILD_VERSION\s*=\s*["']([^"']+)["']/);
+  assert.ok(serverVersionMatch, "BUILD_VERSION should be declared in app_server.py");
+
+  assert.equal(
+    clientVersionMatch[1],
+    serverVersionMatch[1],
+    "CLIENT_VERSION in index.html must match BUILD_VERSION in app_server.py (mismatch causes infinite PWA reload loop)"
+  );
+
+  assert.match(
+    appServerSource,
+    /\/api\/build-version/,
+    "app_server.py should handle /api/build-version GET route"
+  );
 });
