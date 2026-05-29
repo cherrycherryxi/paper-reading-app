@@ -44,6 +44,14 @@ const els = {
   quoteForm: document.querySelector("#quoteForm"),
   registerForm: document.querySelector("#registerForm"),
   loginForm: document.querySelector("#loginForm"),
+  forgotPasswordBtn: document.querySelector("#forgotPasswordBtn"),
+  forgotPasswordDialog: document.querySelector("#forgotPasswordDialog"),
+  forgotPasswordForm: document.querySelector("#forgotPasswordForm"),
+  forgotPasswordCancelBtn: document.querySelector("#forgotPasswordCancelBtn"),
+  resetPasswordDialog: document.querySelector("#resetPasswordDialog"),
+  resetPasswordForm: document.querySelector("#resetPasswordForm"),
+  resetPasswordToken: document.querySelector("#resetPasswordToken"),
+  resetPasswordCancelBtn: document.querySelector("#resetPasswordCancelBtn"),
   quoteTypeChips: document.querySelector("#quoteTypeChips"),
   quoteSearch: document.querySelector("#quoteSearch"),
   statusFilterChips: document.querySelector("#statusFilterChips"),
@@ -1429,6 +1437,7 @@ async function loginSuccess(payload) {
 async function handleRegister(formData) {
   const username = String(formData.get("username")).trim();
   const password = String(formData.get("password")).trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
   const termsAccepted = formData.get("termsAccepted") === "on";
   if (username.length < 2) {
     showToast("用户名至少 2 位");
@@ -1436,6 +1445,10 @@ async function handleRegister(formData) {
   }
   if (password.length < 4) {
     showToast("密码至少 4 位");
+    return;
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast("邮箱格式不正确");
     return;
   }
   if (!termsAccepted) {
@@ -1448,7 +1461,7 @@ async function handleRegister(formData) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, termsAccepted }),
+        body: JSON.stringify({ username, password, email, termsAccepted }),
       },
       false
     );
@@ -1458,6 +1471,72 @@ async function handleRegister(formData) {
   } catch (error) {
     showToast(error.message);
   }
+}
+
+async function handleForgotPassword(formData) {
+  const identifier = String(formData.get("identifier") || "").trim();
+  if (!identifier) {
+    showToast("请输入邮箱或用户名");
+    return;
+  }
+  try {
+    const result = await apiFetch(
+      "/api/password/reset-request",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier }),
+      },
+      false
+    );
+    els.forgotPasswordForm.reset();
+    els.forgotPasswordDialog.close();
+    showToast(result?.message || "如果该账号存在，重置邮件已发送");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function handlePasswordReset(formData) {
+  const token = String(formData.get("token") || "").trim();
+  const password = String(formData.get("password") || "").trim();
+  if (!token) {
+    showToast("缺少重置 token");
+    return;
+  }
+  if (password.length < 4) {
+    showToast("密码至少 4 位");
+    return;
+  }
+  try {
+    const result = await apiFetch(
+      "/api/password/reset",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      },
+      false
+    );
+    els.resetPasswordForm.reset();
+    els.resetPasswordDialog.close();
+    // Clear hash so refresh doesn't re-open the dialog
+    if (typeof location !== "undefined" && location.hash.startsWith("#reset-password=")) {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+    showToast(result?.message || "密码已更新，请重新登录");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+function maybeOpenResetPasswordDialog() {
+  if (typeof location === "undefined") return;
+  const m = location.hash.match(/^#reset-password=([\w\-_.]+)$/);
+  if (!m) return;
+  if (!els.resetPasswordDialog) return;
+  els.resetPasswordToken.value = m[1];
+  els.resetPasswordDialog.showModal();
 }
 
 async function handleLogin(formData) {
@@ -3334,6 +3413,25 @@ function bindEvents() {
     const btn = els.loginForm.querySelector('[type="submit"]');
     withSavingState(btn, "登录中…", () => handleLogin(new FormData(els.loginForm)));
   });
+  els.forgotPasswordBtn?.addEventListener("click", () => {
+    els.forgotPasswordDialog?.showModal();
+  });
+  els.forgotPasswordCancelBtn?.addEventListener("click", () => {
+    els.forgotPasswordDialog?.close();
+  });
+  els.forgotPasswordForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const btn = els.forgotPasswordForm.querySelector('[type="submit"]');
+    withSavingState(btn, "发送中…", () => handleForgotPassword(new FormData(els.forgotPasswordForm)));
+  });
+  els.resetPasswordCancelBtn?.addEventListener("click", () => {
+    els.resetPasswordDialog?.close();
+  });
+  els.resetPasswordForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const btn = els.resetPasswordForm.querySelector('[type="submit"]');
+    withSavingState(btn, "设置中…", () => handlePasswordReset(new FormData(els.resetPasswordForm)));
+  });
   els.bookEditForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const btn = els.bookEditForm.querySelector('[type="submit"]');
@@ -3509,3 +3607,7 @@ bindEvents();
 render();
 activateTab("books");
 loadSession();
+maybeOpenResetPasswordDialog();
+if (typeof window !== "undefined" && window.addEventListener) {
+  window.addEventListener("hashchange", maybeOpenResetPasswordDialog);
+}
