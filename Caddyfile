@@ -1,0 +1,44 @@
+# Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip
+# Set DOMAIN env var when running docker-compose, e.g.:
+#   DOMAIN=reading.example.com docker compose up -d
+
+{$DOMAIN} {
+    encode zstd gzip
+
+    # Reverse proxy to the app container; the app is not exposed externally.
+    reverse_proxy app:8787 {
+        # The app sets its own Cache-Control headers; let them pass through.
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        flush_interval -1  # for SSE / streaming responses
+    }
+
+    header {
+        # Security baseline
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # CSP intentionally permissive for the in-app SVG icons + inline styles;
+        # tighten once frontend is fully bundled.
+        Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https:; font-src 'self' data:;"
+        -Server
+    }
+
+    # Long timeout for SSE / streaming chat
+    request_body {
+        max_size 50MB
+    }
+
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
+
+# Optional: redirect www → apex
+www.{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
+}

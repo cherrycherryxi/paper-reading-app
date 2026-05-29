@@ -1,0 +1,70 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paper-reading-app:latest
+    restart: unless-stopped
+    # Override DB_PATH and UPLOAD_DIR via env so they point at mounted volumes.
+    # app_server.py reads these by env; if not set, defaults to BASE_DIR-relative.
+    environment:
+      # — Storage paths inside the container, mapped to named volumes below —
+      DB_PATH: /app/db/app_state.db
+      UPLOAD_DIR: /app/uploads
+      # — Required for AI features —
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
+      # — Public URL embedded in password-reset emails —
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://example.com}
+      # — Optional SMTP for transactional email —
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@example.com}
+      # — Admin token for /debug/* pages —
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      # — Rate-limit overrides (optional) —
+      RATE_LIMIT_HOUR: ${RATE_LIMIT_HOUR:-}
+      RATE_LIMIT_DAY: ${RATE_LIMIT_DAY:-}
+      SESSION_LIFETIME_DAYS: ${SESSION_LIFETIME_DAYS:-90}
+    volumes:
+      - paper_data:/app/data
+      - paper_uploads:/app/uploads
+      # SQLite lives under /app at runtime; mount its parent so the .db file
+      # survives container restarts.
+      - paper_db:/app/db
+    networks:
+      - paperweb
+    # Don't expose 8787 to the host — only Caddy reaches it via internal network
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - paperweb
+
+networks:
+  paperweb:
+    driver: bridge
+
+volumes:
+  paper_data:
+  paper_uploads:
+  paper_db:
+  caddy_data:
+  caddy_config:

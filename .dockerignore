@@ -1,0 +1,31 @@
+.git
+.gitignore
+.github
+.venv
+__pycache__
+.pytest_cache
+.wolf
+.claude
+.kiro
+.vscode
+.DS_Store
+
+# local SQLite databases — server creates fresh in volume
+app_state.db
+paper_reading_logs.db
+paper_reading_backend.db
+
+# local uploads — handled by named volume
+uploads/
+
+# dev-only files
+tests/
+data/
+reading/
+week6_reasoning_agent_control.html
+
+# editor / OS junk
+*.swp
+*.swo
+.idea
+*.log

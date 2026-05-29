@@ -26,17 +26,21 @@ from mcp_dispatcher import MCPToolDispatcher
 from tool_schema_provider import ToolSchema, ToolSchemaProvider
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "app_state.db"
-UPLOAD_DIR = BASE_DIR / "uploads"
-HOST = "0.0.0.0"
-PORT = 8787
+# DB and uploads paths are env-configurable so production deploys can point
+# them at mounted volumes outside the container's writable layer.
+DB_PATH = Path(os.getenv("DB_PATH", str(BASE_DIR / "app_state.db")))
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", str(BASE_DIR / "uploads")))
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8787"))
 BUILD_VERSION = "20260529a"
 
 # 服务端密钥只从环境变量读取，不要放到前端或提交到仓库。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
 MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
-AUTH_TOKEN = ""
+# ADMIN_TOKEN gates /debug/* HTML viewers. When empty, the pages are open;
+# set this in production via env so only operators can see error logs.
+AUTH_TOKEN = os.getenv("ADMIN_TOKEN", "")
 KIMI_VISION_TIMEOUT_SECONDS = 150
 KIMI_VISION_MAX_TOKENS = int(os.getenv("KIMI_VISION_MAX_TOKENS", "4096"))
 KIMI_VISION_MAX_ATTEMPTS = 2
@@ -240,6 +244,7 @@ def estimate_tokens(text: str) -> int:
 
 def init_db() -> None:
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = get_conn()
     conn.executescript(
         """
