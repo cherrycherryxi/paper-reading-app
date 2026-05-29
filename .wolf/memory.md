@@ -9,6 +9,8 @@
 | 2026-05-29 | 会话总结：6 个商业化任务（P0×3 全 + P1×2/3 + P2×1）；6 commit；111 Python + 40 frontend regression 全过；剩余 P1-4（密码重置需 SMTP）、P2-8/9（分层+支付）、P3 三项 | (multi) | session-end | ~30000 |
 | 2026-05-29 | 续推（Stop hook 触发自主决策）：P1-4 密码重置（SMTP+控制台 fallback、users.email、partial unique index）；P2-8 PLAN_LIMITS（free/plus、book_cap、ActionExecutor.add_book 强制）；P2-9 Stripe 集成（无 SDK 依赖、HMAC 验证 + 幂等、checkout/cancel）；P3-11 生产部署（Dockerfile+docker-compose+Caddyfile+.env.example）；P3-12 S3 对象存储（boto3 lazy import、save_image 自动切换）；P3-10 SQLite WAL 调优 | app_server.py, app.js, index.html, styles.css, Dockerfile, docker-compose.yml, Caddyfile, .dockerignore, .env.example + 5 新 tests | done | ~25000 |
 | 2026-05-29 | 🎉 商业化路线图 12/12 全部完成（共 13 个 feature commit，3500+ 行净增加，50+ 新回归测试）；157 Python + 46 frontend regression 全过；从 personal MVP 升级到可商业化产品 | (multi) | milestone | ~55000 |
+| 2026-05-29 | 落地页迭代（用户反馈驱动）：路由改为 / → landing.html 入口 + /app → 应用；落地页用 Huangnanxi 真实账号数据重做 4 个 feature showcase（书架/真实摘抄照片+OCR/AI 对话/跨书关联）；修复 ToS 复选框被全局 input width:100% 吃成空白框；"手机优先"文案去 iPhone 12/PWA 术语；摘抄照片用固定 px height 替代 aspect-ratio（Safari 14 兼容）；隐私/协议页加 overflow:auto !important 覆盖 SPA 全局规则；新增 #login hash 深链让 footer 登录链接落到登录 tab 而非空白书单 | landing.html, app.js, index.html, styles.css, privacy.html, terms.html, app_server.py + assets/landing/ + 多个测试 | done | ~15000 |
+| 2026-05-29 | 部署待办（用户决策：暂不执行，记录到 TaskList #17/#18/#19）：服务器机房选腾讯云香港轻量（首年 ¥288，不用 ICP 备案，大陆 ~150ms）；域名选 Cloudflare .com（~¥75/年）；总年成本 ~¥363 首年 / ~¥915 续费年。代码已 production-ready（Dockerfile + docker-compose + Caddyfile），等用户买完域名+服务器后 docker compose up -d 即可上线 | (planning) | pending | ~500 |
 | 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
 | 2026-05-15 | Connection 交互完善：关联卡片侧面可点击跳转书籍/摘抄、编辑 thought/kind/tags、摘抄详情 conn-mini-card 展示 thought 并可点击导航、摘抄卡片显示关联数 badge | app.js, styles.css | done | ~900 |
 | 2026-05-15 | link_thought golden-set 8 条（normal/failure/boundary）+ 12 个 unittest（验证层+执行层），58 cases 57 通过 | data/golden_set.json, tests/agent_link_thought_test.py | done | ~800 |
@@ -749,3 +751,36 @@
 | 16:44 | Edited app_server.py | modified get_conn() | ~403 |
 | 16:44 | Created tests/agent/db_concurrency_test.py | — | ~560 |
 | 16:44 | Edited app_server.py | modified get_conn() | ~391 |
+| 16:47 | Session end: 123 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 10 reads | ~201177 tok |
+| 16:59 | Edited app_server.py | expanded (+6 lines) | ~324 |
+| 16:59 | Edited landing.html | added error handling | ~169 |
+| 16:59 | Edited landing.html | 5→6 lines | ~69 |
+| 16:59 | Edited landing.html | 4→4 lines | ~47 |
+| 17:00 | Edited landing.html | 10→10 lines | ~78 |
+| 17:00 | Edited app.js | added 4 condition(s) | ~288 |
+| 17:00 | Edited app.js | modified loadSession() | ~171 |
+| 17:01 | Edited tests/agent/terms_consent_test.py | modified test_root_serves_landing_page() | ~624 |
+| 17:02 | Edited tests/agent/terms_consent_test.py | modified test_app_path_serves_index_html() | ~333 |
+| 17:02 | Edited tests/frontend/regression-fixed-bugs.test.js | modified maybeHandleSignupIntent() | ~726 |
+| 17:04 | Session end: 133 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 11 reads | ~207026 tok |
+| 17:26 | Created landing.html | — | ~5168 |
+| 17:27 | Edited tests/frontend/regression-fixed-bugs.test.js | modified for() | ~620 |
+| 17:30 | Session end: 135 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 13 reads | ~213330 tok |
+| 17:33 | Edited styles.css | expanded (+20 lines) | ~290 |
+| 17:34 | Edited tests/frontend/regression-fixed-bugs.test.js | expanded (+18 lines) | ~370 |
+| 17:42 | designqc: captured 5 screenshots (150KB, ~12500 tok) | / | ready for eval | ~0 |
+| 17:44 | Session end: 137 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 13 reads | ~214574 tok |
+| 17:49 | designqc: captured 6 screenshots (291KB, ~15000 tok) | / | ready for eval | ~0 |
+| 17:54 | Edited landing.html | inline fix | ~21 |
+| 17:54 | Edited landing.html | 19→23 lines | ~187 |
+| 17:55 | Edited landing.html | 2→2 lines | ~24 |
+| 17:55 | designqc: captured 6 screenshots (299KB, ~15000 tok) | / | ready for eval | ~0 |
+| 17:56 | Session end: 140 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 13 reads | ~217502 tok |
+| 18:01 | Edited privacy.html | 3→8 lines | ~113 |
+| 18:01 | Edited terms.html | 3→8 lines | ~113 |
+| 18:01 | Edited app.js | added 2 condition(s) | ~197 |
+| 18:01 | Edited landing.html | inline fix | ~14 |
+| 18:01 | Edited landing.html | inline fix | ~26 |
+| 18:02 | Edited tests/frontend/regression-fixed-bugs.test.js | modified maybeHandleSignupIntent() | ~561 |
+| 18:04 | Session end: 146 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 13 reads | ~218735 tok |
+| 18:12 | Session end: 146 writes across 26 files (app_server.py, rate_limit_test.py, app.js, chat.js, styles.css) | 13 reads | ~218735 tok |
