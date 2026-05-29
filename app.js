@@ -321,6 +321,13 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
       showToast("登录已过期，请重新登录");
       dispatchUserChange();
     }
+    if (response.status === 429 && data?.message) {
+      const err = new Error(data.message);
+      err.code = "rate_limited";
+      err.retryAfter = Number(data.retry_after_seconds) || 0;
+      err.usage = data.usage || null;
+      throw err;
+    }
     throw new Error(data?.error || `HTTP ${response.status}`);
   }
   return data;

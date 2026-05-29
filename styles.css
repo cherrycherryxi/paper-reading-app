@@ -1862,6 +1862,12 @@ textarea {
   color: #b91c1c;
 }
 
+.chat-rate-limited {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
 .chat-bubble-loading::after {
   content: '· · ·';
   display: inline-block;
