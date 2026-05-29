@@ -1429,6 +1429,7 @@ async function loginSuccess(payload) {
 async function handleRegister(formData) {
   const username = String(formData.get("username")).trim();
   const password = String(formData.get("password")).trim();
+  const termsAccepted = formData.get("termsAccepted") === "on";
   if (username.length < 2) {
     showToast("用户名至少 2 位");
     return;
@@ -1437,13 +1438,17 @@ async function handleRegister(formData) {
     showToast("密码至少 4 位");
     return;
   }
+  if (!termsAccepted) {
+    showToast("请先阅读并同意《用户协议》和《隐私政策》");
+    return;
+  }
   try {
     const payload = await apiFetch(
       "/api/register",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, termsAccepted }),
       },
       false
     );

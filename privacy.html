@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>隐私政策 · 又买了一本书</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .legal-page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--color-ink, #3d4a3f);
+    }
+    .legal-page h1 { font-size: 24px; margin-bottom: 8px; }
+    .legal-page h2 { font-size: 18px; margin-top: 28px; margin-bottom: 8px; }
+    .legal-page .legal-meta { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+    .legal-page ul { padding-left: 1.4em; }
+    .legal-page a { color: var(--color-soft-accent-strong, #4c6b3e); }
+    .legal-back { display: inline-block; margin-bottom: 16px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <main class="legal-page">
+    <a class="legal-back" href="/">← 回到应用</a>
+    <h1>隐私政策</h1>
+    <p class="legal-meta">最近更新：2026-05-29</p>
+
+    <p>「又买了一本书」（下称「本应用」）是一个个人纸质书阅读追踪工具。本政策说明我们如何收集、存储与使用你的数据，并解释你拥有的权利。</p>
+
+    <h2>1. 我们收集哪些信息</h2>
+    <ul>
+      <li><strong>账户信息</strong>：用户名、密码（使用 PBKDF2-HMAC-SHA256 加盐哈希后存储，无法被反推）。</li>
+      <li><strong>阅读数据</strong>：你主动创建的书籍、阅读记录、摘抄、笔记、对话历史、跨书关联。</li>
+      <li><strong>上传图片</strong>：你拍摄或选择的书籍封面与摘抄页面图片。</li>
+      <li><strong>使用元数据</strong>：服务端日志（模型调用日志、Agent 执行轨迹）用于排错与功能改进，不含第三方追踪。</li>
+    </ul>
+    <p>我们不收集你的手机号、邮箱（除非未来明示要求），不接入任何商业广告网络或用户行为追踪 SDK。</p>
+
+    <h2>2. 数据如何被使用</h2>
+    <ul>
+      <li><strong>提供服务</strong>：所有数据用于在你的设备间同步阅读状态。</li>
+      <li><strong>AI 功能</strong>：当你与 AI 探讨书籍或上传摘抄进行 OCR 时，相关文本与图片会被发送给第三方模型 API（DeepSeek、Moonshot Kimi）以获取回答或识别结果。响应返回后我们仅在服务端日志中保留必要的输入/输出片段用于排错。</li>
+      <li><strong>不出售、不交换</strong>：我们不会将你的数据出售给任何第三方，也不会用于训练我们自己的模型。</li>
+    </ul>
+
+    <h2>3. 第三方服务</h2>
+    <ul>
+      <li><strong>DeepSeek</strong>（chat 模型）：你的对话消息会传输到 deepseek.com，请见其 <a href="https://www.deepseek.com/" target="_blank" rel="noopener">隐私政策</a>。</li>
+      <li><strong>Moonshot Kimi</strong>（视觉 OCR）：你的摘抄图片会传输到 moonshot.cn，请见其 <a href="https://www.moonshot.cn/" target="_blank" rel="noopener">隐私政策</a>。</li>
+      <li>当上述服务出现故障时，相应 AI 功能将不可用，但本应用的核心阅读追踪功能不受影响。</li>
+    </ul>
+
+    <h2>4. 数据存储</h2>
+    <p>所有数据存储在我们运营的服务器上（SQLite 数据库 + 本地文件系统）。我们对数据库定期备份，备份文件加密。我们尽力保护服务器免受未授权访问，但无法对网络传输与存储提供绝对安全保证。</p>
+
+    <h2>5. 你的权利</h2>
+    <ul>
+      <li><strong>访问与导出</strong>：你可以在「我的」抽屉的「完整账号导出」按钮下载全部账号数据的 JSON 文件。</li>
+      <li><strong>更正</strong>：你可以随时编辑你的书籍、笔记、摘抄。</li>
+      <li><strong>删除</strong>：「注销账号」按钮将永久删除你的全部数据（包括上传图片、服务端日志），删除后无法恢复。</li>
+      <li><strong>会话管理</strong>：你可以在所有设备上撤销登录会话。会话凭证默认 90 天未使用自动失效。</li>
+      <li><strong>限流</strong>：为防止滥用，AI 端点（对话、OCR）按用户进行小时与日维度的请求限额。</li>
+    </ul>
+
+    <h2>6. Cookie 与本地存储</h2>
+    <p>本应用仅在你设备的 localStorage 中保存登录凭证（key: <code>paper-reading-auth-token-v1</code>），不使用 cookie 或任何分析工具。退出登录会清除此凭证。</p>
+
+    <h2>7. 未成年人保护</h2>
+    <p>本应用不面向未满 14 周岁的未成年人。若你是未成年人监护人并发现你的子女在未经同意的情况下注册了账号，请联系我们删除。</p>
+
+    <h2>8. 政策更新</h2>
+    <p>当本政策有重要变更时，我们会在应用内提示。继续使用本应用即视为接受最新政策。</p>
+
+    <h2>9. 联系我们</h2>
+    <p>如有任何疑问，请通过应用反馈渠道联系我们。</p>
+  </main>
+</body>
+</html>

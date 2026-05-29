@@ -2820,3 +2820,21 @@ button.conn-mini-card:hover {
 .danger-text:hover {
   background: #fef2f2;
 }
+
+.terms-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-ink-muted, #6b7280);
+  line-height: 1.5;
+  padding: 4px 0;
+}
+.terms-check input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.terms-check a {
+  color: var(--color-soft-accent-strong, #4c6b3e);
+  text-decoration: underline;
+}
