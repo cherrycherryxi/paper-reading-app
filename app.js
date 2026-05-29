@@ -62,6 +62,7 @@ const els = {
   clearLogsBtn: document.querySelector("#clearLogsBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
   logoutAllBtn: document.querySelector("#logoutAllBtn"),
+  planSummary: document.querySelector("#planSummary"),
   exportAccountBtn: document.querySelector("#exportAccountBtn"),
   deleteAccountBtn: document.querySelector("#deleteAccountBtn"),
   booksList: document.querySelector("#booksList"),
@@ -805,6 +806,7 @@ function openMeDrawer() {
   if (!els.meDrawer) return;
   els.meDrawer.classList.add("is-open");
   els.meDrawerOverlay.classList.add("is-open");
+  loadPlanInfo();
 }
 
 function closeMeDrawer() {
@@ -2555,6 +2557,50 @@ function exportData() {
   link.download = `paper-reading-backup-${currentUser.username}-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function loadPlanInfo() {
+  if (!authToken || !els.planSummary) return;
+  try {
+    const info = await apiFetch("/api/account/plan");
+    renderPlanSummary(info);
+  } catch (error) {
+    // Plan info is non-critical; just log and hide the badge.
+    console.debug?.("loadPlanInfo failed:", error.message);
+    els.planSummary.hidden = true;
+  }
+}
+
+function renderPlanSummary(info) {
+  if (!els.planSummary || !info) return;
+  const chatUsage = info.usage?.chat;
+  const ocrUsage = info.usage?.ocr;
+  const bookText = info.bookCap
+    ? `${info.bookCount}/${info.bookCap} 本`
+    : `${info.bookCount} 本（无限）`;
+  const chatText = chatUsage
+    ? `今日 ${chatUsage.day_count}/${chatUsage.day_limit}`
+    : "—";
+  const ocrText = ocrUsage
+    ? `今日 ${ocrUsage.day_count}/${ocrUsage.day_limit}`
+    : "—";
+  const upgradeBtn = info.plan === "free"
+    ? '<button type="button" class="button button-primary button-small" id="planUpgradeBtn">升级 Plus</button>'
+    : "";
+  els.planSummary.innerHTML = `
+    <div class="plan-row">
+      <span class="plan-badge plan-badge--${info.plan}">${info.planLabel}</span>
+      ${upgradeBtn}
+    </div>
+    <div class="plan-stats">
+      <div><strong>书架</strong>${bookText}</div>
+      <div><strong>AI 对话</strong>${chatText}</div>
+      <div><strong>OCR 识别</strong>${ocrText}</div>
+    </div>
+  `;
+  els.planSummary.hidden = false;
+  const btn = els.planSummary.querySelector("#planUpgradeBtn");
+  if (btn) btn.addEventListener("click", () => showToast("Plus 升级功能即将上线 ✨"));
 }
 
 async function exportAccount() {

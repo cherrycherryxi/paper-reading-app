@@ -80,9 +80,29 @@ SMTP_PASS = os.getenv("SMTP_PASS", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@paper-reading.app")
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "http://127.0.0.1:8787")
 
+# Per-plan limits. _rate_limit_for(endpoint, plan) reads this; free is the
+# default for any new user. `book_cap = 0` means unlimited.
+PLAN_LIMITS = {
+    "free": {
+        "label": "免费版",
+        "book_cap": 10,
+        "endpoints": {
+            "chat": {"hour": 30, "day": 120},
+            "ocr": {"hour": 12, "day": 40},
+        },
+    },
+    "plus": {
+        "label": "Plus",
+        "book_cap": 0,
+        "endpoints": {
+            "chat": {"hour": 60, "day": 240},
+            "ocr": {"hour": 24, "day": 80},
+        },
+    },
+}
+# Back-compat: legacy callers that don't know about plans get free limits.
 RATE_LIMITS = {
-    "chat": {"hour": 30, "day": 120},
-    "ocr": {"hour": 12, "day": 40},
+    endpoint: cfg for endpoint, cfg in PLAN_LIMITS["free"]["endpoints"].items()
 }
 RATE_LIMIT_OVERRIDE_HOUR = os.getenv("RATE_LIMIT_HOUR", "")
 RATE_LIMIT_OVERRIDE_DAY = os.getenv("RATE_LIMIT_DAY", "")
@@ -359,6 +379,10 @@ def init_db() -> None:
         conn.execute("ALTER TABLE users ADD COLUMN terms_accepted_at TEXT NOT NULL DEFAULT ''")
     if "email" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''")
+    if "plan" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
+    if "plan_expires_at" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN plan_expires_at TEXT NOT NULL DEFAULT ''")
     # Email uniqueness for non-empty values only — use a partial index so
     # legacy users (email='') don't collide with each other.
     conn.execute(
@@ -915,8 +939,27 @@ def gc_expired_sessions(conn: sqlite3.Connection, lifetime_days: int | None = No
     return cursor.rowcount or 0
 
 
-def _rate_limit_for(endpoint: str) -> dict:
-    base = RATE_LIMITS.get(endpoint, {"hour": 60, "day": 240})
+def _resolve_user_plan(conn: sqlite3.Connection, user_id: str) -> str:
+    """Return the user's currently effective plan. If plan_expires_at is set
+    and in the past, treat the user as having reverted to 'free'."""
+    row = conn.execute(
+        "SELECT plan, plan_expires_at FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
+    if not row:
+        return "free"
+    plan = (row["plan"] or "free").lower()
+    if plan not in PLAN_LIMITS:
+        return "free"
+    if plan != "free" and row["plan_expires_at"]:
+        expires = _parse_iso_to_epoch(row["plan_expires_at"]) or 0.0
+        if expires and time.time() > expires:
+            return "free"
+    return plan
+
+
+def _rate_limit_for(endpoint: str, plan: str = "free") -> dict:
+    plan = plan if plan in PLAN_LIMITS else "free"
+    base = PLAN_LIMITS[plan]["endpoints"].get(endpoint, {"hour": 60, "day": 240})
     try:
         hour_override = int(RATE_LIMIT_OVERRIDE_HOUR) if RATE_LIMIT_OVERRIDE_HOUR else None
     except ValueError:
@@ -947,13 +990,16 @@ def check_and_record_rate_limit(
     conn: sqlite3.Connection,
     user_id: str,
     endpoint: str,
+    plan: str | None = None,
 ) -> tuple[bool, int, str, dict]:
     """Atomically check + increment per-user rate counters.
 
     Returns (allowed, retry_after_seconds, reason_code, usage_dict).
     usage_dict has hour_count, hour_limit, day_count, day_limit.
     """
-    limits = _rate_limit_for(endpoint)
+    if plan is None:
+        plan = _resolve_user_plan(conn, user_id)
+    limits = _rate_limit_for(endpoint, plan)
     hour_key, day_key, retry_hour, retry_day = _current_windows()
     now = now_iso()
     with RATE_LIMIT_LOCK:
@@ -2113,6 +2159,17 @@ class ActionExecutor:
                     for item in state["books"]
                 )
                 if not exists:
+                    plan = _resolve_user_plan(conn, user_id)
+                    book_cap = PLAN_LIMITS[plan]["book_cap"]
+                    if book_cap and len(state["books"]) >= book_cap:
+                        return ExecutionResult(
+                            False, ACTION_STATUS_FAILED, action,
+                            error_message=(
+                                f"已达到免费版书架上限 ({book_cap} 本)。"
+                                f"请删除一些书或升级 Plus 后再添加。"
+                            ),
+                            tool_name="add_book",
+                        )
                     now = datetime.now().isoformat()
                     state["books"].insert(
                         0,
@@ -2601,6 +2658,47 @@ class Handler(BaseHTTPRequestHandler):
             summary = MetricsCollector().summarize_metrics(conn, user["id"])
             conn.close()
             self._send_json({"metrics": summary})
+            return
+
+        if parsed.path == "/api/account/plan":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            plan = _resolve_user_plan(conn, user["id"])
+            plan_cfg = PLAN_LIMITS[plan]
+            row = conn.execute(
+                "SELECT plan_expires_at FROM users WHERE id = ?", (user["id"],)
+            ).fetchone()
+            state = load_state(conn, user["id"])
+            # Fetch current period usage so the frontend can show "20/120 chat
+            # used today" style hints.
+            hour_key, day_key, _, _ = _current_windows()
+            counters = {}
+            for endpoint in plan_cfg["endpoints"]:
+                rows = conn.execute(
+                    "SELECT window_key, count FROM rate_limit_counters"
+                    " WHERE user_id = ? AND endpoint = ? AND window_key IN (?, ?)",
+                    (user["id"], endpoint, hour_key, day_key),
+                ).fetchall()
+                seen = {r["window_key"]: int(r["count"]) for r in rows}
+                limits = _rate_limit_for(endpoint, plan)
+                counters[endpoint] = {
+                    "hour_count": seen.get(hour_key, 0),
+                    "hour_limit": limits["hour"],
+                    "day_count": seen.get(day_key, 0),
+                    "day_limit": limits["day"],
+                }
+            conn.close()
+            self._send_json(
+                {
+                    "plan": plan,
+                    "planLabel": plan_cfg["label"],
+                    "planExpiresAt": row["plan_expires_at"] if row else "",
+                    "bookCap": plan_cfg["book_cap"],
+                    "bookCount": len(state.get("books", [])),
+                    "usage": counters,
+                }
+            )
             return
 
         if parsed.path.startswith("/api/agent-traces/"):
