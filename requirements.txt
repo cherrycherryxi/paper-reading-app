@@ -3,6 +3,10 @@ mcp[cli]>=1.0.0
 httpx>=0.27.0
 uvicorn>=0.30.0
 
+# Optional: object storage (only loaded if S3_BUCKET is configured at runtime)
+boto3>=1.34.0; python_version >= "3.8"
+
 # 标准库以外没有其他第三方依赖：
 # app_server.py 使用 http.server + sqlite3 + urllib（均为 stdlib）
 # DeepSeek / Moonshot API 调用直接走 urllib，不引入 SDK
+# Stripe 通过 stdlib urllib + 手动 HMAC-SHA256 签名，不引入 stripe SDK
