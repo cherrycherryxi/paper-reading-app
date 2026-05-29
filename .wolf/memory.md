@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-29 | 商业化路线图（12 项 P0–P3）建立；Task #1 完成：4 个 AI 端点（chat/chat-stream/ocr/quotes-ocr）加每用户每小时+每天限流，可由 RATE_LIMIT_HOUR/DAY 环境变量覆盖；429 含友好中文 message + Retry-After 头；apiFetch + chat.js 流式分支均识别 429 并区分错误 UI（amber .chat-rate-limited）；新表 rate_limit_counters；9 个新回归测试通过；E2E 验证 req3→429 | app_server.py, app.js, chat.js, styles.css, tests/agent/rate_limit_test.py, tests/frontend/regression-fixed-bugs.test.js, tests/frontend/chat-agent-approval.test.js | done | ~7500 |
 | 2026-05-14 | 思想碰撞功能（Cross-Book Connection）实现完毕：connections 数据模型、关联 Tab、创建/删除流程、上下文集成、Agent link_thought 动作 | log_server.py, app.js, index.html, chat.js, styles.css | done | ~4500 |
 | 2026-05-15 | Connection 交互完善：关联卡片侧面可点击跳转书籍/摘抄、编辑 thought/kind/tags、摘抄详情 conn-mini-card 展示 thought 并可点击导航、摘抄卡片显示关联数 badge | app.js, styles.css | done | ~900 |
 | 2026-05-15 | link_thought golden-set 8 条（normal/failure/boundary）+ 12 个 unittest（验证层+执行层），58 cases 57 通过 | data/golden_set.json, tests/agent_link_thought_test.py | done | ~800 |
@@ -612,3 +613,24 @@
 | 12:15 | Edited tests/frontend/regression-fixed-bugs.test.js | added 2 condition(s) | ~514 |
 | 12:16 | feat: agent action 失败重试按钮（tryExecute 内聚，失败后 handled=false + 按钮改「重试」+ 按钮重启用，成功路径不变）+ 回归测试 | chat.js, tests/frontend/regression-fixed-bugs.test.js | 27/27 pass | ~300 |
 | 12:16 | Session end: 22 writes across 7 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 9 reads | ~85718 tok |
+| 15:20 | Session end: 22 writes across 7 files (CLAUDE.md, chat.js, dev_backend.py, index.html, styles.css) | 9 reads | ~85718 tok |
+
+## Session: 2026-05-29 15:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:31 | Edited app_server.py | expanded (+11 lines) | ~190 |
+| 15:32 | Edited app_server.py | expanded (+10 lines) | ~135 |
+| 15:32 | Edited app_server.py | modified resolve_user_from_token() | ~1307 |
+| 15:32 | Edited app_server.py | modified _require_user() | ~480 |
+| 15:33 | Edited app_server.py | modified _enforce_rate_limit() | ~148 |
+| 15:33 | Edited app_server.py | modified _enforce_rate_limit() | ~101 |
+| 15:33 | Edited app_server.py | modified _enforce_rate_limit() | ~423 |
+| 15:33 | Edited app_server.py | modified _enforce_rate_limit() | ~192 |
+| 15:38 | Created tests/agent/rate_limit_test.py | — | ~2412 |
+| 15:39 | Edited app.js | added 1 condition(s) | ~183 |
+| 15:39 | Edited chat.js | added 1 condition(s) | ~124 |
+| 15:39 | Edited chat.js | added 1 condition(s) | ~162 |
+| 15:39 | Edited styles.css | CSS: border | ~43 |
+| 15:40 | Edited tests/frontend/chat-agent-approval.test.js | 2→4 lines | ~69 |
+| 15:44 | Edited tests/frontend/regression-fixed-bugs.test.js | added error handling | ~720 |

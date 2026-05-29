@@ -830,6 +830,55 @@ test("P1-005 regression: 401 response shows toast and clears auth state", async 
   );
 });
 
+test("P0 rate-limit: apiFetch surfaces the server's friendly message and tags err.code='rate_limited' on 429", async () => {
+  const hooks = createAppHarness({
+    fetch: async () => ({
+      ok: false,
+      status: 429,
+      headers: { get() { return "application/json"; } },
+      json: async () => ({
+        error: "rate_limited",
+        reason: "hour_limit",
+        retry_after_seconds: 480,
+        usage: { hour_count: 30, hour_limit: 30, day_count: 70, day_limit: 120 },
+        message: "你已达到本小时的使用上限，稍后再试。",
+      }),
+    }),
+  });
+  hooks.setAuthToken("valid-token");
+
+  let caught = null;
+  try {
+    await hooks.apiFetch("/api/chat", { method: "POST", body: "{}" });
+  } catch (e) {
+    caught = e;
+  }
+  assert.ok(caught, "apiFetch should throw on 429");
+  assert.equal(caught.message, "你已达到本小时的使用上限，稍后再试。",
+    "should surface the friendly server message, not the raw 'rate_limited' code");
+  assert.equal(caught.code, "rate_limited", "error must be tagged so UI can branch on it");
+  assert.equal(caught.retryAfter, 480, "retry_after_seconds must propagate");
+});
+
+test("P0 rate-limit: styles.css defines .chat-rate-limited with warning amber palette", () => {
+  assert.match(styles, /\.chat-rate-limited\s*\{[^}]*background:\s*#fef3c7/,
+    "chat-rate-limited should use amber/warning background (#fef3c7), distinct from red error");
+  assert.match(styles, /\.chat-rate-limited\s*\{[^}]*color:\s*#92400e/,
+    "chat-rate-limited should use amber/warning text color");
+});
+
+test("P0 rate-limit: backend RATE_LIMITS config exists and chat/ocr endpoints are gated", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /RATE_LIMITS\s*=\s*\{/, "app_server.py must define RATE_LIMITS dict");
+  assert.match(src, /"chat":\s*\{[^}]*"hour":/, "RATE_LIMITS must include chat config");
+  assert.match(src, /"ocr":\s*\{[^}]*"hour":/, "RATE_LIMITS must include ocr config");
+  // All four AI endpoints must invoke _enforce_rate_limit
+  const chatGated = (src.match(/_enforce_rate_limit\(conn,\s*user\["id"\],\s*"chat"\)/g) || []).length;
+  const ocrGated = (src.match(/_enforce_rate_limit\(conn,\s*user\["id"\],\s*"ocr"\)/g) || []).length;
+  assert.ok(chatGated >= 2, `chat endpoints (chat + chat/stream) should both be gated; found ${chatGated}`);
+  assert.ok(ocrGated >= 2, `ocr endpoints (ocr + quotes/ocr) should both be gated; found ${ocrGated}`);
+});
+
 test("book detail shows one core question while quote wall excludes questions", () => {
   const hooks = createAppHarness();
   hooks.setCurrentUser({ id: "u1", name: "Test" });

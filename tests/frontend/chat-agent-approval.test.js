@@ -434,6 +434,8 @@ test("e2e: execution failure is surfaced in the confirmation button state", asyn
 
   await confirmBtn.onclick();
 
-  assert.equal(confirmBtn.textContent, "失败 ❌");
+  // After P0 retry support, failures show "重试" instead of a terminal error.
+  assert.equal(confirmBtn.textContent, "重试");
+  assert.equal(confirmBtn.disabled, false);
   assert.ok(errors.some((line) => line.includes("approveAction error:")));
 });

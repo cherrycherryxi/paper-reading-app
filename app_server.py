@@ -60,6 +60,16 @@ OCR_FORBIDDEN_TAGS = {
 KIMI_VISION_RATE_LOCK = threading.Lock()
 KIMI_VISION_LAST_REQUEST_AT = 0.0
 
+# Per-user rate limits for AI endpoints. hour = within current UTC hour,
+# day = within current UTC day. Hardcoded for now; will be plan-aware in P2.
+RATE_LIMITS = {
+    "chat": {"hour": 30, "day": 120},
+    "ocr": {"hour": 12, "day": 40},
+}
+RATE_LIMIT_OVERRIDE_HOUR = os.getenv("RATE_LIMIT_HOUR", "")
+RATE_LIMIT_OVERRIDE_DAY = os.getenv("RATE_LIMIT_DAY", "")
+RATE_LIMIT_LOCK = threading.Lock()
+
 INITIAL_STATE = {
     "books": [],
     "sessions": [],
@@ -285,6 +295,17 @@ def init_db() -> None:
             created_at TEXT NOT NULL,
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS rate_limit_counters (
+            user_id TEXT NOT NULL,
+            endpoint TEXT NOT NULL,
+            window_key TEXT NOT NULL,
+            count INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, endpoint, window_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_rate_limit_updated_at
+            ON rate_limit_counters (updated_at);
         """
     )
     existing_cols = {
@@ -809,6 +830,106 @@ def resolve_user_from_token(conn: sqlite3.Connection, token: str | None) -> sqli
         conn.execute("UPDATE sessions SET last_seen_at = ? WHERE token = ?", (now_iso(), token))
         conn.commit()
     return row
+
+
+def _rate_limit_for(endpoint: str) -> dict:
+    base = RATE_LIMITS.get(endpoint, {"hour": 60, "day": 240})
+    try:
+        hour_override = int(RATE_LIMIT_OVERRIDE_HOUR) if RATE_LIMIT_OVERRIDE_HOUR else None
+    except ValueError:
+        hour_override = None
+    try:
+        day_override = int(RATE_LIMIT_OVERRIDE_DAY) if RATE_LIMIT_OVERRIDE_DAY else None
+    except ValueError:
+        day_override = None
+    return {
+        "hour": hour_override if hour_override is not None else base["hour"],
+        "day": day_override if day_override is not None else base["day"],
+    }
+
+
+def _current_windows(ts: float | None = None) -> tuple[str, str, int, int]:
+    """Return (hour_key, day_key, seconds_to_next_hour, seconds_to_next_day) in UTC."""
+    if ts is None:
+        ts = time.time()
+    tm = time.gmtime(ts)
+    hour_key = time.strftime("%Y%m%dT%H", tm)
+    day_key = time.strftime("%Y%m%d", tm)
+    secs_into_hour = tm.tm_min * 60 + tm.tm_sec
+    secs_into_day = tm.tm_hour * 3600 + secs_into_hour
+    return hour_key, day_key, max(1, 3600 - secs_into_hour), max(1, 86400 - secs_into_day)
+
+
+def check_and_record_rate_limit(
+    conn: sqlite3.Connection,
+    user_id: str,
+    endpoint: str,
+) -> tuple[bool, int, str, dict]:
+    """Atomically check + increment per-user rate counters.
+
+    Returns (allowed, retry_after_seconds, reason_code, usage_dict).
+    usage_dict has hour_count, hour_limit, day_count, day_limit.
+    """
+    limits = _rate_limit_for(endpoint)
+    hour_key, day_key, retry_hour, retry_day = _current_windows()
+    now = now_iso()
+    with RATE_LIMIT_LOCK:
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            rows = conn.execute(
+                """
+                SELECT window_key, count FROM rate_limit_counters
+                 WHERE user_id = ? AND endpoint = ? AND window_key IN (?, ?)
+                """,
+                (user_id, endpoint, hour_key, day_key),
+            ).fetchall()
+            counts = {r["window_key"]: int(r["count"]) for r in rows}
+            hour_count = counts.get(hour_key, 0)
+            day_count = counts.get(day_key, 0)
+            if hour_count >= limits["hour"]:
+                conn.execute("ROLLBACK")
+                return False, retry_hour, "hour_limit", {
+                    "hour_count": hour_count, "hour_limit": limits["hour"],
+                    "day_count": day_count, "day_limit": limits["day"],
+                }
+            if day_count >= limits["day"]:
+                conn.execute("ROLLBACK")
+                return False, retry_day, "day_limit", {
+                    "hour_count": hour_count, "hour_limit": limits["hour"],
+                    "day_count": day_count, "day_limit": limits["day"],
+                }
+            for window_key in (hour_key, day_key):
+                conn.execute(
+                    """
+                    INSERT INTO rate_limit_counters (user_id, endpoint, window_key, count, updated_at)
+                    VALUES (?, ?, ?, 1, ?)
+                    ON CONFLICT(user_id, endpoint, window_key)
+                    DO UPDATE SET count = count + 1, updated_at = excluded.updated_at
+                    """,
+                    (user_id, endpoint, window_key, now),
+                )
+            conn.commit()
+            return True, 0, "ok", {
+                "hour_count": hour_count + 1, "hour_limit": limits["hour"],
+                "day_count": day_count + 1, "day_limit": limits["day"],
+            }
+        except Exception:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise
+
+
+def gc_old_rate_limit_rows(conn: sqlite3.Connection, keep_days: int = 3) -> int:
+    """Delete rate limit rows older than keep_days. Returns deleted count."""
+    cutoff_ts = time.time() - keep_days * 86400
+    cutoff_iso = datetime.utcfromtimestamp(cutoff_ts).isoformat() + "Z"
+    cursor = conn.execute(
+        "DELETE FROM rate_limit_counters WHERE updated_at < ?", (cutoff_iso,)
+    )
+    conn.commit()
+    return cursor.rowcount or 0
 
 
 def append_log(
@@ -2068,6 +2189,42 @@ class Handler(BaseHTTPRequestHandler):
             return None, None
         return conn, user
 
+    def _enforce_rate_limit(
+        self, conn: sqlite3.Connection, user_id: str, endpoint: str
+    ) -> bool:
+        """Returns True if request may proceed; False if 429 was sent."""
+        try:
+            allowed, retry_after, reason, usage = check_and_record_rate_limit(
+                conn, user_id, endpoint
+            )
+        except Exception:
+            # Fail open on counter errors — better to serve than to lock users out.
+            return True
+        if allowed:
+            return True
+        body = json.dumps(
+            {
+                "error": "rate_limited",
+                "reason": reason,
+                "retry_after_seconds": retry_after,
+                "usage": usage,
+                "message": (
+                    "你已达到本小时的使用上限，稍后再试。"
+                    if reason == "hour_limit"
+                    else "你已达到今日的使用上限，明天再来 ✨"
+                ),
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+        self.send_response(429)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Retry-After", str(max(1, retry_after)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return False
+
     def do_OPTIONS(self) -> None:
         self._send_json({}, 204)
 
@@ -2413,6 +2570,9 @@ class Handler(BaseHTTPRequestHandler):
             conn, user = self._require_user()
             if not conn:
                 return
+            if not self._enforce_rate_limit(conn, user["id"], "ocr"):
+                conn.close()
+                return
             payload = self._read_json()
             data_url = str(payload.get("imageDataUrl", "")).strip()
             if not data_url:
@@ -2455,6 +2615,9 @@ class Handler(BaseHTTPRequestHandler):
             request_started_at = time.perf_counter()
             conn, user = self._require_user()
             if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "ocr"):
+                conn.close()
                 return
             payload = self._read_json()
             data_url = str(payload.get("imageDataUrl", "")).strip()
@@ -2611,6 +2774,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/chat/stream":
             conn, user = self._require_user()
             if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "chat"):
+                conn.close()
                 return
             payload = self._read_json()
             message = str(payload.get("message", "")).strip()
@@ -2851,6 +3017,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/chat":
             conn, user = self._require_user()
             if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "chat"):
+                conn.close()
                 return
             payload = self._read_json()
             message = str(payload.get("message", "")).strip()

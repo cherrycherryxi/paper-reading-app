@@ -567,6 +567,12 @@
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        if (response.status === 429 && err.message) {
+          const rlErr = new Error(err.message);
+          rlErr.code = "rate_limited";
+          rlErr.retryAfter = Number(err.retry_after_seconds) || 0;
+          throw rlErr;
+        }
         throw new Error(err.error || `HTTP ${response.status}`);
       }
 
@@ -619,8 +625,14 @@
     } catch (error) {
       const recovered = await recoverCompletedChatAfterLoadError(text);
       if (!recovered) {
-        thinking.textContent = `出错了：${error.message}`;
-        thinking.classList.add("chat-error");
+        if (error?.code === "rate_limited") {
+          thinking.classList.remove("chat-bubble-loading");
+          thinking.textContent = error.message;
+          thinking.classList.add("chat-rate-limited");
+        } else {
+          thinking.textContent = `出错了：${error.message}`;
+          thinking.classList.add("chat-error");
+        }
         await window.paperReadingApp.loadRemoteLogs?.();
       }
     }

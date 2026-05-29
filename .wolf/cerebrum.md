@@ -66,6 +66,12 @@
 
 - **[2026-05-29] 自定义 `display` 的元素必须补一条 `[hidden]` CSS 覆盖规则。** 浏览器 UA 样式表的 `[hidden] { display: none }` 优先级极低，凡是对元素写了 `display: flex/grid/block` 的 CSS 类，`hidden` 属性就会失效，元素仍显示。Fix：在同一 CSS 文件里补写 `.your-class[hidden] { display: none }`，确保 JS 用 `el.hidden = true/false` 能正常工作。
 
+- **[2026-05-29] 商业化路线图（goal: 把工具做到可商业化水平）。** 12 项任务分 4 优先级：P0=AI 限流/token 过期/数据导出删除；P1=邮箱+密码重置/隐私政策/错误监控；P2=落地页/分层/支付；P3=Postgres/部署/对象存储。详见 TaskList。
+
+- **[2026-05-29] 限流规范。** AI 端点（chat、chat/stream、ocr、quotes/ocr）必须在 `_require_user()` 之后立即调用 `_enforce_rate_limit(conn, user_id, endpoint)`，命中返回 False 时调用方必须 `conn.close()` 再 return（否则 conn 泄漏）。窗口键用 UTC 小时（`YYYYMMDDTHH`）+ UTC 日（`YYYYMMDD`）；计数器在 `rate_limit_counters` 表；任何端点的失败（包括 400）也会消耗配额，这是有意的反探测设计。环境变量 RATE_LIMIT_HOUR/RATE_LIMIT_DAY 在所有端点共用覆盖（测试用）。429 响应必须含 `message`（中文友好提示）、`retry_after_seconds`、`usage`（hour/day count + limit）。前端 apiFetch 识别 429 时抛 `Error` with `err.code='rate_limited'`。
+
+- **[2026-05-29] E2E 测试端口冲突。** 杀 server 时务必先 `lsof -i :8787 -t | xargs kill -9; sleep 1`，否则旧 server 还在监听，curl 拿到的是旧响应。系统 `python3` 没装 mcp，必须用 `.venv/bin/python` 跑 `app_server.py`。
+
 ## Decision Log
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
