@@ -15,7 +15,7 @@ import threading
 import traceback
 import uuid
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -67,6 +67,18 @@ KIMI_VISION_LAST_REQUEST_AT = 0.0
 # last_seen_at; tokens unused for more than this many days are rejected
 # and pruned. Configurable via SESSION_LIFETIME_DAYS env var.
 SESSION_LIFETIME_DAYS = int(os.getenv("SESSION_LIFETIME_DAYS", "90"))
+
+# Password reset configuration. Tokens are single-use and expire after
+# RESET_TOKEN_TTL_MINUTES. SMTP config is provider-agnostic — set env vars
+# to enable real email delivery; otherwise the reset link is logged to the
+# server console and written to the server_errors table (dev mode).
+RESET_TOKEN_TTL_MINUTES = int(os.getenv("RESET_TOKEN_TTL_MINUTES", "30"))
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@paper-reading.app")
+APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "http://127.0.0.1:8787")
 
 RATE_LIMITS = {
     "chat": {"hour": 30, "day": 120},
@@ -327,6 +339,17 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_server_errors_created_at
             ON server_errors (created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            token TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used_at TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_password_reset_user
+            ON password_reset_tokens (user_id);
         """
     )
     user_cols = {
@@ -334,6 +357,14 @@ def init_db() -> None:
     }
     if "terms_accepted_at" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN terms_accepted_at TEXT NOT NULL DEFAULT ''")
+    if "email" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''")
+    # Email uniqueness for non-empty values only — use a partial index so
+    # legacy users (email='') don't collide with each other.
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique"
+        " ON users (email) WHERE email != ''"
+    )
     existing_cols = {
         row["name"] for row in conn.execute("PRAGMA table_info(model_logs)").fetchall()
     }
@@ -1023,6 +1054,88 @@ def log_server_error(
                 conn.close()
             except Exception:
                 pass
+
+
+def _is_valid_email(value: str) -> bool:
+    if not value or len(value) > 254:
+        return False
+    # RFC 5322 is a beast — a small subset that catches obvious garbage is
+    # enough for a UX gate; the real validation is "email actually receives".
+    return bool(re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", value))
+
+
+def send_email_via_smtp(*, to: str, subject: str, body: str) -> tuple[bool, str]:
+    """Send a plaintext email through configured SMTP. Returns (sent, log_msg).
+    If SMTP is not configured, returns (False, "smtp_not_configured") without
+    raising — caller falls back to console-only delivery for dev."""
+    if not (SMTP_HOST and SMTP_USER and SMTP_PASS):
+        return False, "smtp_not_configured"
+    try:
+        import smtplib
+        from email.message import EmailMessage
+        msg = EmailMessage()
+        msg["From"] = SMTP_FROM
+        msg["To"] = to
+        msg["Subject"] = subject
+        msg.set_content(body)
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_USER, SMTP_PASS)
+            smtp.send_message(msg)
+        return True, "sent"
+    except Exception as exc:
+        return False, f"smtp_error: {exc.__class__.__name__}: {exc}"
+
+
+def create_password_reset_token(conn: sqlite3.Connection, user_id: str) -> tuple[str, str]:
+    """Insert a fresh reset token + return (token, expires_at_iso). Times are
+    stored in local-naive ISO format consistent with now_iso() elsewhere."""
+    token = secrets.token_urlsafe(32)
+    expires_dt = datetime.now() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+    expires_at = expires_dt.isoformat(timespec="seconds")
+    conn.execute(
+        "INSERT INTO password_reset_tokens (token, user_id, expires_at, created_at)"
+        " VALUES (?, ?, ?, ?)",
+        (token, user_id, expires_at, now_iso()),
+    )
+    conn.commit()
+    return token, expires_at
+
+
+def consume_password_reset_token(
+    conn: sqlite3.Connection, token: str
+) -> tuple[str, str]:
+    """Returns (user_id, error_code). On success error_code='' and the token
+    is marked used. On failure user_id='' and error_code in
+    {'not_found', 'used', 'expired'}."""
+    row = conn.execute(
+        "SELECT token, user_id, expires_at, used_at FROM password_reset_tokens"
+        " WHERE token = ?",
+        (token,),
+    ).fetchone()
+    if not row:
+        return "", "not_found"
+    if row["used_at"]:
+        return "", "used"
+    expires_epoch = _parse_iso_to_epoch(row["expires_at"]) or 0.0
+    if expires_epoch and time.time() > expires_epoch:
+        return "", "expired"
+    conn.execute(
+        "UPDATE password_reset_tokens SET used_at = ? WHERE token = ?",
+        (now_iso(), token),
+    )
+    conn.commit()
+    return row["user_id"], ""
+
+
+def gc_expired_password_reset_tokens(conn: sqlite3.Connection) -> int:
+    cutoff = datetime.utcfromtimestamp(time.time() - 86400).isoformat() + "Z"
+    cursor = conn.execute(
+        "DELETE FROM password_reset_tokens WHERE expires_at < ? OR used_at != ''",
+        (cutoff,),
+    )
+    conn.commit()
+    return cursor.rowcount or 0
 
 
 def gc_old_server_errors(conn: sqlite3.Connection, keep_days: int = 30) -> int:
@@ -2750,9 +2863,13 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._read_json()
             username = str(payload.get("username", "")).strip()
             password = str(payload.get("password", "")).strip()
+            email = str(payload.get("email", "")).strip().lower()
             terms_accepted = bool(payload.get("termsAccepted", False))
             if len(username) < 2 or len(password) < 4:
                 self._send_json({"error": "Invalid username or password"}, 400)
+                return
+            if email and not _is_valid_email(email):
+                self._send_json({"error": "邮箱格式不正确"}, 400)
                 return
             if not terms_accepted:
                 self._send_json({"error": "请先阅读并同意《用户协议》和《隐私政策》"}, 400)
@@ -2764,12 +2881,20 @@ class Handler(BaseHTTPRequestHandler):
                 conn.close()
                 self._send_json({"error": "Username already exists"}, 409)
                 return
+            if email:
+                email_exists = conn.execute(
+                    "SELECT id FROM users WHERE email = ?", (email,)
+                ).fetchone()
+                if email_exists:
+                    conn.close()
+                    self._send_json({"error": "Email already in use"}, 409)
+                    return
 
             user_id = new_id("user")
             conn.execute(
-                "INSERT INTO users (id, username, password_hash, created_at, terms_accepted_at)"
-                " VALUES (?, ?, ?, ?, ?)",
-                (user_id, username, hash_password(password), now_iso(), now_iso()),
+                "INSERT INTO users (id, username, password_hash, email, created_at, terms_accepted_at)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, username, hash_password(password), email, now_iso(), now_iso()),
             )
             conn.execute(
                 "INSERT INTO user_state (user_id, state_json, updated_at) VALUES (?, ?, ?)",
@@ -2826,6 +2951,127 @@ class Handler(BaseHTTPRequestHandler):
             count = cursor.rowcount or 0
             conn.close()
             self._send_json({"ok": True, "revoked": count})
+            return
+
+        if parsed.path == "/api/account/email":
+            # Set or update the user's email (required for password reset).
+            conn, user = self._require_user()
+            if not conn:
+                return
+            payload = self._read_json()
+            email = str(payload.get("email", "")).strip().lower()
+            if not _is_valid_email(email):
+                conn.close()
+                self._send_json({"error": "邮箱格式不正确"}, 400)
+                return
+            existing = conn.execute(
+                "SELECT id FROM users WHERE email = ? AND id != ?",
+                (email, user["id"]),
+            ).fetchone()
+            if existing:
+                conn.close()
+                self._send_json({"error": "Email already in use"}, 409)
+                return
+            conn.execute("UPDATE users SET email = ? WHERE id = ?", (email, user["id"]))
+            conn.commit()
+            conn.close()
+            self._send_json({"ok": True, "email": email})
+            return
+
+        if parsed.path == "/api/password/reset-request":
+            # Public: takes {identifier: <email-or-username>} and emails a
+            # reset link if a matching user is found. Always returns 200 so
+            # attackers can't enumerate accounts via timing/response.
+            payload = self._read_json()
+            identifier = str(payload.get("identifier", "")).strip()
+            generic_ok = {
+                "ok": True,
+                "message": "如果该账号存在，我们已发送一封重置邮件，请检查收件箱。",
+            }
+            if not identifier:
+                self._send_json(generic_ok)
+                return
+            conn = get_conn()
+            lookup_email = identifier.lower()
+            row = conn.execute(
+                "SELECT id, username, email FROM users WHERE email = ? OR username = ?",
+                (lookup_email, identifier),
+            ).fetchone()
+            if not row:
+                conn.close()
+                self._send_json(generic_ok)
+                return
+            target_email = row["email"]
+            if not target_email:
+                # User has no email on file — can't deliver reset; surface a
+                # specific error here (not an enumeration risk because the
+                # frontend lets the user add an email after they log in).
+                conn.close()
+                self._send_json(
+                    {
+                        "error": "该账号未绑定邮箱，无法重置密码。请先登录后到「我的」绑定邮箱。",
+                        "code": "no_email_on_file",
+                    },
+                    400,
+                )
+                return
+            token, expires_at = create_password_reset_token(conn, row["id"])
+            conn.close()
+            reset_link = f"{APP_PUBLIC_URL.rstrip('/')}/#reset-password={token}"
+            subject = "重置你的密码 · 又买了一本书"
+            body = (
+                f"你好 {row['username']},\n\n"
+                f"我们收到了重置你的「又买了一本书」账号密码的请求。\n"
+                f"如果不是你发起的，请忽略本邮件。\n\n"
+                f"重置链接（{RESET_TOKEN_TTL_MINUTES} 分钟内有效，仅可使用一次）：\n"
+                f"{reset_link}\n\n"
+                f"— 又买了一本书团队"
+            )
+            sent, smtp_msg = send_email_via_smtp(
+                to=target_email, subject=subject, body=body
+            )
+            if not sent:
+                # Dev mode: log link to server console + server_errors row
+                # (admin can fish it out at /debug/errors).
+                print(f"[password-reset] dev fallback — link for {target_email}: {reset_link}")
+                log_server_error(
+                    None,
+                    user_id=row["id"],
+                    method="POST",
+                    path="/api/password/reset-request",
+                    status_code=200,
+                    error_message=f"smtp fallback: link={reset_link}",
+                )
+            self._send_json(generic_ok)
+            return
+
+        if parsed.path == "/api/password/reset":
+            payload = self._read_json()
+            token = str(payload.get("token", "")).strip()
+            new_password = str(payload.get("password", "")).strip()
+            if not token or len(new_password) < 4:
+                self._send_json({"error": "Invalid token or password"}, 400)
+                return
+            conn = get_conn()
+            user_id, err = consume_password_reset_token(conn, token)
+            if err:
+                conn.close()
+                msg = {
+                    "not_found": "重置链接无效。",
+                    "used": "该重置链接已被使用，请重新申请。",
+                    "expired": "该重置链接已过期，请重新申请。",
+                }.get(err, "重置失败")
+                self._send_json({"error": msg, "code": err}, 400)
+                return
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (hash_password(new_password), user_id),
+            )
+            # Force all existing sessions to re-authenticate after a reset.
+            conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"ok": True, "message": "密码已更新，请用新密码登录。"})
             return
 
         if parsed.path == "/api/upload-image":

@@ -888,6 +888,45 @@ test("P0 session-expiry: frontend wires #logoutAllBtn to logoutAllDevices via sh
     "logoutAllDevices must call /api/logout-all");
 });
 
+test("P1 password reset: backend defines password_reset_tokens table, endpoints, and SMTP fallback to console log", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /CREATE TABLE IF NOT EXISTS password_reset_tokens/,
+    "init_db must create password_reset_tokens table");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/password\/reset-request"/,
+    "must expose /api/password/reset-request endpoint");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/password\/reset"/,
+    "must expose /api/password/reset endpoint");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/account\/email"/,
+    "must expose /api/account/email endpoint");
+  assert.match(src, /def send_email_via_smtp/,
+    "must define SMTP helper");
+  assert.match(src, /smtp_not_configured/,
+    "SMTP helper must return graceful fallback when not configured");
+  // Generic OK message must be returned even for unknown identifiers (no enumeration)
+  assert.match(src, /generic_ok\s*=\s*\{/,
+    "reset-request must use a generic_ok pattern to prevent enumeration");
+  // Reset must invalidate all sessions for the user
+  assert.match(src, /DELETE FROM sessions WHERE user_id\s*=\s*\?[\s\S]{0,200}\)\s*$/m,
+    "reset endpoint must DELETE all sessions for the user (force re-login)");
+});
+
+test("P1 password reset: frontend has forgot/reset dialogs, hash deep-link, and email field in register form", () => {
+  assert.match(indexHtml, /id="forgotPasswordDialog"/,
+    "index.html must include #forgotPasswordDialog");
+  assert.match(indexHtml, /id="resetPasswordDialog"/,
+    "index.html must include #resetPasswordDialog");
+  assert.match(indexHtml, /name="email"[^>]*type="email"/,
+    "register form must include optional email field");
+  assert.match(indexHtml, /id="forgotPasswordBtn"/,
+    "login form must include #forgotPasswordBtn");
+  assert.match(appSource, /function maybeOpenResetPasswordDialog/,
+    "app.js must define maybeOpenResetPasswordDialog to handle #reset-password=<token> deep link");
+  assert.match(appSource, /\/api\/password\/reset-request/,
+    "app.js must call /api/password/reset-request");
+  assert.match(appSource, /\/api\/password\/reset[^-]/,
+    "app.js must call /api/password/reset");
+});
+
 test("P1 server-error monitoring: backend defines server_errors table, log_server_error helper, and /debug/errors viewer", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
   assert.match(src, /CREATE TABLE IF NOT EXISTS server_errors/,

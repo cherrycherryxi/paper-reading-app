@@ -218,11 +218,13 @@
             <label><span>用户名</span><input name="username" type="text" placeholder="你的用户名" required /></label>
             <label><span>密码</span><input name="password" type="password" placeholder="你的密码" required /></label>
             <button type="submit" class="button button-primary">登录</button>
+            <button type="button" id="forgotPasswordBtn" class="auth-forgot-link">忘记密码？</button>
           </form>
         </div>
         <div class="auth-form-panel" id="authTabRegister">
           <form id="registerForm" class="stack-form">
             <label><span>用户名</span><input name="username" type="text" placeholder="例如：nanqi" required /></label>
+            <label><span>邮箱（可选，用于密码重置）</span><input name="email" type="email" placeholder="you@example.com" /></label>
             <label><span>密码</span><input name="password" type="password" placeholder="至少 4 位" required /></label>
             <label class="terms-check">
               <input type="checkbox" name="termsAccepted" id="termsAcceptedInput" required />
@@ -453,6 +455,31 @@
           <button type="button" class="button button-danger" id="confirmDialogConfirmBtn">确认删除</button>
         </div>
       </div>
+    </dialog>
+
+    <!-- Password reset request dialog -->
+    <dialog id="forgotPasswordDialog">
+      <form id="forgotPasswordForm" class="dialog-form">
+        <div class="section-head"><h2>找回密码</h2><p>输入注册邮箱或用户名，我们会发送重置链接。</p></div>
+        <label><span>邮箱或用户名</span><input name="identifier" type="text" required autocomplete="off" /></label>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" id="forgotPasswordCancelBtn">取消</button>
+          <button type="submit" class="button button-primary">发送重置邮件</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Password reset perform dialog (opened when URL contains #reset-password=<token>) -->
+    <dialog id="resetPasswordDialog">
+      <form id="resetPasswordForm" class="dialog-form">
+        <div class="section-head"><h2>设置新密码</h2><p>设置后会自动登出所有设备。</p></div>
+        <input type="hidden" name="token" id="resetPasswordToken" />
+        <label><span>新密码（至少 4 位）</span><input name="password" type="password" required minlength="4" /></label>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" id="resetPasswordCancelBtn">取消</button>
+          <button type="submit" class="button button-primary">设置新密码</button>
+        </div>
+      </form>
     </dialog>
 
     <!-- Connection creation/edit dialog -->

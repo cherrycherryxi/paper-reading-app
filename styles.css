@@ -2848,3 +2848,18 @@ button.conn-mini-card:hover {
 .auth-landing-link:hover {
   color: var(--color-ink, #3d4a3f);
 }
+
+.auth-forgot-link {
+  background: none;
+  border: none;
+  padding: 4px 0 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-ink-muted, #6b7280);
+  text-align: center;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.auth-forgot-link:hover {
+  color: var(--color-ink, #3d4a3f);
+}
