@@ -229,11 +229,15 @@
       border-radius: 14px;
       overflow: hidden;
       background: var(--bg);
-      aspect-ratio: 3/4;
+      /* Fixed pixel height instead of aspect-ratio — Safari 14 and older
+         don't support aspect-ratio, which made the photo collapse to 0
+         height on those phones and made the showcase look empty. */
+      height: 360px;
       box-shadow: var(--shadow-soft);
     }
     .quote-photo img {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       display: block;
     }
@@ -412,7 +416,7 @@
       .showcase.flip .showcase-visual { order: 2; }
       .showcase-title { font-size: 24px; }
       .quote-card { grid-template-columns: 1fr; }
-      .quote-photo { aspect-ratio: 4/3; max-height: 340px; }
+      .quote-photo { height: 280px; }
       .why { padding: 24px; margin: 56px 0 48px; }
       .why h2 { font-size: 20px; }
       .nav-actions .nav-link { display: none; }
@@ -593,7 +597,7 @@
         <li><strong>数据属于你。</strong>一键完整导出 JSON，一键彻底注销账号——所有数据连同上传图片永久删除。</li>
         <li><strong>隐私至上。</strong>无任何商业追踪 SDK，密码 PBKDF2 加盐哈希存储，登录会话 90 天自动过期。</li>
         <li><strong>透明限流。</strong>AI 端点按用户限额，防止滥用、控制成本，配额信息清晰可见。</li>
-        <li><strong>移动优先。</strong>iPhone 12 尺寸原生设计，PWA 添加到主屏即用，离线友好。</li>
+        <li><strong>手机优先。</strong>专为单手阅读的尺寸打磨；添加到主屏后像普通 App 一样秒开，弱网下依然可用。</li>
       </ul>
     </section>
 
