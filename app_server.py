@@ -62,6 +62,11 @@ KIMI_VISION_LAST_REQUEST_AT = 0.0
 
 # Per-user rate limits for AI endpoints. hour = within current UTC hour,
 # day = within current UTC day. Hardcoded for now; will be plan-aware in P2.
+# Session token TTL — rolling expiry. Each authenticated request bumps
+# last_seen_at; tokens unused for more than this many days are rejected
+# and pruned. Configurable via SESSION_LIFETIME_DAYS env var.
+SESSION_LIFETIME_DAYS = int(os.getenv("SESSION_LIFETIME_DAYS", "90"))
+
 RATE_LIMITS = {
     "chat": {"hour": 30, "day": 120},
     "ocr": {"hour": 12, "day": 40},
@@ -814,22 +819,48 @@ def create_session(conn: sqlite3.Connection, user_id: str) -> str:
     return token
 
 
+def _parse_iso_to_epoch(value: str) -> float | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "")).timestamp()
+    except (ValueError, AttributeError):
+        return None
+
+
 def resolve_user_from_token(conn: sqlite3.Connection, token: str | None) -> sqlite3.Row | None:
     if not token:
         return None
     row = conn.execute(
         """
-        SELECT users.id, users.username, users.created_at
+        SELECT users.id, users.username, users.created_at, sessions.last_seen_at
         FROM sessions
         JOIN users ON users.id = sessions.user_id
         WHERE sessions.token = ?
         """,
         (token,),
     ).fetchone()
-    if row:
-        conn.execute("UPDATE sessions SET last_seen_at = ? WHERE token = ?", (now_iso(), token))
+    if not row:
+        return None
+    last_seen_epoch = _parse_iso_to_epoch(row["last_seen_at"]) or 0.0
+    if last_seen_epoch and (time.time() - last_seen_epoch) > SESSION_LIFETIME_DAYS * 86400:
+        # Token has gone stale — invalidate it and refuse the request so the
+        # client receives a clean 401 and re-authenticates.
+        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
         conn.commit()
+        return None
+    conn.execute("UPDATE sessions SET last_seen_at = ? WHERE token = ?", (now_iso(), token))
+    conn.commit()
     return row
+
+
+def gc_expired_sessions(conn: sqlite3.Connection, lifetime_days: int | None = None) -> int:
+    """Delete sessions whose last_seen_at is older than lifetime_days. Returns rowcount."""
+    days = lifetime_days if lifetime_days is not None else SESSION_LIFETIME_DAYS
+    cutoff = datetime.utcfromtimestamp(time.time() - days * 86400).isoformat() + "Z"
+    cursor = conn.execute("DELETE FROM sessions WHERE last_seen_at < ?", (cutoff,))
+    conn.commit()
+    return cursor.rowcount or 0
 
 
 def _rate_limit_for(endpoint: str) -> dict:
@@ -2342,6 +2373,70 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(trace)
             return
 
+        if parsed.path == "/api/account/export":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            state = load_state(conn, user["id"])
+            logs = list_logs(conn, user["id"])
+            traces = [
+                dict(r) for r in conn.execute(
+                    "SELECT trace_id, request_type, status, parse_status, validation_status,"
+                    " latency_ms, input_tokens, output_tokens, message, book_id,"
+                    " error_message, created_at, updated_at"
+                    " FROM agent_traces WHERE user_id = ? ORDER BY created_at",
+                    (user["id"],),
+                ).fetchall()
+            ]
+            actions = [
+                dict(r) for r in conn.execute(
+                    "SELECT action_id, trace_id, action_type, action_data, status,"
+                    " error_message, created_at, updated_at, approved_at, executed_at"
+                    " FROM agent_actions WHERE user_id = ? ORDER BY created_at",
+                    (user["id"],),
+                ).fetchall()
+            ]
+            uploads_dir = UPLOAD_DIR / user["id"]
+            uploaded_files = []
+            if uploads_dir.exists():
+                for p in sorted(uploads_dir.iterdir()):
+                    if p.is_file():
+                        try:
+                            uploaded_files.append(
+                                {"name": p.name, "size": p.stat().st_size,
+                                 "url": f"/uploads/{user['id']}/{p.name}"}
+                            )
+                        except OSError:
+                            continue
+            export = {
+                "exportFormat": 1,
+                "exportedAt": now_iso(),
+                "user": {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "createdAt": user["created_at"],
+                },
+                "state": state,
+                "modelLogs": logs,
+                "agentTraces": traces,
+                "agentActions": actions,
+                "uploadedFiles": uploaded_files,
+            }
+            conn.close()
+            body = json.dumps(export, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header(
+                "Content-Disposition",
+                f'attachment; filename="paper-reading-export-{user["username"]}-{time.strftime("%Y%m%d")}.json"',
+            )
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if parsed.path == "/api/health":
             self._send_json({"ok": True, "time": now_iso()})
             return
@@ -2543,6 +2638,17 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
             self._send_json({"ok": True})
+            return
+
+        if parsed.path == "/api/logout-all":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            cursor = conn.execute("DELETE FROM sessions WHERE user_id = ?", (user["id"],))
+            conn.commit()
+            count = cursor.rowcount or 0
+            conn.close()
+            self._send_json({"ok": True, "revoked": count})
             return
 
         if parsed.path == "/api/upload-image":
@@ -3364,6 +3470,57 @@ class Handler(BaseHTTPRequestHandler):
             save_state(conn, user["id"], state)
             conn.close()
             self._send_json({"ok": True})
+            return
+
+        if parsed.path == "/api/account":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            # Require explicit confirmation: client must POST/DELETE with
+            # {"confirmUsername": "<my-username>"} so accidental fetches can't
+            # nuke the account. This is the GDPR/PIPL erasure endpoint —
+            # irreversible.
+            payload = self._read_json() if int(self.headers.get("Content-Length", "0")) > 0 else {}
+            confirm = str(payload.get("confirmUsername", "")).strip()
+            if confirm != user["username"]:
+                conn.close()
+                self._send_json({"error": "confirmUsername must match your current username"}, 400)
+                return
+            user_id = user["id"]
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                conn.execute(
+                    "DELETE FROM agent_trace_events WHERE trace_id IN ("
+                    " SELECT trace_id FROM agent_traces WHERE user_id = ?)",
+                    (user_id,),
+                )
+                conn.execute("DELETE FROM agent_actions WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM agent_traces WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM agent_metrics WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM model_logs WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM rate_limit_counters WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM user_state WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                conn.commit()
+            except Exception as exc:
+                try:
+                    conn.execute("ROLLBACK")
+                except Exception:
+                    pass
+                conn.close()
+                self._send_json({"error": f"account deletion failed: {exc}"}, 500)
+                return
+            # Remove uploaded files for this user, best-effort.
+            user_uploads = UPLOAD_DIR / user_id
+            if user_uploads.exists():
+                try:
+                    import shutil
+                    shutil.rmtree(user_uploads, ignore_errors=True)
+                except Exception:
+                    pass
+            conn.close()
+            self._send_json({"ok": True, "deleted": True})
             return
 
         self._send_json({"error": "Not found"}, 404)

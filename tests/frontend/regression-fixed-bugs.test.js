@@ -867,6 +867,69 @@ test("P0 rate-limit: styles.css defines .chat-rate-limited with warning amber pa
     "chat-rate-limited should use amber/warning text color");
 });
 
+test("P0 session-expiry: backend exposes SESSION_LIFETIME_DAYS, expiry check, and /api/logout-all", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /SESSION_LIFETIME_DAYS\s*=/, "must define SESSION_LIFETIME_DAYS constant");
+  assert.match(src, /SESSION_LIFETIME_DAYS\s*\*\s*86400/,
+    "resolve_user_from_token must check (now - last_seen_at) against SESSION_LIFETIME_DAYS*86400");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/logout-all"/,
+    "must expose /api/logout-all endpoint");
+  assert.match(src, /def gc_expired_sessions/,
+    "must expose gc_expired_sessions helper");
+});
+
+test("P0 session-expiry: frontend wires #logoutAllBtn to logoutAllDevices via showConfirmDialog", () => {
+  assert.match(indexHtml, /id="logoutAllBtn"/, "index.html must include #logoutAllBtn button");
+  assert.match(appSource, /function logoutAllDevices/,
+    "app.js must define logoutAllDevices");
+  assert.match(appSource, /logoutAllDevices[\s\S]{0,400}showConfirmDialog/,
+    "logoutAllDevices must require confirmation before revoking sessions");
+  assert.match(appSource, /\/api\/logout-all/,
+    "logoutAllDevices must call /api/logout-all");
+});
+
+test("P0 account-export: backend exposes GET /api/account/export with full payload + Content-Disposition", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/account\/export"/,
+    "must expose GET /api/account/export");
+  assert.match(src, /Content-Disposition[\s\S]{0,80}attachment/,
+    "export must set Content-Disposition: attachment header");
+  assert.match(src, /"modelLogs"[\s\S]{0,40}logs/,
+    "export must include modelLogs in payload");
+  assert.match(src, /"uploadedFiles"/,
+    "export must include uploadedFiles manifest");
+});
+
+test("P0 account-delete: backend DELETE /api/account requires confirmUsername and purges all user tables", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/account"/,
+    "must expose /api/account endpoint");
+  assert.match(src, /confirmUsername[\s\S]{0,200}!=\s*user\["username"\]/,
+    "must require confirmUsername to match current username");
+  const tables = ["users", "sessions", "user_state", "model_logs",
+                  "agent_traces", "agent_actions", "agent_trace_events",
+                  "agent_metrics", "rate_limit_counters"];
+  for (const tbl of tables) {
+    const re = new RegExp(`DELETE FROM ${tbl}\\b`);
+    assert.match(src, re, `account deletion must DELETE FROM ${tbl}`);
+  }
+  assert.match(src, /shutil\.rmtree\(user_uploads/,
+    "must remove user's uploads directory");
+});
+
+test("P0 account-delete: frontend wires #deleteAccountBtn and requires double confirmation", () => {
+  assert.match(indexHtml, /id="deleteAccountBtn"/,
+    "must include #deleteAccountBtn button");
+  assert.match(indexHtml, /id="exportAccountBtn"/,
+    "must include #exportAccountBtn button");
+  assert.match(appSource, /function deleteAccount/,
+    "app.js must define deleteAccount");
+  assert.match(appSource, /deleteAccount[\s\S]{0,800}window\.prompt/,
+    "deleteAccount must require a second confirmation via prompt");
+  assert.match(appSource, /\/api\/account[\s\S]{0,200}method:\s*"DELETE"/,
+    "deleteAccount must hit DELETE /api/account");
+});
+
 test("P0 rate-limit: backend RATE_LIMITS config exists and chat/ocr endpoints are gated", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
   assert.match(src, /RATE_LIMITS\s*=\s*\{/, "app_server.py must define RATE_LIMITS dict");

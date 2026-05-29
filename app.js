@@ -53,6 +53,9 @@ const els = {
   exportButton: document.querySelector("#exportButton"),
   clearLogsBtn: document.querySelector("#clearLogsBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
+  logoutAllBtn: document.querySelector("#logoutAllBtn"),
+  exportAccountBtn: document.querySelector("#exportAccountBtn"),
+  deleteAccountBtn: document.querySelector("#deleteAccountBtn"),
   booksList: document.querySelector("#booksList"),
   timeline: document.querySelector("#timeline"),
   sessionSearch: document.querySelector("#sessionSearch"),
@@ -1488,6 +1491,30 @@ async function logout() {
   activateTab("me");
 }
 
+function logoutAllDevices() {
+  if (!authToken) return;
+  showConfirmDialog({
+    message: "退出所有设备后需要重新登录所有客户端。确定继续吗？",
+    confirmLabel: "全部退出",
+    onConfirm: async () => {
+      try {
+        const result = await apiFetch("/api/logout-all", { method: "POST" }, true);
+        showToast(`已撤销 ${result?.revoked ?? 0} 个会话`);
+      } catch (error) {
+        showToast(error.message);
+        return;
+      }
+      setAuthToken("");
+      currentUser = null;
+      state = normalizeStateShape(initialState);
+      remoteLogs = [];
+      render();
+      dispatchUserChange();
+      activateTab("me");
+    },
+  });
+}
+
 async function uploadImageIfNeeded() {
   if (!pendingQuoteImage || !pendingQuoteImage.dataUrl) return "";
   const payload = await apiFetch(
@@ -2446,6 +2473,64 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
+async function exportAccount() {
+  if (!requireAuth("导出账号数据")) return;
+  try {
+    const response = await fetch(buildApiUrl("/api/account/export"), {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `paper-reading-export-${currentUser.username}-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("完整账号数据已导出");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+function deleteAccount() {
+  if (!requireAuth("注销账号")) return;
+  const expected = currentUser?.username || "";
+  showConfirmDialog({
+    message:
+      `注销账号将永久删除你的所有书籍、记录、摘抄、对话和上传图片，且不可恢复。\n` +
+      `请在浏览器弹窗中输入用户名「${expected}」确认。`,
+    confirmLabel: "永久注销",
+    onConfirm: async () => {
+      const typed = window.prompt(`再次确认：输入用户名「${expected}」以注销账号`);
+      if (typed !== expected) {
+        showToast("用户名不匹配，已取消");
+        return;
+      }
+      try {
+        await apiFetch("/api/account", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirmUsername: expected }),
+        }, true);
+        setAuthToken("");
+        currentUser = null;
+        state = normalizeStateShape(initialState);
+        remoteLogs = [];
+        render();
+        dispatchUserChange();
+        activateTab("me");
+        showToast("账号已注销");
+      } catch (error) {
+        showToast(error.message);
+      }
+    },
+  });
+}
+
 function importData(file) {
   if (!requireAuth("导入数据")) return;
   const reader = new FileReader();
@@ -3253,7 +3338,10 @@ function bindEvents() {
   els.meAvatarBtn?.addEventListener("click", openMeDrawer);
   els.meDrawerOverlay?.addEventListener("click", closeMeDrawer);
   els.logoutBtn?.addEventListener("click", () => { logout(); closeMeDrawer(); });
+  els.logoutAllBtn?.addEventListener("click", () => { closeMeDrawer(); logoutAllDevices(); });
   els.exportButton?.addEventListener("click", exportData);
+  els.exportAccountBtn?.addEventListener("click", () => { closeMeDrawer(); exportAccount(); });
+  els.deleteAccountBtn?.addEventListener("click", () => { closeMeDrawer(); deleteAccount(); });
   els.clearLogsBtn?.addEventListener("click", clearLogs);
   els.sessionSearch?.addEventListener("input", renderTimeline);
   els.quoteSearch?.addEventListener("input", renderQuotes);
