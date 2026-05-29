@@ -888,6 +888,35 @@ test("P0 session-expiry: frontend wires #logoutAllBtn to logoutAllDevices via sh
     "logoutAllDevices must call /api/logout-all");
 });
 
+test("P2 plan tiers: backend defines PLAN_LIMITS dict with free/plus, plan-aware _rate_limit_for, and /api/account/plan endpoint", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
+  assert.match(src, /PLAN_LIMITS\s*=\s*\{/, "must define PLAN_LIMITS dict");
+  assert.match(src, /"free"[\s\S]{0,300}"book_cap"/, "PLAN_LIMITS must include book_cap for free");
+  assert.match(src, /"plus"[\s\S]{0,300}"endpoints"/, "PLAN_LIMITS must include plus endpoints config");
+  assert.match(src, /def _rate_limit_for\(endpoint:[^,]+,\s*plan/,
+    "_rate_limit_for must accept a plan parameter");
+  assert.match(src, /def _resolve_user_plan/,
+    "must define _resolve_user_plan helper");
+  assert.match(src, /parsed\.path\s*==\s*"\/api\/account\/plan"/,
+    "must expose /api/account/plan endpoint");
+  assert.match(src, /book_cap[\s\S]{0,500}免费版书架上限/,
+    "agent add_book action must enforce book_cap with localized error");
+});
+
+test("P2 plan tiers: frontend has #planSummary container and loadPlanInfo() function wired to drawer open", () => {
+  assert.match(indexHtml, /id="planSummary"/, "index.html must include #planSummary");
+  assert.match(appSource, /async function loadPlanInfo/,
+    "app.js must define loadPlanInfo");
+  assert.match(appSource, /function openMeDrawer[\s\S]{0,150}loadPlanInfo\(\)/,
+    "openMeDrawer must trigger loadPlanInfo");
+  assert.match(styles, /\.plan-badge--free\s*\{/,
+    "styles.css must define .plan-badge--free style");
+  assert.match(styles, /\.plan-badge--plus\s*\{/,
+    "styles.css must define .plan-badge--plus style");
+  assert.match(appSource, /plan-badge plan-badge--\$\{info\.plan\}/,
+    "loadPlanInfo must render the plan badge with the current plan modifier");
+});
+
 test("P1 password reset: backend defines password_reset_tokens table, endpoints, and SMTP fallback to console log", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "app_server.py"), "utf8");
   assert.match(src, /CREATE TABLE IF NOT EXISTS password_reset_tokens/,
