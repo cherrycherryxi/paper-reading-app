@@ -2812,3 +2812,11 @@ button.conn-mini-card:hover {
   gap: 8px;
   margin-bottom: 16px;
 }
+
+.danger-text {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, .3);
+}
+.danger-text:hover {
+  background: #fef2f2;
+}
