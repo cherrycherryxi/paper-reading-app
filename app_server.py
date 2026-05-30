@@ -3205,6 +3205,44 @@ class Handler(BaseHTTPRequestHandler):
             conn = get_conn()
             logs = list_logs(conn, None, 100)
             conn.close()
+
+            # Compute aggregate stats over the returned logs
+            today_prefix = now_iso()[:10]
+            today_logs = [r for r in logs if (r["createdAt"] or "").startswith(today_prefix)]
+            total_input_tokens = sum(r["inputTokens"] or 0 for r in today_logs)
+            total_output_tokens = sum(r["outputTokens"] or 0 for r in today_logs)
+            latencies = [r["latencyMs"] for r in today_logs if r["latencyMs"] is not None]
+            avg_latency = int(sum(latencies) / len(latencies)) if latencies else 0
+            p95_latency = 0
+            if latencies:
+                sorted_lat = sorted(latencies)
+                p95_idx = max(0, int(len(sorted_lat) * 0.95) - 1)
+                p95_latency = sorted_lat[p95_idx]
+            agg_html = f"""
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+              <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px 20px;min-width:160px;">
+                <div style="font-size:12px;color:#666;margin-bottom:4px;">今日 Input Tokens</div>
+                <div style="font-size:22px;font-weight:700;">{total_input_tokens:,}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px 20px;min-width:160px;">
+                <div style="font-size:12px;color:#666;margin-bottom:4px;">今日 Output Tokens</div>
+                <div style="font-size:22px;font-weight:700;">{total_output_tokens:,}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px 20px;min-width:160px;">
+                <div style="font-size:12px;color:#666;margin-bottom:4px;">今日 Avg 延迟</div>
+                <div style="font-size:22px;font-weight:700;">{avg_latency} ms</div>
+              </div>
+              <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px 20px;min-width:160px;">
+                <div style="font-size:12px;color:#666;margin-bottom:4px;">今日 P95 延迟</div>
+                <div style="font-size:22px;font-weight:700;">{p95_latency} ms</div>
+              </div>
+              <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px 20px;min-width:160px;">
+                <div style="font-size:12px;color:#666;margin-bottom:4px;">今日请求数</div>
+                <div style="font-size:22px;font-weight:700;">{len(today_logs)}</div>
+              </div>
+            </div>
+            """
+
             cards = []
             for row in logs:
                 actions_html = "".join(
@@ -3217,14 +3255,17 @@ class Handler(BaseHTTPRequestHandler):
                     """
                     for action in row["actions"]
                 ) or "<li>无</li>"
+                in_tok = row["inputTokens"] or 0
+                out_tok = row["outputTokens"] or 0
                 cards.append(
                     f"""
                     <details style="border:1px solid #ddd;border-radius:12px;padding:12px;background:#fff;margin-bottom:12px;">
                       <summary style="cursor:pointer;font-weight:600;">
                         {row['createdAt']} · {row['username']} · {row['type']} · {row['model']} · {'失败' if row['error'] else '成功'}
+                        <span style="font-weight:400;color:#555;margin-left:8px;">↑{in_tok} ↓{out_tok} tok · {row['latencyMs']}ms</span>
                       </summary>
                       <div style="margin-top:12px;">
-                        <p><b>Trace</b> {row['traceId'] or '-'} · {row['latencyMs']}ms · parse={row['parseStatus'] or '-'} · validate={row['validationStatus'] or '-'}</p>
+                        <p><b>Trace</b> {row['traceId'] or '-'} · {row['latencyMs']}ms · in={in_tok} out={out_tok} tok · parse={row['parseStatus'] or '-'} · validate={row['validationStatus'] or '-'}</p>
                         <p><b>Prompt</b></p>
                         <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{row['prompt']}</pre>
                         <p><b>输入</b></p>
@@ -3259,6 +3300,7 @@ class Handler(BaseHTTPRequestHandler):
               <main>
                 <h1>模型调用日志</h1>
                 <p>最近 100 条，直接来自部署端数据库。</p>
+                {agg_html}
                 {"".join(cards) if cards else "<p>暂无日志。</p>"}
               </main>
             </body>
