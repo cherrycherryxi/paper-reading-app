@@ -653,6 +653,29 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertIn("tag", html)
         self.assertIn("PENDING_APPROVAL", html)
 
+    def test_debug_logs_html_renders_token_and_latency_aggregate(self):
+        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+            return json.dumps({"reply": "ok", "actions": []}, ensure_ascii=False)
+
+        app_server.call_deepseek = fake_deepseek
+        self.request_json(
+            "POST",
+            "/api/chat",
+            {"message": "hello", "bookId": "book-1"},
+            token=self.token,
+        )
+
+        status, html = self.request_text("GET", "/debug/logs")
+        self.assertEqual(status, 200)
+        # Aggregate header section must be present
+        self.assertIn("今日 Input Tokens", html)
+        self.assertIn("今日 Output Tokens", html)
+        self.assertIn("今日 Avg 延迟", html)
+        self.assertIn("今日 P95 延迟", html)
+        self.assertIn("今日请求数", html)
+        # Per-row token badge in the summary line
+        self.assertIn("tok", html)
+
 
 if __name__ == "__main__":
     unittest.main()
