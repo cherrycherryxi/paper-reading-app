@@ -50,3 +50,17 @@ Format per item:
 - description: 在 debug 看板（/debug/logs）上为每条 LLM/OCR 请求展示 token 用量（prompt/completion/total）和延迟（耗时 ms），便于排查慢请求和成本分析。
 - why: 项目已有 model_logs / agent_metrics / MetricsCollector 的观测基建，但看板缺少逐请求的 token 与延迟可视化；商业化后需要监控成本与性能。
 - how: 检查 model_logs 表是否已记录 token usage 与请求耗时，缺则在 call_deepseek() / call_kimi_vision() 调用处补记（API 响应里的 usage 字段 + 起止时间戳）；在 /debug/logs 页面每行展示 total tokens 与 latency，并加汇总（今日总 token / 平均延迟 / P95）。
+
+### OPT-006 — 全局搜索忽略摘抄内容
+- status: new
+- area: frontend
+- description: globalSearch() 仅调用 matchBooks()，已有的 matchQuotes() 从未被主搜索路径调用。用户用搜索框查找记忆中的摘抄词句时，不会得到任何摘抄结果。
+- why: 搜索是核心发现流；随着用户积累摘抄量增加，这个缺口会越来越明显。matchQuotes() 已经实现好了，只差在 renderSearchResults() 里渲染第二个区块。
+- how: 在 app.js:1066 的 globalSearch() 里同时调用 matchQuotes(normalized)，在 renderSearchResults() 里新增"匹配摘抄"区块展示命中卡片；在 tests/frontend/global-search.test.js 补一条 quote-match 用例。Touch: app.js:877-888, 1017-1066; tests/frontend/global-search.test.js
+
+### OPT-007 — 替换已废弃的 imghdr（Python 3.13 将删除）
+- status: new
+- area: backend
+- description: app_server.py 在 line 8 import imghdr，在 line 1677 用 imghdr.what(None, binary) 检测上传图片格式。Python 3.11 已发 DeprecationWarning，Python 3.13 将直接删除该模块，届时首次图片上传即崩溃。
+- why: 这是定时炸弹——升级 Python 版本时会出现 ImportError，影响所有图片上传和 OCR 流程。
+- how: 删除 import imghdr；在 save_image() 里用 5 行 magic bytes 替换：PNG(\x89PNG)、JPEG(\xff\xd8)、WebP(RIFF…WEBP)，fallback 用 mime_type 后缀。无需第三方依赖，无 schema 变更。Touch: app_server.py:8, 1675-1690
