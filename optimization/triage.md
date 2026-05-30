@@ -16,7 +16,7 @@ Key files: `app_server.py:8` (import), `app_server.py:1675-1688` (`save_image()`
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-007 | 替换已废弃的 imghdr | P0 | S | triaged | `import imghdr` at line 8; used only in `save_image()` line 1677. Replace with magic-bytes check (PNG/JPEG/WebP) + fallback to mime_type suffix. Python 3.11 warns; Python 3.13 removes. Touch: app_server.py:8, 1677. |
+| OPT-007 | 替换已废弃的 imghdr | P0 | S | in-progress | PR #10. `import imghdr` at line 8; used only in `save_image()` line 1677. Replace with magic-bytes check (PNG/JPEG/WebP) + fallback to mime_type suffix. Python 3.11 warns; Python 3.13 removes. Touch: app_server.py:8, 1677. |
 | OPT-002 | 「书单」加书支持拍照 OCR 识别 | P1 | M | triaged | OCR pipeline (call_ocr_with_fallback, call_kimi_vision) exists for quotes; no book OCR endpoint yet. Need new POST /api/books/ocr handler returning {title, author, tags[]} + frontend camera input in bookDialog. Touch: app_server.py, index.html, app.js. |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | Import entry confirmed only in meDrawer (#userPanel, index.html:277). Books panel header (index.html:47-68) has only #openBookDialogBtn. Add a secondary "批量导入" link near that button. Existing importExcelInput handler in app.js can be reused. Touch: index.html only. |
 | OPT-003 | 自动适配不同手机机型 | P2 | L | triaged | styles.css has clamp/vw only in landing sections; app UI is mostly fixed-px. Existing @media breakpoints (980px, 768px, 480px) do minimal adjustments. Full audit needed to replace px with clamp()/min()/vw for app screens. Risk: visual regressions across all panels. |
