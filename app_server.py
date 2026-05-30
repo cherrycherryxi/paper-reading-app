@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import re
 import hashlib
 import hmac
-import imghdr
 import json
 import secrets
 import socket
@@ -1672,9 +1671,21 @@ def _upload_to_object_storage(
     return f"{base}/{key}"
 
 
+def _detect_image_type(binary: bytes) -> str | None:
+    if binary[:4] == b"\x89PNG":
+        return "png"
+    if binary[:2] == b"\xff\xd8":
+        return "jpeg"
+    if binary[:4] == b"RIFF" and binary[8:12] == b"WEBP":
+        return "webp"
+    if binary[:4] in (b"GIF8", ):
+        return "gif"
+    return None
+
+
 def save_image(user_id: str, data_url: str, filename: str = "") -> str:
     binary, mime_type = decode_data_url(data_url)
-    detected = imghdr.what(None, binary)
+    detected = _detect_image_type(binary)
     extension = detected or mime_type.split("/")[-1] or "jpg"
     safe_name = f"{uuid.uuid4().hex[:16]}.{extension}"
     if _is_object_storage_configured():
