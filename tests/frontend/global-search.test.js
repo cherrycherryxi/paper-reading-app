@@ -138,7 +138,7 @@ function createHarness() {
   };
 
   const sourceWithoutBoot = appSource.replace(
-    /\nbindEvents\(\);\nrender\(\);\nactivateTab\("books"\);\nloadSession\(\);\s*$/,
+    /\nbindEvents\(\);\nrender\(\);[\s\S]*$/,
     "\n"
   );
 
