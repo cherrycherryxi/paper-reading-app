@@ -179,7 +179,7 @@ test("property: mobile tabs use current ink active state and safe-area sizing", 
   const mobileBlock = mediaBlockMatch[1];
   assert.match(mobileBlock, /\.mobile-tabs\s*\{[\s\S]*padding-bottom:\s*env\(safe-area-inset-bottom\);/);
   assert.match(mobileBlock, /\.mobile-tabs\s*\{[\s\S]*height:\s*calc\(72px \+ env\(safe-area-inset-bottom\)\);/);
-  assert.match(mobileBlock, /\.layout\s*\{[\s\S]*height:\s*calc\(100dvh - 72px - env\(safe-area-inset-bottom\)\);/);
+  assert.match(mobileBlock, /\.layout\s*\{[\s\S]*height:\s*calc\(100svh - 72px - env\(safe-area-inset-bottom\)\);/);
   assert.match(mobileBlock, /\.mobile-tab\.active\s*\{[\s\S]*color:\s*var\(--color-ink\);/);
   assert.doesNotMatch(mobileBlock, /#15b554|rgb\(21,\s*181,\s*84\)/);
 });

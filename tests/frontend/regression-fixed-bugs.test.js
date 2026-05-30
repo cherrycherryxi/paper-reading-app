@@ -330,7 +330,7 @@ function createAppHarness(overrides = {}) {
 
   // Strip the 4 boot calls so the module loads without side-effects
   const sourceWithoutBoot = appSource.replace(
-    /\nbindEvents\(\);\nrender\(\);\nactivateTab\("books"\);\nloadSession\(\);\s*$/,
+    /\nbindEvents\(\);\nrender\(\);[\s\S]*$/,
     "\n"
   );
 
