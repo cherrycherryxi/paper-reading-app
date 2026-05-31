@@ -2190,6 +2190,7 @@ dialog::backdrop {
   display: none;
 }
 
+
 .agent-confirm {
   padding: 14px;
   background: var(--color-surface);
@@ -2992,4 +2993,351 @@ body.is-admin .admin-only { display: revert; }
 }
 @media (max-width: 480px) {
   .plan-summary .plan-stats { grid-template-columns: 1fr; }
+}
+
+/* The chat book rail is a desktop-only master-detail nav; hidden on mobile. */
+.chat-book-rail {
+  display: none;
+}
+
+/* ── Desktop: adaptive layout — left sidebar nav + fluid content ── */
+@media (min-width: 769px) {
+  html {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Body is the row flex container: [sidebar nav] | [app content].
+     The .mobile-tabs nav is the LAST element in <body> (sibling of
+     .app-shell, not a child), so order:-1 pulls it to the far left.
+     The drawer/overlay/toast are position:fixed → out of flow, unaffected. */
+  body {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  body::before {
+    display: none;
+  }
+
+  /* App content column — fills the space beside the sidebar */
+  .app-shell {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+
+  .hero.desktop-only {
+    display: none;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Touch-style delete buttons always visible (no hover affordance reliance) */
+  .card-delete-btn {
+    opacity: 1;
+  }
+
+  /* ── Left sidebar nav (the former bottom tab bar, rotated vertical) ── */
+  .mobile-tabs {
+    order: -1;
+    display: flex;
+    flex-direction: column;
+    position: static;
+    width: 84px;
+    height: 100vh;
+    flex-shrink: 0;
+    padding-top: 18px;
+    gap: 2px;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    box-shadow: none;
+  }
+
+  .mobile-tab {
+    position: relative;
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px 0;
+    cursor: pointer;
+  }
+
+  .mobile-tab.active {
+    color: var(--color-ink);
+  }
+
+  /* Active indicator: a short bar on the left edge */
+  .mobile-tab.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--color-ink);
+  }
+
+  .mobile-tab-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .mobile-tab-icon svg {
+    fill: none;
+    transition: fill 140ms ease;
+  }
+
+  .mobile-tab.active .mobile-tab-icon svg {
+    fill: var(--color-soft-accent);
+  }
+
+  .mobile-tab-label {
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  .mobile-tab.active .mobile-tab-label {
+    font-weight: 600;
+  }
+
+  /* ── Main content column — fills the app-shell height beside the nav ── */
+  .layout {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    margin-top: 0;
+    overflow: hidden;
+  }
+
+  .layout [data-tab-section] {
+    display: none;
+  }
+
+  .layout [data-tab-section].tab-active {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Content panels: cap reading width and center; chat overrides below */
+  .panel {
+    padding: 22px 28px 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* Fluid card grids — fill the available width, no fixed column count */
+  .layout [data-tab-section].tab-active .book-list,
+  .layout [data-tab-section].tab-active .timeline,
+  .layout [data-tab-section].tab-active .quote-list,
+  .layout [data-tab-section].tab-active .connections-list {
+    flex: 1;
+    display: grid;
+    min-height: 0;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 24px;
+    align-items: start;
+    align-content: start;
+    grid-auto-rows: max-content;
+    margin-top: 14px;
+  }
+
+  /* Me tab scrolls as a whole */
+  .layout [data-tab-section="me"].tab-active {
+    overflow-y: auto;
+    padding-bottom: 24px;
+  }
+
+  /* Two-up form fields and a responsive stat grid on the wider canvas */
+  .input-grid,
+  .auth-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .chat-input-inline {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .chat-input-inline textarea {
+    flex: 1;
+  }
+
+  .chat-input-inline .button-primary {
+    flex-shrink: 0;
+    width: auto;
+    padding: 10px 18px;
+    white-space: nowrap;
+  }
+
+  /* ── 探讨 master-detail: book rail (left) + conversation (right) ──
+     Selector must out-specify `.layout [data-tab-section].tab-active`
+     (0,3,0) which sets display:flex — so we qualify with .chat-panel too. */
+  .layout [data-tab-section].chat-panel.tab-active {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .chat-book-rail {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 10px;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .chat-rail-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-ink-muted);
+    padding: 0 12px 10px;
+  }
+
+  .chat-rail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-ink);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .chat-rail-item:hover {
+    background: var(--color-soft-accent);
+  }
+
+  .chat-rail-item.active {
+    background: var(--color-soft-accent);
+    border-color: var(--color-border);
+  }
+
+  .chat-rail-title {
+    font-size: 13px;
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .chat-rail-author {
+    font-size: 11px;
+    color: var(--color-ink-muted);
+  }
+
+  .chat-rail-empty {
+    font-size: 12px;
+    color: var(--color-ink-muted);
+    padding: 8px 12px;
+  }
+
+  /* The text-input book picker is redundant on desktop — the rail replaces it */
+  .chat-panel .book-picker {
+    display: none;
+  }
+
+  .chat-panel-header {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 18px 22px 0;
+  }
+
+  .chat-messages {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .chat-scroll-btn-row {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .chat-composer {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  /* Toast bottom-right, clear of the sidebar */
+  .toast {
+    left: auto;
+    right: 24px;
+    bottom: 24px;
+    transform: none;
+  }
+
+  /* ── Me drawer: slide in from the right ── */
+  .me-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: auto;
+    bottom: 0;
+    width: 360px;
+    max-height: none;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    padding: 24px 20px;
+    transform: translateX(110%);
+    transition: transform 0.28s ease;
+  }
+
+  .me-drawer.is-open {
+    display: block;
+    transform: translateX(0);
+  }
+
+  .me-drawer-handle {
+    display: none;
+  }
 }

@@ -33,7 +33,7 @@ function makeChatEl(tagName = "div") {
     tagName: tagName.toUpperCase(),
     value: "", disabled: false, textContent: "",
     scrollTop: 0, scrollHeight: 0,
-    children, style: {}, parentNode: null, _removed: false,
+    children, style: {}, dataset: {}, parentNode: null, _removed: false,
     classList: {
       add(...ns) { ns.forEach((n) => classes.add(n)); },
       remove(...ns) { ns.forEach((n) => classes.delete(n)); },
