@@ -2435,7 +2435,11 @@ class MetricsCollector:
         for row in rows:
             metric_name = row["metric_name"]
             metric_value = float(row["metric_value"])
-            dimensions = json.loads(row["dimensions"])
+            try:
+                dimensions = json.loads(row["dimensions"])
+            except json.JSONDecodeError:
+                print(f"[metrics] summarize_metrics: skipping row with invalid dimensions JSON (metric={metric_name})")
+                continue
             if metric_name == "agent.chat.request":
                 summary["requestCount"] += int(metric_value)
                 if dimensions.get("agentStatus") == AGENT_STATUS_ERROR:
