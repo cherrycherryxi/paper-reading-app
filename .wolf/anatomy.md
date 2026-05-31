@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T04:15:34.343Z
-> Files: 77 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T17:05:47.483Z
+> Files: 79 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -109,6 +109,11 @@
 
 - `golden_set_baseline.json` (~68 tok)
 - `golden_set.json` (~11660 tok)
+
+## optimization/
+
+- `backlog.md` — Optimization Backlog (~1105 tok)
+- `triage.md` — Triage (~793 tok)
 
 ## scripts/
 
