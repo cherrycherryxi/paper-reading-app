@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-05-11T06:12:41.466Z",
   "lifetime": {
-    "total_tokens_estimated": 430306,
-    "total_reads": 42,
-    "total_writes": 137,
+    "total_tokens_estimated": 489350,
+    "total_reads": 47,
+    "total_writes": 147,
     "total_sessions": 6,
-    "anatomy_hits": 40,
-    "anatomy_misses": 2,
-    "repeated_reads_blocked": 168,
-    "estimated_savings_vs_bare_cli": 2673655
+    "anatomy_hits": 42,
+    "anatomy_misses": 5,
+    "repeated_reads_blocked": 176,
+    "estimated_savings_vs_bare_cli": 3005722
   },
   "sessions": [
     {
@@ -1099,6 +1099,103 @@
         "reads_count": 4,
         "writes_count": 4,
         "repeated_reads_blocked": 1,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-31-1704",
+      "started": "2026-05-31T17:04:16.088Z",
+      "ended": "2026-05-31T18:08:07.359Z",
+      "reads": [
+        {
+          "file": "/home/user/paper-reading-app/optimization/README.md",
+          "tokens_estimated": 538,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/home/user/paper-reading-app/optimization/backlog.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/home/user/paper-reading-app/optimization/triage.md",
+          "tokens_estimated": 793,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/home/user/paper-reading-app/app_server.py",
+          "tokens_estimated": 55056,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/home/user/paper-reading-app/tests/agent/agent_backend_reliability_test.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/home/user/paper-reading-app/optimization/backlog.md",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/optimization/backlog.md",
+          "tokens_estimated": 30,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/optimization/backlog.md",
+          "tokens_estimated": 24,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/optimization/triage.md",
+          "tokens_estimated": 906,
+          "action": "create"
+        },
+        {
+          "file": "/home/user/paper-reading-app/app_server.py",
+          "tokens_estimated": 111,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/tests/agent/metrics_json_guard_test.py",
+          "tokens_estimated": 1292,
+          "action": "create"
+        },
+        {
+          "file": "/home/user/paper-reading-app/tests/agent/metrics_json_guard_test.py",
+          "tokens_estimated": 116,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/app_server.py",
+          "tokens_estimated": 53,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/tests/agent/metrics_json_guard_test.py",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "/home/user/paper-reading-app/optimization/triage.md",
+          "tokens_estimated": 91,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 56387,
+        "output_tokens_estimated": 2657,
+        "reads_count": 5,
+        "writes_count": 10,
+        "repeated_reads_blocked": 8,
         "anatomy_lookups": 2
       }
     }

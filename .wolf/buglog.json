@@ -2838,6 +2838,54 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-05-31T17:05:23.412Z"
+    },
+    {
+      "id": "bug-167",
+      "timestamp": "2026-05-31T18:06:10.555Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/agent/metrics_json_guard_test.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T18:06:10.555Z"
+    },
+    {
+      "id": "bug-168",
+      "timestamp": "2026-05-31T18:06:22.013Z",
+      "error_message": "Incorrect value in code",
+      "file": "app_server.py",
+      "root_cause": "Had \"summarize_metrics: skipping row with invalid dime",
+      "fix": "Changed to \"[metrics] summarize_metrics: skipping row with in",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T18:06:22.013Z"
+    },
+    {
+      "id": "bug-169",
+      "timestamp": "2026-05-31T18:06:34.286Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/agent/metrics_json_guard_test.py",
+      "root_cause": "Had \"error\"",
+      "fix": "Changed to \"ERROR\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T18:06:34.286Z"
     }
   ]
 }

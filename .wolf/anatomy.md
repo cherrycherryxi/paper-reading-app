@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T17:05:47.483Z
-> Files: 79 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T18:07:57.449Z
+> Files: 80 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -39,7 +39,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~37 tok)
-- `app_server.py` — import: initialize_tool_schema_provider_for_tests, guess_base_url, now_iso, new_id + 10 more (~37526 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~55056 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
@@ -113,7 +113,7 @@
 ## optimization/
 
 - `backlog.md` — Optimization Backlog (~1105 tok)
-- `triage.md` — Triage (~793 tok)
+- `triage.md` — Triage (~796 tok)
 
 ## scripts/
 
@@ -132,6 +132,10 @@
 - `ocr_recognition_fix_test.py` — Tests: bug_exploration_ocr_should_use_kimi_vision_helper, preservation_chat_route_still_uses_deepseek_chat, preservation_unauthenticated_ocr_return... (~1623 tok)
 - `quote-content-display.test.js` — Regression test for bug-098: quote card content truncation (~1122 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~1581 tok)
+
+## tests/agent/
+
+- `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
 
 ## tests/frontend/
 
