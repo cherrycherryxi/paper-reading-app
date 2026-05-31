@@ -36,7 +36,7 @@ class DetectImageTypeTests(unittest.TestCase):
     def test_empty_returns_none(self):
         self.assertIsNone(app_server._detect_image_type(b""))
 
-    def test_real_png_data_url_produces_png_extension(self):
+    def test_real_png_bytes_detected(self):
         # Smallest valid 1x1 PNG
         png = bytes.fromhex(
             "89504e470d0a1a0a0000000d49484452000000010000000108020000009077"

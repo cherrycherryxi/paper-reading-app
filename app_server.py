@@ -1678,7 +1678,7 @@ def _detect_image_type(binary: bytes) -> str | None:
         return "jpeg"
     if binary[:4] == b"RIFF" and binary[8:12] == b"WEBP":
         return "webp"
-    if binary[:4] in (b"GIF8", ):
+    if binary[:4] == b"GIF8":
         return "gif"
     return None
 
