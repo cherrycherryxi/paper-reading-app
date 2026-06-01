@@ -2435,7 +2435,23 @@ class MetricsCollector:
         for row in rows:
             metric_name = row["metric_name"]
             metric_value = float(row["metric_value"])
-            dimensions = json.loads(row["dimensions"])
+            try:
+                dimensions = json.loads(row["dimensions"])
+            except json.JSONDecodeError as exc:
+                # Corrupt dimensions blob: degrade gracefully rather than drop the
+                # whole row. dimensions is only read by the agent.chat.request
+                # branch (agentStatus), so an empty dict still lets this row's
+                # valid metric_value contribute to latency/token/count aggregates;
+                # only the error sub-classification is lost.
+                log_server_error(
+                    conn,
+                    user_id=user_id,
+                    path="/debug/metrics",
+                    status_code=200,
+                    error=exc,
+                    error_message=f"summarize_metrics: corrupt dimensions JSON (metric={metric_name})",
+                )
+                dimensions = {}
             if metric_name == "agent.chat.request":
                 summary["requestCount"] += int(metric_value)
                 if dimensions.get("agentStatus") == AGENT_STATUS_ERROR:
