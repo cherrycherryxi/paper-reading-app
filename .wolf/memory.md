@@ -910,3 +910,12 @@
 | 17:06 | Edited optimization/backlog.md | 2→2 lines | ~15 |
 | 17:06 | Edited optimization/backlog.md | 2→2 lines | ~23 |
 | 17:06 | Created optimization/triage.md | — | ~1075 |
+| 18:05 | Edited app_server.py | 1→5 lines | ~70 |
+| 18:06 | Edited app_server.py | modified _read_json() | ~118 |
+| 18:06 | Edited app_server.py | 4→7 lines | ~110 |
+| 18:07 | Edited app_server.py | modified _RequestTooLarge() | ~41 |
+| 18:07 | Edited app_server.py | ValueError() → _RequestTooLarge() | ~99 |
+| 18:07 | Edited app_server.py | 3→5 lines | ~53 |
+| 18:08 | Created tests/agent/request_body_size_cap_test.py | — | ~1890 |
+| 18:08 | Edited tests/agent/request_body_size_cap_test.py | added error handling | ~332 |
+| 18:10 | Edited optimization/triage.md | inline fix | ~95 |

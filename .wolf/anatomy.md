@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-01T17:06:56.821Z
-> Files: 82 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-01T18:10:34.317Z
+> Files: 83 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -40,7 +40,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~55056 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~55424 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
@@ -114,7 +114,7 @@
 ## optimization/
 
 - `backlog.md` — Optimization Backlog (~1479 tok)
-- `triage.md` — Triage (~1008 tok)
+- `triage.md` — Triage (~1011 tok)
 
 ## scripts/
 
@@ -137,6 +137,7 @@
 ## tests/agent/
 
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
+- `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 
 ## tests/frontend/
 
