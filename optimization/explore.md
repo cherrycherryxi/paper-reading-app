@@ -173,3 +173,71 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** M — add `gc_old_model_logs()` and `gc_old_agent_data()` functions; add them to the `_run_gc()` call proposed in E11. Verify that `list_logs()` and `summarize_metrics()` indexes survive. Touch: `app_server.py:1562-1577` (check indexes), new GC functions near line 1503.
 
 **Files:** `app_server.py:332-399, 1495-1513, 1534-1560`
+
+---
+
+## 2026-06-01
+
+### E16 — `call_deepseek()` has zero retry logic; transient 429/502 silently fails three critical paths (S)
+**What:** `call_kimi_vision()` has `KIMI_VISION_MAX_ATTEMPTS = 2` with retry on HTTP 503 and timeout (lines 2794, 2835, 2842). The plain `call_deepseek()` at line 2703 does the opposite: any `HTTPError` or `URLError` raises immediately. This function is used in three production paths: (a) the non-streaming fallback when `stream_finish_reason != "stop"` (line 4101); (b) the OCR DeepSeek fallback after Kimi vision fails (line 1821); (c) chat history compression at line 1826. DeepSeek's API returns transient 429s under load and occasional 502s. In all three cases, the caller catches `RuntimeError` and surfaces a user-facing error with no retry.
+
+**Why it matters:** History compression failing silently already degrades context quality; the streaming fallback path is hit on roughly every long LLM response. A single exponential-backoff retry (max 2 attempts, 1s delay) with a `_is_retryable_http_error(code)` check (codes 429, 500, 502, 503) eliminates most transient failures at negligible latency cost for the happy path.
+
+**Complexity:** S — add a `_retryable_deepseek_call(messages, model, max_tokens, attempts=2)` wrapper or extend `call_deepseek()` with a `retries` param; replicate the retry pattern from `call_kimi_vision()` at lines 2835-2850. Touch: `app_server.py:2703-2731`.
+
+**Files:** `app_server.py:2703-2731, 2780-2854` (retry pattern reference), callers at lines 1821, 1826, 4101
+
+---
+
+### E17 — Buttons have no `:focus-visible` style — keyboard users get zero focus indicator (S)
+**What:** `styles.css` sets `outline: none` for `input:focus`, `select:focus`, `textarea:focus` (line 533) and provides a `box-shadow` focus ring for those elements. But no `:focus` or `:focus-visible` rule exists for any button selector: `.circle-action`, `.icon-btn`, `.tag-chip-pick`, `.filter-chip`, `.me-list-btn`, `.book-card`, or the generic `button`. Keyboard users tabbing through the app see the browser's default blue outline suppressed by global `* { box-sizing: border-box }` inheritance, or nothing at all. Zero occurrences of `:focus-visible` in the 3451-line stylesheet.
+
+**Why it matters:** WCAG 2.1 SC 2.4.7 (Focus Visible, Level AA) requires that any keyboard-operable UI component has a visible focus indicator. The app has 30+ interactive buttons in the main UI, including the critical chat submit, book-add, and action-approve buttons. A fix is a three-line CSS addition; it's a baseline accessibility gap for a commercial product.
+
+**Complexity:** S — add a single CSS rule: `button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }`. No HTML changes required. Touch: `styles.css` (after line 540).
+
+**Files:** `styles.css:533-540` (input focus block — add sibling rule); impacts all button types in `index.html`
+
+---
+
+### E18 — `estimate_tokens()` underestimates Chinese text by 2–3× — debug dashboard costs are wrong (S)
+**What:** `estimate_tokens()` at line 300 returns `len(text) // 4`. This heuristic is calibrated for English (average ~4 chars/token). Chinese content tokenizes at roughly 1.5–2 characters per token in DeepSeek's tokenizer (BPE over UTF-8 bytes, where each CJK character encodes to 3 bytes). A 600-character Chinese message (`len = 600`) returns `estimate_tokens = 150`, but the actual token count is ~400. All `model_logs` input/output token fields and the `agent_metrics` summaries on `/debug/logs` use this estimate. Users monitoring cost or quota burn see numbers that are ~60% too low.
+
+**Why it matters:** The debug dashboard (OPT-005, now done) surfaces per-request token stats. Those stats are systematically misleading for Chinese content. A simple fix: detect CJK character ratio (count chars in `一-鿿` range), branch on `len(text.encode("utf-8")) // 4` for high-CJK strings, fallback to `len(text) // 4` for Latin. This doesn't require a real tokenizer and brings estimates within ~15% of actual.
+
+**Complexity:** S — replace the one-liner with a 5-line function: count CJK characters, if ratio > 0.4 use UTF-8 byte length ÷ 4, else character length ÷ 4. No schema changes, no interface changes. Touch: `app_server.py:300-302`.
+
+**Files:** `app_server.py:300-302`; affects all callers at lines 920, 934, 4106, 4107, 4218, 4300, 4301, 4416
+
+---
+
+### E19 — No logged-in password change endpoint; only email-based reset available (S)
+**What:** The account settings drawer (line 231 in `index.html`) only exposes email update. The backend's only password-mutation route is the two-step `POST /api/password/reset-request` + `POST /api/password/reset` email flow (lines 3567, 3634). There is no `POST /api/account/password` endpoint that accepts `{currentPassword, newPassword}` for an already-authenticated user. This means a user who wants to change their password must trigger a forgot-password email even though they're already signed in — a standard UX antipattern.
+
+**Why it matters:** Password change for authenticated users is a baseline security feature expected in any account-bearing app. The absence forces users through a broken trust loop (am I actually logged in?) and fails users without verified email. Implementation is simple: verify current password via `verify_password()`, enforce `len(new) >= 4`, update `password_hash`.
+
+**Complexity:** S — add `POST /api/account/password` handler (near line 3543): read `{currentPassword, newPassword}`, call `verify_password(user["password_hash"], currentPassword)`, reject with 400 if wrong, `UPDATE users SET password_hash = ?`. Front-end: add one form to the account drawer (4 lines of HTML + 10 lines of JS). Touch: `app_server.py` (~3543), `index.html` (account drawer ~line 231), `app.js` (~15 lines).
+
+**Files:** `app_server.py` (new handler near line 3543); `index.html:231-310` (account drawer); `app.js` (~line 1619 logout area)
+
+---
+
+### E20 — `compress_chat_history_if_needed()` has no tests: silent fallback and state-save side-effects uncovered (S)
+**What:** `compress_chat_history_if_needed()` at line 1808 has three distinct code paths: (a) history is short enough → return unchanged; (b) LLM call succeeds → splice compressed summary + recent messages, save state; (c) `except Exception: compressed = recent` → silently swallow compression failure and return recent-only history. None of these paths have test coverage. The function is called on two hot paths (line 4052 in streaming handler, line 4288 in non-streaming handler), makes a real `call_deepseek()` invocation, and writes back to SQLite via `save_state()`. A regression in path (b) or (c) would silently corrupt or truncate chat history without any CI signal.
+
+**Why it matters:** Compression is triggered on the most engaged users (those with > 10 messages per chat context). A bug there is invisible but high-impact: affected users would lose context suddenly. Adding tests for the compression threshold, the successful compression path, and the fallback path costs ~30 lines of test code and would catch the class of silent-corruption regressions.
+
+**Complexity:** S — add one test class to a new or existing test file with three methods: `test_short_history_returned_unchanged`, `test_compression_triggered_when_above_threshold` (mock `call_deepseek`, assert summary splice), `test_fallback_on_llm_error` (mock `call_deepseek` to raise, assert recent-only returned). Touch: `tests/agent/` (new test file), `app_server.py:1808-1836` (no changes needed).
+
+**Files:** `app_server.py:1804-1836` (`_COMPRESS_THRESHOLD`, `compress_chat_history_if_needed`); `tests/agent/` (new test file)
+
+---
+
+### E21 — App ships with no `prefers-color-scheme: dark` support; reading at night forces bright white screen (M)
+**What:** `styles.css` defines all colours via CSS custom properties in `:root` (e.g., `--color-bg`, `--color-surface`, `--color-ink`) but there is no `@media (prefers-color-scheme: dark)` block anywhere in the 3451-line file. System dark mode (iOS 13+, Android 10+) is ignored; users who enable dark mode on their phone open the app to a bright white reading interface at night. The landing page, app shell, chat panel, and all dialogs stay full-brightness regardless.
+
+**Why it matters:** This is a reading app with a strong night-time use case. The CSS variable architecture is already dark-mode ready — the entire dark theme is adding a `@media (prefers-color-scheme: dark)` block that redefines ~10 root variables (`--color-bg → #1a1a1a`, `--color-surface → #242424`, `--color-ink → #e8e8e8`, etc.). No component changes needed; the variables propagate automatically. This is the highest visual-polish gap visible on the first daily use by any new mobile user.
+
+**Complexity:** M — define a dark-mode variable block (~15 lines) and audit contrast ratios for the ~8 semantic colour variables; verify that image overlays, chat bubbles, and tag chips all remain readable. May need minor per-component overrides. Touch: `styles.css` (new `@media` block near top, plus targeted overrides).
+
+**Files:** `styles.css` (CSS vars at top, targeted overrides for `.chat-bubble`, `.tag-chip`, `.book-card`, `.me-drawer`)
