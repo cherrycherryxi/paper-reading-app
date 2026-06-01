@@ -906,3 +906,7 @@
 | 19:02 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
 | 19:03 | iPad 空白真因:iOS12 不支持 ES2020 ?.(JS 整个没跑)。加 ES5 探测+友好提示页,定最低 iOS 13.4+ | index.html, styles.css | fixed | ~2500 |
 | 19:03 | Session end: 28 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 13 reads | ~152243 tok |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~27 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~15 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:06 | Created optimization/triage.md | — | ~1075 |
