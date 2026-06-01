@@ -2203,6 +2203,49 @@ dialog::backdrop {
   display: none !important;
 }
 
+/* Fallback notice for browsers too old to parse the ES2020 app JS (iOS 12).
+   Injected by the ES5 detection script in index.html <head>. CSS parses fine
+   on those browsers, so the notice stays on-brand. */
+.browser-unsupported {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  text-align: center;
+  font-family: var(--font-sans);
+}
+.browser-unsupported-card {
+  max-width: 420px;
+}
+.browser-unsupported-emoji {
+  font-size: 44px;
+  margin-bottom: 16px;
+}
+.browser-unsupported h1 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+.browser-unsupported p {
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0 0 8px;
+  color: var(--color-ink-soft);
+}
+.browser-unsupported p.sub {
+  font-size: 14px;
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
 @media (max-width: 980px) {
   .session-panel,
   .chat-panel {
@@ -2215,7 +2258,11 @@ dialog::backdrop {
   }
 }
 
-@media (max-width: 768px) {
+/* Mobile/touch layout: phones (≤768px) OR any touch device regardless of size.
+   `(pointer: coarse)` pulls in touch tablets (iPad) so they get this proven
+   bottom-tab layout instead of the mouse-oriented desktop sidebar — iOS Safari
+   has repeated dialog/fixed-positioning bugs with the desktop layout. */
+@media (max-width: 768px), (pointer: coarse) {
   body {
     background-color: var(--color-bg);
   }
@@ -2995,39 +3042,97 @@ body.is-admin .admin-only { display: revert; }
   .plan-summary .plan-stats { grid-template-columns: 1fr; }
 }
 
+/* ── OPT-003: small phones (≤374px — iPhone SE 1st-gen, small Android) ──
+   Tighten the compact mobile layout so 2-col cards don't get cramped.
+   Must sit after the max-width:768px block to override it (equal specificity). */
+@media (max-width: 374px) {
+  .panel {
+    padding: 10px 10px 0;
+  }
+
+  .book-list,
+  .timeline,
+  .quote-list {
+    gap: 8px;
+  }
+
+  .book-grid-body,
+  .entry-card-body {
+    padding: 10px;
+  }
+
+  .book-grid-author,
+  .book-grid-meta,
+  .entry-card-meta,
+  .entry-card-note,
+  .book-detail-quote-meta {
+    font-size: 13px;
+  }
+
+  .filter-chip,
+  .tag-chip {
+    padding: 6px 10px;
+  }
+
+  .profile-stat-card {
+    min-height: 110px;
+  }
+}
+
+/* ── OPT-003: large phones / foldables (431–768px) ──
+   Use the extra width — card grids flow to more columns automatically
+   (2-up ~431px → 3-up ~560px → 4-up ~720px) instead of a fixed 2 columns. */
+@media (min-width: 431px) and (max-width: 768px) {
+  .panel {
+    padding: 16px 18px 0;
+  }
+
+  .book-list,
+  .timeline,
+  .quote-list {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+}
+
 /* The chat book rail is a desktop-only master-detail nav; hidden on mobile. */
 .chat-book-rail {
   display: none;
 }
 
-/* ── Desktop: adaptive layout — left sidebar nav + fluid content ── */
-@media (min-width: 769px) {
+/* ── Desktop: adaptive layout — left sidebar nav + fluid content ──
+   Gated on `(pointer: fine)` so only mouse-driven large screens get this
+   layout. Touch tablets (iPad) fall through to the mobile bottom-tab layout
+   above, avoiding iOS Safari's desktop-layout dialog/fixed bugs. */
+@media (min-width: 769px) and (pointer: fine) {
   html {
     height: 100vh;
     overflow: hidden;
   }
 
-  /* Body is the row flex container: [sidebar nav] | [app content].
-     The .mobile-tabs nav is the LAST element in <body> (sibling of
-     .app-shell, not a child), so order:-1 pulls it to the far left.
-     The drawer/overlay/toast are position:fixed → out of flow, unaffected. */
+  /* IMPORTANT: do NOT make <body> a flex container here. The modal <dialog>
+     elements are body-level children; with `display:flex` on body, iOS Safari
+     lays out the closed dialogs as flex items (ignoring the UA
+     `dialog:not([open]){display:none}`), showing all of them at once and
+     blocking clicks. Instead the sidebar is position:fixed and .app-shell gets
+     a left margin — body stays block-flow so closed dialogs stay hidden. */
   body {
     height: 100vh;
     overflow: hidden;
-    display: flex;
   }
 
   body::before {
     display: none;
   }
 
-  /* App content column — fills the space beside the sidebar */
+  /* App content column — fills the space beside the fixed sidebar.
+     width:auto overrides the base `.app-shell { width: min(1200px, …) }` so
+     the column actually fills 100vw − 84px instead of staying capped. */
   .app-shell {
-    flex: 1;
-    min-width: 0;
+    width: auto;
+    margin: 0 0 0 84px;
     max-width: none;
     height: 100vh;
-    margin: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -3047,15 +3152,18 @@ body.is-admin .admin-only { display: revert; }
     opacity: 1;
   }
 
-  /* ── Left sidebar nav (the former bottom tab bar, rotated vertical) ── */
+  /* ── Left sidebar nav (the former bottom tab bar, rotated vertical) ──
+     position:fixed (not a body flex item) so it never interferes with the
+     body-level <dialog> elements; .app-shell reserves 84px via margin-left. */
   .mobile-tabs {
-    order: -1;
     display: flex;
     flex-direction: column;
-    position: static;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
     width: 84px;
-    height: 100vh;
-    flex-shrink: 0;
+    z-index: 1000;
     padding-top: 18px;
     gap: 2px;
     background: var(--color-surface);

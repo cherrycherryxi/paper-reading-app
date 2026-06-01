@@ -874,3 +874,35 @@
 | 18:06 | Edited tests/agent/metrics_json_guard_test.py | inline fix | ~17 |
 | 18:07 | Edited optimization/triage.md | inline fix | ~85 |
 | 18:08 | Session end: 10 writes across 4 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py) | 5 reads | ~59044 tok |
+| 15:40 | Edited .gitignore | 8→9 lines | ~102 |
+| 15:43 | Session end: 11 writes across 5 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 6 reads | ~59190 tok |
+| 16:01 | Created ../../.claude/plans/opt-003-buzzing-graham.md | — | ~939 |
+| 16:03 | Edited styles.css | modified media() | ~363 |
+| 16:04 | Edited index.html | inline fix | ~17 |
+| 16:05 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 16:06 | Edited optimization/backlog.md | 3→3 lines | ~15 |
+| 16:06 | OPT-003 手机机型适配：新增 ≤374px 紧凑档 + 431–768px auto-fill 宽松档 | styles.css, index.html, backlog.md | done | ~2500 |
+| 16:06 | Session end: 15 writes across 8 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 8 reads | ~77061 tok |
+| 17:44 | Edited styles.css | CSS: IMPORTANT, dialog | ~229 |
+| 17:44 | Edited styles.css | 15→18 lines | ~154 |
+| 17:45 | Edited index.html | inline fix | ~17 |
+| 17:45 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 17:46 | 修 iPad dialog 全显示 bug：桌面端弃用 body flex，改 fixed sidebar + app-shell margin-left | styles.css, index.html | fixed | ~1500 |
+| 17:47 | Session end: 18 writes across 8 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 8 reads | ~81090 tok |
+| 17:55 | Edited styles.css | CSS: layout, pointer, pointer | ~117 |
+| 17:55 | Edited styles.css | CSS: pointer, pointer | ~112 |
+| 17:55 | Edited styles.css | CSS: width, width, width | ~120 |
+| 17:56 | Edited tests/frontend/ui-redesign.test.js | 1→2 lines | ~50 |
+| 17:56 | Edited tests/frontend/regression-fixed-bugs.test.js | inline fix | ~25 |
+| 17:56 | Edited index.html | inline fix | ~17 |
+| 17:57 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 17:58 | iPad 布局终修:按 pointer 分流(桌面=fine/移动=coarse)，平板回落手机底部 tab；修 app-shell width；放宽2个测试正则 | styles.css, index.html, tests/frontend/*.test.js | fixed, 99/99 通过 | ~2000 |
+| 17:58 | Session end: 24 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 10 reads | ~93351 tok |
+| 18:10 | Session end: 24 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 10 reads | ~93351 tok |
+| 18:58 | Edited index.html | added error handling | ~474 |
+| 19:00 | Edited index.html | modified function() | ~166 |
+| 19:00 | Edited styles.css | modified media() | ~293 |
+| 19:00 | Edited index.html | inline fix | ~17 |
+| 19:02 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 19:03 | iPad 空白真因:iOS12 不支持 ES2020 ?.(JS 整个没跑)。加 ES5 探测+友好提示页,定最低 iOS 13.4+ | index.html, styles.css | fixed | ~2500 |
+| 19:03 | Session end: 28 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 13 reads | ~152243 tok |

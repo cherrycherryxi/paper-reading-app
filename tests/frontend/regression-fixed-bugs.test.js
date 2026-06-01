@@ -380,7 +380,7 @@ globalThis.__testHooks = {
 // ════════════════════════════════════════════════════════════════════════════════
 
 test("P0-001 regression: .toast bottom includes 64px nav-bar offset inside mobile media block", () => {
-  const mobileMatch = styles.match(/@media\s*\(max-width:\s*768px\)\s*\{([\s\S]*)/);
+  const mobileMatch = styles.match(/@media\s*\(max-width:\s*768px\)[^{]*\{([\s\S]*)/);
   assert.ok(mobileMatch, "@media (max-width:768px) block missing");
   const mobileBlock = mobileMatch[1];
 

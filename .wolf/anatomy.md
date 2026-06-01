@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T18:07:57.449Z
-> Files: 80 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-01T11:00:58.071Z
+> Files: 82 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -26,6 +26,7 @@
 - `agent-federated-pony.md` — 思想碰撞（Cross-Book Connection）功能实现计划 (~1250 tok)
 - `idempotent-wishing-kurzweil.md` — UI 迭代计划 v2 — 7 项优化 (~1223 tok)
 - `mellow-yawning-flute.md` — 探讨页 UI/UX 优化建议 (~412 tok)
+- `opt-003-buzzing-graham.md` — OPT-003 — 自动适配不同手机机型 (~880 tok)
 
 ## ../../.claude/scripts/
 
@@ -38,16 +39,16 @@
 ## ./
 
 - `.DS_Store` (~2186 tok)
-- `.gitignore` — Git ignore rules (~37 tok)
+- `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~55056 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
-- `index.html` — 🐛 又买了一本书 (~7944 tok)
+- `index.html` — 🐛 又买了一本书 (~9409 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)
-- `styles.css` — Styles: 148 rules, 55 vars (~15363 tok)
+- `styles.css` — Styles: 148 rules, 55 vars (~19555 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -112,7 +113,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~1105 tok)
+- `backlog.md` — Optimization Backlog (~1478 tok)
 - `triage.md` — Triage (~796 tok)
 
 ## scripts/
@@ -139,7 +140,8 @@
 
 ## tests/frontend/
 
-- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~11819 tok)
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~18127 tok)
+- `ui-redesign.test.js` — test: getRuleBlock (~3130 tok)
 
 ## wechat-miniprogram/
 
