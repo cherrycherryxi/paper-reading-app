@@ -61,8 +61,9 @@ class SummarizeMetricsJsonGuardTest(unittest.TestCase):
         self.assertEqual(result["requestCount"], 1)
         self.assertEqual(result["avgLatencyMs"], 250.0)
 
-    def test_corrupted_row_skipped_no_exception(self):
-        """A row with invalid dimensions JSON must be skipped; no exception raised."""
+    def test_corrupted_row_no_exception_and_still_counted(self):
+        """A row with invalid dimensions JSON must not raise, and its valid
+        metric_value still counts (dimensions degrades to {}, agentStatus lost)."""
         valid_dims = json.dumps({"agentStatus": "success"})
         self._insert_metric("agent.chat.request", 1.0, valid_dims)
         # Insert a row with corrupted JSON
@@ -71,21 +72,27 @@ class SummarizeMetricsJsonGuardTest(unittest.TestCase):
         mc = app_server.MetricsCollector()
         # Should not raise — previously would throw json.JSONDecodeError → HTTP 500
         result = mc.summarize_metrics(self.conn, self.user_id)
-        # The valid row is counted; the corrupt row is skipped
-        self.assertEqual(result["requestCount"], 1)
+        # Both rows count toward requestCount; the corrupt one just can't be
+        # classified as an error (no agentStatus), so it is not an error.
+        self.assertEqual(result["requestCount"], 2)
+        self.assertEqual(result["errorCount"], 0)
 
-    def test_all_rows_corrupted_returns_zero_summary(self):
-        """If every row is corrupted, the method returns the zero-valued summary."""
+    def test_all_rows_corrupted_still_aggregates_values(self):
+        """Even if every dimensions blob is corrupt, the valid metric_values
+        still aggregate (only the error sub-classification is lost)."""
         self._insert_metric("agent.chat.request", 1.0, "INVALID")
         self._insert_metric("agent.chat.latency_ms", 100.0, "ALSO BAD")
 
         mc = app_server.MetricsCollector()
         result = mc.summarize_metrics(self.conn, self.user_id)
-        self.assertEqual(result["requestCount"], 0)
-        self.assertEqual(result["avgLatencyMs"], 0.0)
+        # request counted (dims={} → not error), latency averaged
+        self.assertEqual(result["requestCount"], 1)
+        self.assertEqual(result["errorCount"], 0)
+        self.assertEqual(result["avgLatencyMs"], 100.0)
 
-    def test_mixed_corruption_counts_only_valid(self):
-        """Mix of good and bad rows: only good rows affect the summary."""
+    def test_mixed_corruption_degrades_gracefully(self):
+        """Mix of good and bad rows: all metric_values aggregate; only the
+        agentStatus-based errorCount drops the corrupt rows."""
         valid_dims = json.dumps({"agentStatus": "ERROR"})
         self._insert_metric("agent.chat.request", 3.0, valid_dims)
         self._insert_metric("agent.chat.request", 2.0, "BAD{}")
@@ -94,11 +101,11 @@ class SummarizeMetricsJsonGuardTest(unittest.TestCase):
 
         mc = app_server.MetricsCollector()
         result = mc.summarize_metrics(self.conn, self.user_id)
-        # Only the valid agent.chat.request row (3.0) counted, corrupt (2.0) skipped
-        self.assertEqual(result["requestCount"], 3)
+        # Both request rows count (3 + 2); only the valid one is an error.
+        self.assertEqual(result["requestCount"], 5)
         self.assertEqual(result["errorCount"], 3)
-        # Only the valid latency row (500.0) averaged
-        self.assertEqual(result["avgLatencyMs"], 500.0)
+        # Both latency values average: (500 + 300) / 2.
+        self.assertEqual(result["avgLatencyMs"], 400.0)
 
 
 if __name__ == "__main__":
