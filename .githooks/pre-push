@@ -27,16 +27,17 @@ else
 fi
 
 # [2/2] Python 测试（CI 同款命令）
-echo "▶ [2/2] python3 -m unittest discover -s tests/agent -p '*_test.py'"
-if python3 -m unittest discover -s tests/agent -p '*_test.py' > "$PYLOG" 2>&1; then
+PYTHON="${ROOT}/.venv/bin/python3"
+[ -x "$PYTHON" ] || PYTHON="python3"
+echo "▶ [2/2] $PYTHON -m unittest discover -s tests/agent -p '*_test.py'"
+if "$PYTHON" -m unittest discover -s tests/agent -p '*_test.py' > "$PYLOG" 2>&1; then
   echo "  ✅ Python 测试通过"
 else
   # 仅当唯一的错误是本地缺 mcp 包（reading_mcp_server_tools 导入失败）时，降级为警告。
   if grep -q "No module named 'mcp'" "$PYLOG" \
      && grep -q "FAILED (errors=1)" "$PYLOG" \
      && ! grep -q "failures=" "$PYLOG"; then
-    echo "  ⚠️  仅 reading_mcp_server_tools 因本地缺 mcp 包导入失败 —— CI 装了 requirements.txt，不受影响，已放行。"
-    echo "      想本地完全对齐 CI：pip install -r requirements.txt"
+    echo "  ⚠️  仅 reading_mcp_server_tools 导入失败 —— CI 装了 requirements.txt，不受影响，已放行。"
   else
     echo "  ❌ Python 测试失败："
     tail -n 40 "$PYLOG" | sed 's/^/     /'
