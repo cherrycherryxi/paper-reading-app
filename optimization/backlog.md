@@ -124,6 +124,20 @@ Format per item:
 - why: 摘抄是核心内容，卡面读不清直接影响主体验；对比度、字号、留白、图文层次等都可能是问题点。
 - how: 对摘抄卡做一轮 designqc（openwolf designqc），评估排版/对比度/层次，针对性优化 styles.css 中摘抄卡相关样式。
 
+### OPT-017 — `model_logs` / `agent_traces` 缺少 user_id 索引，debug 看板随数据增长线性变慢
+- status: new
+- area: backend
+- description: `init_db()` 创建了 `model_logs`、`agent_traces`、`agent_actions`、`agent_metrics` 四张表，但均无任何二级索引。`list_logs()`（`app_server.py:1810`）执行 `WHERE model_logs.user_id = ? ORDER BY model_logs.created_at DESC LIMIT 30`，是对全表的顺序扫描。Plus 用户每天 240 次调用，一年后该表有 8 万行以上，每次打开 `/debug/logs` 都要全扫。
+- why: OPT-005（debug 看板）已上线、OPT-016（云 OCR）加速了 model_logs 写入速度；表增速比预期快。索引是零风险、零 schema 变更的修复，下次启动自动建好。
+- how: 在 `init_db()` 的 `executescript` 块（`app_server.py:341`）追加三条 `CREATE INDEX IF NOT EXISTS`：`idx_model_logs_user_created ON model_logs(user_id, created_at)`、`idx_agent_traces_user_created ON agent_traces(user_id, created_at)`、`idx_agent_actions_trace ON agent_actions(trace_id)`。Touch: `app_server.py:337-490`
+
+### OPT-018 — CSS 动画缺少 prefers-reduced-motion 保护，违反 WCAG 2.1 Level A
+- status: new
+- area: frontend
+- description: `styles.css` 在 8+ 个选择器上使用 `transition`（lines 356, 552, 1058, 1848, 1974, 2180, 2553, 2729, 3440），并定义了无限循环的 `@keyframes chat-dot-pulse`（line 1878，AI 响应期间全程播放）。整个 3451 行样式表中 `prefers-reduced-motion` 出现 0 次。
+- why: WCAG 2.1 SC 2.2.2（暂停/停止/隐藏，Level A）要求无限循环动画可由用户暂停——`chat-dot-pulse` 在 AI 响应时持续 5–30 秒无法暂停，是 Level A 违规。修复仅需 4 行 CSS。
+- how: 在 `styles.css` `:root` 变量块之后（约 line 356 前）插入：`@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }`。无 HTML / JS 变更。Touch: `styles.css:350-360`
+
 ### OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（备选录入方式）
 - status: in-progress
 - area: backend

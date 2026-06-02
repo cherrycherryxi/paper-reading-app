@@ -241,3 +241,60 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** M — define a dark-mode variable block (~15 lines) and audit contrast ratios for the ~8 semantic colour variables; verify that image overlays, chat bubbles, and tag chips all remain readable. May need minor per-component overrides. Touch: `styles.css` (new `@media` block near top, plus targeted overrides).
 
 **Files:** `styles.css` (CSS vars at top, targeted overrides for `.chat-bubble`, `.tag-chip`, `.book-card`, `.me-drawer`)
+
+---
+
+## 2026-06-02
+
+### E22 — `model_logs` and `agent_traces` have no `user_id` index — debug dashboard does full table scans (S)
+**What:** `init_db()` creates five user-content tables but only defines indexes for `rate_limit_counters(updated_at)`, `server_errors(created_at)`, `password_reset_tokens(user_id)`, and `payments(user_id, subscription_id)`. `model_logs`, `agent_traces`, `agent_actions`, and `agent_metrics` have no secondary indexes at all. `list_logs()` (`app_server.py:1810-1875`) queries `WHERE model_logs.user_id = ? ORDER BY model_logs.created_at DESC LIMIT 30` — a full table scan over every row from every user. The `/debug/logs` debug dashboard and the metrics aggregation in `summarize_metrics()` both hit these unindexed paths on every load.
+
+**Why it matters:** As OPT-005 (now done) made the debug dashboard actively used, and OPT-016 drives more OCR calls into `model_logs`, the table grows continuously. For a Plus user making 240 calls/day, `model_logs` reaches 87,000+ rows/year. The `list_logs` query's cost scales linearly with total row count across all users — the dashboard that was instant at 1,000 rows becomes noticeably slow at 50,000. Adding three covering indexes eliminates the full scan entirely and is a zero-risk, zero-schema-change improvement.
+
+**Complexity:** S — add three `CREATE INDEX IF NOT EXISTS` lines to `init_db()` (the `executescript` block at line 341): `idx_model_logs_user_created ON model_logs(user_id, created_at)`, `idx_agent_traces_user_created ON agent_traces(user_id, created_at)`, `idx_agent_actions_trace ON agent_actions(trace_id)`. SQLite creates the indexes on next startup; existing data is automatically indexed.
+
+**Files:** `app_server.py:337-490` (init_db executescript block)
+
+---
+
+### E23 — `resolve_user_from_token` issues a DB write on every authenticated request — unnecessary write churn on read-heavy workload (S)
+**What:** `resolve_user_from_token()` at `app_server.py:1262` unconditionally issues `UPDATE sessions SET last_seen_at = ? WHERE token = ?` on every call, even for purely read-only requests (`GET /api/session`, `GET /api/model-logs`, `GET /api/account/plan`). The mobile PWA calls `/api/session` on every app open and each tab-focus event, triggering a write per open. With multiple browser tabs or a polling debug dashboard, this creates a steady write-lock storm on the SQLite file — even idle browse sessions hold a write lock momentarily on every GET.
+
+**Why it matters:** SQLite serialises writes with `BEGIN IMMEDIATE`; each `last_seen_at` update briefly blocks all concurrent readers including the `/api/chat/stream` SSE connections that must not stall. A threshold-based update (write only if `time.time() - last_seen_epoch > 300`) reduces write frequency by ~10–20× for an active user without changing session-expiry semantics (the read path still checks the staleness against `SESSION_LIFETIME_DAYS`).
+
+**Complexity:** S — in `resolve_user_from_token()` at line 1256–1263, add: `if time.time() - last_seen_epoch > 300:` before the `conn.execute("UPDATE sessions …")` call. Two-line change, no schema changes, no tests need updating.
+
+**Files:** `app_server.py:1241-1264` (`resolve_user_from_token`)
+
+---
+
+### E24 — Streaming chat fetch has no AbortController timeout — server hang or silent network drop freezes the UI indefinitely (M)
+**What:** `_doStreamAndFinalize()` in `chat.js:572-680` opens a streaming `fetch()` to `/api/chat/stream` with no `signal` attached. The inner `reader.read()` loop at line 622 stalls indefinitely if the connection goes silent — which happens regularly on iPhone when LTE/WiFi transitions occur mid-stream (the OS half-closes the TCP connection without sending an EOF). The user sees the "thinking" animation for potentially 5+ minutes until the OS TCP keepalive finally triggers a RST. The existing `recoverCompletedChatAfterLoadError` at line 526 only fires on an explicit JS exception, not on a stalled-but-open reader.
+
+**Why it matters:** Mobile reading sessions frequently happen in transit (commute, bed, café). A 5-minute frozen UI with no "retry" affordance erodes user trust and burns battery. The fix requires ~15 lines: create an `AbortController`, pass its `signal` to `fetch()`, and reset a 30-second inactivity `setTimeout` on each received `delta` chunk. Catch `AbortError` and render "请求超时，请重试" with a retry button.
+
+**Complexity:** M — changes in `chat.js:572-680` only. Needs one new test case in `tests/frontend/chat-agent-approval.test.js` asserting that an abort mid-stream renders the timeout message.
+
+**Files:** `chat.js:572-680`; `tests/frontend/chat-agent-approval.test.js`
+
+---
+
+### E25 — CSS transitions and infinite animation lack `prefers-reduced-motion` guard — WCAG Level A violation (S)
+**What:** `styles.css` applies CSS `transition` on 8+ selectors (lines 356, 552, 1058, 1848, 1974, 2180, 2553, 2729, 3440) and defines an infinite `@keyframes chat-dot-pulse` animation (line 1878) used in `.chat-bubble-loading`. There is no `@media (prefers-reduced-motion: reduce)` block anywhere in the 3,451-line stylesheet. Users with iOS "Reduce Motion" or Android "Remove animations" enabled receive the full set of transitions and the indefinitely-looping loading animation.
+
+**Why it matters:** WCAG 2.1 SC 2.2.2 (Pause, Stop, Hide — Level A) is violated by the infinite `chat-dot-pulse` animation: it plays for the entire duration of an AI response (5–30 s) with no way for the user to pause it. SC 2.3.3 (Animation from Interactions — Level AAA) covers the decorative transitions. Level A is a baseline commercial requirement; the fix is a single 4-line CSS block. It also benefits users on low-end devices where GPU-accelerated transitions can cause jank.
+
+**Complexity:** S — add one `@media (prefers-reduced-motion: reduce)` block near the top of `styles.css` (after the `:root` vars, before line 356): `*, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }`. No HTML or JS changes.
+
+**Files:** `styles.css:350-360` (add block after CSS vars section); primary impact: `styles.css:1875-1885` (chat-dot animation)
+
+---
+
+### E26 — Handler methods acquire `conn` but close it manually without `try/finally` — exceptions after `_require_user()` leak the connection (M)
+**What:** All 40+ route branches in `do_GET()`, `do_POST()`, `do_PUT()`, `do_DELETE()` follow the pattern: acquire via `conn, user = self._require_user()` then close manually at each exit point with `conn.close()`. If any unexpected exception is raised between these two points — for example an unhandled `KeyError` when processing a malformed-but-valid-JSON request body, or a `TypeError` inside a helper — the connection is never closed. Python's `sqlite3.Connection` objects are not reliably collected on exception; they remain open until the next GC cycle (or indefinitely in CPython with reference cycles).
+
+**Why it matters:** Each leaked connection holds a shared-cache lock on the SQLite file. Under sustained load with occasional edge-case exceptions, leaked connections accumulate and can cause `sqlite3.OperationalError: database is locked` for other concurrent requests. The correct fix is to wrap handler bodies in `with get_conn() as conn:` or use `try/finally` — but touching 40+ branches is a medium refactor. A lower-effort intermediate fix is to wrap the outermost `_require_user` in a context manager that guarantees `conn.close()` on exit regardless of exception.
+
+**Complexity:** M — introduce a `_require_user_ctx()` context manager (or add `try/finally` wrapping to the 5 main handler bodies). Touch: `app_server.py:3195-3202` + all handlers.
+
+**Files:** `app_server.py:3195-3202` (`_require_user`); `app_server.py:3243-4993` (all four handler methods)
