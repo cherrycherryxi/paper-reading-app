@@ -14,7 +14,7 @@ import threading
 import traceback
 import uuid
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -262,6 +262,13 @@ def guess_base_url(handler: BaseHTTPRequestHandler) -> str:
 
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
+
+
+def utc_now_iso() -> str:
+    # UTC with a trailing "Z", matching the frontend's new Date().toISOString().
+    # Use this for timestamps the frontend sorts/compares against client-side
+    # timestamps; plain now_iso() is naive local time and mis-sorts across the two.
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def new_id(prefix: str) -> str:
@@ -3979,9 +3986,9 @@ class Handler(BaseHTTPRequestHandler):
                 quote.update(quote_payload)
                 quote.pop("ocrText", None)
                 quote.pop("ocrError", None)
-                quote.setdefault("createdAt", now)
+                quote.setdefault("createdAt", utc_now_iso())
             else:
-                quote_payload["createdAt"] = now
+                quote_payload["createdAt"] = utc_now_iso()
                 state.setdefault("quotes", []).insert(0, quote_payload)
 
             state = save_state(conn, user["id"], state)

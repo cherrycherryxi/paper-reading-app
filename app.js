@@ -1210,7 +1210,7 @@ function renderQuotes() {
       ].join(" ").toLowerCase();
       return haystack.includes(searchRaw);
     })
-    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    .sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));
 
   if (!quotes.length) {
     els.quotesList.className = "quote-list empty-state";

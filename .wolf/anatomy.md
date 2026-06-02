@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-01T19:16:58.562Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T04:44:29.860Z
 > Files: 84 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -40,8 +40,8 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~55424 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~55538 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~38985 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
 - `index.html` — 🐛 又买了一本书 (~9409 tok)
@@ -113,7 +113,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~1838 tok)
+- `backlog.md` — Optimization Backlog (~2249 tok)
 - `explore.md` — Exploration — new optimization directions (~6654 tok)
 - `triage.md` — Triage (~1011 tok)
 

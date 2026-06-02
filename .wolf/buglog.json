@@ -3197,6 +3197,42 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-01T19:16:37.154Z"
+    },
+    {
+      "id": "bug-188",
+      "timestamp": "2026-06-02T04:42:22.539Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/backlog.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T04:42:22.539Z"
+    },
+    {
+      "id": "bug-189",
+      "timestamp": "2026-06-02T04:46:35Z",
+      "error_message": "OCR 自动识别的摘抄卡片在卡片墙里总是排在手动卡前面（OPT-014）",
+      "file": "app_server.py, app.js",
+      "root_cause": "createdAt 格式不一致 + 朴素字符串排序。后端 OCR 卡用 now_iso()=datetime.now().isoformat() 写 naive 本地时间(无Z)，前端手动卡用 new Date().toISOString() 写 UTC 带Z。renderQuotes() 用 localeCompare 做字符串比较；东八区服务器本地时间字符串字面比同时刻 UTC 串大~8小时，OCR 卡恒排前。",
+      "fix": "后端新增 utc_now_iso()(UTC带Z)，OCR 建卡 createdAt 改用它(app_server.py:3984)；前端排序改为 Date.parse 比较 epoch(app.js:1213)。",
+      "tags": [
+        "sorting",
+        "timezone",
+        "ocr",
+        "quotes",
+        "frontend",
+        "backend",
+        "OPT-014"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T04:46:35Z"
     }
   ]
 }
