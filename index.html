@@ -460,8 +460,9 @@
             选择照片 / 拍照
             <input type="file" id="quoteImageInput" accept="image/*" />
           </label>
-          <button class="button button-ghost" id="ocrButton" type="button">识别图片文字</button>
-          <span id="ocrStatus" class="helper-text">将调用默认模型识别图片内容。</span>
+          <button class="button button-ghost" id="ocrButton" type="button">快速识别</button>
+          <button class="button button-ghost" id="aiOcrButton" type="button">AI 精识别</button>
+          <span id="ocrStatus" class="helper-text">「快速识别」秒出整页全文；「AI 精识别」只提取划线/标记的句子，更准、稍慢。</span>
         </div>
         <div id="quoteImagePreview" class="image-preview is-hidden"><img id="quotePreviewImg" alt="摘抄图片预览" /></div>
         <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>

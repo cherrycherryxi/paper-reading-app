@@ -469,6 +469,19 @@ test("new quote button clears previous draft while preserving last selected book
   assert.equal(hooks.els.quoteDialog.open, true, "new quote dialog should open");
 });
 
+test("regression: lastQuoteBookId is remembered on OCR-created quotes too (not gated on !existingId)", () => {
+  // OCR assigns the draft a real id mid-session, so addQuote must decide whether
+  // to remember the book by an explicit new-vs-edit flag, NOT by existingId —
+  // otherwise OCR-entered quotes silently stop prefilling the next 新增's book.
+  assert.match(appSource, /let quoteDialogIsNew = false;/);
+  assert.match(appSource, /if \(quoteDialogIsNew\) lastQuoteBookId = bookId;/);
+  // new-quote entry points arm the flag; editQuote disarms it
+  assert.match(appSource, /function openNewQuoteForBook\([^)]*\)\s*\{[\s\S]*?quoteDialogIsNew = true;/);
+  assert.match(appSource, /function editQuote\([^)]*\)\s*\{[\s\S]*?quoteDialogIsNew = false;/);
+  // the old, buggy gate must be gone
+  assert.doesNotMatch(appSource, /if \(!existingId\) lastQuoteBookId = bookId;/);
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 // chat.js VM tests
 // ════════════════════════════════════════════════════════════════════════════════

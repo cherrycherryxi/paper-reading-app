@@ -120,6 +120,7 @@ const els = {
   quoteImagePreview: document.querySelector("#quoteImagePreview"),
   quotePreviewImg: document.querySelector("#quotePreviewImg"),
   ocrButton: document.querySelector("#ocrButton"),
+  aiOcrButton: document.querySelector("#aiOcrButton"),
   ocrStatus: document.querySelector("#ocrStatus"),
   heroBooks: document.querySelector("#heroBooks"),
   heroMinutes: document.querySelector("#heroMinutes"),
@@ -157,6 +158,11 @@ let pendingBookImage = null;
 let pendingBookEditImage = null;
 let pendingQuoteImage = null;
 let lastQuoteBookId = "";
+// Whether the open quote dialog is for a brand-new quote (vs editing an
+// existing one). OCR assigns the draft a real id mid-session, so existingId
+// alone can't tell "new" from "edit" — track it explicitly so we still
+// remember the book for the next 新增 (see addQuote / lastQuoteBookId).
+let quoteDialogIsNew = false;
 let selectedQuoteTags = [];
 const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
 let toastTimer = null;
@@ -366,14 +372,22 @@ function dispatchUserChange() {
  */
 async function withSavingState(btn, savingLabel = "保存中…", fn) {
   if (!btn) return fn();
-  const originalText = btn.textContent;
+  // Re-entrancy guard: a disabled button means a save is already in flight.
+  // A disabled submit button does NOT block a second form submit via the Enter
+  // key, so without this guard a double-submit can run two overlapping
+  // withSavingState calls — the second captures the live "保存中…" text as its
+  // "original" and restores to it, wedging the button permanently.
+  if (btn.disabled) return;
+  // Capture the true idle label once (from the HTML default) and reuse it, so
+  // restore can never get stuck on a transient label.
+  if (!btn.dataset.idleLabel) btn.dataset.idleLabel = btn.textContent;
   btn.disabled = true;
   btn.textContent = savingLabel;
   try {
     await fn();
   } finally {
     btn.disabled = false;
-    btn.textContent = originalText;
+    btn.textContent = btn.dataset.idleLabel;
   }
 }
 
@@ -2018,6 +2032,7 @@ function goToQuoteChat(quoteId) {
 function openNewQuoteForBook(bookId) {
   if (!requireAuth("新增摘抄")) return;
   activateTab("quote");
+  quoteDialogIsNew = true;
   document.getElementById("quoteId").value = "";
   els.quoteForm.querySelector('[name="bookId"]').value = bookId;
   document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(bookId);
@@ -2050,6 +2065,7 @@ function editQuote(quoteId) {
   if (!requireAuth("编辑摘抄")) return;
   const quote = state.quotes.find((q) => q.id === quoteId);
   if (!quote) return;
+  quoteDialogIsNew = false;
   document.getElementById("quoteId").value = quote.id;
   els.quoteForm.querySelector('[name="bookId"]').value = quote.bookId;
   document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(quote.bookId);
@@ -2566,7 +2582,9 @@ async function addQuote(formData) {
     });
   }
 
-  if (!existingId) lastQuoteBookId = bookId;
+  // Remember the book for the next 新增 whenever this was a new-quote session —
+  // even if OCR gave the draft a real id (which would make existingId truthy).
+  if (quoteDialogIsNew) lastQuoteBookId = bookId;
   closeDialog(els.quoteDialog);
   resetQuoteDraft();
   renderHero();
@@ -2903,8 +2921,9 @@ async function handleQuoteImageChange(file) {
   }).catch(() => {});
 }
 
-async function runOcrFromImage() {
+async function runOcrFromImage(engine = "fast") {
   if (!requireAuth("执行 OCR")) return;
+  const isAi = engine === "ai";
   const bookId = String(els.quoteForm.querySelector('[name="bookId"]')?.value || "").trim();
   if (!bookId) {
     showToast("先选择一本书");
@@ -2919,7 +2938,8 @@ async function runOcrFromImage() {
   }
 
   els.ocrButton.disabled = true;
-  els.ocrStatus.textContent = "正在保存图片草稿…";
+  if (els.aiOcrButton) els.aiOcrButton.disabled = true;
+  els.ocrStatus.textContent = isAi ? "正在 AI 识别划线句…" : "正在快速识别整页…";
   try {
     let dataUrl = pendingQuoteImage?.dataUrl || "";
     if (!dataUrl && pendingQuoteImage?.compressionPromise) {
@@ -2939,6 +2959,7 @@ async function runOcrFromImage() {
         body: JSON.stringify({
           quoteId: existingQuoteId,
           bookId,
+          engine,
           page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
           kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
           content: requestContent,
@@ -2962,8 +2983,19 @@ async function runOcrFromImage() {
       els.quoteForm.dataset.ocrBaseContent = requestContent;
     }
     if (quote?.imageUrl) {
-      if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
-      pendingQuoteImage = { name: "existing-quote-image", savedUrl: quote.imageUrl, dataUrl: null, objectUrl: "", ocrSource: quote.ocrSource || "后端 OCR" };
+      // Keep the known-good local blob (objectUrl) as the preview — switching the
+      // <img> to the freshly-saved server URL here can make the photo appear to
+      // vanish if that URL doesn't load yet. Just record savedUrl and drop the
+      // local dataUrl/compressionPromise so the eventual save reuses the
+      // already-uploaded image instead of re-uploading it.
+      pendingQuoteImage = {
+        name: "existing-quote-image",
+        savedUrl: quote.imageUrl,
+        dataUrl: null,
+        compressionPromise: null,
+        objectUrl: pendingQuoteImage?.objectUrl || "",
+        ocrSource: quote.ocrSource || (isAi ? "后端 OCR" : "本地 OCR (Tesseract)"),
+      };
       renderImagePreview();
     }
     renderHero();
@@ -2971,16 +3003,36 @@ async function runOcrFromImage() {
     renderQuotes();
     if (isTabActive("connections")) renderConnections();
     if (isTabActive("books")) renderBooks();
-    scheduleOcrStatusRefresh();
-    await loadRemoteLogs();
-    els.ocrStatus.textContent = "已开始后台识别，可以继续编辑我的理解。";
-    showToast("已开始后台识别，可以继续编辑");
+
+    if (data.status === "pending") {
+      // AI path: result lands asynchronously, poll for it.
+      scheduleOcrStatusRefresh();
+      await loadRemoteLogs();
+      els.ocrStatus.textContent = "已开始 AI 识别划线句，可以继续编辑我的理解。";
+      showToast("已开始 AI 识别划线句，可以继续编辑");
+    } else {
+      // Fast path: text is already in the response — fill it in synchronously.
+      const recognized = String(data.recognizedText || quote?.content || "");
+      const currentVal = normalizeOcrText(els.quoteContent.value);
+      if (recognized && (!currentVal || currentVal === requestContent)) {
+        els.quoteContent.value = recognized;
+      }
+      await loadRemoteLogs();
+      if (data.status === "done" && recognized) {
+        els.ocrStatus.textContent = "整页识别完成，可继续编辑；只想要划线句可点「AI 精识别」。";
+        showToast("整页识别完成");
+      } else {
+        els.ocrStatus.textContent = data.message || "未识别到文字，可点「AI 精识别」试试。";
+        showToast(data.message || "未识别到文字，可试试 AI 精识别");
+      }
+    }
   } catch (error) {
-    els.ocrStatus.textContent = `启动识别失败：${error.message}`;
+    els.ocrStatus.textContent = `${isAi ? "AI 识别" : "快速识别"}失败：${error.message}`;
     showToast(error.message);
     await loadRemoteLogs();
   } finally {
     els.ocrButton.disabled = false;
+    if (els.aiOcrButton) els.aiOcrButton.disabled = false;
   }
 }
 
@@ -3384,6 +3436,7 @@ function bindEvents() {
   els.openQuoteDialogBtn?.addEventListener("click", () => {
     if (!requireAuth("新增摘抄")) return;
     resetQuoteDraft();
+    quoteDialogIsNew = true;
     document.getElementById("quoteId").value = "";
     if (lastQuoteBookId) {
       els.quoteForm.querySelector('[name="bookId"]').value = lastQuoteBookId;
@@ -3592,7 +3645,8 @@ function bindEvents() {
       });
     });
   });
-  els.ocrButton?.addEventListener("click", runOcrFromImage);
+  els.ocrButton?.addEventListener("click", () => runOcrFromImage("fast"));
+  els.aiOcrButton?.addEventListener("click", () => runOcrFromImage("ai"));
 
   els.quotesList?.addEventListener("click", (event) => {
     const editBtn = event.target.closest("[data-edit-quote]");

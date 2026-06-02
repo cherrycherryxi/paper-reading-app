@@ -92,7 +92,7 @@ test("regression: quote OCR can start from an image-only draft", () => {
     "Quote content textarea must allow image-only drafts"
   );
   assert.match(appSource, /apiFetch\(\s*["']\/api\/quotes\/ocr["']/);
-  assert.match(appSource, /showToast\("已开始后台识别，可以继续编辑"\)/);
+  assert.match(appSource, /showToast\("已开始 AI 识别划线句，可以继续编辑"\)/);
   assert.match(appSource, /function scheduleOcrStatusRefresh\(/);
 });
 
