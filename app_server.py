@@ -9,16 +9,20 @@ import json
 import secrets
 import socket
 import sqlite3
+import statistics
+import subprocess
+import tempfile
 import time
 import threading
 import traceback
 import uuid
 import os
+import shutil
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from mcp_dispatcher import MCPToolDispatcher
@@ -37,6 +41,20 @@ BUILD_VERSION = "20260529a"
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
 MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
+# Cloud OCR for the "快速识别" fast path (OPT-016 mid-term): commercial-grade
+# Chinese OCR via Baidu 通用文字识别·高精度版 (accurate_basic). Same urllib
+# pattern as the Kimi call — no new deps. When no key is configured the fast
+# path transparently falls back to local Tesseract (see _resolve_fast_engine).
+CLOUD_OCR_PROVIDER = os.getenv("CLOUD_OCR_PROVIDER", "baidu").lower()
+BAIDU_OCR_API_KEY = os.getenv("BAIDU_OCR_API_KEY", "")
+BAIDU_OCR_SECRET_KEY = os.getenv("BAIDU_OCR_SECRET_KEY", "")
+# accurate = 高精度含位置版 (returns per-line location, lets us drop facing-page
+# noise and reflow wrapped lines). accurate_basic = no location (cheaper free
+# quota but layout can't be cleaned). Override if you'd rather use _basic.
+BAIDU_OCR_ENDPOINT = os.getenv("BAIDU_OCR_ENDPOINT", "accurate")
+# auto = cloud if a key is configured else tesseract; or force cloud|tesseract.
+FAST_OCR_ENGINE = os.getenv("FAST_OCR_ENGINE", "auto").lower()
+CLOUD_OCR_TIMEOUT_SECONDS = int(os.getenv("CLOUD_OCR_TIMEOUT_SECONDS", "12"))
 # ADMIN_TOKEN gates /debug/* HTML viewers. When empty, the pages are open;
 # set this in production via env so only operators can see error logs.
 AUTH_TOKEN = os.getenv("ADMIN_TOKEN", "")
@@ -854,6 +872,221 @@ def call_ocr_with_fallback(image_data_url: str, trace_event=None) -> OcrExtracti
     rescue_text = normalize_ocr_text(rescue_result.text or rescue_output)
     emit("OCR_RESCUE_PARSED", {"textChars": len(rescue_text)})
     return OcrExtractionResult(rescue_text, rescue_result.tags, rescue_result.structured)
+
+
+# Tesseract language data to load. Default is chi_sim ONLY: adding +eng poisons
+# Simplified-Chinese book pages — the LSTM engine fits Latin glyphs onto Chinese
+# strokes and the whole page collapses into Latin gibberish (see buglog bug-OCR-eng).
+# chi_sim's traineddata already covers embedded digits/page numbers adequately.
+# Override via env TESSERACT_LANGS if a page is genuinely Latin-heavy.
+TESSERACT_LANGS = os.getenv("TESSERACT_LANGS", "chi_sim")
+TESSERACT_TIMEOUT_SECONDS = 15
+
+
+class TesseractUnavailable(Exception):
+    """Raised when the tesseract binary is not installed/usable. The fast OCR
+    path degrades to a friendly 'use AI 精识别 instead' message rather than 500."""
+
+
+def call_tesseract_ocr(image_data_url: str, trace_event=None) -> OcrExtractionResult:
+    """Fast, non-LLM OCR via the local `tesseract` CLI (stdlib subprocess, no
+    Python dependency). Returns plain text only; Tesseract produces no tags."""
+    def emit(event_type: str, metadata: dict) -> None:
+        if trace_event:
+            trace_event(event_type, metadata)
+
+    if shutil.which("tesseract") is None:
+        emit("TESSERACT_UNAVAILABLE", {})
+        raise TesseractUnavailable("tesseract 未安装")
+
+    binary, _mime = decode_data_url(image_data_url)
+    started_at = time.perf_counter()
+    emit("TESSERACT_STARTED", {"langs": TESSERACT_LANGS, "bytes": len(binary)})
+    tmp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".img", delete=False) as tmp:
+            tmp.write(binary)
+            tmp_path = tmp.name
+        try:
+            completed = subprocess.run(
+                ["tesseract", tmp_path, "stdout", "-l", TESSERACT_LANGS, "--psm", "6"],
+                capture_output=True,
+                timeout=TESSERACT_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as error:
+            emit("TESSERACT_TIMEOUT", {"timeoutSeconds": TESSERACT_TIMEOUT_SECONDS})
+            raise TesseractUnavailable("tesseract 识别超时") from error
+        if completed.returncode != 0:
+            stderr = completed.stderr.decode("utf-8", "replace").strip()
+            emit("TESSERACT_FAILED", {"returncode": completed.returncode, "stderr": stderr[:300]})
+            raise TesseractUnavailable(f"tesseract 退出码 {completed.returncode}")
+        text = normalize_ocr_text(completed.stdout.decode("utf-8", "replace"))
+        emit(
+            "TESSERACT_FINISHED",
+            {"latencyMs": int((time.perf_counter() - started_at) * 1000), "textChars": len(text)},
+        )
+        return OcrExtractionResult(text, [], False)
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+
+class CloudOcrUnavailable(Exception):
+    """Cloud OCR is not usable (no key / auth failure / network / quota error).
+    The fast path catches this and falls back to local Tesseract."""
+
+
+# Baidu access_token is valid ~30 days; cache it in-process and refresh lazily
+# with a 5-minute safety margin so we don't pay the OAuth round-trip per image.
+_baidu_token_cache = {"token": "", "expires_at": 0.0}
+
+
+def _baidu_access_token() -> str:
+    now = time.time()
+    if _baidu_token_cache["token"] and now < _baidu_token_cache["expires_at"]:
+        return _baidu_token_cache["token"]
+    if not (BAIDU_OCR_API_KEY and BAIDU_OCR_SECRET_KEY):
+        raise CloudOcrUnavailable("百度 OCR 未配置 API Key/Secret Key")
+    url = (
+        "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials"
+        f"&client_id={BAIDU_OCR_API_KEY}&client_secret={BAIDU_OCR_SECRET_KEY}"
+    )
+    try:
+        with urlopen(Request(url, method="POST"), timeout=CLOUD_OCR_TIMEOUT_SECONDS) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, socket.timeout) as error:
+        raise CloudOcrUnavailable(f"百度 token 请求失败: {error}") from error
+    token = data.get("access_token")
+    if not token:
+        raise CloudOcrUnavailable(f"百度 token 获取失败: {data.get('error_description', data)}")
+    expires_in = min(int(data.get("expires_in", 2592000)), 2592000)
+    _baidu_token_cache["token"] = token
+    _baidu_token_cache["expires_at"] = now + expires_in - 300
+    return token
+
+
+def _assemble_baidu_lines(words_result: list) -> str:
+    """Turn Baidu words_result (per-line, with optional `location`) into clean
+    continuous text for a 摘抄 quote:
+      1. drop secondary-column noise — e.g. the facing page captured at the
+         right edge of a phone photo shows up as narrow fragments far to the
+         right, interleaved with the real lines;
+      2. reflow physically-wrapped lines into flowing text (Chinese has no
+         inter-word spaces, so a mid-paragraph line break should vanish), only
+         inserting a paragraph break when there's a large vertical gap.
+    Falls back to a plain newline join when no location geometry is present
+    (e.g. the accurate_basic endpoint)."""
+    items = [w for w in words_result if str(w.get("words", "")).strip()]
+    if not items:
+        return ""
+    located = [w for w in items if isinstance(w.get("location"), dict)]
+    if len(located) < len(items):
+        # No / partial geometry: can't filter or reflow safely — preserve lines.
+        return "\n".join(str(w.get("words", "")) for w in items)
+
+    widths = [w["location"]["width"] for w in located]
+    page_width = max(w["location"]["left"] + w["location"]["width"] for w in located)
+    med_width = statistics.median(widths)
+
+    def _is_secondary_column(loc: dict) -> bool:
+        # A narrow fragment that starts in the right half of the page is almost
+        # always a different column (facing page), not part of the body text.
+        return loc["left"] > page_width * 0.5 and loc["width"] < med_width * 0.5
+
+    kept = [w for w in located if not _is_secondary_column(w["location"])]
+    kept.sort(key=lambda w: w["location"]["top"])
+
+    heights = [w["location"]["height"] for w in kept]
+    med_height = statistics.median(heights) if heights else 0
+    parts: list[str] = []
+    prev_bottom = None
+    for w in kept:
+        loc = w["location"]
+        if prev_bottom is not None and med_height and (loc["top"] - prev_bottom) > med_height * 0.8:
+            parts.append("\n\n")  # large vertical gap → genuine paragraph break
+        parts.append(str(w.get("words", "")))
+        prev_bottom = loc["top"] + loc["height"]
+    return "".join(parts)
+
+
+def call_cloud_ocr(image_data_url: str, trace_event=None) -> OcrExtractionResult:
+    """Commercial-grade Chinese OCR for the fast path via Baidu (accurate by
+    default, which returns per-line location so _assemble_baidu_lines can drop
+    facing-page noise and reflow wrapped lines). Raises CloudOcrUnavailable on
+    any failure so the caller can fall back to Tesseract. Plain text only."""
+    def emit(event_type: str, metadata: dict) -> None:
+        if trace_event:
+            trace_event(event_type, metadata)
+
+    if CLOUD_OCR_PROVIDER != "baidu":
+        raise CloudOcrUnavailable(f"未实现的云 OCR provider: {CLOUD_OCR_PROVIDER}")
+
+    binary, _mime = decode_data_url(image_data_url)
+    token = _baidu_access_token()
+    body = urlencode({"image": base64.b64encode(binary).decode("ascii")}).encode("ascii")
+    request = Request(
+        f"https://aip.baidubce.com/rest/2.0/ocr/v1/{BAIDU_OCR_ENDPOINT}?access_token={token}",
+        method="POST",
+        data=body,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    started_at = time.perf_counter()
+    emit("CLOUD_OCR_STARTED", {"provider": "baidu", "bytes": len(binary)})
+    try:
+        with urlopen(request, timeout=CLOUD_OCR_TIMEOUT_SECONDS) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, socket.timeout) as error:
+        emit("CLOUD_OCR_FAILED", {"error": str(error)})
+        raise CloudOcrUnavailable(f"百度 OCR 请求失败: {error}") from error
+    if "error_code" in data:
+        # e.g. 17/19 quota exhausted, 110 invalid token, 216201 invalid image.
+        emit("CLOUD_OCR_FAILED", {"errorCode": data.get("error_code"), "errorMsg": data.get("error_msg", "")})
+        raise CloudOcrUnavailable(f"百度 OCR 错误 {data.get('error_code')}: {data.get('error_msg', '')}")
+    text = normalize_ocr_text(_assemble_baidu_lines(data.get("words_result", [])))
+    emit(
+        "CLOUD_OCR_FINISHED",
+        {"latencyMs": int((time.perf_counter() - started_at) * 1000), "textChars": len(text)},
+    )
+    return OcrExtractionResult(text, [], False)
+
+
+def _resolve_fast_engine() -> list[tuple[str, str]]:
+    """Ordered (engine_key, ocrSource_label) chain for the fast OCR path.
+    Cloud is tried first when available; Tesseract is the offline fallback."""
+    cloud_configured = CLOUD_OCR_PROVIDER == "baidu" and BAIDU_OCR_API_KEY and BAIDU_OCR_SECRET_KEY
+    if FAST_OCR_ENGINE == "tesseract":
+        return [("tesseract", "本地 OCR (Tesseract)")]
+    if FAST_OCR_ENGINE == "cloud":
+        return [("cloud", "云 OCR (百度)")]
+    # auto
+    chain: list[tuple[str, str]] = []
+    if cloud_configured:
+        chain.append(("cloud", "云 OCR (百度)"))
+    chain.append(("tesseract", "本地 OCR (Tesseract)"))
+    return chain
+
+
+def run_fast_ocr(image_data_url: str, trace_event=None) -> tuple[OcrExtractionResult, str]:
+    """Run the fast OCR engine chain, returning (result, ocrSource_label).
+    Tries each engine in order; a CloudOcrUnavailable falls through to the next.
+    Re-raises the last error only if every engine in the chain fails."""
+    chain = _resolve_fast_engine()
+    last_error: Exception | None = None
+    for engine_key, label in chain:
+        try:
+            if engine_key == "cloud":
+                return call_cloud_ocr(image_data_url, trace_event=trace_event), label
+            return call_tesseract_ocr(image_data_url, trace_event=trace_event), label
+        except (CloudOcrUnavailable, TesseractUnavailable) as error:
+            last_error = error
+            if trace_event:
+                trace_event("FAST_OCR_ENGINE_FALLBACK", {"engine": engine_key, "error": str(error)})
+            continue
+    raise last_error if last_error else TesseractUnavailable("无可用的快速 OCR 引擎")
+
 
 def throttle_kimi_vision_request() -> None:
     global KIMI_VISION_LAST_REQUEST_AT
@@ -4002,6 +4235,85 @@ class Handler(BaseHTTPRequestHandler):
                     "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
                 },
             )
+            engine = str(payload.get("engine", "fast") or "fast").lower()
+            if engine != "ai":
+                # Fast path: synchronous local Tesseract OCR — no LLM, no polling.
+                def _fast_trace(event_type, metadata):
+                    trace_manager.log_event(
+                        conn, trace_id, event_type,
+                        {**metadata, "elapsedMs": int((time.perf_counter() - request_started_at) * 1000)},
+                    )
+
+                target_quote = next((q for q in state.get("quotes", []) if q.get("id") == quote_id), None)
+                ocr_source = "快速识别"
+                try:
+                    result, ocr_source = run_fast_ocr(data_url, trace_event=_fast_trace)
+                    cleaned = result.text
+                    if target_quote is not None:
+                        current = str(target_quote.get("content") or "")
+                        if cleaned and (not current.strip() or current == content_text):
+                            target_quote["content"] = cleaned
+                            target_quote.pop("ocrText", None)
+                        elif cleaned:
+                            target_quote["ocrText"] = cleaned
+                        target_quote["ocrStatus"] = "done" if cleaned else "failed"
+                        target_quote["ocrSource"] = ocr_source
+                        target_quote["ocrUpdatedAt"] = utc_now_iso()
+                        if cleaned:
+                            target_quote.pop("ocrError", None)
+                        else:
+                            target_quote["ocrError"] = "未识别到有效正文，可改用 AI 精识别"
+                    state = save_state(conn, user["id"], state)
+                    latency_ms = int((time.perf_counter() - request_started_at) * 1000)
+                    trace_manager.update_trace(
+                        conn, trace_id,
+                        status=AGENT_STATUS_OK if cleaned else AGENT_STATUS_ERROR,
+                        latency_ms=latency_ms, output_tokens=estimate_tokens(cleaned),
+                        error_message="" if cleaned else "未识别到有效正文",
+                    )
+                    fast_model = "baidu:accurate_basic" if ocr_source.startswith("云") else f"tesseract:{TESSERACT_LANGS}"
+                    append_log(
+                        conn, user_id=user["id"], username=user["username"], type_="ocr",
+                        model=fast_model, prompt="fast-ocr",
+                        input_=f"quote:{quote_id}:image:data-url",
+                        output=json.dumps({"text": cleaned}, ensure_ascii=False),
+                        trace_id=trace_id, latency_ms=latency_ms,
+                        output_tokens=estimate_tokens(cleaned),
+                        parse_status="success" if cleaned else "empty",
+                    )
+                    conn.close()
+                    self._send_json(
+                        {"state": state, "quoteId": quote_id,
+                         "status": "done" if cleaned else "failed",
+                         "recognizedText": cleaned, "ocrSource": ocr_source,
+                         "traceId": trace_id},
+                        200,
+                    )
+                    return
+                except Exception as error:
+                    # All fast engines failed (no key + tesseract missing/timeout):
+                    # keep the draft, nudge to AI.
+                    if target_quote is not None:
+                        target_quote["ocrStatus"] = "failed"
+                        target_quote["ocrSource"] = ocr_source
+                        target_quote["ocrUpdatedAt"] = utc_now_iso()
+                        target_quote["ocrError"] = str(error)
+                    state = save_state(conn, user["id"], state)
+                    trace_manager.update_trace(
+                        conn, trace_id, status=AGENT_STATUS_ERROR,
+                        latency_ms=int((time.perf_counter() - request_started_at) * 1000),
+                        error_message=str(error),
+                    )
+                    conn.close()
+                    self._send_json(
+                        {"state": state, "quoteId": quote_id, "status": "failed",
+                         "recognizedText": "", "error": "fast_ocr_failed",
+                         "message": f"快速识别失败（{error}），请改用 AI 精识别。",
+                         "traceId": trace_id},
+                        200,
+                    )
+                    return
+
             conn.close()
             start_background_ocr(
                 _run_quote_ocr_job,
