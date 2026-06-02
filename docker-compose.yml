@@ -14,6 +14,13 @@ services:
       # — Required for AI features —
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
+      # — Cloud OCR for the fast 快速识别 path (OPT-016); without these it
+      #   falls back to local Tesseract automatically —
+      BAIDU_OCR_API_KEY: ${BAIDU_OCR_API_KEY:-}
+      BAIDU_OCR_SECRET_KEY: ${BAIDU_OCR_SECRET_KEY:-}
+      FAST_OCR_ENGINE: ${FAST_OCR_ENGINE:-auto}
+      # accurate (默认, 含位置, 可清洗排版) | accurate_basic (省额度, 无位置)
+      BAIDU_OCR_ENDPOINT: ${BAIDU_OCR_ENDPOINT:-accurate}
       # — Public URL embedded in password-reset emails —
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://example.com}
       # — Optional SMTP for transactional email —
