@@ -1010,3 +1010,6 @@
 | 19:34 | Edited tests/frontend/regression-fixed-bugs.test.js | modified openNewQuoteForBook() | ~303 |
 | 19:35 | 修回归：第二次新增摘抄自动填充上次书籍（OCR赋id使旧!existingId判据失效→改用quoteDialogIsNew标志） | app.js, tests/frontend/regression-fixed-bugs.test.js | 修复，56 tests pass | ~5k |
 | 19:36 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
+| 19:41 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
+| 20:06 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
+| 22:30 | Created ../../.claude/daily-logs/2026-06-02.md | — | ~439 |
