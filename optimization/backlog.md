@@ -75,7 +75,7 @@ Format per item:
 - how: 在 app_server.py:2427 将 `dimensions = json.loads(row["dimensions"])` 包裹在 try/except json.JSONDecodeError 块中，except 分支 `continue`，可选择额外调用 logging.warning()。无 schema 变更，无接口变更。Touch: app_server.py:2401-2435
 
 ### OPT-009 — _read_json() 读取请求体无大小上限，恶意 Content-Length 可撑爆服务器内存
-- status: triaged
+- status: done
 - area: backend
 - description: _read_json() 在 app_server.py:2899-2902 直接以 Content-Length 头的值调用 self.rfile.read(content_length)，无上限检查。所有 POST 端点（含接收 base64 图片的 /api/upload-image、/api/quotes/ocr）均受影响。攻击者发送 Content-Length: 2000000000 可导致进程尝试分配 2GB 并阻塞读取，使其他用户的请求全部挂起。
 - why: ThreadingHTTPServer 在默认部署下无反向代理保护，单个恶意请求即可使整个服务不可用。修复仅需定义 MAX_REQUEST_BYTES 常量（~20MB）并在读取前返回 413，三行代码，零逻辑变更。
@@ -89,14 +89,14 @@ Format per item:
 - how: 新增 _run_gc() 函数调用全部四个 GC 方法（每次用新 conn）；在 main() 中用 threading.Timer 或 threading.Thread（daemon=True）以 6 小时间隔循环调用。无 schema 变更，无逻辑变更。Touch: app_server.py:1019-1513, 4631-4638
 
 ### OPT-012 — call_deepseek() 无重试逻辑，临时 429/502 静默失败三条关键路径
-- status: new
+- status: triaged
 - area: backend
 - description: call_deepseek()（app_server.py:2703）遇到任何 HTTPError / URLError 即直接抛出，没有重试。该函数被三处生产路径调用：(a) 流式 stream_finish_reason != "stop" 后的非流式 fallback（line 4101）；(b) Kimi vision 失败后的 OCR DeepSeek 备线（line 1821）；(c) 对话历史压缩（line 1826）。DeepSeek API 在高负载下偶发 429、502，三条路径均会静默失败并向用户报错。
 - why: call_kimi_vision() 已有 KIMI_VISION_MAX_ATTEMPTS=2 的重试逻辑（line 2794, 2835-2850），同一项目内已有可复用的模式。对话历史压缩失败会静默截断上下文，影响最活跃用户的 AI 质量。添加指数退避重试（最多 2 次，重试码 429/500/502/503）几乎不增加正常路径延迟。
 - how: 在 call_deepseek() 增加 retries 参数（默认 2），捕获到可重试的 HTTPError 时 sleep(1) 后重试；或提取为 _retryable_deepseek_call() wrapper 复用。参照 call_kimi_vision() 的 attempt 循环实现。Touch: app_server.py:2703-2731；调用方 line 1821, 1826, 4101 无需改动。
 
 ### OPT-013 — 按钮缺少 :focus-visible 样式，键盘用户无法看到焦点位置（WCAG 违规）
-- status: new
+- status: triaged
 - area: frontend
 - description: styles.css 对 input/select/textarea 有 :focus 样式（line 533），但全部 30+ 个按钮选择器（.circle-action、.icon-btn、.tag-chip-pick、.filter-chip、.me-list-btn 等）均无 :focus 或 :focus-visible 规则。styles.css 3451 行中 :focus-visible 出现 0 次。使用键盘（Tab 键）导航的用户看不到任何焦点指示器。
 - why: WCAG 2.1 SC 2.4.7（Focus Visible，Level AA）要求所有可键盘操作元素有可见焦点指示器。这是商业化产品的基线无障碍合规要求。修复仅需 3 行 CSS，风险极低，影响所有按钮。
@@ -110,7 +110,7 @@ Format per item:
 - how: 新增 _send_security_headers() 辅助方法，在 do_GET() 静态 HTML 响应路径调用；可选择将 CORS 限制为 ALLOWED_ORIGINS 环境变量而非无条件 *。Touch: app_server.py:2890-2909, 2995-3005
 
 ### OPT-014 — 自动识别的摘抄卡片总是排在前面（已定位为排序 bug）
-- status: in-progress
+- status: done
 - area: frontend + backend
 - description: （owner 提出）OCR 自动识别生成的摘抄卡片在列表里总是排在最前面，挤掉手动添加的摘抄。
 - root cause: createdAt 格式不一致 + 朴素字符串排序。OCR 自动卡由后端 now_iso()（app_server.py:264 = datetime.now().isoformat()）写入 **naive 本地时间、无 Z**（如 `2026-06-02T12:38:54`）；手动卡由前端 new Date().toISOString()（app.js:2565）写入 **UTC 带 Z**（如 `2026-06-02T04:38:55.059Z`）。renderQuotes() 排序（app.js:1213）用 (b.createdAt).localeCompare(a.createdAt) 做字符串比较。服务器东八区，OCR 卡本地时间字符串字面比同一时刻手动卡的 UTC 字符串大 ~8 小时，恒排在前——即便手动卡更晚创建，只要在 ~8h 内也被压下。
@@ -118,7 +118,7 @@ Format per item:
 - how: 两处都改——(1) 后端建 OCR 卡处（app_server.py:3984）的 createdAt 改用 UTC 带 Z，与前端对齐（不动全局 now_iso() 以免影响 session/限速/日报 today_prefix 等）；(2) 前端排序（app.js:1213）改为解析后比较 epoch：new Date(b.createdAt) - new Date(a.createdAt)，作为防御性加固。已存旧 OCR 卡的 naive 时间戳无法回溯真实时区，自然老化。
 
 ### OPT-015 — 摘抄卡面内容难以分辨，UI 优化
-- status: new
+- status: triaged
 - area: frontend
 - description: （owner 提出）摘抄卡片正面的内容（摘抄文字 / 图片 / 元信息）辨识度不够，需要在 UI 上做优化，提升可读性与层次。
 - why: 摘抄是核心内容，卡面读不清直接影响主体验；对比度、字号、留白、图文层次等都可能是问题点。
