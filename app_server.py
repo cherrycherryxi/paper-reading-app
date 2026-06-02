@@ -113,6 +113,10 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_PRICE_PLUS = os.getenv("STRIPE_PRICE_PLUS", "")  # price_xxx id for Plus subscription
 STRIPE_API_BASE = "https://api.stripe.com/v1"
 
+# Hard cap on request body size. Prevents a malicious Content-Length header
+# (e.g. 2 GB) from blocking all threads while the server attempts the read.
+MAX_REQUEST_BYTES = 20 * 1024 * 1024  # 20 MB
+
 # Per-plan limits. _rate_limit_for(endpoint, plan) reads this; free is the
 # default for any new user. `book_cap = 0` means unlimited.
 PLAN_LIMITS = {
@@ -201,6 +205,10 @@ ACTION_STATUS_EXECUTED = "EXECUTED"
 ACTION_STATUS_FAILED = "FAILED"
 METRIC_KIND_COUNTER = "counter"
 METRIC_KIND_GAUGE = "gauge"
+
+class _RequestTooLarge(Exception):
+    """Raised by _read_json() after a 413 has already been written."""
+
 
 @dataclass
 class ValidationResult:
@@ -2862,6 +2870,8 @@ class Handler(BaseHTTPRequestHandler):
         server_errors table instead of bubbling up to a torn connection."""
         try:
             super().handle_one_request()
+        except _RequestTooLarge:
+            pass  # 413 already written; no further action needed
         except Exception as exc:
             method = getattr(self, "command", "") or ""
             path = getattr(self, "path", "") or ""
@@ -2925,6 +2935,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
+        if length > MAX_REQUEST_BYTES:
+            self._send_json({"error": "request_too_large"}, 413)
+            raise _RequestTooLarge()
         raw = self.rfile.read(length) if length > 0 else b"{}"
         return json.loads(raw.decode("utf-8"))
 
@@ -3701,6 +3714,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/billing/webhook":
             # Public; relies on Stripe-Signature header for auth.
             length = int(self.headers.get("Content-Length", "0"))
+            if length > MAX_REQUEST_BYTES:
+                self._send_json({"error": "request_too_large"}, 413)
+                return
             payload = self.rfile.read(length) if length > 0 else b""
             sig_header = self.headers.get("Stripe-Signature", "")
             if not verify_stripe_webhook_signature(
