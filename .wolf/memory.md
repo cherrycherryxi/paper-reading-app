@@ -1023,3 +1023,5 @@
 | 18:06 | Created tests/agent/gc_thread_test.py | — | ~1332 |
 | 18:07 | Edited tests/agent/gc_thread_test.py | modified _fast_sleep() | ~226 |
 | 18:09 | Edited optimization/triage.md | inline fix | ~102 |
+| 19:14 | Edited optimization/explore.md | expanded (+57 lines) | ~2104 |
+| 19:15 | Edited optimization/backlog.md | modified media() | ~411 |
