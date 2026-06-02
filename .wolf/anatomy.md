@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T17:07:34.775Z
-> Files: 92 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T18:09:57.411Z
+> Files: 93 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -42,7 +42,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~60025 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~60290 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~39777 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
@@ -119,7 +119,7 @@
 
 - `backlog.md` — Optimization Backlog (~2465 tok)
 - `explore.md` — Exploration — new optimization directions (~6654 tok)
-- `triage.md` — Triage (~1223 tok)
+- `triage.md` — Triage (~1226 tok)
 
 ## scripts/
 
@@ -143,6 +143,7 @@
 
 ## tests/agent/
 
+- `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~4542 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
