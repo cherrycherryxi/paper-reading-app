@@ -3233,6 +3233,354 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-02T04:46:35Z"
+    },
+    {
+      "id": "bug-190",
+      "timestamp": "2026-06-02T05:58:35.249Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/plans/opt-016-agile-fog.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→55 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T05:58:35.249Z"
+    },
+    {
+      "id": "bug-191",
+      "timestamp": "2026-06-02T06:06:23.826Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"ocrStatus\"",
+      "fix": "Changed to \"button button-ghost\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T06:06:23.826Z"
+    },
+    {
+      "id": "bug-192",
+      "timestamp": "2026-06-02T06:07:07.118Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 80→103 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T06:07:07.118Z"
+    },
+    {
+      "id": "bug-193",
+      "timestamp": "2026-06-02T06:07:12.384Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"#ocrStatus\"",
+      "fix": "Changed to \"#aiOcrButton\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T06:07:12.384Z"
+    },
+    {
+      "id": "bug-194",
+      "timestamp": "2026-06-02T06:11:24.085Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/quote-ocr-fast.test.js",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 21→16 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T06:11:24.085Z"
+    },
+    {
+      "id": "bug-195",
+      "timestamp": "2026-06-02T06:14:20.302Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/frontend/ui-redesign.test.js",
+      "root_cause": "Had \"已开始后台识别，可以继续编辑\"",
+      "fix": "Changed to \"已开始 AI 识别，可以继续编辑\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T06:14:20.302Z"
+    },
+    {
+      "id": "bug-196",
+      "timestamp": "2026-06-02T07:37:52.059Z",
+      "error_message": "Significant refactor of ",
+      "file": "app_server.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T07:37:52.059Z"
+    },
+    {
+      "id": "bug-197",
+      "timestamp": "2026-06-02T15:39:11+08:00",
+      "error_message": "用户反馈：摘抄自动识别(本地OCR/Tesseract)输出基本是拉丁乱码，如 'op eg AAMT RABE MIC, yy I...'，质量无法商业使用",
+      "file": "app_server.py",
+      "root_cause": "TESSERACT_LANGS 默认 'chi_sim+eng'。带上 eng 后 Tesseract LSTM 引擎会把中文笔画往拉丁字母上拟合，整页中文书页照片崩成拉丁乱码。用真实图对照实验：chi_sim+eng→乱码；仅 chi_sim→基本可读（~70-80%）。图像预处理(灰度/放大/锐化)无助甚至更差，杠杆在语言配置而非预处理。",
+      "fix": "app_server.py:864 默认语言由 'chi_sim+eng' 改为 'chi_sim'（仅中文，chi_sim 自带数字/基础拉丁覆盖页码够用）；保留 env TESSERACT_LANGS 覆盖。新增回归测试 test_default_langs_excludes_eng 断言默认不含 eng。注意：即便修复后 Tesseract 中文书页天花板仍 ~70-80%，商业级需走 iOS VisionKit/实况文本 或 PaddleOCR（见 OPT-016）。",
+      "tags": [
+        "ocr",
+        "tesseract",
+        "chinese",
+        "chi_sim",
+        "opt-016",
+        "gibberish",
+        "language-config"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T15:39:11+08:00"
+    },
+    {
+      "id": "bug-198",
+      "timestamp": "2026-06-02T08:31:30.424Z",
+      "error_message": "Wrong reference: urlparse should be urlencode",
+      "file": "app_server.py",
+      "root_cause": "Used \"urlparse\" instead of \"urlencode\"",
+      "fix": "Changed urlparse → urlencode",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T08:31:30.424Z"
+    },
+    {
+      "id": "bug-199",
+      "timestamp": "2026-06-02T08:32:14.869Z",
+      "error_message": "Missing error handling in _baidu_access_token",
+      "file": "app_server.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T08:32:14.869Z"
+    },
+    {
+      "id": "bug-198",
+      "timestamp": "2026-06-02T17:37:50+08:00",
+      "error_message": "配好百度 key 后云 OCR 仍回落 Tesseract；call_cloud_ocr 抛 '百度 OCR 错误 18: Open api qps request limit reached'",
+      "file": "app_server.py (call_cloud_ocr) / 百度账户侧",
+      "root_cause": "两层：①运行中的旧后端进程(16:37启动)早于代码改动和填key，服务请求仍走旧Tesseract——需重启进程。②重启后真实调用百度返回 error_code 18（QPS 超限）：general_basic 和 accurate_basic 首次调用即 18，token鉴权正常，说明账户侧该OCR接口允许QPS=0——通常是未实名认证/未在控制台领取免费资源/应用未开通该接口。代码、key、解析均正常。",
+      "fix": "①kill 旧进程让 dev_backend 用新代码+新env重启（确认监听进程env含BAIDU两个key）。②账户侧：完成实名认证→控制台领取「通用文字识别/高精度版」免费资源→确认应用已勾选文字识别接口。代码层可选加 error 18 退避重试以应对免费QPS突发。",
+      "tags": [
+        "ocr",
+        "baidu",
+        "cloud-ocr",
+        "error-18",
+        "qps",
+        "opt-016",
+        "stale-process"
+      ],
+      "related_bugs": [
+        "bug-197"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T17:37:50+08:00"
+    },
+    {
+      "id": "bug-201",
+      "timestamp": "2026-06-02T10:13:18.910Z",
+      "error_message": "Wrong reference: subprocess should be statistics",
+      "file": "app_server.py",
+      "root_cause": "Used \"subprocess\" instead of \"statistics\"",
+      "fix": "Changed subprocess → statistics",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T10:13:18.910Z"
+    },
+    {
+      "id": "bug-199",
+      "timestamp": "2026-06-02T18:19:35+08:00",
+      "error_message": "云OCR(百度)识别成功但排版混乱：每个物理行成硬换行，且对页(右侧)碎片被交替插入正文",
+      "file": "app_server.py (call_cloud_ocr / _assemble_baidu_lines)",
+      "root_cause": "①call_cloud_ocr 用 \\n 拼接百度逐行 words_result，normalize_ocr_text 又保留单/双换行(它是为已分段的Kimi输出设计)，导致书页折行全变硬换行。②照片把右边那一页也拍进去，百度把右页边缘窄碎片当独立行交替插入。accurate_basic 无位置信息无法过滤。",
+      "fix": "endpoint 改用 accurate(高精度含位置版,返回location，env BAIDU_OCR_ENDPOINT 可切回 _basic)。新增 _assemble_baidu_lines：按 left>页宽*0.5 且 width<主栏宽*0.5 滤掉右侧次列噪声(不误伤左对齐短末行)，按top排序后连续拼接(中文折行无分隔)，垂直间距>0.8*行高才插\\n\\n分段。无location时回退\\n拼接。真机端到端验证输出干净连续。",
+      "tags": [
+        "ocr",
+        "baidu",
+        "layout",
+        "formatting",
+        "facing-page",
+        "opt-016",
+        "accurate"
+      ],
+      "related_bugs": [
+        "bug-197",
+        "bug-198"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T18:19:35+08:00"
+    },
+    {
+      "id": "bug-203",
+      "timestamp": "2026-06-02T10:43:13.783Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"正在保存图片草稿…\"",
+      "fix": "Changed to \"正在 AI 识别划线句…\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-02T10:43:19.663Z"
+    },
+    {
+      "id": "bug-204",
+      "timestamp": "2026-06-02T11:03:18.444Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→20 lines (2 removed) | Also: if (pendingQuoteImage?.objectUrl) URL.revokeObject; pendingQuoteImage = { name: \"existing-quote-image\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-02T11:03:27.078Z"
+    },
+    {
+      "id": "bug-205",
+      "timestamp": "2026-06-02T11:04:10.901Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/frontend/ui-redesign.test.js",
+      "root_cause": "Had \"已开始 AI 识别，可以继续编辑\"",
+      "fix": "Changed to \"已开始 AI 识别划线句，可以继续编辑\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T11:04:10.901Z"
+    },
+    {
+      "id": "bug-200",
+      "timestamp": "2026-06-02T19:15:30+08:00",
+      "error_message": "拍照后做快速识别，照片预览消失",
+      "file": "app.js (runOcrFromImage 快路径成功块)",
+      "root_cause": "OCR 成功后把 pendingQuoteImage 重建为 {savedUrl, objectUrl:''}，并 URL.revokeObjectURL 掉本地 blob → renderImagePreview 改从服务器 /media URL 加载；该 URL 未及时加载/加载失败时照片就消失，且本地已知可用的 blob 预览被销毁、无兜底。",
+      "fix": "成功块改为保留本地 objectUrl(blob)作预览(iOS 上最可靠)，只记录 savedUrl 并清掉 dataUrl/compressionPromise，使保存时 uploadQuoteImage 直接返回 savedUrl(不重复上传)。不再 revoke blob、不切服务器 URL。",
+      "tags": [
+        "ocr",
+        "image-preview",
+        "objectUrl",
+        "fast-path",
+        "ios",
+        "opt-016"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T19:15:30+08:00"
+    },
+    {
+      "id": "bug-201",
+      "timestamp": "2026-06-02T19:15:30+08:00",
+      "error_message": "保存摘抄后/重新点击编辑，提交按钮一直显示「保存中…」且禁用",
+      "file": "app.js (withSavingState)",
+      "root_cause": "disabled 的提交按钮挡不住 Enter 键触发的二次 form submit → 两个 withSavingState 重叠：第二个把当时的文本「保存中…」当作 originalText，第一个 finally 复原成「保存卡片」、第二个 finally 复原成「保存中…」→ 永久卡住。editQuote 重开对话框不重置按钮，故再开仍显示卡住态。",
+      "fix": "withSavingState 加重入保护 `if(btn.disabled) return;` 杜绝二次提交重叠；并用 `btn.dataset.idleLabel`(首次从 HTML 默认捕获)作为复原文案，确保永不复原到瞬时标签。",
+      "tags": [
+        "save-button",
+        "withSavingState",
+        "double-submit",
+        "reentrancy",
+        "quote-form"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T19:15:30+08:00"
+    },
+    {
+      "id": "bug-208",
+      "timestamp": "2026-06-02T11:33:19.670Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app.js",
+      "root_cause": "Condition was: if (!existingId)",
+      "fix": "Changed to: if (quoteDialogIsNew)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T11:33:19.670Z"
+    },
+    {
+      "id": "bug-202",
+      "timestamp": "2026-06-02T19:35:50+08:00",
+      "error_message": "第二次新增摘抄不再自动填充上一次的书籍（OCR 录入时失效）",
+      "file": "app.js (addQuote / openQuoteDialogBtn / openNewQuoteForBook / editQuote)",
+      "root_cause": "addQuote 用 `if(!existingId) lastQuoteBookId=bookId` 记住上次书籍。但走 OCR 时接口会先建草稿并把 quoteId 写进表单 id 字段(runOcrFromImage 2963-2964)，导致保存时 existingId 已有值→走编辑分支→lastQuoteBookId 不再设置。用户每条都用 OCR，故该功能失效。",
+      "fix": "引入显式标志 quoteDialogIsNew（openQuoteDialogBtn/openNewQuoteForBook 置 true，editQuote 置 false），addQuote 改为 `if(quoteDialogIsNew) lastQuoteBookId=bookId`，不再依赖 existingId 区分新增/编辑。加源码级回归测试锁定。",
+      "tags": [
+        "quote",
+        "lastQuoteBookId",
+        "prefill",
+        "ocr",
+        "regression",
+        "new-vs-edit"
+      ],
+      "related_bugs": [
+        "bug-200",
+        "bug-201"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T19:35:50+08:00"
     }
   ]
 }

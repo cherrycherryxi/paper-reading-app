@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T04:44:29.860Z
-> Files: 84 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T11:34:51.577Z
+> Files: 91 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -27,6 +27,7 @@
 - `idempotent-wishing-kurzweil.md` — UI 迭代计划 v2 — 7 项优化 (~1223 tok)
 - `mellow-yawning-flute.md` — 探讨页 UI/UX 优化建议 (~412 tok)
 - `opt-003-buzzing-graham.md` — OPT-003 — 自动适配不同手机机型 (~880 tok)
+- `opt-016-agile-fog.md` — OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（快速录入备选） (~1344 tok)
 
 ## ../../.claude/scripts/
 
@@ -40,11 +41,13 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~55538 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~38985 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~60025 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~39777 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
-- `index.html` — 🐛 又买了一本书 (~9409 tok)
+- `docker-compose.yml` — Docker Compose services (~879 tok)
+- `Dockerfile` — Docker container definition (~366 tok)
+- `index.html` — 🐛 又买了一本书 (~9440 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)
@@ -113,13 +116,15 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~2249 tok)
+- `backlog.md` — Optimization Backlog (~2465 tok)
 - `explore.md` — Exploration — new optimization directions (~6654 tok)
 - `triage.md` — Triage (~1011 tok)
 
 ## scripts/
 
 - `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1582 tok)
+- `dev_backend.sh` (~153 tok)
+- `start_backend.sh` (~348 tok)
 
 ## tests/
 
@@ -138,12 +143,14 @@
 ## tests/agent/
 
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
+- `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~4542 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 
 ## tests/frontend/
 
-- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~18127 tok)
-- `ui-redesign.test.js` — test: getRuleBlock (~3130 tok)
+- `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~18379 tok)
+- `ui-redesign.test.js` — test: getRuleBlock (~3132 tok)
 
 ## wechat-miniprogram/
 

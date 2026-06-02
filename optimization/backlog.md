@@ -125,8 +125,16 @@ Format per item:
 - how: 对摘抄卡做一轮 designqc（openwolf designqc），评估排版/对比度/层次，针对性优化 styles.css 中摘抄卡相关样式。
 
 ### OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（备选录入方式）
-- status: new
+- status: in-progress
 - area: backend
+- progress (2026-06-02):
+  - 止血：快路径 Tesseract 语言由 `chi_sim+eng`→`chi_sim`，消灭整页拉丁乱码（bug-197）。
+  - 中期落地：快路径接入**云 OCR（百度高精度版 accurate_basic）**，与 Kimi 同套 urllib、零新依赖、零 Dockerfile 改动。新增 `call_cloud_ocr`/`_baidu_access_token`(token 30天缓存)/`_resolve_fast_engine`/`run_fast_ocr`。三层回退：云 OCR → Tesseract(无 key/离线) → 提示改用 AI 精识别。env：`BAIDU_OCR_API_KEY`/`BAIDU_OCR_SECRET_KEY`/`FAST_OCR_ENGINE=auto|cloud|tesseract`。
+  - 排版修复（bug-199）：endpoint 用 `accurate`（含位置）+ 新增 `_assemble_baidu_lines` 按位置滤掉对页串入噪声、把折行连续拼接、垂直大间距才分段。真机端到端输出干净连续。env `BAIDU_OCR_ENDPOINT` 可切。
+  - 账户侧（bug-198）：百度 error 18(QPS) 需实名认证+控制台领取免费资源后才可用，已通。
+  - 测试：tests/agent/quote_ocr_engine_test.py 21 passed（含云解析/token缓存/配额错误/回落/路由/滤噪拼接/分段/无位置回退）。
+  - **待办**：owner 去百度智能云建应用拿 key（免费 1000次/月），配置后做真机端到端验证（mock 已全绿，无 key 时自动回落 Tesseract 实测可读）。
+  - 已排除 Apple VisionKit/实况文本：纯原生 API、无 Web 接口，对本 Web App 不可行。
 - description: （owner 提出）新增摘抄拍照后，提供一种「非 AI」的本地/快速 OCR 全文提取方式作为备选——现有 AI（Kimi vision / DeepSeek）太慢。
 - why: AI OCR 延迟高，影响录入流畅度；一个快速的传统 OCR（如 Tesseract、Apple Vision/iOS 端 VisionKit、或浏览器端 OCR 库）能在多数清晰书页上秒级出文，作为默认快路径，AI 作为识别质量兜底。
 - how: 评估候选——服务端 Tesseract（pytesseract，需装系统依赖）、iOS 端 VisionKit/Live Text（前端先做端上识别再上传文本）、或浏览器端 tesseract.js。优先考虑端上识别（零后端成本、最快）；提供「快速识别 / AI 精识别」两档供用户选。Touch: 摘抄 OCR 录入链路 app.js + app_server.py /api/quotes/ocr。

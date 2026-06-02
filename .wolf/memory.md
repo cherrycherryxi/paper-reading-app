@@ -932,3 +932,81 @@
 | 12:44 | Edited app_server.py | 4→4 lines | ~60 |
 | 12:46 | Session end: 9 writes across 4 files (settings.json, backlog.md, app.js, app_server.py) | 5 reads | ~94474 tok |
 | 12:49 | Session end: 9 writes across 4 files (settings.json, backlog.md, app.js, app_server.py) | 6 reads | ~94474 tok |
+| 12:58 | Session end: 9 writes across 4 files (settings.json, backlog.md, app.js, app_server.py) | 6 reads | ~94474 tok |
+| 13:50 | Created ../../.claude/plans/opt-016-agile-fog.md | — | ~592 |
+| 13:58 | Edited ../../.claude/plans/opt-016-agile-fog.md | expanded (+52 lines) | ~867 |
+| 14:03 | Edited app_server.py | added 3 import(s) | ~42 |
+| 14:03 | Edited app_server.py | modified call_tesseract_ocr() | ~754 |
+| 14:05 | Edited app_server.py | modified _fast_trace() | ~1355 |
+| 14:06 | Edited index.html | 2→3 lines | ~71 |
+| 14:07 | Edited app.js | added 5 condition(s) | ~1172 |
+| 14:07 | Edited app.js | 2→3 lines | ~45 |
+| 14:07 | Edited app.js | 1→2 lines | ~43 |
+| 14:07 | Edited Dockerfile | expanded (+6 lines) | ~122 |
+| 14:09 | Created tests/agent/quote_ocr_engine_test.py | — | ~2205 |
+| 14:11 | Created tests/frontend/quote-ocr-fast.test.js | — | ~1713 |
+| 14:11 | Edited tests/frontend/quote-ocr-fast.test.js | modified enqueueResponse() | ~176 |
+| 14:14 | Edited tests/frontend/ui-redesign.test.js | "已开始后台识别，可以继续编辑" → "已开始 AI 识别，可以继续编辑" | ~18 |
+| 14:16 | Session end: 23 writes across 10 files (settings.json, backlog.md, app.js, app_server.py, opt-016-agile-fog.md) | 12 reads | ~122284 tok |
+| 14:37 | Session end: 23 writes across 10 files (settings.json, backlog.md, app.js, app_server.py, opt-016-agile-fog.md) | 12 reads | ~122284 tok |
+
+## Session: 2026-06-02 15:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:37 | Edited app_server.py | Latin() → gibberish() | ~130 |
+| 15:38 | Edited tests/agent/quote_ocr_engine_test.py | modified test_default_langs_excludes_eng() | ~180 |
+| 15:38 | Edited tests/agent/quote_ocr_engine_test.py | added 1 import(s) | ~15 |
+| 15:39 | OPT-016 OCR 乱码根因=chi_sim+eng；默认改 chi_sim+回归测试 | app_server.py:864, tests/agent/quote_ocr_engine_test.py | 修复，9 tests pass | ~6k |
+| 15:40 | Session end: 3 writes across 2 files (app_server.py, quote_ocr_engine_test.py) | 3 reads | ~60005 tok |
+| 15:57 | Session end: 3 writes across 2 files (app_server.py, quote_ocr_engine_test.py) | 4 reads | ~60444 tok |
+| 16:00 | Session end: 3 writes across 2 files (app_server.py, quote_ocr_engine_test.py) | 4 reads | ~60444 tok |
+| 16:31 | Edited app_server.py | inline fix | ~13 |
+| 16:31 | Edited app_server.py | modified path() | ~237 |
+| 16:32 | Edited app_server.py | added error handling | ~1516 |
+| 16:32 | Edited app_server.py | 14→15 lines | ~270 |
+| 16:32 | Edited app_server.py | 4→5 lines | ~106 |
+| 16:33 | Edited app_server.py | OCR() → failed() | ~226 |
+| 16:34 | Edited tests/agent/quote_ocr_engine_test.py | modified __init__() | ~110 |
+| 16:34 | Edited tests/agent/quote_ocr_engine_test.py | modified setUp() | ~1277 |
+| 16:34 | Edited tests/agent/quote_ocr_engine_test.py | modified test_fast_uses_cloud_when_key_configured() | ~320 |
+| 16:37 | Edited optimization/backlog.md | modified progress() | ~196 |
+| 16:55 | OPT-016 中期：快路径接入云OCR(百度accurate_basic)，引擎链+三层回退，零依赖 | app_server.py, tests/agent/quote_ocr_engine_test.py, optimization/backlog.md | 实现完成，18 tests pass，真机待key验证 | ~14k |
+| 16:55 | Session end: 13 writes across 3 files (app_server.py, quote_ocr_engine_test.py, backlog.md) | 5 reads | ~67145 tok |
+| 17:03 | Edited docker-compose.yml | 2→7 lines | ~106 |
+| 17:04 | Session end: 14 writes across 4 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml) | 7 reads | ~67251 tok |
+| 17:17 | Edited scripts/start_backend.sh | expanded (+9 lines) | ~100 |
+| 17:17 | Edited scripts/dev_backend.sh | expanded (+9 lines) | ~102 |
+| 17:19 | Session end: 16 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~67468 tok |
+| 17:38 | Session end: 16 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~67468 tok |
+| 18:13 | Edited app_server.py | added 1 import(s) | ~15 |
+| 18:13 | Edited app_server.py | 2→6 lines | ~117 |
+| 18:13 | Edited app_server.py | modified _assemble_baidu_lines() | ~650 |
+| 18:14 | Edited app_server.py | tags() → Baidu() | ~301 |
+| 18:14 | Edited app_server.py | 6→5 lines | ~64 |
+| 18:14 | Edited tests/agent/quote_ocr_engine_test.py | modified test_assemble_drops_facing_page_noise_and_reflows() | ~500 |
+| 18:14 | Edited tests/agent/quote_ocr_engine_test.py | modified line() | ~165 |
+| 18:18 | Edited docker-compose.yml | 3→5 lines | ~77 |
+| 18:19 | 云OCR排版修复：endpoint→accurate+_assemble_baidu_lines(滤对页噪声+连续拼接) | app_server.py, tests/agent/quote_ocr_engine_test.py | 21 tests pass，真机端到端干净 | ~10k |
+| 18:19 | Edited optimization/backlog.md | 1→3 lines | ~79 |
+| 18:20 | Session end: 25 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~71909 tok |
+| 18:37 | Session end: 25 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~71909 tok |
+| 18:43 | Edited index.html | inline fix | ~26 |
+| 18:43 | Edited app.js | "正在保存图片草稿…" → "正在 AI 识别划线句…" | ~19 |
+| 18:43 | Edited app.js | 2→2 lines | ~29 |
+| 18:43 | Edited app.js | 5→5 lines | ~70 |
+| 18:44 | OCR 文案优化：明确「快速=整页/AI=只取划线」 | index.html, app.js | 完成，前端测试2 pass | ~3k |
+| 18:44 | Session end: 29 writes across 8 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 11 reads | ~120821 tok |
+| 19:03 | Edited app.js | added 2 condition(s) | ~248 |
+| 19:03 | Edited app.js | revokeObjectURL() → blob() | ~212 |
+| 19:04 | Edited tests/frontend/ui-redesign.test.js | "已开始 AI 识别，可以继续编辑" → "已开始 AI 识别划线句，可以继续编辑" | ~19 |
+| 19:15 | 修2个前端bug：OCR后照片消失(保留blob)+保存中卡死(withSavingState重入保护) | app.js, tests/frontend/ui-redesign.test.js | 修复，前端101测试全绿 | ~8k |
+| 19:15 | Session end: 32 writes across 9 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 12 reads | ~124435 tok |
+| 19:32 | Edited app.js | 2→7 lines | ~108 |
+| 19:32 | Edited app.js | 4→5 lines | ~58 |
+| 19:33 | Edited app.js | modified openNewQuoteForBook() | ~50 |
+| 19:33 | Edited app.js | modified editQuote() | ~66 |
+| 19:33 | Edited app.js | 2→4 lines | ~69 |
+| 19:34 | Edited tests/frontend/regression-fixed-bugs.test.js | modified openNewQuoteForBook() | ~303 |
+| 19:35 | 修回归：第二次新增摘抄自动填充上次书籍（OCR赋id使旧!existingId判据失效→改用quoteDialogIsNew标志） | app.js, tests/frontend/regression-fixed-bugs.test.js | 修复，56 tests pass | ~5k |
+| 19:36 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
