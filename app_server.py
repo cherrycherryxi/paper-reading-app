@@ -3153,7 +3153,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def handle_one_request(self) -> None:
         """Wrap the default dispatcher so unhandled exceptions land in the
-        server_errors table instead of bubbling up to a torn connection."""
+        server_errors table instead of bubbling up to a torn connection.
+
+        The ``finally`` is also the E26 connection-leak safety net: route
+        handlers acquire a connection via ``_require_user`` (recorded on
+        ``self._active_conn``) and close it manually at each exit point. If a
+        handler body raises before that explicit close, the connection — and
+        its shared SQLite lock — would leak, eventually surfacing as
+        ``database is locked`` on unrelated requests. Closing it here covers
+        every handler in one place without wrapping each branch. Resetting to
+        None each request is what makes this correct under keep-alive (Handler
+        is per-connection, not per-request; one thread per connection, so no
+        cross-thread sharing)."""
         try:
             super().handle_one_request()
         except _RequestTooLarge:
@@ -3198,6 +3209,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             except Exception:
                 pass
+        finally:
+            # E26 safety net: close any connection _require_user opened that a
+            # raising handler body never got to close. sqlite3 double-close is a
+            # safe no-op, so this is harmless on the normal path.
+            conn = getattr(self, "_active_conn", None)
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                self._active_conn = None
 
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -3240,9 +3262,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def _require_user(self) -> tuple[sqlite3.Connection, sqlite3.Row] | tuple[None, None]:
         conn = get_conn()
+        # Record the connection so handle_one_request's finally can close it as a
+        # safety net if the handler body raises before its explicit conn.close()
+        # (E26: connection-leak fallback).
+        self._active_conn = conn
         user = resolve_user_from_token(conn, self._get_token())
         if not user:
             conn.close()
+            self._active_conn = None
             self._send_json({"error": "Unauthorized"}, 401)
             return None, None
         return conn, user
