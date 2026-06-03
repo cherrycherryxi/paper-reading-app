@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T04:15:34.343Z
-> Files: 77 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T19:15:09.056Z
+> Files: 93 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -20,12 +20,15 @@
 
 - `2026-05-15.md` — 日报 2026-05-15 (~247 tok)
 - `2026-05-28.md` — 日报 2026-05-28 (~311 tok)
+- `2026-06-02.md` — 日报 2026-06-02 (~411 tok)
 
 ## ../../.claude/plans/
 
 - `agent-federated-pony.md` — 思想碰撞（Cross-Book Connection）功能实现计划 (~1250 tok)
 - `idempotent-wishing-kurzweil.md` — UI 迭代计划 v2 — 7 项优化 (~1223 tok)
 - `mellow-yawning-flute.md` — 探讨页 UI/UX 优化建议 (~412 tok)
+- `opt-003-buzzing-graham.md` — OPT-003 — 自动适配不同手机机型 (~880 tok)
+- `opt-016-agile-fog.md` — OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（快速录入备选） (~1344 tok)
 
 ## ../../.claude/scripts/
 
@@ -38,16 +41,18 @@
 ## ./
 
 - `.DS_Store` (~2186 tok)
-- `.gitignore` — Git ignore rules (~37 tok)
-- `app_server.py` — import: initialize_tool_schema_provider_for_tests, guess_base_url, now_iso, new_id + 10 more (~37526 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
-- `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~9850 tok). E24: _doStreamAndFinalize uses AbortController + 30s idle timeout (STREAM_IDLE_TIMEOUT_MS, reset per delta); AbortError renders renderStreamTimeout() (超时 + inline 重试 button) instead of the recover path.
+- `.gitignore` — Git ignore rules (~192 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~60290 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~39777 tok)
+- `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1077 tok)
-- `index.html` — 🐛 又买了一本书 (~7944 tok)
+- `docker-compose.yml` — Docker Compose services (~879 tok)
+- `Dockerfile` — Docker container definition (~366 tok)
+- `index.html` — 🐛 又买了一本书 (~9440 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `README.md` — Project documentation (~538 tok)
-- `styles.css` — Styles: 148 rules, 55 vars (~15363 tok)
+- `styles.css` — Styles: 148 rules, 55 vars (~19555 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -110,9 +115,17 @@
 - `golden_set_baseline.json` (~68 tok)
 - `golden_set.json` (~11660 tok)
 
+## optimization/
+
+- `backlog.md` — Optimization Backlog (~2840 tok)
+- `explore.md` — Exploration — new optimization directions (~8596 tok)
+- `triage.md` — Triage (~1226 tok)
+
 ## scripts/
 
 - `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1582 tok)
+- `dev_backend.sh` (~153 tok)
+- `start_backend.sh` (~348 tok)
 
 ## tests/
 
@@ -128,9 +141,20 @@
 - `quote-content-display.test.js` — Regression test for bug-098: quote card content truncation (~1122 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~1581 tok)
 
+## tests/agent/
+
+- `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
+- `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
+- `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
+- `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~4542 tok)
+- `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
+
 ## tests/frontend/
 
-- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~11819 tok)
+- `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
+- `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~18379 tok)
+- `ui-redesign.test.js` — test: getRuleBlock (~3132 tok)
 
 ## wechat-miniprogram/
 

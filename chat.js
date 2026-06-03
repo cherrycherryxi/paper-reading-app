@@ -12,6 +12,7 @@
     bookSelect: document.querySelector("#chatBookSelect"),
     bookInput: document.querySelector("#chatBookInput"),
     bookDropdown: document.querySelector("#chatBookDropdown"),
+    bookRail: document.querySelector("#chatBookRail"),
     bookClearPick: document.querySelector("#chatBookClearPick"),
     bookContext: document.querySelector("#chatBookContext"),
     promptChips: document.querySelector("#chatPromptChips"),
@@ -221,6 +222,40 @@
     els.bookDropdown.hidden = false;
   }
 
+  // Desktop master-detail: a persistent vertical book list beside the chat.
+  // Mirrors the picker's selection; clicking a row drives the same flow.
+  function renderChatBookRail() {
+    if (!els.bookRail) return;
+    const books = getBooks();
+    const active = activeBookId();
+    els.bookRail.innerHTML = "";
+
+    const head = document.createElement("div");
+    head.className = "chat-rail-head";
+    head.textContent = "选择书籍";
+    els.bookRail.appendChild(head);
+
+    if (!books.length) {
+      const empty = document.createElement("div");
+      empty.className = "chat-rail-empty";
+      empty.textContent = "还没有书籍";
+      els.bookRail.appendChild(empty);
+      return;
+    }
+
+    books.forEach((book) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "chat-rail-item" + (book.id === active ? " active" : "");
+      item.dataset.bookId = book.id;
+      item.innerHTML = `
+        <span class="chat-rail-title">${escapeHtml(displayBookTitle(book.title))}</span>
+        <span class="chat-rail-author">${escapeHtml(book.author || "未知作者")}</span>
+      `;
+      els.bookRail.appendChild(item);
+    });
+  }
+
   function selectChatBook(bookId) {
     currentBookId = bookId || "";
     currentQuoteId = "";
@@ -229,6 +264,7 @@
     }
     syncPickerDisplay();
     hideBookDropdown();
+    renderChatBookRail();
     restoreHistory();
   }
 
@@ -530,10 +566,12 @@
       els.bookSelect.value = prevValue;
       currentBookId = prevValue;
       syncPickerDisplay();
+      renderChatBookRail();
       return;
     }
     currentBookId = els.bookSelect.value || "";
     syncPickerDisplay();
+    renderChatBookRail();
   }
 
   async function _doStreamAndFinalize(text, thinking) {
@@ -790,6 +828,11 @@
       selectChatBook("");
       els.bookInput?.focus();
       renderBookDropdown("");
+    });
+    els.bookRail?.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-book-id]");
+      if (!item) return;
+      selectChatBook(item.dataset.bookId);
     });
     els.bookContext?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-clear-quote-context]");

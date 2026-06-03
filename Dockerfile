@@ -5,6 +5,12 @@ RUN useradd --create-home --uid 10001 paperapp
 
 WORKDIR /app
 
+# System packages: tesseract OCR engine + Simplified-Chinese language data,
+# used by the "快速识别" (fast, non-LLM) quote OCR path via subprocess.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-chi-sim && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install Python dependencies first (better layer caching)
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt

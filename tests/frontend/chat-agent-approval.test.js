@@ -22,6 +22,7 @@ function createElementStub(tagName = "div") {
     scrollHeight: 0,
     children,
     style: {},
+    dataset: {},
     parentNode: null,
     _removed: false,
     classList: {

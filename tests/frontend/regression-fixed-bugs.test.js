@@ -33,7 +33,7 @@ function makeChatEl(tagName = "div") {
     tagName: tagName.toUpperCase(),
     value: "", disabled: false, textContent: "",
     scrollTop: 0, scrollHeight: 0,
-    children, style: {}, parentNode: null, _removed: false,
+    children, style: {}, dataset: {}, parentNode: null, _removed: false,
     classList: {
       add(...ns) { ns.forEach((n) => classes.add(n)); },
       remove(...ns) { ns.forEach((n) => classes.delete(n)); },
@@ -381,7 +381,7 @@ globalThis.__testHooks = {
 // ════════════════════════════════════════════════════════════════════════════════
 
 test("P0-001 regression: .toast bottom includes 64px nav-bar offset inside mobile media block", () => {
-  const mobileMatch = styles.match(/@media\s*\(max-width:\s*768px\)\s*\{([\s\S]*)/);
+  const mobileMatch = styles.match(/@media\s*\(max-width:\s*768px\)[^{]*\{([\s\S]*)/);
   assert.ok(mobileMatch, "@media (max-width:768px) block missing");
   const mobileBlock = mobileMatch[1];
 
@@ -468,6 +468,19 @@ test("new quote button clears previous draft while preserving last selected book
   assert.equal(hooks.els.quoteForm.dataset.ocrQuoteId, undefined, "new quote should clear stale OCR quote id");
   assert.equal(bookField.value, "book-1", "new quote should preserve the last selected book");
   assert.equal(hooks.els.quoteDialog.open, true, "new quote dialog should open");
+});
+
+test("regression: lastQuoteBookId is remembered on OCR-created quotes too (not gated on !existingId)", () => {
+  // OCR assigns the draft a real id mid-session, so addQuote must decide whether
+  // to remember the book by an explicit new-vs-edit flag, NOT by existingId —
+  // otherwise OCR-entered quotes silently stop prefilling the next 新增's book.
+  assert.match(appSource, /let quoteDialogIsNew = false;/);
+  assert.match(appSource, /if \(quoteDialogIsNew\) lastQuoteBookId = bookId;/);
+  // new-quote entry points arm the flag; editQuote disarms it
+  assert.match(appSource, /function openNewQuoteForBook\([^)]*\)\s*\{[\s\S]*?quoteDialogIsNew = true;/);
+  assert.match(appSource, /function editQuote\([^)]*\)\s*\{[\s\S]*?quoteDialogIsNew = false;/);
+  // the old, buggy gate must be gone
+  assert.doesNotMatch(appSource, /if \(!existingId\) lastQuoteBookId = bookId;/);
 });
 
 // ════════════════════════════════════════════════════════════════════════════════

@@ -36,8 +36,9 @@ build/
 .claude/
 .claude/worktrees/
 
-# OpenWolf local runtime state
-.wolf/
+# OpenWolf runtime state (ignored). Knowledge files (cerebrum/memory/buglog/
+# anatomy/config/hooks code) stay tracked — do NOT re-add a blanket `.wolf/`
+# here: it only de-syncs the policy without untracking already-committed files.
 .wolf/token-ledger.json
 .wolf/cron-state.json
 .wolf/designqc-captures/

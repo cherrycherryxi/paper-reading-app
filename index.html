@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="读书" />
-    <link rel="stylesheet" href="./styles.css?v=20260519r" />
+    <link rel="stylesheet" href="./styles.css?v=20260601d" />
     <script>
       // PWA cache-bust: reload if server has a newer build
       (function () {
@@ -17,6 +17,31 @@
           .then(function (r) { return r.json(); })
           .then(function (d) { if (d.version !== CLIENT_VERSION) location.reload(true); })
           .catch(function () {});
+      })();
+    </script>
+    <script>
+      // Graceful fallback for browsers without ES2020 optional chaining — e.g.
+      // iOS 12 Safari (and every iOS 12 browser, since Apple forces all of them
+      // onto the system WebKit). app.js/chat.js are ES2020 and fail to PARSE
+      // there, so the page would otherwise be blank and unclickable. Detect via
+      // eval() inside try/catch (the `?.` lives in a string, parsed only at
+      // runtime, so it can't break this script). This block is intentionally ES5.
+      (function () {
+        var ok = true;
+        try { eval("var __probe = {}; __probe?.x"); } catch (e) { ok = false; }
+        if (ok) return;
+        // Styling lives in styles.css (.browser-unsupported*). CSS parses fine
+        // on iOS 12 — only the JS is the problem — so the notice is on-brand.
+        var html =
+          '<div class="browser-unsupported"><div class="browser-unsupported-card">' +
+          '<div class="browser-unsupported-emoji">🐛</div>' +
+          '<h1>浏览器版本过旧</h1>' +
+          '<p>「又买了一本书」需要 iOS 13.4 及以上系统，或较新的浏览器才能运行。</p>' +
+          '<p class="sub">请升级设备系统，或改用电脑 / 较新的手机访问。<br>（iOS 上换 Chrome 无效，需升级系统）</p>' +
+          '</div></div>';
+        var show = function () { document.body.innerHTML = html; };
+        if (document.body) { show(); }
+        else { document.addEventListener("DOMContentLoaded", show); }
       })();
     </script>
   </head>
@@ -125,6 +150,7 @@
         </section>
 
         <section class="panel chat-panel" data-tab-section="chat">
+          <div id="chatBookRail" class="chat-book-rail"></div>
           <div class="chat-panel-header">
             <div class="chat-header-row">
               <h2>探讨</h2>
@@ -368,7 +394,9 @@
             选择封面照片 / 拍照
             <input type="file" id="bookImageInput" accept="image/*" />
           </label>
+          <button type="button" id="bookOcrButton" class="button button-ghost">识别封面信息</button>
           <span id="bookImageStatus" class="helper-text">可选。上传后将作为书籍封面显示。</span>
+          <span class="helper-text">拍封面后点「识别封面信息」可自动填书名 / 作者 / 标签。</span>
         </div>
         <div id="bookImagePreview" class="image-preview is-hidden"><img id="bookPreviewImg" alt="书籍封面预览" /></div>
         <label><span>备注</span><textarea name="notes" rows="3" placeholder="记录你为什么读这本书。"></textarea></label>
@@ -434,8 +462,9 @@
             选择照片 / 拍照
             <input type="file" id="quoteImageInput" accept="image/*" />
           </label>
-          <button class="button button-ghost" id="ocrButton" type="button">识别图片文字</button>
-          <span id="ocrStatus" class="helper-text">将调用默认模型识别图片内容。</span>
+          <button class="button button-ghost" id="ocrButton" type="button">快速识别</button>
+          <button class="button button-ghost" id="aiOcrButton" type="button">AI 精识别</button>
+          <span id="ocrStatus" class="helper-text">「快速识别」秒出整页全文；「AI 精识别」只提取划线/标记的句子，更准、稍慢。</span>
         </div>
         <div id="quoteImagePreview" class="image-preview is-hidden"><img id="quotePreviewImg" alt="摘抄图片预览" /></div>
         <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>
@@ -619,6 +648,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="./app.js?v=20260521a"></script>
-    <script src="./chat.js?v=20260521a"></script>
+    <script src="./chat.js?v=20260531a"></script>
   </body>
 </html>

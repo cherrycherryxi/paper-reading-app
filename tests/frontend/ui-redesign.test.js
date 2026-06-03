@@ -92,7 +92,7 @@ test("regression: quote OCR can start from an image-only draft", () => {
     "Quote content textarea must allow image-only drafts"
   );
   assert.match(appSource, /apiFetch\(\s*["']\/api\/quotes\/ocr["']/);
-  assert.match(appSource, /showToast\("已开始后台识别，可以继续编辑"\)/);
+  assert.match(appSource, /showToast\("已开始 AI 识别划线句，可以继续编辑"\)/);
   assert.match(appSource, /function scheduleOcrStatusRefresh\(/);
 });
 
@@ -174,7 +174,8 @@ test("property: links and form controls are explicitly styled", () => {
 });
 
 test("property: mobile tabs use current ink active state and safe-area sizing", () => {
-  const mediaBlockMatch = styles.match(/@media \(max-width: 768px\)\s*\{([\s\S]*)\}\s*$/m);
+  // Mobile block opener may carry extra conditions (e.g. ", (pointer: coarse)")
+  const mediaBlockMatch = styles.match(/@media \(max-width: 768px\)[^{]*\{([\s\S]*)\}\s*$/m);
   assert.ok(mediaBlockMatch, "Missing mobile media block");
   const mobileBlock = mediaBlockMatch[1];
   assert.match(mobileBlock, /\.mobile-tabs\s*\{[\s\S]*padding-bottom:\s*env\(safe-area-inset-bottom\);/);

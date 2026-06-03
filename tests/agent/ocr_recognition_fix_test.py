@@ -292,6 +292,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "bookId": "book-1",
                 "imageDataUrl": TEST_IMAGE_DATA_URL,
                 "filename": "quote.png",
@@ -361,6 +362,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "bookId": "book-1",
                 "tags": ["手动标签"],
                 "imageDataUrl": TEST_IMAGE_DATA_URL,
@@ -420,6 +422,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "bookId": "book-1",
                 "imageDataUrl": TEST_IMAGE_DATA_URL,
             },
@@ -457,6 +460,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "bookId": "book-1",
                 "content": "原始内容",
                 "imageDataUrl": TEST_IMAGE_DATA_URL,
@@ -516,6 +520,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "quoteId": "quote-1",
                 "bookId": "book-1",
                 "content": "旧识别内容",
@@ -575,6 +580,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "quoteId": "quote-1",
                 "bookId": "book-1",
                 "imageUrl": image_url,
@@ -621,6 +627,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "bookId": "book-1",
                 "imageDataUrl": TEST_IMAGE_DATA_URL,
             },
@@ -664,6 +671,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             "POST",
             "/api/quotes/ocr",
             {
+                "engine": "ai",
                 "bookId": "book-1",
                 "imageDataUrl": TEST_IMAGE_DATA_URL,
             },

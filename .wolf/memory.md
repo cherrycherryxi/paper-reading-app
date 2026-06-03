@@ -857,4 +857,172 @@
 |------|--------|---------|---------|--------|
 | 12:37 | Created ../../.config/git/hooks/_dispatch | — | ~452 |
 | 12:39 | Session end: 1 writes across 1 files (_dispatch) | 0 reads | ~485 tok |
-| 15:15 | E24: streaming chat AbortController + 30s idle timeout + retry control; added test + fixed vm-context AbortController gap | chat.js, tests/frontend/chat-agent-approval.test.js, tests/frontend/regression-fixed-bugs.test.js | all 100 frontend tests green | ~4k |
+
+## Session: 2026-05-31 17:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~16 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~28 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~22 |
+| 17:05 | Created optimization/triage.md | — | ~846 |
+| 17:06 | Session end: 4 writes across 2 files (backlog.md, triage.md) | 4 reads | ~39041 tok |
+| 18:05 | Edited app_server.py | 4→8 lines | ~111 |
+| 18:05 | Created tests/agent/metrics_json_guard_test.py | — | ~1292 |
+| 18:06 | Edited tests/agent/metrics_json_guard_test.py | 6→8 lines | ~116 |
+| 18:06 | Edited app_server.py | warning() → print() | ~53 |
+| 18:06 | Edited tests/agent/metrics_json_guard_test.py | inline fix | ~17 |
+| 18:07 | Edited optimization/triage.md | inline fix | ~85 |
+| 18:08 | Session end: 10 writes across 4 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py) | 5 reads | ~59044 tok |
+| 15:40 | Edited .gitignore | 8→9 lines | ~102 |
+| 15:43 | Session end: 11 writes across 5 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 6 reads | ~59190 tok |
+| 16:01 | Created ../../.claude/plans/opt-003-buzzing-graham.md | — | ~939 |
+| 16:03 | Edited styles.css | modified media() | ~363 |
+| 16:04 | Edited index.html | inline fix | ~17 |
+| 16:05 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 16:06 | Edited optimization/backlog.md | 3→3 lines | ~15 |
+| 16:06 | OPT-003 手机机型适配：新增 ≤374px 紧凑档 + 431–768px auto-fill 宽松档 | styles.css, index.html, backlog.md | done | ~2500 |
+| 16:06 | Session end: 15 writes across 8 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 8 reads | ~77061 tok |
+| 17:44 | Edited styles.css | CSS: IMPORTANT, dialog | ~229 |
+| 17:44 | Edited styles.css | 15→18 lines | ~154 |
+| 17:45 | Edited index.html | inline fix | ~17 |
+| 17:45 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 17:46 | 修 iPad dialog 全显示 bug：桌面端弃用 body flex，改 fixed sidebar + app-shell margin-left | styles.css, index.html | fixed | ~1500 |
+| 17:47 | Session end: 18 writes across 8 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 8 reads | ~81090 tok |
+| 17:55 | Edited styles.css | CSS: layout, pointer, pointer | ~117 |
+| 17:55 | Edited styles.css | CSS: pointer, pointer | ~112 |
+| 17:55 | Edited styles.css | CSS: width, width, width | ~120 |
+| 17:56 | Edited tests/frontend/ui-redesign.test.js | 1→2 lines | ~50 |
+| 17:56 | Edited tests/frontend/regression-fixed-bugs.test.js | inline fix | ~25 |
+| 17:56 | Edited index.html | inline fix | ~17 |
+| 17:57 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 17:58 | iPad 布局终修:按 pointer 分流(桌面=fine/移动=coarse)，平板回落手机底部 tab；修 app-shell width；放宽2个测试正则 | styles.css, index.html, tests/frontend/*.test.js | fixed, 99/99 通过 | ~2000 |
+| 17:58 | Session end: 24 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 10 reads | ~93351 tok |
+| 18:10 | Session end: 24 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 10 reads | ~93351 tok |
+| 18:58 | Edited index.html | added error handling | ~474 |
+| 19:00 | Edited index.html | modified function() | ~166 |
+| 19:00 | Edited styles.css | modified media() | ~293 |
+| 19:00 | Edited index.html | inline fix | ~17 |
+| 19:02 | designqc: captured 2 screenshots (36KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 19:03 | iPad 空白真因:iOS12 不支持 ES2020 ?.(JS 整个没跑)。加 ES5 探测+友好提示页,定最低 iOS 13.4+ | index.html, styles.css | fixed | ~2500 |
+| 19:03 | Session end: 28 writes across 10 files (backlog.md, triage.md, app_server.py, metrics_json_guard_test.py, .gitignore) | 13 reads | ~152243 tok |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~27 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~15 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:06 | Created optimization/triage.md | — | ~1075 |
+| 18:05 | Edited app_server.py | 1→5 lines | ~70 |
+| 18:06 | Edited app_server.py | modified _read_json() | ~118 |
+| 18:06 | Edited app_server.py | 4→7 lines | ~110 |
+| 18:07 | Edited app_server.py | modified _RequestTooLarge() | ~41 |
+| 18:07 | Edited app_server.py | ValueError() → _RequestTooLarge() | ~99 |
+| 18:07 | Edited app_server.py | 3→5 lines | ~53 |
+| 18:08 | Created tests/agent/request_body_size_cap_test.py | — | ~1890 |
+| 18:08 | Edited tests/agent/request_body_size_cap_test.py | added error handling | ~332 |
+| 18:10 | Edited optimization/triage.md | inline fix | ~95 |
+| 19:16 | Edited optimization/explore.md | added error handling | ~2468 |
+| 19:16 | Edited optimization/backlog.md | expanded (+14 lines) | ~401 |
+| 12:26 | Session end: 3 writes across 1 files (settings.json) | 3 reads | ~55722 tok |
+| 12:35 | Edited optimization/backlog.md | expanded (+21 lines) | ~321 |
+| 12:35 | Session end: 4 writes across 2 files (settings.json, backlog.md) | 4 reads | ~57904 tok |
+| 12:39 | Session end: 4 writes across 2 files (settings.json, backlog.md) | 5 reads | ~93994 tok |
+| 12:42 | Edited optimization/backlog.md | 6→7 lines | ~230 |
+| 12:42 | Edited app.js | localeCompare() → parse() | ~32 |
+| 12:44 | Edited app_server.py | inline fix | ~15 |
+| 12:44 | Edited app_server.py | modified now_iso() | ~127 |
+| 12:44 | Edited app_server.py | 4→4 lines | ~60 |
+| 12:46 | Session end: 9 writes across 4 files (settings.json, backlog.md, app.js, app_server.py) | 5 reads | ~94474 tok |
+| 12:49 | Session end: 9 writes across 4 files (settings.json, backlog.md, app.js, app_server.py) | 6 reads | ~94474 tok |
+| 12:58 | Session end: 9 writes across 4 files (settings.json, backlog.md, app.js, app_server.py) | 6 reads | ~94474 tok |
+| 13:50 | Created ../../.claude/plans/opt-016-agile-fog.md | — | ~592 |
+| 13:58 | Edited ../../.claude/plans/opt-016-agile-fog.md | expanded (+52 lines) | ~867 |
+| 14:03 | Edited app_server.py | added 3 import(s) | ~42 |
+| 14:03 | Edited app_server.py | modified call_tesseract_ocr() | ~754 |
+| 14:05 | Edited app_server.py | modified _fast_trace() | ~1355 |
+| 14:06 | Edited index.html | 2→3 lines | ~71 |
+| 14:07 | Edited app.js | added 5 condition(s) | ~1172 |
+| 14:07 | Edited app.js | 2→3 lines | ~45 |
+| 14:07 | Edited app.js | 1→2 lines | ~43 |
+| 14:07 | Edited Dockerfile | expanded (+6 lines) | ~122 |
+| 14:09 | Created tests/agent/quote_ocr_engine_test.py | — | ~2205 |
+| 14:11 | Created tests/frontend/quote-ocr-fast.test.js | — | ~1713 |
+| 14:11 | Edited tests/frontend/quote-ocr-fast.test.js | modified enqueueResponse() | ~176 |
+| 14:14 | Edited tests/frontend/ui-redesign.test.js | "已开始后台识别，可以继续编辑" → "已开始 AI 识别，可以继续编辑" | ~18 |
+| 14:16 | Session end: 23 writes across 10 files (settings.json, backlog.md, app.js, app_server.py, opt-016-agile-fog.md) | 12 reads | ~122284 tok |
+| 14:37 | Session end: 23 writes across 10 files (settings.json, backlog.md, app.js, app_server.py, opt-016-agile-fog.md) | 12 reads | ~122284 tok |
+
+## Session: 2026-06-02 15:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:37 | Edited app_server.py | Latin() → gibberish() | ~130 |
+| 15:38 | Edited tests/agent/quote_ocr_engine_test.py | modified test_default_langs_excludes_eng() | ~180 |
+| 15:38 | Edited tests/agent/quote_ocr_engine_test.py | added 1 import(s) | ~15 |
+| 15:39 | OPT-016 OCR 乱码根因=chi_sim+eng；默认改 chi_sim+回归测试 | app_server.py:864, tests/agent/quote_ocr_engine_test.py | 修复，9 tests pass | ~6k |
+| 15:40 | Session end: 3 writes across 2 files (app_server.py, quote_ocr_engine_test.py) | 3 reads | ~60005 tok |
+| 15:57 | Session end: 3 writes across 2 files (app_server.py, quote_ocr_engine_test.py) | 4 reads | ~60444 tok |
+| 16:00 | Session end: 3 writes across 2 files (app_server.py, quote_ocr_engine_test.py) | 4 reads | ~60444 tok |
+| 16:31 | Edited app_server.py | inline fix | ~13 |
+| 16:31 | Edited app_server.py | modified path() | ~237 |
+| 16:32 | Edited app_server.py | added error handling | ~1516 |
+| 16:32 | Edited app_server.py | 14→15 lines | ~270 |
+| 16:32 | Edited app_server.py | 4→5 lines | ~106 |
+| 16:33 | Edited app_server.py | OCR() → failed() | ~226 |
+| 16:34 | Edited tests/agent/quote_ocr_engine_test.py | modified __init__() | ~110 |
+| 16:34 | Edited tests/agent/quote_ocr_engine_test.py | modified setUp() | ~1277 |
+| 16:34 | Edited tests/agent/quote_ocr_engine_test.py | modified test_fast_uses_cloud_when_key_configured() | ~320 |
+| 16:37 | Edited optimization/backlog.md | modified progress() | ~196 |
+| 16:55 | OPT-016 中期：快路径接入云OCR(百度accurate_basic)，引擎链+三层回退，零依赖 | app_server.py, tests/agent/quote_ocr_engine_test.py, optimization/backlog.md | 实现完成，18 tests pass，真机待key验证 | ~14k |
+| 16:55 | Session end: 13 writes across 3 files (app_server.py, quote_ocr_engine_test.py, backlog.md) | 5 reads | ~67145 tok |
+| 17:03 | Edited docker-compose.yml | 2→7 lines | ~106 |
+| 17:04 | Session end: 14 writes across 4 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml) | 7 reads | ~67251 tok |
+| 17:17 | Edited scripts/start_backend.sh | expanded (+9 lines) | ~100 |
+| 17:17 | Edited scripts/dev_backend.sh | expanded (+9 lines) | ~102 |
+| 17:19 | Session end: 16 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~67468 tok |
+| 17:38 | Session end: 16 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~67468 tok |
+| 18:13 | Edited app_server.py | added 1 import(s) | ~15 |
+| 18:13 | Edited app_server.py | 2→6 lines | ~117 |
+| 18:13 | Edited app_server.py | modified _assemble_baidu_lines() | ~650 |
+| 18:14 | Edited app_server.py | tags() → Baidu() | ~301 |
+| 18:14 | Edited app_server.py | 6→5 lines | ~64 |
+| 18:14 | Edited tests/agent/quote_ocr_engine_test.py | modified test_assemble_drops_facing_page_noise_and_reflows() | ~500 |
+| 18:14 | Edited tests/agent/quote_ocr_engine_test.py | modified line() | ~165 |
+| 18:18 | Edited docker-compose.yml | 3→5 lines | ~77 |
+| 18:19 | 云OCR排版修复：endpoint→accurate+_assemble_baidu_lines(滤对页噪声+连续拼接) | app_server.py, tests/agent/quote_ocr_engine_test.py | 21 tests pass，真机端到端干净 | ~10k |
+| 18:19 | Edited optimization/backlog.md | 1→3 lines | ~79 |
+| 18:20 | Session end: 25 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~71909 tok |
+| 18:37 | Session end: 25 writes across 6 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 9 reads | ~71909 tok |
+| 18:43 | Edited index.html | inline fix | ~26 |
+| 18:43 | Edited app.js | "正在保存图片草稿…" → "正在 AI 识别划线句…" | ~19 |
+| 18:43 | Edited app.js | 2→2 lines | ~29 |
+| 18:43 | Edited app.js | 5→5 lines | ~70 |
+| 18:44 | OCR 文案优化：明确「快速=整页/AI=只取划线」 | index.html, app.js | 完成，前端测试2 pass | ~3k |
+| 18:44 | Session end: 29 writes across 8 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 11 reads | ~120821 tok |
+| 19:03 | Edited app.js | added 2 condition(s) | ~248 |
+| 19:03 | Edited app.js | revokeObjectURL() → blob() | ~212 |
+| 19:04 | Edited tests/frontend/ui-redesign.test.js | "已开始 AI 识别，可以继续编辑" → "已开始 AI 识别划线句，可以继续编辑" | ~19 |
+| 19:15 | 修2个前端bug：OCR后照片消失(保留blob)+保存中卡死(withSavingState重入保护) | app.js, tests/frontend/ui-redesign.test.js | 修复，前端101测试全绿 | ~8k |
+| 19:15 | Session end: 32 writes across 9 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 12 reads | ~124435 tok |
+| 19:32 | Edited app.js | 2→7 lines | ~108 |
+| 19:32 | Edited app.js | 4→5 lines | ~58 |
+| 19:33 | Edited app.js | modified openNewQuoteForBook() | ~50 |
+| 19:33 | Edited app.js | modified editQuote() | ~66 |
+| 19:33 | Edited app.js | 2→4 lines | ~69 |
+| 19:34 | Edited tests/frontend/regression-fixed-bugs.test.js | modified openNewQuoteForBook() | ~303 |
+| 19:35 | 修回归：第二次新增摘抄自动填充上次书籍（OCR赋id使旧!existingId判据失效→改用quoteDialogIsNew标志） | app.js, tests/frontend/regression-fixed-bugs.test.js | 修复，56 tests pass | ~5k |
+| 19:36 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
+| 19:41 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
+| 20:06 | Session end: 38 writes across 10 files (app_server.py, quote_ocr_engine_test.py, backlog.md, docker-compose.yml, start_backend.sh) | 13 reads | ~143596 tok |
+| 22:30 | Created ../../.claude/daily-logs/2026-06-02.md | — | ~439 |
+| 17:07 | Created optimization/triage.md | — | ~1304 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~22 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~20 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~21 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~15 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~13 |
+| 18:06 | Edited app_server.py | modified _run_gc() | ~370 |
+| 18:06 | Created tests/agent/gc_thread_test.py | — | ~1332 |
+| 18:07 | Edited tests/agent/gc_thread_test.py | modified _fast_sleep() | ~226 |
+| 18:09 | Edited optimization/triage.md | inline fix | ~102 |
+| 19:14 | Edited optimization/explore.md | expanded (+57 lines) | ~2104 |
+| 19:15 | Edited optimization/backlog.md | modified media() | ~411 |
+| 16:05 | OPT-002 book cover OCR: BOOK_OCR_PROMPT + parse_book_ocr_extraction + POST /api/books/ocr; index.html 识别按钮; app.js runBookOcr() 仅填空字段; +2 tests | app_server.py, index.html, app.js, tests/agent/book_ocr_endpoint_test.py, tests/frontend/book-ocr.test.js | all tests pass, smoke 401 ok | ~8000 |

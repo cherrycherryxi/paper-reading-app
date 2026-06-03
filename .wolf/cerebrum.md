@@ -42,6 +42,12 @@
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
 
+- [2026-06-02] **Tesseract 中文 OCR 绝不要加 `+eng`。** OPT-016 本地 OCR 默认 `TESSERACT_LANGS="chi_sim+eng"`，用户实拍书页出来基本全是拉丁乱码（`op eg AAMT RABE MIC...`）。根因：带 eng 后 LSTM 引擎把中文笔画往拉丁字母上拟合，整页崩。真实图对照实验：`chi_sim+eng`→乱码；**仅 `chi_sim`→立刻可读**。已把默认改为 `chi_sim`（app_server.py:864），chi_sim 自带数字/基础拉丁覆盖页码够用。另两条经验：① 图像预处理（灰度/放大/锐化）在这页**无助甚至更差**，杠杆在语言配置不在预处理；② 即便修好 Tesseract 中文书页天花板也只 ~70-80%（错字如 财迷心窍→财迷心安、库克→庄克），**商业级中文 OCR 要走 iOS VisionKit/实况文本 或 PaddleOCR**，Tesseract 只配做"快路径"，AI 做精识别兜底（OPT-016 定位）(bug-197)。
+
+- [2026-06-01] **iOS 上「整页空白 + 点不动」先看 Safari 控制台，别瞎改 CSS。** iPad(iOS 12)上 /app 空白+菜单点不动，我连改三轮 CSS(dialog flex、fixed sidebar、pointer 分流)全是误诊。真因是 iOS 12 WebKit 不支持 ES2020 可选链 `?.`(13.4 才支持)→ app.js/chat.js(327 处 `?.`)首处即 `SyntaxError: Unexpected token '.'` → JS 整个不执行 → 内容空白(JS 渲染)、tab 点不动(JS 绑定)(bug-172)。教训:① iOS-only「空白/点不动」**第一步就让用户连 Mac 开 Safari Web Inspector 看控制台报错**,JS 报错一眼定位,省下我三轮盲改;② **iOS 上所有浏览器(Chrome/Firefox/Edge)强制用系统 WebKit**,旧 iOS 换浏览器无效;③ 本项目前端是 ES2020(`?.`/`??` 满地)、且 CLAUDE.md 禁构建工具,故**最低要求 iOS 13.4+**;旧设备靠 index.html `<head>` 里 ES5 探测脚本(`try{eval("a?.b")}catch`)显示 `.browser-unsupported` 友好提示页,而非白屏。
+
+- [2026-06-01] **桌面专属布局必须用 `(pointer: fine)` 门控，别让触屏平板跑桌面布局。** OPT-004 的桌面侧边栏（`@media (min-width:769px)`）在 iPad Safari 上反复出问题：① body `display:flex` 时关闭态 `<dialog>`（body 直接子元素）被当 flex item 全部铺开、挡住点击（bug-170）；② 改 `position:fixed` sidebar + `.app-shell margin-left` 后 iPad 仍是空白+sidebar 不可点（bug-171，iOS 桌面布局其它脆点）。**最终解：把桌面块改成 `@media (min-width:769px) and (pointer:fine)`，移动块改成 `@media (max-width:768px), (pointer:coarse)`** —— iPad 等触屏设备回落到经充分测试的手机底部 tab 布局，桌面侧边栏只给鼠标设备。教训：iOS Safari + 桌面布局（flex body / fixed / dialog）很脆，与其逐个修不如按输入设备分流；headless Chrome 报 `pointer:fine`（能测桌面档），但 iOS 专属 bug 必须真机验。
+
 - [2026-05-12] **dialog-form class on \<dialog\> itself causes iOS Safari display bug.** `.dialog-form` has `display:grid` which overrides the UA `dialog:not([open]) { display:none }` on iOS, making the closed dialog permanently visible. Rule: always put `dialog-form` on an inner `<div>` or `<form>`, never directly on the `<dialog>` element. All other dialogs in this project already follow this pattern.
 
 - [2026-05-12] **Regression tests must execute real source via vm.runInNewContext.** Writing tests that simulate the fix logic themselves (without loading the actual JS file) always pass and catch nothing. Pattern: use `vm.runInNewContext(source, context)` as done in `chat-agent-approval.test.js` and `book-list-ordering-fix.test.js`. For CSS/HTML: read the real file and assert against its content. For `renderQuotes`, set `els.quoteFilter.value = "all"` in the test harness or all quotes get filtered out.
@@ -93,6 +99,8 @@
   **测试方法学**：所有外部服务（SMTP/Stripe/boto3）测试都用 monkey-patch 模块级符号或 `sys.modules` 注入 fake module，不引入 mock 库。Webhook 测试必须覆盖：bad signature、stale timestamp、unknown event type、idempotency（重复 event_id）。
 
 ## Decision Log
+
+- [2026-06-02] **划线句子提取归 AI 精识别，快路径(百度)不做划线检测。** OPT-016 后用户问"百度能只识别划线句子吗"。结论：传统 OCR(百度/腾讯)不理解"划线"语义、无此接口，整页全识别。App 的划线提取一直由 AI 精识别(Kimi)路径承担——`OCR_PROMPT`(app_server.py:787)指示"只提取用户划线、标记或框选的正文"，无划线时取主段落，`未发现划线文字`为其空结果哨兵。曾评估"给百度快路径加下划线检测(找横线笔画+按行 location 过滤)"以实现"快+只要划线"，但真实照片下下划线检测鲁棒性差(底纹/表格线/页边/倾斜误判)、且稳妥实现要引入 OpenCV 重依赖——故**维持现状**：快路径(百度)=整页快速录入，AI 精识别=划线精准提取。两档分工即产品设计，勿再给快路径加划线检测。
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
 
