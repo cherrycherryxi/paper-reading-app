@@ -1080,3 +1080,5 @@
 | 18:05 | Edited app_server.py | modified call_deepseek() | ~458 |
 | 18:06 | Created tests/agent/deepseek_retry_test.py | — | ~2133 |
 | 18:08 | Edited optimization/triage.md | inline fix | ~93 |
+| 19:14 | Edited optimization/explore.md | expanded (+46 lines) | ~1588 |
+| 19:14 | Edited optimization/backlog.md | expanded (+14 lines) | ~380 |
