@@ -572,6 +572,11 @@
         idleTimer = setTimeout(() => controller.abort(), STREAM_IDLE_TIMEOUT_MS);
       };
       try {
+        // Arm the idle timer *before* awaiting fetch so the initial request /
+        // response-header phase is covered too — an iOS network handoff can
+        // half-close the connection before any headers arrive, which would
+        // otherwise hang on `await fetch` with no timer scheduled.
+        resetIdle();
         const response = await fetch(url, {
           method: "POST",
           headers: {
