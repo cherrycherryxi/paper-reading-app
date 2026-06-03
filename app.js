@@ -87,6 +87,7 @@ const els = {
   quoteBookSelect: document.querySelector("#quoteBookSelect"),
   quoteContent: document.querySelector("#quoteContent"),
   bookImageInput: document.querySelector("#bookImageInput"),
+  bookOcrButton: document.querySelector("#bookOcrButton"),
   bookImageStatus: document.querySelector("#bookImageStatus"),
   bookImagePreview: document.querySelector("#bookImagePreview"),
   bookPreviewImg: document.querySelector("#bookPreviewImg"),
@@ -3036,6 +3037,64 @@ async function runOcrFromImage(engine = "fast") {
   }
 }
 
+async function runBookOcr() {
+  if (!requireAuth("识别封面")) return;
+  if (!pendingBookImage) {
+    showToast("先拍照或选择一张封面图片");
+    return;
+  }
+  const btn = els.bookOcrButton;
+  if (btn) btn.disabled = true;
+  if (els.bookImageStatus) els.bookImageStatus.textContent = "正在识别封面信息…";
+  try {
+    let dataUrl = pendingBookImage?.dataUrl || "";
+    if (!dataUrl && pendingBookImage?.compressionPromise) {
+      dataUrl = await pendingBookImage.compressionPromise;
+    }
+    if (!dataUrl) {
+      if (els.bookImageStatus) els.bookImageStatus.textContent = "图片还在处理中，请稍候再识别。";
+      showToast("图片还在处理中，请稍候…");
+      return;
+    }
+    const data = await apiFetch(
+      "/api/books/ocr",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageDataUrl: dataUrl }),
+      },
+      true
+    );
+    const titleInput = els.bookForm?.querySelector('[name="title"]');
+    const authorInput = els.bookForm?.querySelector('[name="author"]');
+    const tagsInput = els.bookForm?.querySelector('[name="tags"]');
+    let filled = 0;
+    if (titleInput && !titleInput.value.trim() && data.title) {
+      titleInput.value = data.title;
+      filled += 1;
+    }
+    if (authorInput && !authorInput.value.trim() && data.author) {
+      authorInput.value = data.author;
+      filled += 1;
+    }
+    if (tagsInput && !tagsInput.value.trim() && Array.isArray(data.tags) && data.tags.length) {
+      tagsInput.value = data.tags.join(", ");
+      filled += 1;
+    }
+    if (els.bookImageStatus) {
+      els.bookImageStatus.textContent = filled
+        ? "已根据封面回填信息，可继续修改。"
+        : "未识别到可填信息，请手动填写。";
+    }
+    showToast(filled ? "已根据封面回填信息" : "未识别到可填信息");
+  } catch (error) {
+    if (els.bookImageStatus) els.bookImageStatus.textContent = `识别失败：${error.message}`;
+    showToast(error.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function clearChatHistory() {
   try {
     const context = normalizeChatContext(
@@ -3647,6 +3706,7 @@ function bindEvents() {
   });
   els.ocrButton?.addEventListener("click", () => runOcrFromImage("fast"));
   els.aiOcrButton?.addEventListener("click", () => runOcrFromImage("ai"));
+  els.bookOcrButton?.addEventListener("click", () => runBookOcr());
 
   els.quotesList?.addEventListener("click", (event) => {
     const editBtn = event.target.closest("[data-edit-quote]");

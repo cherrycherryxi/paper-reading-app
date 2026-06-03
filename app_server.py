@@ -819,6 +819,52 @@ OCR_TRANSCRIPTION_RESCUE_PROMPT = """上一次结构化 OCR 没有提取到文�
 4. 除非图片完全没有可读正文，否则不要输出空字符串。"""
 
 
+BOOK_OCR_PROMPT = """你是图书封面信息提取器。
+
+任务：
+从书籍封面或版权页图片中提取书名、作者和适合的中文短标签。
+
+规则：
+1. title 为书名，author 为作者；无法识别的字段给空字符串。
+2. 作者只填人名，不要带「著」「编」「译」等字样和出版社。
+3. tags 给出 1-4 个最能概括这本书主题/类型的中文短标签，无法判断时给空数组。
+4. 标签不要超过 12 个字，不要带 #，不要输出句子；不要用书名、作者名做标签。
+5. 好标签示例：成长、心理、哲学、历史、科幻、商业、自我提升、人物传记。
+
+输出：
+只输出 JSON，不要 Markdown，不要解释：
+{"title":"书名","author":"作者","tags":["标签1","标签2"]}"""
+
+
+def parse_book_ocr_extraction(output: str) -> dict:
+    """Parse {title,author,tags} from raw model output, tolerant of Markdown
+    code fences and missing fields. Returns dict with str title/author and
+    cleaned tags list."""
+    raw = str(output or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw).strip()
+    payload = None
+    try:
+        payload = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        match = re.search(r"\{[\s\S]*\}", raw)
+        if match:
+            try:
+                payload = json.loads(match.group(0))
+            except (TypeError, json.JSONDecodeError):
+                payload = None
+    if not isinstance(payload, dict):
+        return {"title": "", "author": "", "tags": []}
+    title = str(payload.get("title") or payload.get("name") or "").strip()
+    author = str(payload.get("author") or payload.get("writer") or "").strip()
+    return {
+        "title": title,
+        "author": author,
+        "tags": normalize_ocr_tags(payload.get("tags")),
+    }
+
+
 def call_ocr_with_fallback(image_data_url: str, trace_event=None) -> OcrExtractionResult:
     def emit(event_type: str, metadata: dict) -> None:
         if trace_event:
@@ -4081,6 +4127,56 @@ class Handler(BaseHTTPRequestHandler):
                     type_="ocr",
                     model=MOONSHOT_VISION_MODEL,
                     prompt=prompt,
+                    input_="image:data-url",
+                    output="",
+                    error=str(error),
+                )
+                conn.close()
+                self._send_json({"error": str(error)}, 500)
+            return
+
+        if parsed.path == "/api/books/ocr":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "ocr"):
+                conn.close()
+                return
+            payload = self._read_json()
+            data_url = str(payload.get("imageDataUrl", "")).strip()
+            if not data_url:
+                conn.close()
+                self._send_json({"error": "imageDataUrl is required"}, 400)
+                return
+
+            content = [
+                {"type": "image_url", "image_url": {"url": data_url}},
+                {"type": "text", "text": BOOK_OCR_PROMPT},
+            ]
+            try:
+                response = call_kimi_vision([{"role": "user", "content": content}])
+                raw_output = response.content if isinstance(response, KimiVisionResult) else str(response or "")
+                book_info = parse_book_ocr_extraction(raw_output)
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="ocr",
+                    model=MOONSHOT_VISION_MODEL,
+                    prompt=BOOK_OCR_PROMPT,
+                    input_="image:data-url",
+                    output=json.dumps(book_info, ensure_ascii=False),
+                )
+                conn.close()
+                self._send_json(book_info)
+            except Exception as error:
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="ocr",
+                    model=MOONSHOT_VISION_MODEL,
+                    prompt=BOOK_OCR_PROMPT,
                     input_="image:data-url",
                     output="",
                     error=str(error),
