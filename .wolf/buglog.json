@@ -3873,6 +3873,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-03T17:06:22.034Z"
+    },
+    {
+      "id": "bug-227",
+      "timestamp": "2026-06-03T18:05:48.582Z",
+      "error_message": "Significant refactor of ",
+      "file": "app_server.py",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 29→37 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T18:05:48.582Z"
     }
   ]
 }
