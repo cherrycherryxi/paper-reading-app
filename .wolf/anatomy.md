@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T15:45:53.939Z
-> Files: 99 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T15:49:55.089Z
+> Files: 100 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -21,6 +21,7 @@
 - `2026-05-15.md` — 日报 2026-05-15 (~247 tok)
 - `2026-05-28.md` — 日报 2026-05-28 (~311 tok)
 - `2026-06-02.md` — 日报 2026-06-02 (~411 tok)
+- `2026-06-03.md` — 日报 2026-06-03 (~429 tok)
 
 ## ../../.claude/plans/
 
