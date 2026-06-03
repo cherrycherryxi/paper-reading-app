@@ -1025,3 +1025,4 @@
 | 18:09 | Edited optimization/triage.md | inline fix | ~102 |
 | 19:14 | Edited optimization/explore.md | expanded (+57 lines) | ~2104 |
 | 19:15 | Edited optimization/backlog.md | modified media() | ~411 |
+| 16:05 | OPT-002 book cover OCR: BOOK_OCR_PROMPT + parse_book_ocr_extraction + POST /api/books/ocr; index.html 识别按钮; app.js runBookOcr() 仅填空字段; +2 tests | app_server.py, index.html, app.js, tests/agent/book_ocr_endpoint_test.py, tests/frontend/book-ocr.test.js | all tests pass, smoke 401 ok | ~8000 |

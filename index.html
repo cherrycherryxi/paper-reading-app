@@ -394,7 +394,9 @@
             选择封面照片 / 拍照
             <input type="file" id="bookImageInput" accept="image/*" />
           </label>
+          <button type="button" id="bookOcrButton" class="button button-ghost">识别封面信息</button>
           <span id="bookImageStatus" class="helper-text">可选。上传后将作为书籍封面显示。</span>
+          <span class="helper-text">拍封面后点「识别封面信息」可自动填书名 / 作者 / 标签。</span>
         </div>
         <div id="bookImagePreview" class="image-preview is-hidden"><img id="bookPreviewImg" alt="书籍封面预览" /></div>
         <label><span>备注</span><textarea name="notes" rows="3" placeholder="记录你为什么读这本书。"></textarea></label>
