@@ -164,7 +164,6 @@ label span,
 .profile-subtitle,
 .entry-card-meta,
 .entry-card-tags,
-.entry-card-note,
 .book-grid-author,
 .book-grid-meta,
 .books-meta-row,
@@ -1203,6 +1202,17 @@ textarea {
 
 .entry-card-note {
   color: var(--color-ink);
+}
+
+/* OPT-015: the excerpt is the quote card's focal point — give it more size,
+   weight, and leading than the surrounding meta/tags so it reads clearly.
+   Scoped to the quote card so session cards, book-detail quotes, and timeline
+   notes keep their compact 14px treatment. */
+.quote-grid-card .entry-card-note {
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 500;
+  margin: var(--space-xs) 0 var(--space-sm);
 }
 
 .entry-card-note-clamp {
