@@ -14,6 +14,7 @@ Tool description 写作原则（语义合约）：
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import uuid
 from datetime import datetime
@@ -76,6 +77,77 @@ def _ok(state: dict, extra: dict | None = None) -> dict:
     if extra:
         result.update(extra)
     return result
+
+
+AUTHOR_NATIONALITY_LABELS = [
+    "中国", "中", "美国", "美", "英国", "英", "法国", "法", "德国", "德", "日本", "日",
+    "俄国", "俄罗斯", "俄", "意大利", "意", "西班牙", "西", "葡萄牙", "葡", "加拿大", "加",
+    "澳大利亚", "澳", "奥地利", "奥", "瑞士", "瑞典", "瑞", "挪威", "挪", "丹麦", "丹",
+    "芬兰", "芬", "荷兰", "荷", "比利时", "比", "爱尔兰", "爱", "希腊", "希", "印度", "印",
+    "韩国", "韩", "German", "Germany", "American", "USA", "US", "U.S.", "British", "Britain",
+    "English", "French", "France", "Japanese", "Russian", "Italian", "Spanish", "Canadian",
+    "Australian", "Austrian", "Swiss", "Swedish", "Norwegian", "Danish", "Finnish", "Dutch",
+    "Belgian", "Irish", "Greek", "Indian", "Korean",
+]
+AUTHOR_NATIONALITY_PATTERN = "|".join(
+    re.escape(item) for item in sorted(AUTHOR_NATIONALITY_LABELS, key=len, reverse=True)
+)
+AUTHOR_COUNTRY_NAME_PATTERN = "|".join(
+    re.escape(item)
+    for item in [
+        "中国", "美国", "英国", "法国", "德国", "日本", "俄国", "俄罗斯", "意大利", "西班牙",
+        "加拿大", "澳大利亚", "奥地利", "瑞士", "瑞典", "挪威", "丹麦", "芬兰", "荷兰",
+        "比利时", "爱尔兰", "希腊", "印度", "韩国",
+    ]
+)
+
+
+def _normalize_book_title_for_match(raw: str) -> str:
+    return re.sub(r"\s+", "", str(raw or "").strip().strip("《》")).lower()
+
+
+def _strip_author_nationality(raw: str) -> str:
+    value = re.sub(r"^作者\s*[:：]\s*", "", str(raw or "").strip(), flags=re.IGNORECASE)
+    previous = None
+    while value and value != previous:
+        previous = value
+        value = re.sub(
+            rf"^[\s\[【(（]+\s*(?:{AUTHOR_NATIONALITY_PATTERN})\s*[\]】)）]+\s*",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        )
+        value = re.sub(
+            rf"^(?:{AUTHOR_NATIONALITY_PATTERN})(?:籍|国)?[\s,，.．:：\-—]+",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        )
+        value = re.sub(rf"^(?:{AUTHOR_COUNTRY_NAME_PATTERN})", "", value, flags=re.IGNORECASE).strip()
+    return value
+
+
+def _normalize_book_author_for_match(raw: str) -> str:
+    value = _strip_author_nationality(raw)
+    value = re.sub(r"\s*(?:著|撰|编著|编|译)\s*$", "", value)
+    return re.sub(r"[\s·・.．,，、:：;；\-—_'\"“”‘’`]", "", value).lower()
+
+
+def _book_duplicate_signature(title: str, author: str) -> str:
+    return f"{_normalize_book_title_for_match(title)}::{_normalize_book_author_for_match(author)}"
+
+
+def _books_are_same(title_a: str, author_a: str, title_b: str, author_b: str) -> bool:
+    """Titles must match; an empty author acts as a wildcard (unspecified)."""
+    ta = _normalize_book_title_for_match(title_a)
+    tb = _normalize_book_title_for_match(title_b)
+    if not ta or ta != tb:
+        return False
+    aa = _normalize_book_author_for_match(author_a)
+    ab = _normalize_book_author_for_match(author_b)
+    if not aa or not ab:
+        return True
+    return aa == ab
 
 
 def _upsert_book_question(state: dict, *, book_id: str, content: str) -> dict:
@@ -183,7 +255,7 @@ def add_book(
         state = _load_state(conn, user_id)
         books = state.setdefault("books", [])
         exists = any(
-            b.get("title") == title and b.get("author", "") == author
+            _books_are_same(title, author, b.get("title"), b.get("author", ""))
             for b in books
         )
         if exists:

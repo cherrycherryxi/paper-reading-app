@@ -672,6 +672,81 @@ def normalize_ocr_text(text: str) -> str:
     return "\n".join(lines).strip()
 
 
+AUTHOR_NATIONALITY_LABELS = [
+    "中国", "中", "美国", "美", "英国", "英", "法国", "法", "德国", "德", "日本", "日",
+    "俄国", "俄罗斯", "俄", "意大利", "意", "西班牙", "西", "葡萄牙", "葡", "加拿大", "加",
+    "澳大利亚", "澳", "奥地利", "奥", "瑞士", "瑞典", "瑞", "挪威", "挪", "丹麦", "丹",
+    "芬兰", "芬", "荷兰", "荷", "比利时", "比", "爱尔兰", "爱", "希腊", "希", "印度", "印",
+    "韩国", "韩", "German", "Germany", "American", "USA", "US", "U.S.", "British", "Britain",
+    "English", "French", "France", "Japanese", "Russian", "Italian", "Spanish", "Canadian",
+    "Australian", "Austrian", "Swiss", "Swedish", "Norwegian", "Danish", "Finnish", "Dutch",
+    "Belgian", "Irish", "Greek", "Indian", "Korean",
+]
+AUTHOR_NATIONALITY_PATTERN = "|".join(
+    re.escape(item) for item in sorted(AUTHOR_NATIONALITY_LABELS, key=len, reverse=True)
+)
+AUTHOR_COUNTRY_NAME_PATTERN = "|".join(
+    re.escape(item)
+    for item in [
+        "中国", "美国", "英国", "法国", "德国", "日本", "俄国", "俄罗斯", "意大利", "西班牙",
+        "加拿大", "澳大利亚", "奥地利", "瑞士", "瑞典", "挪威", "丹麦", "芬兰", "荷兰",
+        "比利时", "爱尔兰", "希腊", "印度", "韩国",
+    ]
+)
+
+
+def normalize_book_title_for_match(raw) -> str:
+    return re.sub(r"\s+", "", str(raw or "").strip().strip("《》")).lower()
+
+
+def strip_author_nationality(raw) -> str:
+    value = re.sub(r"^作者\s*[:：]\s*", "", str(raw or "").strip(), flags=re.IGNORECASE)
+    previous = None
+    while value and value != previous:
+        previous = value
+        value = re.sub(
+            rf"^[\s\[【(（]+\s*(?:{AUTHOR_NATIONALITY_PATTERN})\s*[\]】)）]+\s*",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        )
+        value = re.sub(
+            rf"^(?:{AUTHOR_NATIONALITY_PATTERN})(?:籍|国)?[\s,，.．:：\-—]+",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        )
+        value = re.sub(rf"^(?:{AUTHOR_COUNTRY_NAME_PATTERN})", "", value, flags=re.IGNORECASE).strip()
+    return value
+
+
+def normalize_book_author_for_match(raw) -> str:
+    value = strip_author_nationality(raw)
+    value = re.sub(r"\s*(?:著|撰|编著|编|译)\s*$", "", value)
+    return re.sub(r"[\s·・.．,，、:：;；\-—_'\"“”‘’`]", "", value).lower()
+
+
+def book_duplicate_signature(title, author) -> str:
+    return f"{normalize_book_title_for_match(title)}::{normalize_book_author_for_match(author)}"
+
+
+def books_are_same(title_a, author_a, title_b, author_b) -> bool:
+    """Two books match when titles match and authors are compatible.
+
+    An empty author means "unspecified" and acts as a wildcard, so a title-only
+    book still matches an existing same-title book that has an author.
+    """
+    ta = normalize_book_title_for_match(title_a)
+    tb = normalize_book_title_for_match(title_b)
+    if not ta or ta != tb:
+        return False
+    aa = normalize_book_author_for_match(author_a)
+    ab = normalize_book_author_for_match(author_b)
+    if not aa or not ab:
+        return True
+    return aa == ab
+
+
 @dataclass
 class OcrExtractionResult:
     text: str
@@ -827,13 +902,14 @@ BOOK_OCR_PROMPT = """你是图书封面信息提取器。
 规则：
 1. title 为书名，author 为作者；无法识别的字段给空字符串。
 2. 作者只填人名，不要带「著」「编」「译」等字样和出版社。
-3. tags 给出 1-4 个最能概括这本书主题/类型的中文短标签，无法判断时给空数组。
-4. 标签不要超过 12 个字，不要带 #，不要输出句子；不要用书名、作者名做标签。
-5. 好标签示例：成长、心理、哲学、历史、科幻、商业、自我提升、人物传记。
+3. 外国作者按「[国籍] 人名」格式输出国籍（封面或版权页通常会标注，如「[德] 黑塞」「[美] 海明威」「[日] 村上春树」）；中国作者直接写人名，不加国籍标记；国籍无法确定时只写人名。
+4. tags 给出 1-4 个最能概括这本书主题/类型的中文短标签，无法判断时给空数组。
+5. 标签不要超过 12 个字，不要带 #，不要输出句子；不要用书名、作者名做标签。
+6. 好标签示例：成长、心理、哲学、历史、科幻、商业、自我提升、人物传记。
 
 输出：
 只输出 JSON，不要 Markdown，不要解释：
-{"title":"书名","author":"作者","tags":["标签1","标签2"]}"""
+{"title":"书名","author":"[国籍] 人名","tags":["标签1","标签2"]}"""
 
 
 def parse_book_ocr_extraction(output: str) -> dict:
@@ -2880,7 +2956,10 @@ class ActionExecutor:
                 )
             elif action["type"] == "add_book":
                 exists = any(
-                    item.get("title") == data.get("title") and item.get("author", "") == data.get("author", "")
+                    books_are_same(
+                        data.get("title"), data.get("author", ""),
+                        item.get("title"), item.get("author", ""),
+                    )
                     for item in state["books"]
                 )
                 if not exists:

@@ -572,6 +572,53 @@ class AgentBackendPropertyTests(unittest.TestCase):
             self.assertEqual(status, 400)
             self.assertIn("invalid action state transition", payload["error"])
 
+    def test_add_book_action_skips_duplicate_when_author_has_nationality_marker(self):
+        pending_payload = self._fake_chat_with_action(
+            "add_book",
+            {"title": "《Test Book》", "author": "[英] Author"},
+        )
+        action_id = pending_payload["actions"][0]["id"]
+
+        approve_status, approve_payload = self.request_json(
+            "POST",
+            f"/api/agent-actions/{action_id}/approve",
+            token=self.token,
+        )
+        self.assertEqual(approve_status, 200)
+        self.assertEqual(approve_payload["action"]["status"], "EXECUTED")
+
+        state = self.load_state()
+        matching = [book for book in state["books"] if book.get("title") == "Test Book"]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["author"], "Author")
+
+    def test_duplicate_signature_treats_nationality_marker_as_same_author(self):
+        # The reported bug: same book added twice differs only by nationality marker.
+        self.assertEqual(
+            app_server.book_duplicate_signature("悉达多", "黑塞"),
+            app_server.book_duplicate_signature("《悉达多》", "[德] 黑塞"),
+        )
+
+    def test_duplicate_signature_keeps_translated_given_name_initial(self):
+        # Regression: "丹·布朗" must not be reduced to "布朗" by treating the
+        # leading single char "丹" as a nationality marker before the middle dot.
+        self.assertNotEqual(
+            app_server.book_duplicate_signature("达芬奇密码", "布朗"),
+            app_server.book_duplicate_signature("达芬奇密码", "[美] 丹·布朗"),
+        )
+
+    def test_books_are_same_treats_empty_author_as_wildcard(self):
+        # Title-only input should match an existing same-title book that has an author.
+        self.assertTrue(app_server.books_are_same("悉达多", "", "悉达多", "黑塞"))
+        self.assertTrue(app_server.books_are_same("悉达多", "黑塞", "悉达多", ""))
+        self.assertTrue(app_server.books_are_same("悉达多", "", "悉达多", ""))
+
+    def test_books_are_same_keeps_distinct_same_title_authors(self):
+        # Two same-title books with different known authors stay distinct.
+        self.assertFalse(app_server.books_are_same("活着", "余华", "活着", "泰戈尔"))
+        # Empty title never matches.
+        self.assertFalse(app_server.books_are_same("", "", "", "黑塞"))
+
     def test_property_execution_is_idempotent_after_first_approval(self):
         pending_payload = self._fake_chat_with_action(
             "tag",

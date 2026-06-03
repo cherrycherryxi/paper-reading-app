@@ -35,6 +35,12 @@
 
 - **[2026-05-13] 渲染变更后务必更新测试中的 hardcoded 预期值。** 书名号加入 h3 后，`getRenderedTitles()` 的返回值也带了《》，测试里 `["三体"]` 要改成 `["《三体》"]`。规则：凡是断言渲染 DOM 内容的测试，修改渲染逻辑后必须同步更新预期值。
 
+- **[2026-06-03] 作者字段格式约定：外国作者 `[国籍] 人名`（如 `[德] 黑塞`），中国作者直接写人名。** Kimi 封面识别的 `BOOK_OCR_PROMPT`（app_server.py）已要求按此格式输出国籍。去重的 `normalize_book_author_for_match` 会把 `[德]`/`德 `/`（德）` 等国籍标记剥掉再比较，所以带不带国籍都能正确判重；存库时保留原始显示串（含国籍）。`parse_book_ocr_extraction` 只 trim、不动方括号，国籍能原样进表单。
+
+- **[2026-06-03] 加书去重语义：空作者=通配符，且必须三端一致。** 去重不能用「签名(title::author)完全相等」，否则只填书名的新书无法匹配已有同名(有作者)书。正确语义：标题规整后必须相同；作者「任一方为空则判重(空=未指定=通配)」，两边都有才需相等。匹配函数 `isSameBook`(app.js)/`books_are_same`(app_server.py)/`_books_are_same`(reading_mcp_server.py) 三处实现必须保持一致（前端 addBook、Excel 导入、后端/MCP add_book 都走它）。注意：通配语义无法用 signature 的 `Set` 表达，Excel 导入要用遍历匹配的 seenBooks 列表。命中重复按现状直接 toast 拦截（用户已确认，不弹确认框）。
+
+- **[2026-06-03] 模态 dialog 打开时 toast 会被遮挡（top layer）。** `<dialog>.showModal()` 渲染在浏览器 top layer，凌驾于所有 z-index 之上；body 级的 `#toast`（z-index:1200）被画在弹窗下方，弹窗关闭后才显现（用户体验：点保存「没反应」，关弹窗才看到提示）。`showToast()` 已修复为：检测 `document.querySelectorAll("dialog[open]")`，有打开弹窗就把 toast 节点 append 进最上层弹窗（随之进入 top layer），否则挂回 body。toast 是 `position:fixed` 且 dialog 无 `transform`，相对视口定位不变。用 `dialog[open]` 而非 `:modal` 伪类（旧 iOS Safari 不支持 `:modal`，querySelectorAll 会抛错）。
+
 - **[2026-05-13] 静态文件必须带 `Cache-Control: no-store` 响应头。** iPhone Safari 极度激进地缓存 JS 文件，不带缓存控制头时即使服务器重启也继续用旧版本。`log_server.py` 的静态文件路由要加 `Cache-Control: no-store, no-cache, must-revalidate` 和 `Pragma: no-cache`。同时在 `index.html` 的 `<script src="./app.js?v=YYYYMMDD">` 加版本号作为双重保险。
 
 ## Do-Not-Repeat

@@ -394,6 +394,13 @@ async function withSavingState(btn, savingLabel = "保存中…", fn) {
 
 function showToast(message) {
   els.toast.textContent = message;
+  // A modal <dialog> (showModal) renders in the browser top layer, above ALL
+  // z-indexed content. A body-level toast would be painted behind it and only
+  // become visible after the dialog closes. So host the toast inside the
+  // topmost open dialog when one is open; otherwise keep it on <body>.
+  const openDialogs = document.querySelectorAll("dialog[open]");
+  const host = openDialogs.length ? openDialogs[openDialogs.length - 1] : document.body;
+  if (els.toast.parentNode !== host) host.appendChild(els.toast);
   els.toast.classList.add("visible");
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => {
@@ -506,6 +513,74 @@ function escapeHtml(text) {
 // Strip leading/trailing 《》 so storage is always bare title
 function normalizeBookTitle(raw) {
   return String(raw).trim().replace(/^《+|》+$/g, "").trim();
+}
+
+const authorNationalityLabels = [
+  "中国", "中", "美国", "美", "英国", "英", "法国", "法", "德国", "德", "日本", "日",
+  "俄国", "俄罗斯", "俄", "意大利", "意", "西班牙", "西", "葡萄牙", "葡", "加拿大", "加",
+  "澳大利亚", "澳", "奥地利", "奥", "瑞士", "瑞典", "瑞", "挪威", "挪", "丹麦", "丹",
+  "芬兰", "芬", "荷兰", "荷", "比利时", "比", "爱尔兰", "爱", "希腊", "希", "印度", "印",
+  "韩国", "韩", "German", "Germany", "American", "USA", "US", "U.S.", "British", "Britain",
+  "English", "French", "France", "Japanese", "Russian", "Italian", "Spanish", "Canadian",
+  "Australian", "Austrian", "Swiss", "Swedish", "Norwegian", "Danish", "Finnish", "Dutch",
+  "Belgian", "Irish", "Greek", "Indian", "Korean",
+];
+
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const authorNationalityPattern = authorNationalityLabels
+  .slice()
+  .sort((a, b) => b.length - a.length)
+  .map(escapeRegExp)
+  .join("|");
+
+function stripAuthorNationality(raw) {
+  let value = String(raw || "")
+    .trim()
+    .replace(/^作者\s*[:：]\s*/i, "");
+  if (!value) return "";
+
+  let previous = "";
+  while (value && value !== previous) {
+    previous = value;
+    value = value
+      .replace(new RegExp(`^[\\s\\[【(（]+\\s*(?:${authorNationalityPattern})\\s*[\\]】)）]+\\s*`, "i"), "")
+      .replace(new RegExp(`^(?:${authorNationalityPattern})(?:籍|国)?[\\s,，.．:：\\-—]+`, "i"), "")
+      .replace(new RegExp(`^(?:中国|美国|英国|法国|德国|日本|俄国|俄罗斯|意大利|西班牙|加拿大|澳大利亚|奥地利|瑞士|瑞典|挪威|丹麦|芬兰|荷兰|比利时|爱尔兰|希腊|印度|韩国)`, "i"), "")
+      .trim();
+  }
+  return value;
+}
+
+function normalizeBookAuthorForMatch(raw) {
+  return stripAuthorNationality(raw)
+    .replace(/\s*(?:著|撰|编著|编|译)\s*$/g, "")
+    .replace(/[\s·・.．,，、:：;；\-—_'"“”‘’`]/g, "")
+    .toLowerCase();
+}
+
+function normalizeBookTitleForMatch(title) {
+  return normalizeBookTitle(title).replace(/\s+/g, "").toLowerCase();
+}
+
+// Two books are the same when titles match and authors are compatible.
+// An empty author means "unspecified" and acts as a wildcard, so adding a
+// title-only book still matches an existing same-title book that has an author.
+function isSameBook(titleA, authorA, titleB, authorB) {
+  const ta = normalizeBookTitleForMatch(titleA);
+  const tb = normalizeBookTitleForMatch(titleB);
+  if (!ta || ta !== tb) return false;
+  const aa = normalizeBookAuthorForMatch(authorA);
+  const ab = normalizeBookAuthorForMatch(authorB);
+  if (!aa || !ab) return true;
+  return aa === ab;
+}
+
+function findDuplicateBook(title, author, books = state.books) {
+  if (!normalizeBookTitleForMatch(title)) return null;
+  return books.find((book) => isSameBook(title, author, book.title, book.author || "")) || null;
 }
 
 // Wrap with book-title marks for display; strip any existing marks first
@@ -1760,6 +1835,13 @@ function resetBookDraft() {
 async function addBook(formData) {
   if (!requireAuth("新增书籍")) return;
 
+  const title = normalizeBookTitle(formData.get("title"));
+  const author = String(formData.get("author")).trim();
+  if (findDuplicateBook(title, author)) {
+    showToast("书单里已存在这本书");
+    return;
+  }
+
   const totalPages = Number(formData.get("totalPages")) || 0;
   const currentPage = Number(formData.get("currentPage")) || 0;
   if (totalPages && currentPage > totalPages) {
@@ -1771,8 +1853,8 @@ async function addBook(formData) {
     const coverImageUrl = await uploadBookImageIfNeeded();
     state.books.unshift({
       id: createId("book"),
-      title: normalizeBookTitle(formData.get("title")),
-      author: String(formData.get("author")).trim(),
+      title,
+      author,
       totalPages,
       currentPage,
       status: String(formData.get("status")),
@@ -2809,15 +2891,16 @@ async function importExcel(file) {
       return;
     }
 
-    const existingTitles = new Set(state.books.map((book) => `${book.title}::${book.author || ""}`.toLowerCase()));
+    // Track seen books (existing + already-imported rows) for wildcard-aware
+    // duplicate detection — a plain signature Set can't express empty-author matches.
+    const seenBooks = state.books.map((book) => ({ title: book.title, author: book.author || "" }));
     let imported = 0;
 
     for (const row of rows) {
       const title = String(getRowField(row, ["书名", "图书名称", "title", "Title"])).trim();
       if (!title) continue;
       const author = String(getRowField(row, ["作者", "author", "Author"])).trim();
-      const signature = `${title}::${author}`.toLowerCase();
-      if (existingTitles.has(signature)) continue;
+      if (seenBooks.some((book) => isSameBook(title, author, book.title, book.author))) continue;
 
       const startedAt = parseExcelDateToIso(getRowField(row, ["开始阅读时间", "开始时间", "startedAt", "startDate"]));
       const finishedAt = parseExcelDateToIso(getRowField(row, ["阅读完时间", "完成时间", "finishedAt", "endDate"]));
@@ -2848,7 +2931,7 @@ async function importExcel(file) {
         finishedAt,
         lastReadAt: startedAt,
       });
-      existingTitles.add(signature);
+      seenBooks.push({ title, author });
       imported += 1;
     }
 

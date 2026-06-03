@@ -114,6 +114,19 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         self.assertEqual(len(matching), 1)
         self.assertEqual(state["books"][0]["id"], created["id"])
 
+    def test_add_book_skips_duplicate_when_author_has_nationality_marker(self):
+        created_result = reading_mcp_server.add_book(self.user_id, "悉达多", "黑塞", "补充阅读")
+        self.assertTrue(created_result["ok"])
+
+        skipped_result = reading_mcp_server.add_book(self.user_id, "《悉达多》", "[德] 黑塞", "重复推荐")
+        self.assertTrue(skipped_result["ok"])
+        self.assertTrue(skipped_result["skipped"])
+
+        state = self._load_state()
+        matching = [book for book in state["books"] if book["title"] == "悉达多"]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["author"], "黑塞")
+
     def test_add_book_rejects_empty_title(self):
         result = reading_mcp_server.add_book(self.user_id, "")
 

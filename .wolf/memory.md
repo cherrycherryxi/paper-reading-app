@@ -1027,3 +1027,43 @@
 | 19:15 | Edited optimization/backlog.md | modified media() | ~411 |
 | 16:05 | OPT-002 book cover OCR: BOOK_OCR_PROMPT + parse_book_ocr_extraction + POST /api/books/ocr; index.html 识别按钮; app.js runBookOcr() 仅填空字段; +2 tests | app_server.py, index.html, app.js, tests/agent/book_ocr_endpoint_test.py, tests/frontend/book-ocr.test.js | all tests pass, smoke 401 ok | ~8000 |
 | 18:23 | Session end: 38 writes across 15 files (zesty-riding-reddy.md, chat.js, app_server.py, chat-agent-approval.test.js, conn_leak_test.py) | 28 reads | ~411168 tok |
+| 18:25 | Session end: 38 writes across 15 files (zesty-riding-reddy.md, chat.js, app_server.py, chat-agent-approval.test.js, conn_leak_test.py) | 28 reads | ~411168 tok |
+
+## Session: 2026-06-03 19:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-03 19:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:13 | Edited app.js | "^(?:${authorNationalityPa" → "^(?:${authorNationalityPa" | ~28 |
+| 22:13 | Edited app_server.py | "^(?:{AUTHOR_NATIONALITY_P" → "^(?:{AUTHOR_NATIONALITY_P" | ~21 |
+| 22:13 | Edited reading_mcp_server.py | "^(?:{AUTHOR_NATIONALITY_P" → "^(?:{AUTHOR_NATIONALITY_P" | ~21 |
+| 22:13 | Edited tests/frontend/book-duplicate.test.js | expanded (+23 lines) | ~272 |
+| 22:13 | Edited tests/frontend/book-duplicate.test.js | 17→18 lines | ~171 |
+| 22:14 | Edited tests/agent/agent_backend_property_test.py | modified test_duplicate_signature_treats_nationality_marker_as_same_author() | ~232 |
+| 22:15 | 修复加书去重误删译名首字(丹·布朗→布朗) | app.js,app_server.py,reading_mcp_server.py,tests/frontend/book-duplicate.test.js,tests/agent/agent_backend_property_test.py | 去除国籍剥离正则分隔符中的·/・，加回归测试，26 py + 2 js 通过 | ~6k |
+| 22:15 | Session end: 6 writes across 5 files (app.js, app_server.py, reading_mcp_server.py, book-duplicate.test.js, agent_backend_property_test.py) | 5 reads | ~100812 tok |
+| 22:30 | Edited app.js | added 1 condition(s) | ~217 |
+| 22:30 | Edited tests/frontend/book-duplicate.test.js | 4→4 lines | ~52 |
+| 22:31 | Edited tests/frontend/book-duplicate.test.js | modified getState() | ~143 |
+| 22:31 | Edited tests/frontend/book-duplicate.test.js | modified setOpenDialogs() | ~19 |
+| 22:31 | Edited tests/frontend/book-duplicate.test.js | expanded (+26 lines) | ~321 |
+| 22:32 | 修复 toast 被模态弹窗遮挡(top layer) | app.js,tests/frontend/book-duplicate.test.js | showToast 检测打开的 dialog 并把 toast 挂进 top layer；加回归测试，109 前端测试通过 | ~4k |
+| 22:32 | Session end: 11 writes across 5 files (app.js, app_server.py, reading_mcp_server.py, book-duplicate.test.js, agent_backend_property_test.py) | 6 reads | ~122486 tok |
+| 22:58 | Edited app.js | added 2 condition(s) | ~261 |
+| 22:58 | Edited app.js | modified for() | ~176 |
+| 22:58 | Edited app.js | add() → push() | ~18 |
+| 22:59 | Edited app_server.py | modified book_duplicate_signature() | ~217 |
+| 22:59 | Edited app_server.py | book_duplicate_signature() → books_are_same() | ~96 |
+| 22:59 | Edited reading_mcp_server.py | modified _book_duplicate_signature() | ~185 |
+| 22:59 | Edited reading_mcp_server.py | _book_duplicate_signature() → _books_are_same() | ~40 |
+| 23:00 | Edited tests/agent/agent_backend_property_test.py | modified test_books_are_same_treats_empty_author_as_wildcard() | ~224 |
+| 23:00 | Edited tests/frontend/book-duplicate.test.js | expanded (+21 lines) | ~242 |
+| 23:01 | 加书去重:空作者视为通配符(只填书名也判重) | app.js,app_server.py,reading_mcp_server.py,tests/* | isSameBook/books_are_same 三端统一,Excel Set→遍历;110 js + 28 py 通过 | ~7k |
+| 23:01 | Session end: 20 writes across 5 files (app.js, app_server.py, reading_mcp_server.py, book-duplicate.test.js, agent_backend_property_test.py) | 6 reads | ~130412 tok |
+| 23:07 | Edited app_server.py | 10→11 lines | ~110 |
+| 23:08 | Kimi 封面识别提示带上作者国籍([国]人名格式) | app_server.py(BOOK_OCR_PROMPT) | 新增规则3+示例,5 py + 3 js OCR 测试通过 | ~2k |
+| 23:08 | Session end: 21 writes across 5 files (app.js, app_server.py, reading_mcp_server.py, book-duplicate.test.js, agent_backend_property_test.py) | 6 reads | ~130515 tok |
