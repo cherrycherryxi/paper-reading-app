@@ -4984,9 +4984,7 @@ _GC_INTERVAL_SECONDS = 6 * 3600  # 6 hours
 
 def _run_gc() -> None:
     """Background daemon: run all GC helpers every 6 hours."""
-    import time as _time
-
-    _time.sleep(60)  # let the server finish startup before first run
+    time.sleep(60)  # let the server finish startup before first run
     while True:
         try:
             conn = get_conn()
@@ -5002,7 +5000,7 @@ def _run_gc() -> None:
                 conn.close()
         except Exception as exc:  # noqa: BLE001
             print(f"[gc] error: {exc}")
-        _time.sleep(_GC_INTERVAL_SECONDS)
+        time.sleep(_GC_INTERVAL_SECONDS)
 
 
 def main() -> None:
