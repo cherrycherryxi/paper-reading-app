@@ -1,4 +1,9 @@
 (function () {
+  // E24: inactivity window for streaming chat. If no stream activity (response
+  // headers or a delta) arrives within this window, abort the fetch so the
+  // reader stops hanging on a silently half-closed connection.
+  const STREAM_IDLE_TIMEOUT_MS = 30000;
+
   const els = {
     messages: document.querySelector("#chatMessages"),
     input: document.querySelector("#chatInput"),
@@ -594,73 +599,105 @@
       }
       const url = window.paperReadingApp.buildApiUrl("/api/chat/stream");
       const token = window.paperReadingApp.getAuthToken();
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ context, bookId: currentBookId, message: text }),
-      });
+      // E24: inactivity timeout — if the stream goes silent for 30s (e.g. iOS
+      // network handoff half-closes the TCP connection without sending EOF),
+      // abort the fetch so reader.read() rejects instead of hanging forever on
+      // a spinning loading bubble.
+      const controller = new AbortController();
+      let idleTimer = null;
+      const resetIdle = () => {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => controller.abort(), STREAM_IDLE_TIMEOUT_MS);
+      };
+      try {
+        // Arm the idle timer *before* awaiting fetch so the initial request /
+        // response-header phase is covered too — an iOS network handoff can
+        // half-close the connection before any headers arrive, which would
+        // otherwise hang on `await fetch` with no timer scheduled.
+        resetIdle();
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ context, bookId: currentBookId, message: text }),
+          signal: controller.signal,
+        });
+        resetIdle();
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-        if (response.status === 429 && err.message) {
-          const rlErr = new Error(err.message);
-          rlErr.code = "rate_limited";
-          rlErr.retryAfter = Number(err.retry_after_seconds) || 0;
-          throw rlErr;
-        }
-        throw new Error(err.error || `HTTP ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let finalPayload = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop();
-        for (const line of lines) {
-          if (!line.trim().startsWith("data: ")) continue;
-          let evt;
-          try {
-            evt = JSON.parse(line.trim().slice(6));
-          } catch {
-            continue;
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+          if (response.status === 429 && err.message) {
+            const rlErr = new Error(err.message);
+            rlErr.code = "rate_limited";
+            rlErr.retryAfter = Number(err.retry_after_seconds) || 0;
+            throw rlErr;
           }
-          if (evt.error) throw new Error(evt.error);
-          if (evt.delta) {
+          throw new Error(err.error || `HTTP ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finalPayload = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.trim().startsWith("data: ")) continue;
+            let evt;
+            try {
+              evt = JSON.parse(line.trim().slice(6));
+            } catch {
+              continue;
+            }
+            if (evt.error) throw new Error(evt.error);
+            if (evt.delta) {
+              thinking.classList.remove("chat-bubble-loading");
+              thinking.textContent += evt.delta;
+              scrollToBottom();
+              resetIdle();
+            }
+            if (evt.done) {
+              finalPayload = evt;
+            }
+          }
+        }
+
+        if (finalPayload) {
+          if (typeof finalPayload.reply === "string" && finalPayload.reply) {
             thinking.classList.remove("chat-bubble-loading");
-            thinking.textContent += evt.delta;
+            finalizeAssistantBubble(thinking, finalPayload.reply, text);
             scrollToBottom();
           }
-          if (evt.done) {
-            finalPayload = evt;
+          const responseContext = finalPayload.context || context;
+          history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
+          const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
+          setChatHistory(responseContext, history);
+          await window.paperReadingApp.loadRemoteLogs?.();
+          if (actions.length > 0) {
+            handleAgentActions(actions);
           }
         }
-      }
-
-      if (finalPayload) {
-        if (typeof finalPayload.reply === "string" && finalPayload.reply) {
-          thinking.classList.remove("chat-bubble-loading");
-          finalizeAssistantBubble(thinking, finalPayload.reply, text);
-          scrollToBottom();
-        }
-        const responseContext = finalPayload.context || context;
-        history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
-        const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
-        setChatHistory(responseContext, history);
-        await window.paperReadingApp.loadRemoteLogs?.();
-        if (actions.length > 0) {
-          handleAgentActions(actions);
-        }
+      } finally {
+        // Always clear the idle timer so it can never abort an already-finished
+        // request on any exit path (success, done, throw).
+        clearTimeout(idleTimer);
       }
     } catch (error) {
+      // E24: an inactivity-triggered abort means the request never completed —
+      // don't run recoverCompletedChatAfterLoadError (that's for "succeeded but
+      // failed to load"). Render an explicit timeout state with a retry control.
+      if (error?.name === "AbortError") {
+        renderStreamTimeout(thinking, text);
+        await window.paperReadingApp.loadRemoteLogs?.();
+        return;
+      }
       const recovered = await recoverCompletedChatAfterLoadError(text);
       if (!recovered) {
         if (error?.code === "rate_limited") {
@@ -674,6 +711,30 @@
         await window.paperReadingApp.loadRemoteLogs?.();
       }
     }
+  }
+
+  // E24: render the inactivity-timeout state inside the assistant bubble and
+  // offer an inline retry control that re-sends the original message.
+  function renderStreamTimeout(thinking, text) {
+    thinking.classList.remove("chat-bubble-loading");
+    thinking.textContent = "请求超时，请重试";
+    thinking.classList.add("chat-error");
+
+    const retryBtn = document.createElement("button");
+    retryBtn.className = "chat-action-btn chat-retry-btn";
+    retryBtn.type = "button";
+    retryBtn.title = "重试";
+    retryBtn.textContent = "重试";
+    retryBtn.addEventListener("click", () => {
+      thinking.classList.remove("chat-error");
+      thinking.classList.add("chat-bubble-loading");
+      thinking.textContent = "";
+      if (els.sendBtn) els.sendBtn.disabled = true;
+      Promise.resolve(_doStreamAndFinalize(text, thinking)).finally(() => {
+        if (els.sendBtn) els.sendBtn.disabled = false;
+      });
+    });
+    thinking.appendChild(retryBtn);
   }
 
   async function sendMessage() {

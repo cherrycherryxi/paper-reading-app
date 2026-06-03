@@ -2824,6 +2824,28 @@
       "last_seen": "2026-05-30T03:33:16.000Z"
     },
     {
+      "id": "E24-001",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "前端测试沙箱缺 AbortController，导致 chat.js 流式分支在 vm 里抛 ReferenceError 走错误恢复路径",
+      "timestamp": "2026-06-03T00:00:00.000Z",
+      "fixed_at": "2026-06-03T00:00:00.000Z",
+      "file": "tests/frontend/regression-fixed-bugs.test.js",
+      "root_cause": "E24 给 chat.js 流式分支加了 new AbortController()，但 regression-fixed-bugs.test.js 的 createChatHarness vm context 只注入了 TextDecoder，没有 AbortController。chat.js 在沙箱里执行到 new AbortController() 抛 ReferenceError → 被 _doStreamAndFinalize 的 catch 吞掉走 recover 路径 → 流式回复没 finalize，3 个依赖流式 SSE 的测试失败（断言 .chat-bubble-content 不存在等）。",
+      "fix": "在 createChatHarness 的 vm context 里补上 AbortController（Node 18+ 全局可用）。新写的 chat-agent-approval.test.js 的 createStreamHarness 也一并注入 AbortController/TextDecoder/fetch/Promise。",
+      "tags": [
+        "frontend-tests",
+        "node-test",
+        "vm-sandbox",
+        "abortcontroller",
+        "chat-stream",
+        "E24"
+      ],
+      "related_bugs": ["CI-001"],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T00:00:00.000Z"
+    },
+    {
       "id": "bug-166",
       "timestamp": "2026-05-31T17:05:15.964Z",
       "error_message": "Wrong reference: triaged should be done",

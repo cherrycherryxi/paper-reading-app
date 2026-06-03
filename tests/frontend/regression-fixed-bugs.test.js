@@ -148,6 +148,7 @@ function createChatHarness(overrides = {}) {
     console: { log() {}, error() {}, warn() {} },
     fetch: overrides.fetch || defaultFetch,
     TextDecoder,
+    AbortController,
     document: {
       querySelector(sel) { return getEl(sel); },
       querySelectorAll() { return []; },
