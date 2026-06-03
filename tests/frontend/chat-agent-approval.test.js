@@ -439,3 +439,175 @@ test("e2e: execution failure is surfaced in the confirmation button state", asyn
   assert.equal(confirmBtn.disabled, false);
   assert.ok(errors.some((line) => line.includes("approveAction error:")));
 });
+
+// E24: streaming chat inactivity timeout + retry.
+//
+// The default createHarness exposes no global fetch (so chat.js falls back to
+// the non-streaming apiFetch path). This streaming case needs its own context
+// with: a real-ish global fetch whose reader never resolves, controllable
+// timers (so we can fast-forward the 30s idle window), and AbortController +
+// TextDecoder. We build that minimal context here and reuse createElementStub.
+function createStreamHarness({ stallingFetch }) {
+  const elements = new Map();
+  function getElement(selector) {
+    if (!elements.has(selector)) {
+      const element = createElementStub("div");
+      if (selector === "#chatMessages") {
+        element.innerHTML = '<div class="chat-welcome">选择一本书，开始探讨。</div>';
+      }
+      elements.set(selector, element);
+    }
+    return elements.get(selector);
+  }
+
+  const document = {
+    querySelector(selector) {
+      return getElement(selector);
+    },
+    querySelectorAll() {
+      return [];
+    },
+    createElement(tagName) {
+      return createElementStub(tagName);
+    },
+  };
+
+  const appState = {
+    books: [{ id: "book-1", title: "Test Book", author: "Author", tags: [], notes: "" }],
+    quotes: [],
+    sessions: [],
+    chatHistories: {},
+  };
+
+  // Controllable fake timers. Each setTimeout registers a timer keyed by id;
+  // tick(ms) fires any timer whose delay has elapsed.
+  let now = 0;
+  let nextId = 1;
+  const timers = new Map();
+  const fakeSetTimeout = (fn, delay) => {
+    const id = nextId++;
+    timers.set(id, { fn, at: now + (delay || 0) });
+    return id;
+  };
+  const fakeClearTimeout = (id) => {
+    timers.delete(id);
+  };
+  const tick = (ms) => {
+    now += ms;
+    for (const [id, timer] of [...timers.entries()]) {
+      if (timer.at <= now) {
+        timers.delete(id);
+        timer.fn();
+      }
+    }
+  };
+
+  const window = {
+    paperReadingApp: {
+      requireAuth: () => true,
+      getState: () => appState,
+      setChatHistoryForBook(bookId, history) {
+        appState.chatHistories[bookId || "__general__"] = history;
+      },
+      getChatHistoryForBook(bookId) {
+        return appState.chatHistories[bookId || "__general__"] || [];
+      },
+      loadRemoteLogs: async () => {},
+      getActiveChatBookId: () => "book-1",
+      showToast: () => {},
+      clearChatHistory: async () => {},
+      buildApiUrl: (p) => `http://test${p}`,
+      getAuthToken: () => "tok",
+    },
+    addEventListener() {},
+    dispatchEvent() {},
+    CustomEvent: function CustomEvent(type) {
+      this.type = type;
+    },
+    setTimeout: fakeSetTimeout,
+    clearTimeout: fakeClearTimeout,
+  };
+
+  const context = {
+    console,
+    document,
+    window,
+    CustomEvent: window.CustomEvent,
+    setTimeout: fakeSetTimeout,
+    clearTimeout: fakeClearTimeout,
+    fetch: stallingFetch,
+    AbortController,
+    TextDecoder,
+    Promise,
+  };
+
+  vm.runInNewContext(chatSource, context, { filename: "chat.js" });
+
+  const input = getElement("#chatInput");
+  const sendBtn = getElement("#chatSendBtn");
+  const messages = getElement("#chatMessages");
+  const bookSelect = getElement("#chatBookSelect");
+  bookSelect.value = "book-1";
+
+  return { input, sendBtn, messages, bookSelect, tick };
+}
+
+test("e2e: a stalled stream is aborted after the idle timeout and shows a retry control", async () => {
+  let abortedSignal = null;
+  // A fetch whose reader.read() never resolves on its own, simulating a
+  // silently half-closed connection. We mirror real fetch behaviour: when the
+  // AbortController fires, the pending read() rejects with an AbortError.
+  const stallingFetch = (_url, opts) => {
+    abortedSignal = opts.signal;
+    return Promise.resolve({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: () =>
+            new Promise((_resolve, reject) => {
+              opts.signal.addEventListener("abort", () => {
+                const err = new Error("The operation was aborted");
+                err.name = "AbortError";
+                reject(err);
+              });
+            }),
+        }),
+      },
+    });
+  };
+
+  const harness = createStreamHarness({ stallingFetch });
+  harness.input.value = "hello";
+
+  // Fire send; it will hang on reader.read(). Don't await — it never resolves
+  // until we trip the idle timer.
+  const sending = harness.sendBtn.dispatch("click");
+
+  // Let the fetch promise resolve so resetIdle() schedules the idle timer.
+  // Flush several microtask rounds so the async function advances past the
+  // awaited fetch() and the resetIdle() call before we tick the fake timer.
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+
+  assert.ok(abortedSignal, "expected fetch to receive an AbortSignal");
+  assert.equal(abortedSignal.aborted, false, "should not be aborted before timeout");
+
+  // Fast-forward past the 30s inactivity window.
+  harness.tick(30000);
+
+  assert.equal(abortedSignal.aborted, true, "idle timeout should abort the fetch");
+
+  // The send promise should now settle (AbortError caught -> timeout render).
+  await sending;
+
+  const bubbles = harness.messages.children.filter((c) =>
+    (c.className || "").includes("chat-bubble-assistant"),
+  );
+  const thinking = bubbles[bubbles.length - 1];
+  assert.ok(thinking, "expected an assistant bubble");
+  assert.ok(thinking.textContent.includes("超时"), `expected timeout text, got: ${thinking.textContent}`);
+  assert.ok(thinking.classList.contains("chat-error"), "expected chat-error class");
+
+  const retryBtn = thinking.children.find((c) => (c.className || "").includes("chat-retry-btn"));
+  assert.ok(retryBtn, "expected an inline retry control");
+  assert.equal(retryBtn.textContent, "重试");
+});

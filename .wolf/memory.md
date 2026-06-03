@@ -857,3 +857,4 @@
 |------|--------|---------|---------|--------|
 | 12:37 | Created ../../.config/git/hooks/_dispatch | — | ~452 |
 | 12:39 | Session end: 1 writes across 1 files (_dispatch) | 0 reads | ~485 tok |
+| 15:15 | E24: streaming chat AbortController + 30s idle timeout + retry control; added test + fixed vm-context AbortController gap | chat.js, tests/frontend/chat-agent-approval.test.js, tests/frontend/regression-fixed-bugs.test.js | all 100 frontend tests green | ~4k |
