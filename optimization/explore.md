@@ -298,3 +298,49 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** M — introduce a `_require_user_ctx()` context manager (or add `try/finally` wrapping to the 5 main handler bodies). Touch: `app_server.py:3195-3202` + all handlers.
 
 **Files:** `app_server.py:3195-3202` (`_require_user`); `app_server.py:3243-4993` (all four handler methods)
+
+---
+
+## 2026-06-03
+
+### E27 — No Web App Manifest — Android/standard Chrome users cannot install the app (S)
+**What:** `index.html` has Apple-specific PWA meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-title`) but no `<link rel="manifest">` and no `manifest.json`. The Web App Manifest is the standard cross-platform mechanism for installable PWAs; without it, Android Chrome's "Add to Home Screen" banner never fires, and the installed experience has no defined `start_url`, `display: standalone`, or branded `theme_color`. The Apple-only path already works, but Android and desktop Chrome users are left out.
+
+**Why it matters:** The app is designed as a mobile-first reading tracker — install friction directly affects daily active use. Adding a manifest is a 15-line JSON file plus one `<link>` tag. The existing `apple-touch-icon.png` asset can be reused as the PWA icon. Serving the manifest through the existing `_STATIC` dict requires one extra entry.
+
+**Complexity:** S — create `manifest.json` (~15 lines) with `name`, `short_name`, `start_url`, `display: standalone`, `theme_color`, `background_color`, `icons`; add `<link rel="manifest" href="/manifest.json">` to `index.html` and `landing.html`; add `"/manifest.json"` to `_STATIC` in `app_server.py:3404-3415`.
+
+**Files:** new `manifest.json`; `index.html:5-12` (meta head block); `landing.html` (head block); `app_server.py:3404-3415` (_STATIC dict)
+
+---
+
+### E28 — Toast notification lacks `aria-live` — screen reader users never hear transient feedback (S)
+**What:** `#toast` at `index.html:620` is a `<div class="toast">` with no `role` or `aria-live` attribute. `showToast()` in `app.js:395-408` updates `textContent` and toggles a CSS class to show/hide it. Screen readers only announce dynamic content changes when the element has `aria-live="polite"` (or `role="status"`, which implies it). Messages like "登录已过期，请重新登录", "注册成功，已自动登录", and validation errors (line 1546-1558) are completely invisible to assistive technology. WCAG 2.1 SC 4.1.3 (Status Messages, Level AA) requires that status messages be programmatically determinable without receiving focus.
+
+**Why it matters:** Toast is the primary feedback channel for all form submissions, auth events, and error states. For a commercial product, failing WCAG 4.1.3 AA on the single most-used feedback element is a baseline compliance gap. The fix is one HTML attribute addition with zero JS changes — `role="status"` on `#toast` implies `aria-live="polite"` and `aria-atomic="true"` automatically.
+
+**Complexity:** S — add `role="status" aria-atomic="true"` to the `<div id="toast">` element at `index.html:620`. No JS or CSS changes needed.
+
+**Files:** `index.html:620`
+
+---
+
+### E29 — `PromptBuilder` injects `existing_connections[:20]` into every chat request — irrelevant for 80%+ of chats (S)
+**What:** `PromptBuilder.build_chat_prompt()` at `app_server.py:2241` always includes `"existing_connections": user_state.get("connections", [])[:20]` in the system prompt payload, regardless of chat context. The system instruction for book-scoped and quote-scoped chats (lines 2270-2275) explicitly says to return `link_thought` **only when the user explicitly asks** for cross-book associations — meaning the connection list is injected as mandatory context into requests where it is never supposed to be used. A user with 50 connections accumulates ~150 tokens of connection noise per request. At 240 chat requests/day for a Plus user, that's 36,000 wasted context tokens per day.
+
+**Why it matters:** Reducing prompt token waste lowers per-user API costs directly. The fix is conditional: skip `existing_connections` (or set it to `[]`) when the context is `"book"` or `"quote"` — the two cases where the system instruction already prohibits connection usage. Only the `"global"` context and explicit link intents need it. Two-line change with zero behavior impact for the common case.
+
+**Complexity:** S — in `build_chat_prompt()` (`app_server.py:2241`), change `"existing_connections": user_state.get("connections", [])[:20]` to `"existing_connections": [] if book_id else user_state.get("connections", [])[:20]`. Touch: `app_server.py:2241`.
+
+**Files:** `app_server.py:2223-2257` (`PromptBuilder.build_chat_prompt`)
+
+---
+
+### E30 — Form inputs have no `maxlength` — pasting large text creates unbounded state documents (S)
+**What:** None of the form inputs in `index.html` have `maxlength` attributes: the book title input (line 379), author input (line 380), notes textarea (line 402), quote content textarea (`id="quoteContent"`, line 459), reflection textarea (line 470), session note textarea (line 426), and connection thought textarea (line 607). The backend's only length guard is the 20 MB request cap in `_read_json()` and a 2000-char cap for chat messages (`app_server.py:2152`). A user accidentally pasting a chapter of text into the quote content field creates a state blob that is valid to the backend but semantically broken — it inflates `PUT /api/state` payloads, bloats the SQLite `state_json` column, and inflates the context that `PromptBuilder` injects into chat prompts. There is no user-facing warning that a field is unreasonably long.
+
+**Why it matters:** `maxlength` is a single-attribute client-side guard that prevents accidental paste of large blobs, keeps state documents compact, and gives users immediate feedback. Reasonable limits: book title 200, author 100, notes/reflection 2000, quote content 5000, connection thought 2000. None of these cap legitimate use cases.
+
+**Complexity:** S — add `maxlength` to each text/textarea input in the relevant dialogs in `index.html`. No backend changes required (existing validations remain as server-side guard). Touch: `index.html:379-402, 426, 459, 470, 607`.
+
+**Files:** `index.html:379, 380, 402, 426, 459, 470, 607`
