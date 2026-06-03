@@ -4979,11 +4979,37 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, 404)
 
 
+_GC_INTERVAL_SECONDS = 6 * 3600  # 6 hours
+
+
+def _run_gc() -> None:
+    """Background daemon: run all GC helpers every 6 hours."""
+    time.sleep(60)  # let the server finish startup before first run
+    while True:
+        try:
+            conn = get_conn()
+            try:
+                s = gc_expired_sessions(conn)
+                p = gc_expired_password_reset_tokens(conn)
+                e = gc_old_server_errors(conn)
+                r = gc_old_rate_limit_rows(conn)
+                print(
+                    f"[gc] sessions={s} password_tokens={p} server_errors={e} rate_limit_rows={r}"
+                )
+            finally:
+                conn.close()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[gc] error: {exc}")
+        time.sleep(_GC_INTERVAL_SECONDS)
+
+
 def main() -> None:
     init_db()
     print("[startup] fetching tool schemas from MCP server ...")
     ToolSchemaProvider.initialize()
     print("[startup] tool schemas loaded:", ToolSchemaProvider.get().action_types())
+    gc_thread = threading.Thread(target=_run_gc, daemon=True, name="gc-thread")
+    gc_thread.start()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"backend server listening on http://{HOST}:{PORT}")
     server.serve_forever()
