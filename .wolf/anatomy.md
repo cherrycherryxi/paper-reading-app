@@ -41,7 +41,7 @@
 - `.gitignore` — Git ignore rules (~37 tok)
 - `app_server.py` — import: initialize_tool_schema_provider_for_tests, guess_base_url, now_iso, new_id + 10 more (~37526 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 9 more (~35722 tok)
-- `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
+- `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~9850 tok). E24: _doStreamAndFinalize uses AbortController + 30s idle timeout (STREAM_IDLE_TIMEOUT_MS, reset per delta); AbortError renders renderStreamTimeout() (超时 + inline 重试 button) instead of the recover path.
 - `CLAUDE.md` — OpenWolf (~1077 tok)
 - `index.html` — 🐛 又买了一本书 (~7944 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
