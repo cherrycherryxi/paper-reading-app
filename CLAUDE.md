@@ -53,16 +53,21 @@ Debug logs UI: `http://127.0.0.1:8787/debug/logs`
 
 ## Tests
 
-**Python tests** (unittest, no external deps beyond the stdlib):
+**Python tests** — always use the project venv interpreter (`.venv/bin/python`), NOT a bare `python3`. The venv has both `pytest` and `mcp`; a global/anaconda `python3` typically lacks `mcp`, so `import mcp` in `reading_mcp_server.py` (and its tests) will fail with `ModuleNotFoundError`. Tests use a temp dir for the DB and never touch `app_state.db`.
 ```bash
 # Run all Python tests
-python3 -m pytest tests/ -v
+.venv/bin/python -m pytest tests/ -v
 
 # Run a single Python test file
-python3 -m unittest tests/agent/agent_backend_property_test.py -v
+.venv/bin/python -m unittest tests.agent.agent_backend_property_test -v
+
+# If pytest is ever missing from the venv:
+.venv/bin/python -m pip install pytest
+# stdlib fallback (no pytest needed):
+.venv/bin/python -m unittest discover -s tests -p "*_test.py"
 
 # Run golden-set evaluation (requires live API keys)
-python3 tests/agent/agent_golden_set_eval.py
+.venv/bin/python tests/agent/agent_golden_set_eval.py
 ```
 
 **JS tests** (Node built-in test runner, no install needed):

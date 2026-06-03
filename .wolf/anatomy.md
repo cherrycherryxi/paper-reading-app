@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T15:07:30.991Z
-> Files: 98 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T15:45:53.939Z
+> Files: 99 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -45,7 +45,7 @@
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~62549 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~41316 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
-- `CLAUDE.md` — OpenWolf (~1077 tok)
+- `CLAUDE.md` — OpenWolf (~1201 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~9440 tok)
@@ -53,6 +53,7 @@
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4205 tok)
 - `README.md` — Project documentation (~538 tok)
+- `requirements.txt` — Python dependencies (~123 tok)
 - `styles.css` — Styles: 148 rules, 55 vars (~19555 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
