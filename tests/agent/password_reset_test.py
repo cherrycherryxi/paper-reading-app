@@ -4,7 +4,7 @@ import re
 import tempfile
 import time
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 
@@ -163,7 +163,7 @@ class PasswordResetTests(unittest.TestCase):
 
     def test_expired_token_is_rejected(self):
         conn = app_server.get_conn()
-        past = (datetime.utcnow() - timedelta(minutes=60)).isoformat() + "Z"
+        past = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=60)).isoformat() + "Z"
         conn.execute(
             "INSERT INTO password_reset_tokens (token, user_id, expires_at, created_at)"
             " VALUES (?, ?, ?, ?)",

@@ -3,7 +3,7 @@ import json
 import tempfile
 import time
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 
@@ -11,7 +11,7 @@ import app_server
 
 
 def _iso_days_ago(days):
-    return (datetime.utcnow() - timedelta(days=days)).isoformat() + "Z"
+    return (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)).isoformat() + "Z"
 
 
 class SessionExpiryTests(unittest.TestCase):

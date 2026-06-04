@@ -289,6 +289,14 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+def utc_iso_z_from_epoch(epoch: float) -> str:
+    # Naive-UTC ISO string + trailing "Z", byte-identical to the old
+    # datetime.utcfromtimestamp(epoch).isoformat() + "Z" (which is deprecated and
+    # slated for removal). Used to build GC cutoff strings compared against stored
+    # timestamps; keep the exact format so GC deletion semantics are unchanged.
+    return datetime.fromtimestamp(epoch, timezone.utc).replace(tzinfo=None).isoformat() + "Z"
+
+
 def new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:16]}"
 
@@ -1398,7 +1406,7 @@ def resolve_user_from_token(conn: sqlite3.Connection, token: str | None) -> sqli
 def gc_expired_sessions(conn: sqlite3.Connection, lifetime_days: int | None = None) -> int:
     """Delete sessions whose last_seen_at is older than lifetime_days. Returns rowcount."""
     days = lifetime_days if lifetime_days is not None else SESSION_LIFETIME_DAYS
-    cutoff = datetime.utcfromtimestamp(time.time() - days * 86400).isoformat() + "Z"
+    cutoff = utc_iso_z_from_epoch(time.time() - days * 86400)
     cursor = conn.execute("DELETE FROM sessions WHERE last_seen_at < ?", (cutoff,))
     conn.commit()
     return cursor.rowcount or 0
@@ -1862,7 +1870,7 @@ def apply_billing_event(conn: sqlite3.Connection, event: dict) -> str:
 
 
 def gc_expired_password_reset_tokens(conn: sqlite3.Connection) -> int:
-    cutoff = datetime.utcfromtimestamp(time.time() - 86400).isoformat() + "Z"
+    cutoff = utc_iso_z_from_epoch(time.time() - 86400)
     cursor = conn.execute(
         "DELETE FROM password_reset_tokens WHERE expires_at < ? OR used_at != ''",
         (cutoff,),
@@ -1873,7 +1881,7 @@ def gc_expired_password_reset_tokens(conn: sqlite3.Connection) -> int:
 
 def gc_old_server_errors(conn: sqlite3.Connection, keep_days: int = 30) -> int:
     """Delete server_errors rows older than keep_days. Returns deleted count."""
-    cutoff = datetime.utcfromtimestamp(time.time() - keep_days * 86400).isoformat() + "Z"
+    cutoff = utc_iso_z_from_epoch(time.time() - keep_days * 86400)
     cursor = conn.execute("DELETE FROM server_errors WHERE created_at < ?", (cutoff,))
     conn.commit()
     return cursor.rowcount or 0
@@ -1882,7 +1890,7 @@ def gc_old_server_errors(conn: sqlite3.Connection, keep_days: int = 30) -> int:
 def gc_old_rate_limit_rows(conn: sqlite3.Connection, keep_days: int = 3) -> int:
     """Delete rate limit rows older than keep_days. Returns deleted count."""
     cutoff_ts = time.time() - keep_days * 86400
-    cutoff_iso = datetime.utcfromtimestamp(cutoff_ts).isoformat() + "Z"
+    cutoff_iso = utc_iso_z_from_epoch(cutoff_ts)
     cursor = conn.execute(
         "DELETE FROM rate_limit_counters WHERE updated_at < ?", (cutoff_iso,)
     )

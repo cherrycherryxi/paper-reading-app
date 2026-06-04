@@ -3987,6 +3987,57 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-04T00:00:00Z"
+    },
+    {
+      "id": "bug-234",
+      "timestamp": "2026-06-04T13:54:41.339Z",
+      "error_message": "Incorrect value in code",
+      "file": "app_server.py",
+      "root_cause": "Had \"\n    cursor = conn.execute(\"",
+      "fix": "Changed to \"DELETE FROM sessions WHERE last_seen_at < ?\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-04T13:54:58.682Z"
+    },
+    {
+      "id": "bug-235",
+      "timestamp": "2026-06-04T13:56:24.349Z",
+      "error_message": "Wrong return value",
+      "file": "tests/agent/session_expiry_test.py",
+      "root_cause": "Was returning: (datetime.utcnow() - timedelta(days=days)).isoform",
+      "fix": "Now returns: (datetime.now(timezone.utc).replace(tzinfo=None) -",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-04T13:56:24.349Z"
+    },
+    {
+      "id": "bug-234",
+      "timestamp": "2026-06-04T00:00:00Z",
+      "error_message": "DeprecationWarning: datetime.datetime.utcfromtimestamp()/utcnow() is deprecated and scheduled for removal (app_server.py:1401/1865/1876/1885; tests session_expiry/password_reset)",
+      "file": "app_server.py, tests/agent/session_expiry_test.py, tests/agent/password_reset_test.py",
+      "root_cause": "Python 3.12+ deprecates naive datetime.utcfromtimestamp()/utcnow(). 4 GC cutoff builders in app_server.py + 2 test helpers used them.",
+      "fix": "Added helper utc_iso_z_from_epoch(epoch) = datetime.fromtimestamp(epoch, timezone.utc).replace(tzinfo=None).isoformat()+'Z' (byte-identical to old output, GC semantics unchanged); replaced all 4 sites. Tests: datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(...). Verified: full suite passes under -W error::DeprecationWarning.",
+      "tags": [
+        "datetime",
+        "deprecation",
+        "python3.12",
+        "gc",
+        "utcnow",
+        "utcfromtimestamp"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-04T00:00:00Z"
     }
   ]
 }
