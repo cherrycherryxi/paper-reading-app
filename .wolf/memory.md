@@ -1156,3 +1156,5 @@
 | 18:06 | Edited app_server.py | inline fix | ~27 |
 | 18:06 | Edited tests/agent/agent_backend_property_test.py | modified test_existing_connections_omitted_in_book_context() | ~333 |
 | 18:08 | Edited optimization/triage.md | inline fix | ~40 |
+| 19:16 | Edited optimization/explore.md | modified known() | ~2213 |
+| 19:16 | Edited optimization/backlog.md | modified done() | ~494 |
