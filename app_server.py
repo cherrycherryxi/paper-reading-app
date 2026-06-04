@@ -3103,6 +3103,11 @@ def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_toke
                 time.sleep(1)
                 continue
             raise RuntimeError(error_payload or f"HTTP {error.code}") from error
+        except (TimeoutError, socket.timeout) as error:
+            if attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            raise RuntimeError("DeepSeek API 读取超时，请稍后重试") from error
         except URLError as error:
             if isinstance(error.reason, (TimeoutError, socket.timeout)) and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
                 time.sleep(1)

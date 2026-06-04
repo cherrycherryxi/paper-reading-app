@@ -1,3 +1,4 @@
+import socket
 import sys
 import time
 import unittest
@@ -208,6 +209,57 @@ class DeepseekRetryTest(unittest.TestCase):
 
         self.assertEqual(len(sleep_calls), 1)
         self.assertGreaterEqual(sleep_calls[0], 1)
+
+    # --- bare socket/read timeout (not wrapped in URLError) retries ---
+
+    def test_retries_on_bare_timeout(self):
+        ok = self._make_ok_response("ok after bare timeout")
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise socket.timeout("timed out")
+            return ok
+
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep"):
+            result = app_server.call_deepseek([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "ok after bare timeout")
+        self.assertEqual(call_count, 2)
+
+    def test_raises_after_max_attempts_bare_timeout(self):
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=socket.timeout("timed out")
+        ), patch("app_server.time.sleep"):
+            with self.assertRaises(RuntimeError) as ctx:
+                app_server.call_deepseek([{"role": "user", "content": "hi"}])
+        self.assertIn("超时", str(ctx.exception))
+
+    # --- 502 is in the retryable set ---
+
+    def test_retries_on_502(self):
+        err = self._make_http_error(502)
+        ok = self._make_ok_response("ok")
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise err
+            return ok
+
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep"):
+            result = app_server.call_deepseek([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "ok")
+        self.assertEqual(call_count, 2)
 
 
 if __name__ == "__main__":
