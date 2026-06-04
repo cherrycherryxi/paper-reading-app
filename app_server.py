@@ -2255,7 +2255,7 @@ class PromptBuilder:
                 {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")}
                 for b in user_state.get("books", [])
             ],
-            "existing_connections": user_state.get("connections", [])[:20],
+            "existing_connections": [] if book_id else user_state.get("connections", [])[:20],
         }
         history_payload = chat_history[-40:]
         system_instruction = self.build_system_instruction(book_id, bool(focused_quote))
