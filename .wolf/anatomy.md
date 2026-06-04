@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T19:14:42.059Z
-> Files: 101 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-04T07:28:48.139Z
+> Files: 108 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -26,6 +26,7 @@
 ## ../../.claude/plans/
 
 - `agent-federated-pony.md` — 思想碰撞（Cross-Book Connection）功能实现计划 (~1250 tok)
+- `cheerful-noodling-twilight.md` — Batch Plan — 三项优化「按序全做」(OPT-017 / OPT-011 / E21) (~1316 tok)
 - `idempotent-wishing-kurzweil.md` — UI 迭代计划 v2 — 7 项优化 (~1223 tok)
 - `mellow-yawning-flute.md` — 探讨页 UI/UX 优化建议 (~412 tok)
 - `opt-003-buzzing-graham.md` — OPT-003 — 自动适配不同手机机型 (~880 tok)
@@ -74,6 +75,30 @@
 ## .claude/rules/
 
 - `openwolf.md` (~313 tok)
+
+## .claude/worktrees/agent-a955434a231687678/
+
+- `styles.css` — Styles: 106 rules, 150 vars (~20918 tok)
+
+## .claude/worktrees/agent-a955434a231687678/tests/frontend/
+
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~18536 tok)
+
+## .claude/worktrees/agent-aaa330ed46a04f6e9/
+
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~62671 tok)
+
+## .claude/worktrees/agent-aaa330ed46a04f6e9/tests/agent/
+
+- `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017). (~844 tok)
+
+## .claude/worktrees/agent-aebfc23151e99c216/
+
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 5 mo (~62725 tok)
+
+## .claude/worktrees/agent-aebfc23151e99c216/tests/agent/
+
+- `security_headers_test.py` — Regression tests for OPT-011: security headers on static/HTML responses. (~917 tok)
 
 ## .kiro/specs/agent-backend-reliability/
 
