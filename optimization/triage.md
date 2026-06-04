@@ -2,25 +2,24 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-03
+Last triaged: 2026-06-04
 
 ## Next up
 
-**OPT-012 — call_deepseek() 无重试逻辑**
+**OPT-020 — PromptBuilder 注入无关的 existing_connections**
 
-P1/S. `call_deepseek()` (app_server.py:3076) raises immediately on any `HTTPError`/`URLError` — no retry. Affects three production paths: OCR DeepSeek fallback (line ~1821), conversation-history compression (line ~1826), and stream-finish-reason fallback (line ~4101). DeepSeek API has transient 429/500/502/503 responses; all three paths currently surface these errors directly to the user. `call_kimi_vision()` (line ~3042) already has a 2-attempt loop with `time.sleep(1)` retry — the exact same pattern can be transplanted.
-
-Key files: `app_server.py:3076-3104` (add `retries=2` param + retry loop); callers at ~1821, ~1826, ~4101 need no changes.
+P1/S. `PromptBuilder.build_chat_prompt()` (app_server.py:2241) 在书/摘抄上下文里仍注入 `connections[:20]`，而系统指令明确禁止该上下文用 link_thought —— 80%+ 请求里这批数据注入后又被禁用。1 行条件判断（`[] if book_id else …`）即可省 ~150 tok/请求，零行为变更。其余可动 P1/S：OPT-018（reduced-motion）、OPT-013（focus-visible）、OPT-019（toast aria-live）。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-012 | call_deepseek() 无重试逻辑 | P1 | S | in-progress (PR #18) | `call_deepseek`(3076) raises immediately on `HTTPError`/`URLError`; OCR fallback(~1821), history compression(~1826), stream fallback(~4101) all fail silently to user. `call_kimi_vision`(~3042) has a 2-attempt retry loop — transplant same pattern. Touch: app_server.py:3076-3104. |
+| OPT-012 | call_deepseek() 无重试逻辑 | P1 | S | done | Merged PR #18. 3-attempt retry on 429/500/502/503 + bare/URLError timeout, mirrors `call_kimi_vision`. Touch: app_server.py:3076-3120. |
+| OPT-017 | model_logs/agent_traces 缺少 user_id 索引 | P1 | S | done | Merged PR #19. 4× `CREATE INDEX IF NOT EXISTS` in init_db executescript: model_logs(user_id,created_at), agent_metrics(user_id), agent_actions(trace_id), agent_traces(user_id,created_at). +4 tests (incl. EXPLAIN QUERY PLAN). |
+| OPT-011 | HTML 响应缺少安全头 | P1 | S | done | Merged PR #20. `_send_security_headers()` → X-Frame-Options/X-Content-Type-Options/Referrer-Policy on HTML + static. **Scope-limited**: CORS `*` & CSP left untouched (auth is Bearer not Cookie; CSP breaks inline config). +4 tests. |
+| OPT-021 | 暗色模式（系统跟随）E21 提拔 | P1 | M | done | Merged PR #21. ~30 hardcoded colors → semantic vars (light byte-identical) + `@media (prefers-color-scheme: dark)`. WCAG AA audited. Option C (manual toggle) deferred; no true dark screenshot captured. |
 | OPT-018 | CSS 动画缺少 prefers-reduced-motion | P1 | S | new | `styles.css` has 8+ `transition` rules and an infinite `@keyframes chat-dot-pulse` (line 1885) with zero `prefers-reduced-motion` guards. WCAG 2.1 SC 2.2.2 Level A violation. Fix: 4-line `@media (prefers-reduced-motion: reduce)` block near top of styles.css. Touch: styles.css:350-360. |
-| OPT-017 | model_logs/agent_traces 缺少 user_id 索引 | P1 | S | new | `model_logs`, `agent_traces`, `agent_actions`, `agent_metrics` tables have no secondary indexes (confirmed: init_db executescript at lines 365-432 has none). `list_logs()` does a full-table scan on `model_logs`. Fix: 3× `CREATE INDEX IF NOT EXISTS` in init_db executescript. Touch: app_server.py:365-490 (append after line 432). |
 | OPT-013 | 按钮缺少 :focus-visible 样式 | P1 | S | triaged | `styles.css` has `input:focus` at line 532 but zero `:focus-visible` rules for buttons (`.circle-action`, `.icon-btn`, `.tag-chip-pick`, `.filter-chip`, `.me-list-btn`, etc.). WCAG 2.1 SC 2.4.7 Level AA violation. Fix: 3-line CSS rule after line 534. Touch: styles.css:532-540. |
-| OPT-011 | HTML 响应缺少安全头 | P1 | S | triaged | Static HTML path (3416-3425) sends no `X-Frame-Options`, `X-Content-Type-Options`, or `Content-Security-Policy`. API returns `Access-Control-Allow-Origin: *` unconditionally (lines 3285, 3307, 3318, 3386, 3466, 3619, 4586). Clickjacking risk for commercial app with payment flows. Fix: `_send_security_headers()` helper called from static HTML path. Touch: app_server.py:3416-3425 + new helper. |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | Import only in meDrawer (index.html:306). Add secondary "批量导入" link near `#openBookDialogBtn`(line 78); existing `importExcelInput` handler reusable. Touch: index.html only. |
 | OPT-016 | 非 AI 摘抄 OCR 快路径 | P1 | L | in-progress | Code complete on feature/agent: cloud OCR (Baidu accurate_basic) + Tesseract fallback, 21 tests pass. Pending owner action: Baidu API key setup + real-device validation. Touch: app_server.py (done). |
 | OPT-010 | GC functions 从未调用 | P1 | S | done | Merged PR #13 (commit d945df8). `_run_gc()` + `daemon=True` thread every 6 h wired into `main()`. |

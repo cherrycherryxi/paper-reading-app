@@ -103,11 +103,12 @@ Format per item:
 - how: 在 styles.css input:focus 规则块（line 533）后添加：button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }。无 HTML 变更、无 JS 变更。Touch: styles.css:533-540。
 
 ### OPT-011 — HTML 响应缺少安全头（X-Frame-Options、X-Content-Type-Options 等）
-- status: triaged
+- status: done
 - area: backend
 - description: do_GET() 的 _STATIC 处理块（app_server.py:2995-3005）为 landing.html、index.html、privacy.html、terms.html 只发送 Content-Type 和 Cache-Control，没有 X-Frame-Options、X-Content-Type-Options、Content-Security-Policy 或 Referrer-Policy 头。JSON API 对所有端点（含鉴权端点）返回 Access-Control-Allow-Origin: *（lines 2883, 2894, 2905, 2965）。
 - why: 缺少 X-Frame-Options: SAMEORIGIN 导致 HTML 页面可被 iframe 嵌入用于点击劫持攻击；缺少 X-Content-Type-Options: nosniff 允许旧浏览器 MIME-sniffing。商业化产品含支付流程，这些是任何安全扫描器都会标记的基线缺陷。修复仅需在静态文件响应里增加 4-5 行 header。
 - how: 新增 _send_security_headers() 辅助方法，在 do_GET() 静态 HTML 响应路径调用；可选择将 CORS 限制为 ALLOWED_ORIGINS 环境变量而非无条件 *。Touch: app_server.py:2890-2909, 2995-3005
+- done (2026-06-04, PR #20): `_send_security_headers()` 发 X-Frame-Options/X-Content-Type-Options/Referrer-Policy，在 `_send_html` 与静态块调用。**范围限定**：CORS 通配 `*` 与 CSP 故意未动——鉴权是 Authorization: Bearer（非 Cookie），通配 CORS 危害低；CSP 会打碎 index.html 内联 config。如未来要收紧 CORS / 加 CSP（外联内联脚本）可另立项。
 
 ### OPT-014 — 自动识别的摘抄卡片总是排在前面（已定位为排序 bug）
 - status: done
@@ -125,7 +126,7 @@ Format per item:
 - how: 对摘抄卡做一轮 designqc（openwolf designqc），评估排版/对比度/层次，针对性优化 styles.css 中摘抄卡相关样式。
 
 ### OPT-017 — `model_logs` / `agent_traces` 缺少 user_id 索引，debug 看板随数据增长线性变慢
-- status: new
+- status: done
 - area: backend
 - description: `init_db()` 创建了 `model_logs`、`agent_traces`、`agent_actions`、`agent_metrics` 四张表，但均无任何二级索引。`list_logs()`（`app_server.py:1810`）执行 `WHERE model_logs.user_id = ? ORDER BY model_logs.created_at DESC LIMIT 30`，是对全表的顺序扫描。Plus 用户每天 240 次调用，一年后该表有 8 万行以上，每次打开 `/debug/logs` 都要全扫。
 - why: OPT-005（debug 看板）已上线、OPT-016（云 OCR）加速了 model_logs 写入速度；表增速比预期快。索引是零风险、零 schema 变更的修复，下次启动自动建好。
@@ -166,3 +167,10 @@ Format per item:
 - description: （owner 提出）新增摘抄拍照后，提供一种「非 AI」的本地/快速 OCR 全文提取方式作为备选——现有 AI（Kimi vision / DeepSeek）太慢。
 - why: AI OCR 延迟高，影响录入流畅度；一个快速的传统 OCR（如 Tesseract、Apple Vision/iOS 端 VisionKit、或浏览器端 OCR 库）能在多数清晰书页上秒级出文，作为默认快路径，AI 作为识别质量兜底。
 - how: 评估候选——服务端 Tesseract（pytesseract，需装系统依赖）、iOS 端 VisionKit/Live Text（前端先做端上识别再上传文本）、或浏览器端 tesseract.js。优先考虑端上识别（零后端成本、最快）；提供「快速识别 / AI 精识别」两档供用户选。Touch: 摘抄 OCR 录入链路 app.js + app_server.py /api/quotes/ocr。
+
+### OPT-021 — 暗色模式（系统跟随）— 由 explore E21 提拔
+- status: done
+- area: frontend
+- description: App 无暗色模式；阅读类产品夜间使用是强场景。styles.css 全用 CSS 变量驱动，但 ~30 处硬编码色绕过变量会在深色背景漏色。
+- why: 夜间体验 + 跟随系统设置（iOS13+/Android10+）。CSS 变量架构已就绪。
+- done (2026-06-04, PR #21): 方案 B（仅系统跟随，无手动开关）。把 ~30 处硬编码色收编为语义变量（亮色字节不变=纯重构）+ 新增 `@media (prefers-color-scheme: dark) { :root { … } }` 覆盖 ~25 个 --color-* / 16 个 --status-* / 新语义变量；WCAG AA 对比度审计全过（正文 14.4:1 等）。**遗留**：手动开关（C 方案，data-theme + localStorage + 「我的」抽屉入口）未做；真·暗色截图未抓（designqc 无 dark 模拟），靠 grep + 程序化对比度审计验证，建议真机系统暗色肉眼复核一遍。

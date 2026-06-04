@@ -3937,6 +3937,56 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-04T07:27:12.468Z"
+    },
+    {
+      "id": "bug-231",
+      "timestamp": "2026-06-04T11:52:55.479Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-04T11:53:05.930Z"
+    },
+    {
+      "id": "bug-232",
+      "timestamp": "2026-06-04T11:53:56.583Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/triage.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→7 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-04T11:53:56.583Z"
+    },
+    {
+      "id": "bug-233",
+      "timestamp": "2026-06-04T00:00:00Z",
+      "error_message": "curl -I http://127.0.0.1:8787/ returns HTTP 501 Unsupported method ('HEAD') during OPT-011 e2e header check",
+      "file": "app_server.py",
+      "root_cause": "ThreadingHTTPServer request handler implements do_GET/do_POST/do_PUT/do_DELETE/do_OPTIONS but not do_HEAD; BaseHTTPRequestHandler returns 501 for unimplemented methods.",
+      "fix": "Not fixed (out of scope for OPT-011). Workaround for verification: use 'curl -sD - -o /dev/null <url>' (GET, headers only) instead of 'curl -I'. Proper fix would add a do_HEAD that reuses do_GET header logic without writing the body.",
+      "tags": [
+        "http",
+        "head",
+        "static-serving",
+        "e2e",
+        "opt-011"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-04T00:00:00Z"
     }
   ]
 }
