@@ -875,10 +875,17 @@ test("P0 rate-limit: apiFetch surfaces the server's friendly message and tags er
 });
 
 test("P0 rate-limit: styles.css defines .chat-rate-limited with warning amber palette", () => {
-  assert.match(styles, /\.chat-rate-limited\s*\{[^}]*background:\s*#fef3c7/,
-    "chat-rate-limited should use amber/warning background (#fef3c7), distinct from red error");
-  assert.match(styles, /\.chat-rate-limited\s*\{[^}]*color:\s*#92400e/,
-    "chat-rate-limited should use amber/warning text color");
+  // E21 dark mode: the amber palette was promoted to semantic tokens
+  // (--color-warn-bg / --color-warn-fg). The rule now references the tokens,
+  // and the tokens still resolve to the original amber values in light mode.
+  assert.match(styles, /\.chat-rate-limited\s*\{[^}]*background:\s*var\(--color-warn-bg\)/,
+    "chat-rate-limited should use the warn background token, distinct from red error");
+  assert.match(styles, /\.chat-rate-limited\s*\{[^}]*color:\s*var\(--color-warn-fg\)/,
+    "chat-rate-limited should use the warn text token");
+  assert.match(styles, /--color-warn-bg:\s*#fef3c7;/i,
+    "--color-warn-bg should keep the amber/warning background (#fef3c7) in light mode");
+  assert.match(styles, /--color-warn-fg:\s*#92400e;/i,
+    "--color-warn-fg should keep the amber/warning text color (#92400e) in light mode");
 });
 
 test("P0 session-expiry: backend exposes SESSION_LIFETIME_DAYS, expiry check, and /api/logout-all", () => {
