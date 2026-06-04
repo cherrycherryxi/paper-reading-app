@@ -3316,9 +3316,21 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self._send_security_headers()
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_security_headers(self) -> None:
+        """Emit baseline security headers for static/HTML responses.
+
+        Must be called after send_response() and before end_headers().
+        Mitigates clickjacking (X-Frame-Options), MIME-sniffing
+        (X-Content-Type-Options), and referrer leakage (Referrer-Policy).
+        """
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
 
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
@@ -3420,6 +3432,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", mime)
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             self.send_header("Pragma", "no-cache")
+            self._send_security_headers()
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
