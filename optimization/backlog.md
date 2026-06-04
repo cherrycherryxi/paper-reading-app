@@ -174,3 +174,17 @@ Format per item:
 - description: App 无暗色模式；阅读类产品夜间使用是强场景。styles.css 全用 CSS 变量驱动，但 ~30 处硬编码色绕过变量会在深色背景漏色。
 - why: 夜间体验 + 跟随系统设置（iOS13+/Android10+）。CSS 变量架构已就绪。
 - done (2026-06-04, PR #21): 方案 B（仅系统跟随，无手动开关）。把 ~30 处硬编码色收编为语义变量（亮色字节不变=纯重构）+ 新增 `@media (prefers-color-scheme: dark) { :root { … } }` 覆盖 ~25 个 --color-* / 16 个 --status-* / 新语义变量；WCAG AA 对比度审计全过（正文 14.4:1 等）。**遗留**：手动开关（C 方案，data-theme + localStorage + 「我的」抽屉入口）未做；真·暗色截图未抓（designqc 无 dark 模拟），靠 grep + 程序化对比度审计验证，建议真机系统暗色肉眼复核一遍。
+
+### OPT-022 — 登录/注册端点无限速，可遭暴力破解和垃圾注册 — 由 explore E31 提拔
+- status: new
+- area: backend
+- description: `_enforce_rate_limit()` 仅对 `chat` 和 `ocr` 生效（line 4580/4823/4246/4291/4342）；`/api/login`（line 3939）、`/api/register`（line 3889）、`/api/password/reset-request`（line 4015）均无任何限速。攻击者可无限次尝试登录任意用户名，或批量注册账号（每次触发 DB 写入 + user_state 初始化）。
+- why: 商业化产品含用户数据和付费入口；基线安全合规要求对认证端点有请求频率保护。现有 `check_and_record_rate_limit` 基于 user_id，需新增 IP/用户名维度的前置拦截。
+- how: 在 `rate_limit_counters` 表中复用现有结构，以 `username` 或请求 IP 为 user_id 代理；在 `/api/login` 和 `/api/password/reset-request` 处理块顶部插入检查（失败尝试 > 10次/15分钟返回 429）；`/api/register` 加 IP 维度防刷。Touch: `app_server.py:3889, 3939, 4015`；复用 `app_server.py:1462-1530`。
+
+### OPT-023 — `/media/` 图片路由无需鉴权且 CORS 设为通配符，私人图片可被任意网站跨域热链 — 由 explore E32 提拔
+- status: new
+- area: backend
+- description: `/media/` 处理块（`app_server.py:3497-3519`）无任何认证检查，且返回 `Access-Control-Allow-Origin: *`（line 3509）+ `Cache-Control: public, max-age=31536000, immutable`。用户上传的书封/摘抄照片（含私人批注）一旦 URL 泄露（DevTools、导出文件等），任何第三方网站均可永久跨域内嵌。
+- why: 最小修复仅需删除一行（去掉 `/media/` 响应中的 `Access-Control-Allow-Origin: *`）：前端图片全部走同源 `<img src>` 加载，通配 CORS 从无必要。S 复杂度，零功能回归，立即消除跨站热链风险。深度修复（对 `/media/` 加认证）可后续另立项。
+- how: 删除 `app_server.py:3509` 的 `self.send_header("Access-Control-Allow-Origin", "*")` 一行。Touch: `app_server.py:3509`。

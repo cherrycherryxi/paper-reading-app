@@ -344,3 +344,60 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — add `maxlength` to each text/textarea input in the relevant dialogs in `index.html`. No backend changes required (existing validations remain as server-side guard). Touch: `index.html:379-402, 426, 459, 470, 607`.
 
 **Files:** `index.html:379, 380, 402, 426, 459, 470, 607`
+
+---
+
+## 2026-06-04
+
+### E31 — Auth endpoints have no rate limiting — credential stuffing and spam registration undefended (M)
+**What:** `_enforce_rate_limit()` is called for `chat` (lines 4580, 4823) and `ocr` (lines 4246, 4291, 4342), but the three auth endpoints receive zero rate-limit protection: `/api/login` (line 3939), `/api/register` (line 3889), `/api/password/reset-request` (line 4015), and `/api/password/reset` (line 4082). An attacker can issue unlimited login attempts against any username, spray passwords across many accounts, or flood `/api/register` to create thousands of users (triggering DB writes, session rows, and `user_state` rows on each attempt).
+
+**Why it matters:** The existing `check_and_record_rate_limit()` is user-id–based and only kicks in post-auth, making it structurally unable to defend pre-auth endpoints. A modest IP-or-username–based lockout (e.g., 10 failed login attempts per username per 15 minutes using a lightweight in-memory `collections.Counter` or a new DB table similar to `rate_limit_counters`) would eliminate the attack surface. DeepSeek and Kimi API keys are gated behind the chat/ocr limits; the user DB is currently completely open to automated abuse.
+
+**Complexity:** M — add a `check_login_rate_limit(username, ip)` helper that reuses or extends the existing `rate_limit_counters` table; apply it at the top of the `/api/login` and `/api/password/reset-request` handlers. For `/api/register`, an IP-based counter suffices (no username yet). Touch: `app_server.py:3889-3950, 4015-4087` (handlers); `app_server.py:1462-1530` (`check_and_record_rate_limit` reference).
+
+**Files:** `app_server.py:3889, 3939, 4015, 4082`; `app_server.py:1462-1530` (rate-limit helper); tests in `tests/agent/rate_limit_test.py`
+
+---
+
+### E32 — `/media/` serves user images unauthenticated with wildcard CORS — any site can hotlink private photos (S)
+**What:** The `/media/` handler at `app_server.py:3497-3519` has no `_require_user()` call — no authentication is required at all. It also sends `Access-Control-Allow-Origin: *` (line 3509) and `Cache-Control: public, max-age=31536000, immutable` (line 3510). Images are stored under `/uploads/{user_id}/{filename}` where both segments are UUIDs, so paths are hard to guess, but once a URL is known (e.g., extracted from a chat export or from browser DevTools): (a) any third-party website can hotlink the image, (b) CDN/proxy caches store it permanently under a `public` directive, (c) anyone — including logged-out users — can retrieve it indefinitely. Book covers and quote photos may include personal/private content (handwritten notes, receipts used as bookmarks, etc.).
+
+**Why it matters:** The minimum fix is a one-line change: remove `Access-Control-Allow-Origin: *` from the `/media/` response (the images are only loaded via `<img src>` from the same origin in the app, so cross-origin access is never needed). This closes the hotlinking vector at zero cost to functionality. A deeper fix — adding authentication to `/media/` — requires converting all `<img src="/media/...">` to fetch-based blob URLs; that is M-complexity and can be a follow-up.
+
+**Complexity:** S (minimum fix: remove one header line, `app_server.py:3509`). M if full auth-gating of `/media/` is desired later.
+
+**Files:** `app_server.py:3509` (delete the `Access-Control-Allow-Origin` header line in the `/media/` block); `app_server.py:3497-3519`
+
+---
+
+### E33 — `sanitize_state()` passes through arrays with no count caps — bloated state inflates DB, sync cost, and prompt tokens (S)
+**What:** `sanitize_state()` at `app_server.py:614-648` validates array types but imposes no length limit: `books`, `sessions`, `quotes`, `connections`, and the `chatHistories` dict are all accepted at whatever size the client sends. A user (or a compromised token) can `PUT /api/state` with 10,000 quotes each containing a 3,000-character reflection, producing a 30 MB+ `state_json` in `user_state`. `PromptBuilder` caps `books[:5]` before injecting into the system prompt (line 2256), but the rest of the raw state is stored and loaded on every request. A bloated `user_state` row makes every `load_state()` call in the hot chat path slower.
+
+**Why it matters:** `sanitize_state()` is the single gate through which all client-submitted data passes; adding caps there is a one-and-done fix. Reasonable upper bounds (books: 2 000, sessions: 10 000, quotes: 5 000, connections: 2 000, chat histories: 100 per history key) do not constrain any realistic use case but prevent accidental or adversarial bloat. With the existing `maxlength` gap (E30) in the frontend, a single paste-heavy session can already inflate the state to several MB today.
+
+**Complexity:** S — in `sanitize_state()` at lines 642–647, wrap each list with a tail-slice: `(payload.get("books") or [])[-2000:]` etc. Add per-history message cap at line 631: `value[-200:]`. No schema change, no test change needed. Touch: `app_server.py:630-648`.
+
+**Files:** `app_server.py:630-648`
+
+---
+
+### E34 — `clearLogs()` fires destructively with no confirmation dialog (S)
+**What:** `clearLogs()` at `app.js:2950` calls `apiFetch("/api/model-logs", { method: "DELETE" })` directly on button click, with no `showConfirmDialog()` guard. Every other irreversible action in the app — `deleteBook()` (line 1952), `deleteSession()` (line 2181), `deleteQuote()` (line 2198), `deleteConnection()` (line 3505) — wraps the destructive call in `showConfirmDialog()`. Model logs are the primary debugging surface for diagnosing AI quality issues; an accidental click during normal debug-panel use destroys the entire log history for that user.
+
+**Why it matters:** The asymmetry is a latent UX bug: the user can accidentally nuke all their observability data with one misclick while browsing the `/debug/logs` panel. The fix is ~5 lines wrapping the existing `apiFetch` in the same `showConfirmDialog()` pattern already used by all sibling delete functions.
+
+**Complexity:** S — wrap the `apiFetch` in `clearLogs()` with `showConfirmDialog({ message: "确定清空所有模型日志？", onConfirm: async () => { ... } })`. Touch: `app.js:2950-2960`.
+
+**Files:** `app.js:2950-2960`
+
+---
+
+### E35 — `syncState()` has no optimistic locking — concurrent tabs or devices silently overwrite each other (M)
+**What:** `syncState()` at `app.js:755-767` issues a blind `PUT /api/state` with the full local `state` object. The `user_state` table has an `updated_at` column (line 401) that is written by `save_state()` (line 671) on every mutation, but the value is never returned to or compared by the client. When a user has the app open in two tabs simultaneously (phone + browser, or two windows) and both make edits, the second `PUT` simply overwrites the first — the last save wins, silently discarding the other session's work. On a reading app, a user might add a quote on their phone and an annotation on their desktop in the same minute, losing one of them invisibly.
+
+**Why it matters:** A simple optimistic locking mechanism (`If-Match`/`ETag` pattern or a monotonic version counter) would detect this conflict and return a 409, allowing the client to surface "状态已被其他标签页修改，请刷新" before data loss occurs. The `updated_at` column is already present; the fix requires returning it from `GET /api/state` and `PUT /api/state`, and checking it on write — about 8 lines of backend Python and 5 lines of frontend JS.
+
+**Complexity:** M — backend: return `{ state, stateVersion: updated_at }` from both `GET /api/state` and `PUT /api/state`; add a version-check guard in `save_state()` that rejects with 409 if `updated_at ≠ client_version` when client supplies one. Frontend: store `stateVersion` after load/sync; include as `X-State-Version` header on PUT; handle 409 by showing a reload prompt. Touch: `app_server.py:668-671` (`save_state`), `app_server.py:3584-3622` (`GET /api/state`); `app.js:755-767` (`syncState`), `app.js:769-800` (`loadSession`).
+
+**Files:** `app_server.py:668-671, 3584-3622`; `app.js:755-767, 769-800`
