@@ -489,6 +489,15 @@ def init_db() -> None:
             ON payments (provider_subscription_id);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_event_unique
             ON payments (provider_event_id) WHERE provider_event_id != '';
+
+        CREATE INDEX IF NOT EXISTS idx_model_logs_user_created
+            ON model_logs (user_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_agent_metrics_user
+            ON agent_metrics (user_id);
+        CREATE INDEX IF NOT EXISTS idx_agent_actions_trace
+            ON agent_actions (trace_id);
+        CREATE INDEX IF NOT EXISTS idx_agent_traces_user_created
+            ON agent_traces (user_id, created_at);
         """
     )
     user_cols = {
