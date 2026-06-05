@@ -1169,3 +1169,5 @@
 | 18:06 | Edited app_server.py | 4→3 lines | ~49 |
 | 18:06 | Created tests/agent/media_cors_test.py | — | ~819 |
 | 18:08 | Edited optimization/triage.md | inline fix | ~30 |
+| 19:12 | Edited optimization/explore.md | expanded (+57 lines) | ~1949 |
+| 19:12 | Edited optimization/backlog.md | expanded (+14 lines) | ~626 |
