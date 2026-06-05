@@ -1158,3 +1158,11 @@
 | 18:08 | Edited optimization/triage.md | inline fix | ~40 |
 | 19:16 | Edited optimization/explore.md | modified known() | ~2213 |
 | 19:16 | Edited optimization/backlog.md | modified done() | ~494 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~20 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~12 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~22 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~29 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~20 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~26 |
+| 17:07 | Created optimization/triage.md | — | ~952 |
