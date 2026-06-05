@@ -14,7 +14,7 @@ P0/S. `app_server.py:3509` 的 `/media/` 处理块返回 `Access-Control-Allow-O
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-023 | /media/ CORS 通配符移除 | P0 | S | triaged | `app_server.py:3509` 删 1 行，零风险，私人图片跨站热链立即消除。 |
+| OPT-023 | /media/ CORS 通配符移除 | P0 | S | in-progress | PR #24. `app_server.py:3509` 删 1 行，零风险，私人图片跨站热链立即消除。 |
 | OPT-022 | 登录/注册端点无限速 | P1 | M | triaged | 复用 `check_and_record_rate_limit`（`app_server.py:1462`）以 username/IP 为 key；需 IP 提取 + 失败计数维度，3 端点（line 3889/3939/4015）。安全基线。 |
 | OPT-016 | 非 AI 摘抄 OCR 快路径 | P1 | L | in-progress | 代码已完成（云 OCR 百度 accurate_basic + Tesseract 回落，21 测试全绿）。阻塞：owner 待配置百度 API key 并真机端到端验证。Agent2 无法推进。 |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口目前仅在「我的」抽屉（`index.html:306`）。在书单页 `#openBookDialogBtn` 旁加二级「批量导入」链接；复用现有 `importExcelInput` 处理逻辑。Touch: `index.html` only。 |
