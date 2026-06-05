@@ -366,6 +366,22 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIn("1 个最核心、最值得继续追问的问题", system_instruction)
         self.assertIn("必须返回对应 action", system_instruction)
 
+    def test_existing_connections_omitted_in_book_context(self):
+        """OPT-020: existing_connections must be [] when book_id is set to avoid wasting tokens."""
+        builder = app_server.PromptBuilder()
+        state = self.load_state()
+        state["connections"] = [{"id": f"conn-{i}", "sourceId": "book-1", "targetId": "book-2"} for i in range(25)]
+
+        prompt_with_book = builder.build_chat_prompt(state, "book-1", [])
+        user_data_json = prompt_with_book.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        payload_with_book = json.loads(user_data_json)
+        self.assertEqual(payload_with_book["existing_connections"], [], "connections should be empty when book_id is set")
+
+        prompt_global = builder.build_chat_prompt(state, "", [])
+        user_data_json_global = prompt_global.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        payload_global = json.loads(user_data_json_global)
+        self.assertEqual(len(payload_global["existing_connections"]), 20, "connections should be injected (capped at 20) in global context")
+
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()
         state["quotes"] = [
