@@ -163,6 +163,24 @@
   }
 }
 
+/* ── Reduced motion (OPT-018, WCAG 2.1 SC 2.2.2 Level A) ──
+   The infinite `chat-dot-pulse` loading animation plays for the entire
+   5–30s of an AI response with no pause control — a Level A violation when
+   the user has iOS "Reduce Motion" / Android "Remove animations" enabled.
+   Collapse all animations and transitions to a near-zero duration. We use
+   0.01ms (not 0) so any JS awaiting `transitionend`/`animationend` still
+   fires. `animation-iteration-count: 1` stops infinite loops outright. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -642,6 +660,18 @@ textarea:focus {
   outline: none;
   border-color: var(--color-ink);
   box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.1);
+}
+
+/* Keyboard focus indicator for all clickable controls (OPT-013,
+   WCAG 2.1 SC 2.4.7 Level AA). Buttons and role/anchor controls had zero
+   focus style, leaving Tab-key users with no visible focus. `:focus-visible`
+   shows the ring for keyboard navigation only, not on mouse click. Uses
+   var(--color-ink) so it adapts to dark mode automatically. */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
 }
 
 textarea {
