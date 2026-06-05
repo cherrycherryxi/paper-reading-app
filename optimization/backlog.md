@@ -96,7 +96,7 @@ Format per item:
 - how: 在 call_deepseek() 增加 retries 参数（默认 2），捕获到可重试的 HTTPError 时 sleep(1) 后重试；或提取为 _retryable_deepseek_call() wrapper 复用。参照 call_kimi_vision() 的 attempt 循环实现。Touch: app_server.py:2703-2731；调用方 line 1821, 1826, 4101 无需改动。
 
 ### OPT-013 — 按钮缺少 :focus-visible 样式，键盘用户无法看到焦点位置（WCAG 违规）
-- status: triaged
+- status: done
 - area: frontend
 - description: styles.css 对 input/select/textarea 有 :focus 样式（line 533），但全部 30+ 个按钮选择器（.circle-action、.icon-btn、.tag-chip-pick、.filter-chip、.me-list-btn 等）均无 :focus 或 :focus-visible 规则。styles.css 3451 行中 :focus-visible 出现 0 次。使用键盘（Tab 键）导航的用户看不到任何焦点指示器。
 - why: WCAG 2.1 SC 2.4.7（Focus Visible，Level AA）要求所有可键盘操作元素有可见焦点指示器。这是商业化产品的基线无障碍合规要求。修复仅需 3 行 CSS，风险极低，影响所有按钮。
@@ -119,7 +119,7 @@ Format per item:
 - how: 两处都改——(1) 后端建 OCR 卡处（app_server.py:3984）的 createdAt 改用 UTC 带 Z，与前端对齐（不动全局 now_iso() 以免影响 session/限速/日报 today_prefix 等）；(2) 前端排序（app.js:1213）改为解析后比较 epoch：new Date(b.createdAt) - new Date(a.createdAt)，作为防御性加固。已存旧 OCR 卡的 naive 时间戳无法回溯真实时区，自然老化。
 
 ### OPT-015 — 摘抄卡面内容难以分辨，UI 优化
-- status: triaged
+- status: done
 - area: frontend
 - description: （owner 提出）摘抄卡片正面的内容（摘抄文字 / 图片 / 元信息）辨识度不够，需要在 UI 上做优化，提升可读性与层次。
 - why: 摘抄是核心内容，卡面读不清直接影响主体验；对比度、字号、留白、图文层次等都可能是问题点。
@@ -133,21 +133,21 @@ Format per item:
 - how: 在 `init_db()` 的 `executescript` 块（`app_server.py:341`）追加三条 `CREATE INDEX IF NOT EXISTS`：`idx_model_logs_user_created ON model_logs(user_id, created_at)`、`idx_agent_traces_user_created ON agent_traces(user_id, created_at)`、`idx_agent_actions_trace ON agent_actions(trace_id)`。Touch: `app_server.py:337-490`
 
 ### OPT-018 — CSS 动画缺少 prefers-reduced-motion 保护，违反 WCAG 2.1 Level A
-- status: triaged
+- status: done
 - area: frontend
 - description: `styles.css` 在 8+ 个选择器上使用 `transition`（lines 356, 552, 1058, 1848, 1974, 2180, 2553, 2729, 3440），并定义了无限循环的 `@keyframes chat-dot-pulse`（line 1878，AI 响应期间全程播放）。整个 3451 行样式表中 `prefers-reduced-motion` 出现 0 次。
 - why: WCAG 2.1 SC 2.2.2（暂停/停止/隐藏，Level A）要求无限循环动画可由用户暂停——`chat-dot-pulse` 在 AI 响应时持续 5–30 秒无法暂停，是 Level A 违规。修复仅需 4 行 CSS。
 - how: 在 `styles.css` `:root` 变量块之后（约 line 356 前）插入：`@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }`。无 HTML / JS 变更。Touch: `styles.css:350-360`
 
 ### OPT-019 — Toast 通知缺少 aria-live，屏幕阅读器用户无法感知所有瞬时反馈（WCAG 4.1.3 违规）
-- status: triaged
+- status: done
 - area: frontend
 - description: `index.html:620` 的 `<div id="toast">` 没有 `role="status"` 或 `aria-live` 属性。`showToast()` 通过 JS 更新 `textContent` 并切换 CSS class，但屏幕阅读器只会朗读有 `aria-live` 的动态区域。登录过期、注册成功、表单验证失败等所有瞬时消息对辅助技术用户完全不可见。
 - why: Toast 是 app 最主要的反馈通道（auth、表单提交、错误）。WCAG 2.1 SC 4.1.3（Status Messages，Level AA）要求状态消息可被辅助技术感知。修复仅需给 `#toast` 元素加一个 HTML 属性，零 JS 变更，零风险。
 - how: 在 `index.html:620` 的 `<div id="toast" class="toast">` 上加 `role="status" aria-atomic="true"`。`role="status"` 隐含 `aria-live="polite"`，无需额外属性。Touch: `index.html:620`。
 
 ### OPT-020 — `PromptBuilder` 在书/摘抄上下文中注入无关的 `existing_connections`，每次对话浪费 ~200–2000 tokens
-- status: triaged
+- status: done
 - area: agent
 - description: `PromptBuilder.build_chat_prompt()`（`app_server.py:2241`）无论 chat 上下文如何，始终把 `user_state["connections"][:20]` 注入 system prompt。针对书/摘抄上下文的系统指令（lines 2270-2275）明确写道：只有用户主动要求"建立关联"时才允许返回 `link_thought` action，即这批连接数据在 80%+ 的请求里被注入后又被指令禁止使用。有 50 条关联的用户每次请求额外注入 ~150 tokens；Plus 用户每日 240 次请求累计 36,000 多余 tokens。
 - why: 直接降低 DeepSeek API 用量/成本，且不影响任何功能：全局上下文（无 book_id）仍注入 connections，书/摘抄上下文不再注入。修复是 1 行条件判断，零测试变更，零行为变更。
@@ -176,14 +176,14 @@ Format per item:
 - done (2026-06-04, PR #21): 方案 B（仅系统跟随，无手动开关）。把 ~30 处硬编码色收编为语义变量（亮色字节不变=纯重构）+ 新增 `@media (prefers-color-scheme: dark) { :root { … } }` 覆盖 ~25 个 --color-* / 16 个 --status-* / 新语义变量；WCAG AA 对比度审计全过（正文 14.4:1 等）。**遗留**：手动开关（C 方案，data-theme + localStorage + 「我的」抽屉入口）未做；真·暗色截图未抓（designqc 无 dark 模拟），靠 grep + 程序化对比度审计验证，建议真机系统暗色肉眼复核一遍。
 
 ### OPT-022 — 登录/注册端点无限速，可遭暴力破解和垃圾注册 — 由 explore E31 提拔
-- status: new
+- status: triaged
 - area: backend
 - description: `_enforce_rate_limit()` 仅对 `chat` 和 `ocr` 生效（line 4580/4823/4246/4291/4342）；`/api/login`（line 3939）、`/api/register`（line 3889）、`/api/password/reset-request`（line 4015）均无任何限速。攻击者可无限次尝试登录任意用户名，或批量注册账号（每次触发 DB 写入 + user_state 初始化）。
 - why: 商业化产品含用户数据和付费入口；基线安全合规要求对认证端点有请求频率保护。现有 `check_and_record_rate_limit` 基于 user_id，需新增 IP/用户名维度的前置拦截。
 - how: 在 `rate_limit_counters` 表中复用现有结构，以 `username` 或请求 IP 为 user_id 代理；在 `/api/login` 和 `/api/password/reset-request` 处理块顶部插入检查（失败尝试 > 10次/15分钟返回 429）；`/api/register` 加 IP 维度防刷。Touch: `app_server.py:3889, 3939, 4015`；复用 `app_server.py:1462-1530`。
 
 ### OPT-023 — `/media/` 图片路由无需鉴权且 CORS 设为通配符，私人图片可被任意网站跨域热链 — 由 explore E32 提拔
-- status: new
+- status: triaged
 - area: backend
 - description: `/media/` 处理块（`app_server.py:3497-3519`）无任何认证检查，且返回 `Access-Control-Allow-Origin: *`（line 3509）+ `Cache-Control: public, max-age=31536000, immutable`。用户上传的书封/摘抄照片（含私人批注）一旦 URL 泄露（DevTools、导出文件等），任何第三方网站均可永久跨域内嵌。
 - why: 最小修复仅需删除一行（去掉 `/media/` 响应中的 `Access-Control-Allow-Origin: *`）：前端图片全部走同源 `<img src>` 加载，通配 CORS 从无必要。S 复杂度，零功能回归，立即消除跨站热链风险。深度修复（对 `/media/` 加认证）可后续另立项。
