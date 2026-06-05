@@ -401,3 +401,60 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** M — backend: return `{ state, stateVersion: updated_at }` from both `GET /api/state` and `PUT /api/state`; add a version-check guard in `save_state()` that rejects with 409 if `updated_at ≠ client_version` when client supplies one. Frontend: store `stateVersion` after load/sync; include as `X-State-Version` header on PUT; handle 409 by showing a reload prompt. Touch: `app_server.py:668-671` (`save_state`), `app_server.py:3584-3622` (`GET /api/state`); `app.js:755-767` (`syncState`), `app.js:769-800` (`loadSession`).
 
 **Files:** `app_server.py:668-671, 3584-3622`; `app.js:755-767, 769-800`
+
+---
+
+## 2026-06-05
+
+### E36 — `ActionExecutor` uses `datetime.now().isoformat()` — agent-created records carry naïve local time + microseconds (same timezone bug as OPT-014, unfixed path) (S)
+**What:** Every record written by `ActionExecutor.execute_action()` uses the bare `datetime.now().isoformat()` call (7 sites: `app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`) for `createdAt` and `updatedAt`. This produces timestamps like `2026-06-05T20:34:56.123456` — naïve local time, microsecond precision, no timezone suffix. OPT-014 fixed this exact bug on the OCR path by replacing `now_iso()` with `utc_now_iso()`, and the frontend sort was updated to use `Date.parse` epoch diff. But the agent action path was never updated: every agent-created `add_note`, `add_book`, `question`, `link_thought` record still uses the local-time call with microseconds.
+
+**Why it matters:** The frontend sorts books and quotes by `new Date(b.createdAt) - new Date(a.createdAt)`. `new Date("2026-06-05T20:34:56.123456")` is parsed as **local time** by the browser, giving it an effective UTC offset of +8h relative to user-created records (which use `new Date().toISOString()` = UTC+Z). On a UTC+8 server, every agent-created record appears ~8 hours ahead of any user-created record from the same moment — same root cause as OPT-014, same population of users (anyone using the agent actions), same silent display corruption.
+
+**Complexity:** S — replace all 7 `datetime.now().isoformat()` calls inside `ActionExecutor.execute_action()` with `utc_now_iso()`. No schema changes, no interface changes, no test changes. One-line `%s` substitution per call site.
+
+**Files:** `app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`
+
+---
+
+### E37 — `agent_trace_events` table has no index on `trace_id` — trace detail fetch is a full table scan (S)
+**What:** `init_db()` at `app_server.py:500-508` creates covering indexes for `model_logs`, `agent_traces`, `agent_actions`, and `agent_metrics`, but none for `agent_trace_events` (defined at lines 421-428). The query at line 2645 — `SELECT … FROM agent_trace_events WHERE trace_id = ? ORDER BY created_at ASC` — runs against an unindexed 421-row (and growing) table. Every call to `get_trace()` (line 2640) or any trace-detail API that joins events must do a full table scan across events from all users to find matching rows.
+
+**Why it matters:** `agent_trace_events` grows at the same rate as `agent_traces` (one row per pipeline stage per request). For a Plus user at 240 req/day over a year, the table reaches ~250,000 rows. Without an index, each trace-detail load scans every one. This is exactly the same problem OPT-017 fixed for `model_logs` and `agent_traces`; `agent_trace_events` was simply missed. Adding the index is zero-risk and takes one line.
+
+**Complexity:** S — add `CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at)` to the `executescript` block in `init_db()`. SQLite builds the index on next startup; existing data is automatically indexed.
+
+**Files:** `app_server.py:500-509` (`init_db` index block); `app_server.py:2645` (query that benefits)
+
+---
+
+### E38 — Account export fetches ALL `agent_traces` + `agent_actions` without a row cap — can exhaust RAM for heavy users (S)
+**What:** The `/api/account/export` handler at `app_server.py:3610-3625` issues two unbounded `SELECT … WHERE user_id = ?` queries — one for `agent_traces` and one for `agent_actions` — and materialises both into Python lists before `json.dumps()` them. A Plus user with 12 months of daily use accumulates ~87,000 trace rows and ~87,000+ action rows. Materialising 174,000 rows into RAM (each containing multi-field dicts with action JSON blobs) consumes hundreds of MB, blocks the single HTTP-handler thread for several seconds, and can OOM the process on a small VPS.
+
+**Why it matters:** Export is a user-facing compliance and backup feature. It should not be a DoS vector. The fix is minimal: add `ORDER BY created_at DESC LIMIT 1000` and `LIMIT 2000` to the two queries respectively, and include a `"truncated": true` note in the export JSON if the limit is reached. This preserves the most recent/relevant data while bounding the response to under ~5 MB.
+
+**Complexity:** S — add `LIMIT 1000` / `LIMIT 2000` clauses and a truncation flag to the two queries at lines 3610-3625. Touch: `app_server.py:3610-3625`.
+
+**Files:** `app_server.py:3610-3625`
+
+---
+
+### E39 — `Content-Disposition` filename uses raw `username` — Chinese usernames and `"` chars produce a malformed HTTP header (S)
+**What:** `app_server.py:3659` builds the export download filename via f-string interpolation: `f'attachment; filename="paper-reading-export-{user["username"]}-{time.strftime("%Y%m%d")}.json"'`. Username registration (`app_server.py:3895`) only validates `len(username) >= 2` — no character whitelist. A username containing `"` (e.g. `test"user`) produces `filename="paper-reading-export-test"user-20260605.json"` which breaks the header token. Chinese usernames (e.g. `小明`) are non-ASCII and require RFC 5987 `filename*` encoding or percent-escaping to be spec-compliant; without it, some browsers ignore the header entirely and save the file as `download.json`.
+
+**Why it matters:** A malformed header is invisible in normal use but causes silent failures for users with non-ASCII or special-character usernames — exactly the demographic most likely to use a Chinese reading app. The fix is a one-liner: sanitise the filename by replacing `[^\w\-]` with `_` before interpolation. No user-facing change; the resulting filename is always safe.
+
+**Complexity:** S — add `safe_name = re.sub(r'[^\w\-]', '_', user["username"])` before line 3659 and use `safe_name` in the f-string. `import re` is already present. Touch: `app_server.py:3657-3660`.
+
+**Files:** `app_server.py:3657-3660`
+
+---
+
+### E40 — `summarize_metrics()` aggregates ALL historical rows with no time window — O(n) scan on every `/debug/logs` load (S)
+**What:** `MetricsCollector.summarize_metrics()` at `app_server.py:2799-2807` executes `SELECT … FROM agent_metrics WHERE user_id = ?` with no date filter and no `LIMIT`. All rows are loaded into Python RAM, each JSON-deserialised in a per-row loop, then aggregated. The same Plus user with 87,000 `agent_metrics` rows triggers a 87,000-row fetch + 87,000 `json.loads()` calls on every `/debug/logs` or `/debug/metrics` page load. While the `idx_agent_metrics_user` index (added by OPT-017) prevents a cross-user scan, it still returns every historical row for the requesting user.
+
+**Why it matters:** The debug dashboard is opened regularly by active users to monitor AI quality. Its latency scales linearly with usage history. A 90-day rolling window covers all practically useful debugging history (config changes, model upgrades, regressions) while capping the scan to ~21,600 rows worst-case. The fix is a one-line SQL change.
+
+**Complexity:** S — add `AND created_at > datetime('now', '-90 days')` to the `WHERE` clause at line 2804. Update the dashboard section header to "90-day summary" (one string in `app.js` or the template). Touch: `app_server.py:2799-2807`.
+
+**Files:** `app_server.py:2799-2807`; `app.js` (dashboard label, minor)
