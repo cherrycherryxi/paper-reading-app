@@ -183,7 +183,8 @@ Format per item:
 - how: 在 `rate_limit_counters` 表中复用现有结构，以 `username` 或请求 IP 为 user_id 代理；在 `/api/login` 和 `/api/password/reset-request` 处理块顶部插入检查（失败尝试 > 10次/15分钟返回 429）；`/api/register` 加 IP 维度防刷。Touch: `app_server.py:3889, 3939, 4015`；复用 `app_server.py:1462-1530`。
 
 ### OPT-023 — `/media/` 图片路由无需鉴权且 CORS 设为通配符，私人图片可被任意网站跨域热链 — 由 explore E32 提拔
-- status: triaged
+- status: done (2026-06-06, PR #24)
+- done note: 已删除 `/media/` 响应的 `Access-Control-Allow-Origin: *`（消除跨站热链），+ `tests/agent/media_cors_test.py` 5 例回归守卫。**范围限定**：仅做了最小 CORS 修复；`/media/` 仍无鉴权（任意持 URL 者可访问），深度修复（加 token/签名校验）如需可另立新项。
 - area: backend
 - description: `/media/` 处理块（`app_server.py:3497-3519`）无任何认证检查，且返回 `Access-Control-Allow-Origin: *`（line 3509）+ `Cache-Control: public, max-age=31536000, immutable`。用户上传的书封/摘抄照片（含私人批注）一旦 URL 泄露（DevTools、导出文件等），任何第三方网站均可永久跨域内嵌。
 - why: 最小修复仅需删除一行（去掉 `/media/` 响应中的 `Access-Control-Allow-Origin: *`）：前端图片全部走同源 `<img src>` 加载，通配 CORS 从无必要。S 复杂度，零功能回归，立即消除跨站热链风险。深度修复（对 `/media/` 加认证）可后续另立项。
@@ -202,3 +203,19 @@ Format per item:
 - description: `init_db()` 为 `model_logs`、`agent_traces`、`agent_actions`、`agent_metrics` 都创建了二级索引（`app_server.py:500-508`），但 `agent_trace_events` 表（line 421）无任何索引。`get_trace()` 在 line 2645 执行 `SELECT … FROM agent_trace_events WHERE trace_id = ? ORDER BY created_at ASC`，对无索引表做全扫。`agent_trace_events` 增速与 `agent_traces` 相同；Plus 用户一年后该表超 25 万行，每次 trace 详情加载全扫。
 - why: OPT-017 修复了同类问题但遗漏了此表。新增一条 `CREATE INDEX IF NOT EXISTS` 是零风险修复，下次启动自动建好，无 schema 变更，无接口变更。
 - how: 在 `init_db()` 的 `executescript` 块（`app_server.py:500-509`）追加：`CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at);`。Touch: `app_server.py:500-509`。
+
+### OPT-026 — 「书单」卡片右上角三个点（···）操作入口太不明显
+- status: new
+- area: frontend
+- description: （owner 提出）书单页卡片的操作菜单触发器是右上角的 `···`（`.card-menu-btn`，渲染于 `app.js:1027`，文案就是三个点字符），视觉上几乎看不出是可点的按钮——颜色淡、无边框/背景、与封面叠在一起，用户发现不了编辑/删除藏在这里。
+- why: 操作入口的可发现性差，新用户找不到怎么改书/删书。可见性（contrast/affordance）是基础可用性问题。
+- how: 在 `styles.css` 的 `.card-menu-btn`（约 line 1254 区域）增强可见性——加半透明圆形背景/描边、提高 `color` 对比、hover/active 反馈；必要时换更通用的图标（竖排三点 ⋮ 或齿轮）。注意暗色模式用 `var(--color-*)` token。Touch: `styles.css`（`.card-menu-btn` 规则）。
+- 关联: 与 OPT-027 是同一处 UI，建议合并一轮处理。
+
+### OPT-027 — 卡片操作入口三个页面不统一（书单藏在 ··· 菜单，记录/摘抄是卡面内联按钮）
+- status: new
+- area: frontend
+- description: （owner 提出）操作入口模式不一致：「书单」卡把编辑/删除收进右上角 `···` 弹出菜单（`.card-context-menu` / `menu-item-danger`，`app.js:1029-1035`），而「记录」「摘抄」卡把删除直接做成卡面内联按钮（`.card-action-btn.card-action-danger`，`app.js:1269` / `1338`）。同一 app 两套交互范式，用户在不同页面要重新学怎么操作。
+- why: 一致性是 UI 基本要求；不统一既增加认知负担，也让人以为某些卡「不能编辑/删除」。
+- how: **需先定方向（owner 决策）**——(A) 全部统一到 `···` 溢出菜单（卡面更干净，适合操作多/封面为主的书单）；(B) 全部统一到卡面内联按钮（更直接，少一次点击）。选定后改 `app.js` 三个 render 路径（books / session / quote 卡）+ `styles.css` 对应样式，使三页结构与类名一致。Touch: `app.js`（renderBooks/renderTimeline/renderQuotes 卡片模板）、`styles.css`。
+- 关联: 与 OPT-026 同处 UI；若选方案 A，OPT-026 的「让 ··· 更明显」正好一并解决。

@@ -6,15 +6,13 @@ Last triaged: 2026-06-05
 
 ## Next up
 
-**OPT-023 — /media/ 图片路由 CORS 通配符移除**
-
-P0/S. `app_server.py:3509` 的 `/media/` 处理块返回 `Access-Control-Allow-Origin: *`，导致用户私人书封/摘抄照片可被任意第三方网站跨域热链。前端所有图片均通过同源 `<img src>` 加载，该头从无必要。修复为删除 1 行（`self.send_header("Access-Control-Allow-Origin", "*")`），零功能回归，立即消除跨站热链风险。Touch: `app_server.py:3509`。
+**OPT-023 已合并（PR #24）。** P0/S 安全项已清空。剩余可动：OPT-022（登录/注册端点无限速，P1/M，安全基线）、OPT-024（ActionExecutor datetime 排序 bug，与 OPT-014 同类）、OPT-025（agent_trace_events 缺 trace_id 索引，与 OPT-017 同类）。新增 owner UI 项 OPT-026/027（书单卡 ··· 可见性 + 三页操作入口不统一），需 owner 定方向后做。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-023 | /media/ CORS 通配符移除 | P0 | S | in-progress | PR #24. `app_server.py:3509` 删 1 行，零风险，私人图片跨站热链立即消除。 |
+| OPT-023 | /media/ CORS 通配符移除 | P0 | S | done | Merged PR #24. `app_server.py:3509` 删 1 行 + `media_cors_test.py` 5 例守卫。范围限定：/media 仍无鉴权，深度加固另立项。 |
 | OPT-022 | 登录/注册端点无限速 | P1 | M | triaged | 复用 `check_and_record_rate_limit`（`app_server.py:1462`）以 username/IP 为 key；需 IP 提取 + 失败计数维度，3 端点（line 3889/3939/4015）。安全基线。 |
 | OPT-016 | 非 AI 摘抄 OCR 快路径 | P1 | L | in-progress | 代码已完成（云 OCR 百度 accurate_basic + Tesseract 回落，21 测试全绿）。阻塞：owner 待配置百度 API key 并真机端到端验证。Agent2 无法推进。 |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口目前仅在「我的」抽屉（`index.html:306`）。在书单页 `#openBookDialogBtn` 旁加二级「批量导入」链接；复用现有 `importExcelInput` 处理逻辑。Touch: `index.html` only。 |
