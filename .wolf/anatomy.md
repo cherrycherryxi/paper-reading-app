@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T19:12:52.085Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-06T15:44:45.604Z
 > Files: 112 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -146,9 +146,9 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~4150 tok)
+- `backlog.md` — Optimization Backlog (~4507 tok)
 - `explore.md` — Exploration — new optimization directions (~13867 tok)
-- `triage.md` — Triage (~895 tok)
+- `triage.md` — Triage (~893 tok)
 
 ## scripts/
 

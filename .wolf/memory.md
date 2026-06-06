@@ -1171,3 +1171,6 @@
 | 18:08 | Edited optimization/triage.md | inline fix | ~30 |
 | 19:12 | Edited optimization/explore.md | expanded (+57 lines) | ~1949 |
 | 19:12 | Edited optimization/backlog.md | expanded (+14 lines) | ~626 |
+| 23:44 | Edited optimization/backlog.md | 2→3 lines | ~83 |
+| 23:44 | Edited optimization/triage.md | 5→3 lines | ~69 |
+| 23:44 | Edited optimization/triage.md | inline fix | ~40 |
