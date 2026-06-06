@@ -21,6 +21,10 @@
 
 ## Key Learnings
 
+- **[2026-06-06] 本地 bookkeeping 改动未提交时不要急着同步分支；夜间 Agent1/Agent3 会重写 backlog/triage/explore + 占用 OPT 编号。** 合并 PR 后想 ff 本地 `feature/agent`，发现远端已被夜间 Agent 推进 8 个提交（含 Agent1 把我手改的状态都做了 + Agent3 用 **OPT-024/025 编号注册了和我完全不同的条目**）。`pull --rebase` 在 .wolf + optimization 上连环冲突。教训：① **OPT 编号是夜间 Agent 的共享命名空间——人想新增 backlog 项前先 `git fetch` 看远端最大编号，别用本地推断的下一个号**（我本地 OPT-024/025 撞了远端，改成 026/027）；② 远端分叉又有本地未推提交时，与其硬解连环冲突，不如 `git branch backup/… ` 备份 → `git reset --hard origin/…` → 只把净新增 delta（新条目、独有的 cerebrum 学习）重打一遍 commit，比 rebase 省事；③ Agent1 夜间通常已把已合并 PR 标 done，人只需补 Agent 不知道的东西（owner 口头提的 UI 项等）。
+
+- **[2026-06-05] `optimization/explore.md` 是 Agent3 的 append-only 原始流水，状态会过时——动手前必须用真实代码复核 E 项。** 调研蓄水池里两个 M 项时发现 **E24（流式 chat 无 AbortController 超时）和 E26（handler conn 泄漏无 try/finally）其实都已实现**：E24 在 `chat.js:606-697`（AbortController + idle timer + finally + catch AbortError → renderStreamTimeout），E26 在 `app_server.py:3263 handle_one_request` 的 `finally`（兜底关 `_active_conn`）。explore.md 仍写「no signal / never closed」是因为它只追加不回写。教训：① explore.md 的 E 项只是「线索」，提拔/调研前先 grep 真实代码确认现状；② 同理 backlog 的「无开着 M/L」可能是真·已清空，不是遗漏。
+
 - **[2026-05-13] `capture="environment"` 阻断相册访问。** 所有图片 input（quoteImageInput、bookImageInput、bookEditImageInput）不应带 `capture` 属性。iOS Safari 上 `accept="image/*"` 不带 capture 会弹出系统选择器（拍照 / 相册），带了 capture 则强制只走相机。
 
 - **[2026-05-13] 图片预览需要 scrollIntoView。** dialog 内容较多时，图片预览 div 在底部，用户不知道要向下滚。选图/拍照后应调用 `previewEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })`，让预览自动进入视口。
