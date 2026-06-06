@@ -191,21 +191,21 @@ Format per item:
 - how: 删除 `app_server.py:3509` 的 `self.send_header("Access-Control-Allow-Origin", "*")` 一行。Touch: `app_server.py:3509`。
 
 ### OPT-024 — `ActionExecutor` 使用 `datetime.now().isoformat()`，agent 创建的记录带本地时区 + 微秒精度，产生与 OPT-014 完全一致的排序错位 bug — 由 explore E36 提拔
-- status: new
+- status: triaged
 - area: agent
 - description: `ActionExecutor.execute_action()` 在 7 处调用 `datetime.now().isoformat()`（`app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`），为 `add_note`/`add_book`/`summary`/`tag`/`question`/`link_thought` 生成的记录写入 naive 本地时间 + 微秒（如 `2026-06-05T20:34:56.123456`）。OPT-014 已修复 OCR 路径用 `utc_now_iso()`，但 ActionExecutor 路径漏修。前端 `new Date(b.createdAt) - new Date(a.createdAt)` 将该字符串解析为本地时间，东八区服务器上 agent 创建的记录时间比同时刻用户创建的记录（UTC+Z）字面快 ~8 小时，导致 agent 生成的书/摘抄/问题始终排在最前面。
 - why: 任何使用 agent action 功能的用户都受影响；根因与 OPT-014 完全相同，修复方式一致。7 处调用全部替换为 `utc_now_iso()`，无 schema 变更，无测试变更，零风险。
 - how: 在 `ActionExecutor.execute_action()`（`app_server.py:2955-3077`）将所有 `datetime.now().isoformat()` 替换为 `utc_now_iso()`（函数已存在于 line 285）。Touch: `app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`。
 
 ### OPT-025 — `agent_trace_events` 表无 `trace_id` 索引，trace 详情查询全表扫描 — 与 OPT-017 同类遗漏 — 由 explore E37 提拔
-- status: new
+- status: triaged
 - area: backend
 - description: `init_db()` 为 `model_logs`、`agent_traces`、`agent_actions`、`agent_metrics` 都创建了二级索引（`app_server.py:500-508`），但 `agent_trace_events` 表（line 421）无任何索引。`get_trace()` 在 line 2645 执行 `SELECT … FROM agent_trace_events WHERE trace_id = ? ORDER BY created_at ASC`，对无索引表做全扫。`agent_trace_events` 增速与 `agent_traces` 相同；Plus 用户一年后该表超 25 万行，每次 trace 详情加载全扫。
 - why: OPT-017 修复了同类问题但遗漏了此表。新增一条 `CREATE INDEX IF NOT EXISTS` 是零风险修复，下次启动自动建好，无 schema 变更，无接口变更。
 - how: 在 `init_db()` 的 `executescript` 块（`app_server.py:500-509`）追加：`CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at);`。Touch: `app_server.py:500-509`。
 
 ### OPT-026 — 「书单」卡片右上角三个点（···）操作入口太不明显
-- status: new
+- status: triaged
 - area: frontend
 - description: （owner 提出）书单页卡片的操作菜单触发器是右上角的 `···`（`.card-menu-btn`，渲染于 `app.js:1027`，文案就是三个点字符），视觉上几乎看不出是可点的按钮——颜色淡、无边框/背景、与封面叠在一起，用户发现不了编辑/删除藏在这里。
 - why: 操作入口的可发现性差，新用户找不到怎么改书/删书。可见性（contrast/affordance）是基础可用性问题。
@@ -213,7 +213,7 @@ Format per item:
 - 关联: 与 OPT-027 是同一处 UI，建议合并一轮处理。
 
 ### OPT-027 — 卡片操作入口三个页面不统一（书单藏在 ··· 菜单，记录/摘抄是卡面内联按钮）
-- status: new
+- status: triaged
 - area: frontend
 - description: （owner 提出）操作入口模式不一致：「书单」卡把编辑/删除收进右上角 `···` 弹出菜单（`.card-context-menu` / `menu-item-danger`，`app.js:1029-1035`），而「记录」「摘抄」卡把删除直接做成卡面内联按钮（`.card-action-btn.card-action-danger`，`app.js:1269` / `1338`）。同一 app 两套交互范式，用户在不同页面要重新学怎么操作。
 - why: 一致性是 UI 基本要求；不统一既增加认知负担，也让人以为某些卡「不能编辑/删除」。
