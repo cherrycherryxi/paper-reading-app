@@ -14,7 +14,7 @@ Last triaged: 2026-06-06
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-024 | ActionExecutor datetime 排序 bug | P1 | S | triaged | 7× `datetime.now().isoformat()` → `utc_now_iso()` in `app_server.py:2955-3077`. 与 OPT-014 同根因、同修法，零风险。**→ Next up** |
+| OPT-024 | ActionExecutor datetime 排序 bug | P1 | S | in-progress (PR #25) | 7× `datetime.now().isoformat()` → `utc_now_iso()` in `app_server.py:2955-3077`. 与 OPT-014 同根因、同修法，零风险。 |
 | OPT-022 | 登录/注册端点无限速 | P1 | M | triaged | 复用 `check_and_record_rate_limit`（`app_server.py:1462`）以 username/IP 为 key；3 端点（line 3889/3939/4015）均无限速。需新增 IP 提取 + 失败计数维度。安全基线，M 复杂度。 |
 | OPT-025 | agent_trace_events 缺 trace_id 索引 | P1 | S | triaged | 现有索引（`app_server.py:500-508`）遗漏 `agent_trace_events`；`get_trace()` line 2645 全扫。追加 1 条 `CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at)` 即可。OPT-017 同类遗漏。 |
 | OPT-016 | 非 AI 摘抄 OCR 快路径 | P1 | L | in-progress | 代码已完成（云 OCR 百度 accurate_basic + Tesseract 回落，21 测试全绿）。**阻塞**：owner 待配置百度 API key 并真机端到端验证。Agent2 无法推进。 |
