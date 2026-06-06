@@ -219,3 +219,17 @@ Format per item:
 - why: 一致性是 UI 基本要求；不统一既增加认知负担，也让人以为某些卡「不能编辑/删除」。
 - how: **需先定方向（owner 决策）**——(A) 全部统一到 `···` 溢出菜单（卡面更干净，适合操作多/封面为主的书单）；(B) 全部统一到卡面内联按钮（更直接，少一次点击）。选定后改 `app.js` 三个 render 路径（books / session / quote 卡）+ `styles.css` 对应样式，使三页结构与类名一致。Touch: `app.js`（renderBooks/renderTimeline/renderQuotes 卡片模板）、`styles.css`。
 - 关联: 与 OPT-026 同处 UI；若选方案 A，OPT-026 的「让 ··· 更明显」正好一并解决。
+
+### OPT-028 — `/debug/*` 端点在 `ADMIN_TOKEN` 未设置时对所有人开放，所有用户 AI 对话内容可被任意访问 — 由 explore E41 提拔
+- status: new
+- area: backend
+- description: `_authorized_for_admin()` 在 `app_server.py:3380` 当 `AUTH_TOKEN`（= `$ADMIN_TOKEN` 环境变量）为空时无条件返回 `True`。三个 debug 页面（`/debug/logs`、`/debug/errors`、`/debug/agent-dashboard`）因此在默认部署（未设置 `ADMIN_TOKEN`）下对任何知道 URL 的人完全公开。`/debug/logs` 渲染所有用户最近 100 条模型调用，包含完整 system prompt（含每个用户的书单、摘抄、笔记内容）、每条用户消息和 AI 响应。
+- why: 默认配置即是生产风险。任何人发现该 URL 即可读取所有付费用户的私人阅读对话，无需认证。这是一个 P0 隐私/安全漏洞。修复只需两行：将 `if not AUTH_TOKEN: return True` 改为要求经过认证的管理员会话，复用现有 `is_admin_username()` 检查。
+- how: 在 `_authorized_for_admin()`（`app_server.py:3379-3382`）中，将 `if not AUTH_TOKEN: return True` 改为：用 `resolve_user_from_token(conn, self._get_token())` 解析 bearer token，若 user 存在且 `is_admin_username(user["username"])` 则返回 True，否则返回 False。当 `AUTH_TOKEN` 有值时保留原有 header 校验逻辑。Touch: `app_server.py:3379-3382`。
+
+### OPT-029 — `execute_action()` 读改写非原子操作——两个标签页并发审批动作会静默丢弃彼此的状态变更 — 由 explore E42 提拔
+- status: new
+- area: agent
+- description: `ActionExecutor.execute_action()`（`app_server.py:2956-3080`）的模式是：`state = load_state()` → Python 内存中修改 → `save_state()`，全程无 `BEGIN IMMEDIATE` 事务保护。两个浏览器标签页各自批准不同 agent 动作时，可同时读取相同初始状态、分别写入，第二次写入静默覆盖第一次的修改。例如：Tab A 读到 books=[B1] 后添加 B2，Tab B 同时读到 books=[B1] 后添加 B3，Tab A 写入 [B1, B2]，Tab B 写入 [B1, B3]——B2 永久丢失，用户无任何错误提示。
+- why: agent action（`add_book`、`add_note`、`summary`、`tag`、`link_thought`）是不可逆的状态变更，静默数据丢失极难排查。修复方案：在 `execute_action()` 的读改写周期中加 `BEGIN IMMEDIATE`，利用 SQLite 写串行化保证原子性。
+- how: 在 `execute_action()` 中 `load_state()` 调用前加 `conn.execute("BEGIN IMMEDIATE")`；`save_state()` 内部已调用 `conn.commit()` 作为提交。在 execute 端点（`app_server.py:5025`）捕获 `sqlite3.OperationalError: database is locked` 并返回 503。Touch: `app_server.py:2956-3080`；`app_server.py:5025-5095`（execute handler）。

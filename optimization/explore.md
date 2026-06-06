@@ -458,3 +458,77 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — add `AND created_at > datetime('now', '-90 days')` to the `WHERE` clause at line 2804. Update the dashboard section header to "90-day summary" (one string in `app.js` or the template). Touch: `app_server.py:2799-2807`.
 
 **Files:** `app_server.py:2799-2807`; `app.js` (dashboard label, minor)
+
+---
+
+## 2026-06-06
+
+### E41 — `/debug/*` endpoints are world-readable when `ADMIN_TOKEN` is unset — all users' AI chat content exposed (S)
+
+**What:** `_authorized_for_admin()` at `app_server.py:3379-3382` returns `True` unconditionally when `AUTH_TOKEN` (= `$ADMIN_TOKEN` env) is empty: `if not AUTH_TOKEN: return True`. The three debug HTML pages gated by this check — `/debug/logs`, `/debug/errors`, `/debug/agent-dashboard` — are therefore **publicly accessible by anyone who discovers the URL** when the server is deployed without `ADMIN_TOKEN` set (which is the default). `/debug/logs` renders the last 100 model calls across **all users**, including full system prompts (containing each user's books, quotes, and reading notes), every user message, and every AI response.
+
+**Why it matters:** The default configuration is the production risk. A user can guess or find the URL (it's hardcoded in `app_server.py` and easily discovered via browser DevTools or a port scan), then read every other user's private AI conversation without authentication. This is a P0 privacy/security gap for a commercial app with paying users. The minimum fix is a two-line change: require an authenticated admin user session even when `ADMIN_TOKEN` is unset, using the existing `is_admin_username()` check.
+
+**Complexity:** S — in `_authorized_for_admin()` at line 3380, change `if not AUTH_TOKEN: return True` to `if not AUTH_TOKEN: return self._is_authenticated_admin()`, where `_is_authenticated_admin()` resolves the bearer token via `resolve_user_from_token()` and checks `is_admin_username(user["username"])`. Touch: `app_server.py:3379-3382`.
+
+**Files:** `app_server.py:3379-3382, 3675, 3786, 3828`
+
+---
+
+### E42 — `execute_action()` reads and writes state non-atomically — concurrent approvals from two browser tabs silently discard mutations (M)
+
+**What:** `ActionExecutor.execute_action()` at `app_server.py:2956-3080` follows the pattern: `state = load_state(conn, user_id)` → mutate state in Python → `save_state(conn, user_id, state)`. This read-modify-write cycle is not wrapped in a `BEGIN IMMEDIATE` transaction or any other concurrency guard. If a user approves two agent actions in rapid succession from two browser tabs (or two open windows), both executions can read the same initial state, each apply their respective mutation, and then both write back — with the second write silently overwriting the first write's changes. For example: Tab A reads state with `books=[B1]`, adds B2; Tab B reads state with `books=[B1]`, adds B3; Tab A saves `[B1, B2]`; Tab B saves `[B1, B3]` — B2 is permanently lost with no error or warning.
+
+**Why it matters:** Agent actions (`add_book`, `add_note`, `summary`, `tag`, `link_thought`) are irreversible state mutations. Silent data loss on concurrent approvals erodes user trust and is invisible — no error is surfaced and no retry is possible. The fix is to wrap the read-modify-write in a `BEGIN IMMEDIATE` transaction (available on the existing `conn` object), making the entire pattern atomic within SQLite's write serialization.
+
+**Complexity:** M — add `conn.execute("BEGIN IMMEDIATE")` before `load_state()` and rely on `save_state()`'s existing `conn.commit()` as the commit. Handle `sqlite3.OperationalError: database is locked` at the handler level. Alternatively, implement `atomic_update_state(conn, user_id, fn)` helper that wraps the pattern in one place. Touch: `app_server.py:2956-3080`; callers at `/api/agent-actions/{id}/execute` (~line 5025).
+
+**Files:** `app_server.py:2956-3080`; `app_server.py:5025-5095` (execute handler)
+
+---
+
+### E43 — Username registration validates only minimum length — no max-length cap or character whitelist (S)
+
+**What:** `POST /api/register` at `app_server.py:3894` checks only `len(username) < 2 or len(password) < 4`. There is no upper bound on username length and no character whitelist. A username of 10,000 characters is accepted and stored in the `users` table, then replicated into every `model_logs.username` row, every session row, and every export payload. The `Content-Disposition` fix proposed in E39 sanitises the header symptom but not the root cause: arbitrary characters (quotes, backslashes, control characters, commas) in the username can corrupt HTTP headers, break admin log rendering, and confuse the `ADMIN_USERNAMES` comma-split at line 70.
+
+**Why it matters:** Input validation at the registration boundary is the correct fix for the entire class of downstream corruption issues (E39, admin username list poisoning, oversized DB rows). A 50-character max and a simple alphanumeric + CJK + `_-.` whitelist covers all legitimate use cases without restricting Chinese reading-app users. The fix is two lines of validation before the DB write.
+
+**Complexity:** S — after the existing length check at line 3894, add: `if len(username) > 50: self._send_json({"error": "用户名最多 50 个字符"}, 400); return` and `if not re.match(r'^[\w一-鿿\-_.]+$', username): self._send_json({"error": "用户名含非法字符"}, 400); return`. `import re` is already present. Touch: `app_server.py:3894-3895`.
+
+**Files:** `app_server.py:3894-3895`
+
+---
+
+### E44 — `save_state()` writes `updated_at` with `now_iso()` (naïve local time) — inconsistent with UTC policy established by OPT-014 (S)
+
+**What:** `save_state()` at `app_server.py:672` executes `UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?` with `now_iso()` for `updated_at`. `now_iso()` returns naïve local time without a timezone suffix (e.g. `2026-06-06T15:30:00.123456`). OPT-014 and OPT-024 established `utc_now_iso()` as the authoritative timestamp for user-visible records to avoid sort-order bugs. The `updated_at` column is the natural version field for the optimistic-locking proposal in E35; if that feature lands and compares `updated_at` across requests, a naïve-vs-UTC mismatch on UTC+8 servers would make all version checks appear stale by ~8 hours, causing constant 409 conflicts.
+
+**Why it matters:** The cost of fixing this now is one character change (`now_iso` → `utc_now_iso`). The cost of fixing it after E35's optimistic locking ships is a migration or a silent 8-hour false-conflict rate. Applying the UTC policy consistently is low-risk and closes the door on an entire class of timezone-related bugs.
+
+**Complexity:** S — change `now_iso()` to `utc_now_iso()` at `app_server.py:672`. No schema changes, no test changes. Touch: `app_server.py:672`.
+
+**Files:** `app_server.py:668-675`
+
+---
+
+### E45 — `db_index_test.py` `EXPECTED_INDEXES` won't cover the OPT-025 index once it lands (S)
+
+**What:** `tests/agent/db_index_test.py:14-19` hardcodes `EXPECTED_INDEXES = {"idx_model_logs_user_created", "idx_agent_metrics_user", "idx_agent_actions_trace", "idx_agent_traces_user_created"}` — exactly the four indexes added by OPT-017. OPT-025 (status: triaged) will add a fifth index `idx_trace_events_trace ON agent_trace_events(trace_id, created_at)`. After OPT-025 is implemented, the test will still pass even if someone accidentally drops the new index — because it's not in `EXPECTED_INDEXES`. The test's `test_observability_indexes_created` and `test_init_db_is_idempotent` methods would give a false-green signal.
+
+**Why it matters:** The test was written to serve as a regression guard for index changes. Its guard is already incomplete for the next planned index. Adding the new index name to `EXPECTED_INDEXES` proactively (or as part of the OPT-025 PR) costs one line and ensures the guard stays current.
+
+**Complexity:** S — add `"idx_trace_events_trace"` to `EXPECTED_INDEXES` at `tests/agent/db_index_test.py:14`; optionally add a `test_trace_events_query_uses_index` method parallel to the existing `test_model_logs_query_uses_index`. Touch: `tests/agent/db_index_test.py:14-19`.
+
+**Files:** `tests/agent/db_index_test.py:14-19`
+
+---
+
+### E46 — `chatHistories` key count in `sanitize_state()` is uncapped — heavy users with many books accumulate multi-MB state blobs (S)
+
+**What:** `sanitize_state()` at `app_server.py:624-648` iterates `chat_histories.items()` and migrates every key into `migrated_histories` without any limit on the total number of keys. The frontend creates one history key per context: one global (`__general__`), one per book (`book:<id>`), and one per quote that was chatted with (`quote:<id>`). A user with 500 books who chatted once with each accumulates 501 history keys; with 2,000 quotes chatted, potentially 2,501 keys. Each history stores up to `_COMPRESS_THRESHOLD` (10) messages before compression, each message ~100–500 bytes — 2,501 keys × 10 messages × 200 bytes = **5 MB of chat history alone** in the `user_state` `state_json` column, loaded from SQLite on every chat request and every state sync. E33 proposes capping messages-per-history at 200, but not the number of distinct history keys.
+
+**Why it matters:** Every `load_state()` call (called at the start of every chat request, state sync, and action execution) deserialises the entire `state_json` blob. A 5 MB+ blob parsed on every request is a meaningful latency penalty and memory spike. Capping `migrated_histories` to the 100 most-recently-used keys (by preserving only keys that appear in the most recent entries of `chatContexts`) bounds the state blob size without losing active chat contexts.
+
+**Complexity:** S — in `sanitize_state()` at line 641, after building `migrated_histories`, apply `migrated_histories = dict(list(migrated_histories.items())[-100:])`. Update `migrated_contexts` to match. Touch: `app_server.py:641-648`.
+
+**Files:** `app_server.py:614-648` (`sanitize_state`); `app_server.py:1808-1836` (`compress_chat_history_if_needed`, no changes)
