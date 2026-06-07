@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-06T15:44:45.604Z
-> Files: 112 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-06T19:12:56.806Z
+> Files: 113 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -45,7 +45,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~63152 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 4 mo (~63126 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~41316 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1201 tok)
@@ -146,9 +146,9 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~4507 tok)
-- `explore.md` — Exploration — new optimization directions (~13867 tok)
-- `triage.md` — Triage (~893 tok)
+- `backlog.md` — Optimization Backlog (~4964 tok)
+- `explore.md` — Exploration — new optimization directions (~16281 tok)
+- `triage.md` — Triage (~957 tok)
 
 ## scripts/
 
@@ -172,6 +172,7 @@
 
 ## tests/agent/
 
+- `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~9184 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_retries_on_429, side_effect, test_retries_on_503 + 14 (~2133 tok)
