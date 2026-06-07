@@ -155,6 +155,10 @@ const els = {
 let authToken = localStorage.getItem(AUTH_TOKEN_KEY) || "";
 let currentUser = null;
 let state = structuredClone(initialState);
+// OPT-029 Layer B / E35: optimistic-locking token for the user's state. Set
+// from every server response that carries `stateVersion` (see apiFetch) and
+// echoed back on PUT /api/state so the server can reject a stale overwrite.
+let stateVersion = "";
 let pendingBookImage = null;
 let pendingBookEditImage = null;
 let pendingQuoteImage = null;
@@ -336,6 +340,7 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
     if (response.status === 401 && requiresAuth) {
       authToken = "";
       currentUser = null;
+      stateVersion = "";
       localStorage.removeItem(AUTH_TOKEN_KEY);
       showToast("登录已过期，请重新登录");
       dispatchUserChange();
@@ -347,7 +352,22 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
       err.usage = data.usage || null;
       throw err;
     }
+    // OPT-029 Layer B / E35: a 409 means another tab/device saved a newer
+    // version. Carry the server's current state + version so the caller can
+    // reconcile instead of silently clobbering it.
+    if (response.status === 409 && data?.error === "state_conflict") {
+      const err = new Error(data.message || "状态冲突");
+      err.code = "state_conflict";
+      err.state = data.state;
+      err.stateVersion = typeof data.stateVersion === "string" ? data.stateVersion : "";
+      throw err;
+    }
     throw new Error(data?.error || `HTTP ${response.status}`);
+  }
+  // Central capture: any successful response carrying a fresh state version
+  // keeps our optimistic-locking token current, so the next PUT won't 409.
+  if (data && typeof data.stateVersion === "string") {
+    stateVersion = data.stateVersion;
   }
   return data;
 }
@@ -749,21 +769,42 @@ function setAuthToken(token) {
     localStorage.setItem(AUTH_TOKEN_KEY, authToken);
   } else {
     localStorage.removeItem(AUTH_TOKEN_KEY);
+    // Drop the optimistic-locking token so a later login starts fresh and the
+    // first PUT isn't checked against a previous account's version.
+    stateVersion = "";
   }
 }
 
 async function syncState() {
   if (!currentUser?.id) return;
-  const data = await apiFetch(
-    "/api/state",
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state),
-    },
-    true
-  );
-  state = normalizeStateShape(data.state);
+  try {
+    const data = await apiFetch(
+      "/api/state",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-State-Version": stateVersion,
+        },
+        body: JSON.stringify(state),
+      },
+      true
+    );
+    state = normalizeStateShape(data.state);
+  } catch (error) {
+    if (error.code === "state_conflict") {
+      // Another tab/device saved a newer version. Adopt the server's current
+      // state rather than silently overwriting it; the unsynced local edit is
+      // surfaced to the user instead of vanishing without a trace.
+      state = normalizeStateShape(error.state);
+      stateVersion = error.stateVersion;
+      render();
+      window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
+      showToast("数据已在其他设备更新，已为你加载最新版本");
+      return;
+    }
+    throw error;
+  }
 }
 
 async function loadSession() {
@@ -3895,6 +3936,10 @@ window.paperReadingApp = {
   apiFetch,
   buildApiUrl,
   getAuthToken: () => authToken,
+  // OPT-029 Layer B / E35: lets chat.js refresh the optimistic-locking token
+  // from the SSE stream's done event (which bypasses apiFetch).
+  setStateVersion: (v) => { if (typeof v === "string") stateVersion = v; },
+  getStateVersion: () => stateVersion,
   refreshSessionState,
   loadRemoteLogs,
   getRemoteLogs: () => remoteLogs,
