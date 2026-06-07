@@ -1201,3 +1201,5 @@
 | 18:03 | Edited tests/agent/db_index_test.py | 6→7 lines | ~53 |
 | 18:03 | Edited tests/agent/db_index_test.py | modified test_agent_metrics_query_uses_index() | ~421 |
 | 18:05 | Edited optimization/triage.md | inline fix | ~71 |
+| 19:07 | Edited optimization/explore.md | modified that() | ~2300 |
+| 19:08 | Edited optimization/backlog.md | expanded (+14 lines) | ~650 |
