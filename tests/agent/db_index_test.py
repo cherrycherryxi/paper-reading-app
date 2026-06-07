@@ -1,8 +1,10 @@
-"""Tests for secondary indexes on the observability tables (OPT-017).
+"""Tests for secondary indexes on the observability tables (OPT-017 / OPT-025).
 
 The /debug/logs queries previously did full table scans on model_logs,
 agent_traces, agent_actions and agent_metrics. init_db() now creates
 secondary indexes so those hot queries stay sub-linear.
+OPT-025 adds the missing index on agent_trace_events(trace_id, created_at)
+used by get_trace() which was left out of the OPT-017 batch.
 """
 import tempfile
 import unittest
@@ -16,6 +18,7 @@ EXPECTED_INDEXES = {
     "idx_agent_metrics_user",
     "idx_agent_actions_trace",
     "idx_agent_traces_user_created",
+    "idx_trace_events_trace",
 }
 
 
@@ -84,6 +87,26 @@ class DbIndexTests(unittest.TestCase):
             conn.close()
         plan_text = " ".join(str(tuple(row)) for row in plan)
         self.assertIn("idx_agent_metrics_user", plan_text)
+
+    def test_trace_events_index_created(self):
+        """OPT-025: idx_trace_events_trace must exist after init_db()."""
+        self.assertIn("idx_trace_events_trace", self._index_names())
+
+    def test_trace_events_query_uses_index(self):
+        """get_trace() queries agent_trace_events by trace_id ORDER BY created_at — must use the new index."""
+        conn = app_server.get_conn()
+        try:
+            plan = conn.execute(
+                "EXPLAIN QUERY PLAN "
+                "SELECT event_id, event_type, metadata, created_at "
+                "FROM agent_trace_events WHERE trace_id = ? ORDER BY created_at ASC",
+                ("t1",),
+            ).fetchall()
+        finally:
+            conn.close()
+        plan_text = " ".join(str(tuple(row)) for row in plan)
+        self.assertIn("idx_trace_events_trace", plan_text)
+        self.assertNotIn("SCAN agent_trace_events", plan_text)
 
 
 if __name__ == "__main__":
