@@ -176,7 +176,7 @@ Format per item:
 - done (2026-06-04, PR #21): 方案 B（仅系统跟随，无手动开关）。把 ~30 处硬编码色收编为语义变量（亮色字节不变=纯重构）+ 新增 `@media (prefers-color-scheme: dark) { :root { … } }` 覆盖 ~25 个 --color-* / 16 个 --status-* / 新语义变量；WCAG AA 对比度审计全过（正文 14.4:1 等）。**遗留**：手动开关（C 方案，data-theme + localStorage + 「我的」抽屉入口）未做；真·暗色截图未抓（designqc 无 dark 模拟），靠 grep + 程序化对比度审计验证，建议真机系统暗色肉眼复核一遍。
 
 ### OPT-022 — 登录/注册端点无限速，可遭暴力破解和垃圾注册 — 由 explore E31 提拔
-- status: triaged
+- status: in-progress (PR #28)
 - area: backend
 - description: `_enforce_rate_limit()` 仅对 `chat` 和 `ocr` 生效（line 4580/4823/4246/4291/4342）；`/api/login`（line 3939）、`/api/register`（line 3889）、`/api/password/reset-request`（line 4015）均无任何限速。攻击者可无限次尝试登录任意用户名，或批量注册账号（每次触发 DB 写入 + user_state 初始化）。
 - why: 商业化产品含用户数据和付费入口；基线安全合规要求对认证端点有请求频率保护。现有 `check_and_record_rate_limit` 基于 user_id，需新增 IP/用户名维度的前置拦截。
@@ -191,7 +191,7 @@ Format per item:
 - how: 删除 `app_server.py:3509` 的 `self.send_header("Access-Control-Allow-Origin", "*")` 一行。Touch: `app_server.py:3509`。
 
 ### OPT-024 — `ActionExecutor` 使用 `datetime.now().isoformat()`，agent 创建的记录带本地时区 + 微秒精度，产生与 OPT-014 完全一致的排序错位 bug — 由 explore E36 提拔
-- status: triaged
+- status: done (2026-06-07, PR #25)
 - area: agent
 - description: `ActionExecutor.execute_action()` 在 7 处调用 `datetime.now().isoformat()`（`app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`），为 `add_note`/`add_book`/`summary`/`tag`/`question`/`link_thought` 生成的记录写入 naive 本地时间 + 微秒（如 `2026-06-05T20:34:56.123456`）。OPT-014 已修复 OCR 路径用 `utc_now_iso()`，但 ActionExecutor 路径漏修。前端 `new Date(b.createdAt) - new Date(a.createdAt)` 将该字符串解析为本地时间，东八区服务器上 agent 创建的记录时间比同时刻用户创建的记录（UTC+Z）字面快 ~8 小时，导致 agent 生成的书/摘抄/问题始终排在最前面。
 - why: 任何使用 agent action 功能的用户都受影响；根因与 OPT-014 完全相同，修复方式一致。7 处调用全部替换为 `utc_now_iso()`，无 schema 变更，无测试变更，零风险。
@@ -221,15 +221,22 @@ Format per item:
 - 关联: 与 OPT-026 同处 UI；若选方案 A，OPT-026 的「让 ··· 更明显」正好一并解决。
 
 ### OPT-028 — `/debug/*` 端点在 `ADMIN_TOKEN` 未设置时对所有人开放，所有用户 AI 对话内容可被任意访问 — 由 explore E41 提拔
-- status: new
+- status: in-progress (PR #26)
 - area: backend
 - description: `_authorized_for_admin()` 在 `app_server.py:3380` 当 `AUTH_TOKEN`（= `$ADMIN_TOKEN` 环境变量）为空时无条件返回 `True`。三个 debug 页面（`/debug/logs`、`/debug/errors`、`/debug/agent-dashboard`）因此在默认部署（未设置 `ADMIN_TOKEN`）下对任何知道 URL 的人完全公开。`/debug/logs` 渲染所有用户最近 100 条模型调用，包含完整 system prompt（含每个用户的书单、摘抄、笔记内容）、每条用户消息和 AI 响应。
 - why: 默认配置即是生产风险。任何人发现该 URL 即可读取所有付费用户的私人阅读对话，无需认证。这是一个 P0 隐私/安全漏洞。修复只需两行：将 `if not AUTH_TOKEN: return True` 改为要求经过认证的管理员会话，复用现有 `is_admin_username()` 检查。
 - how: 在 `_authorized_for_admin()`（`app_server.py:3379-3382`）中，将 `if not AUTH_TOKEN: return True` 改为：用 `resolve_user_from_token(conn, self._get_token())` 解析 bearer token，若 user 存在且 `is_admin_username(user["username"])` 则返回 True，否则返回 False。当 `AUTH_TOKEN` 有值时保留原有 header 校验逻辑。Touch: `app_server.py:3379-3382`。
 
 ### OPT-029 — `execute_action()` 读改写非原子操作——两个标签页并发审批动作会静默丢弃彼此的状态变更 — 由 explore E42 提拔
-- status: new
+- status: in-progress (PR #27, Layer A)
 - area: agent
 - description: `ActionExecutor.execute_action()`（`app_server.py:2956-3080`）的模式是：`state = load_state()` → Python 内存中修改 → `save_state()`，全程无 `BEGIN IMMEDIATE` 事务保护。两个浏览器标签页各自批准不同 agent 动作时，可同时读取相同初始状态、分别写入，第二次写入静默覆盖第一次的修改。例如：Tab A 读到 books=[B1] 后添加 B2，Tab B 同时读到 books=[B1] 后添加 B3，Tab A 写入 [B1, B2]，Tab B 写入 [B1, B3]——B2 永久丢失，用户无任何错误提示。
 - why: agent action（`add_book`、`add_note`、`summary`、`tag`、`link_thought`）是不可逆的状态变更，静默数据丢失极难排查。修复方案：在 `execute_action()` 的读改写周期中加 `BEGIN IMMEDIATE`，利用 SQLite 写串行化保证原子性。
 - how: 在 `execute_action()` 中 `load_state()` 调用前加 `conn.execute("BEGIN IMMEDIATE")`；`save_state()` 内部已调用 `conn.commit()` 作为提交。在 execute 端点（`app_server.py:5025`）捕获 `sqlite3.OperationalError: database is locked` 并返回 503。Touch: `app_server.py:2956-3080`；`app_server.py:5025-5095`（execute handler）。
+
+### OPT-030 — 跨设备 state 整体覆盖——两个设备同时编辑静默丢失彼此的变更 — 由 explore E35 提拔
+- status: in-progress (PR #29, Layer B)
+- area: frontend + backend
+- description: `PUT /api/state`（`syncState()`）做无条件全量覆盖（blind last-write-wins）。两台设备同分钟内各自编辑——手机加了摘抄、桌面改了备注——第二次 PUT 静默覆盖第一次写入，数据永久丢失且无任何提示。OPT-029 Layer A 仅序列化并发 execute_action 调用，不覆盖此场景。
+- why: 多设备使用是用户常态；整体 blob 的 last-write-wins 是最高风险的静默数据丢失来源。
+- how: 以 `user_state.updated_at` 作乐观锁版本号（零 schema 变更）；后端 `save_state_checked()` 做条件 UPDATE，版本不匹配返回 409 + 当前 server state；前端 `apiFetch` 统一捕获 `stateVersion`，`syncState()` 发 `X-State-Version` header，409 时接受 server state 并 toast 提示而非覆盖。Touch: `app_server.py`（save_state / PUT /api/state handler）；`app.js`（apiFetch / syncState）；`chat.js`（SSE done event stateVersion capture）。
