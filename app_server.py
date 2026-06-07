@@ -2968,7 +2968,7 @@ class ActionExecutor:
                         "content": data.get("content", ""),
                         "tags": data.get("tags", []) if isinstance(data.get("tags"), list) else [],
                         "kind": "note",
-                        "createdAt": datetime.now().isoformat(),
+                        "createdAt": utc_now_iso(),
                     },
                 )
             elif action["type"] == "add_book":
@@ -2991,7 +2991,7 @@ class ActionExecutor:
                             ),
                             tool_name="add_book",
                         )
-                    now = datetime.now().isoformat()
+                    now = utc_now_iso()
                     state["books"].insert(
                         0,
                         {
@@ -3011,7 +3011,7 @@ class ActionExecutor:
                     book = next((item for item in state["books"] if item.get("id") == trace_book_id), None)
                     if book:
                         book["notes"] = ((book.get("notes") or "") + "\n\n" + data.get("content", "")).strip()
-                        book["updatedAt"] = datetime.now().isoformat()
+                        book["updatedAt"] = utc_now_iso()
             elif action["type"] == "tag":
                 trace_book_id = data.get("bookId", "")
                 if trace_book_id:
@@ -3021,7 +3021,7 @@ class ActionExecutor:
                         for tag in data.get("tags", []):
                             existing.add(tag)
                         book["tags"] = list(existing)
-                        book["updatedAt"] = datetime.now().isoformat()
+                        book["updatedAt"] = utc_now_iso()
             elif action["type"] == "question":
                 book_id = data.get("bookId", "")
                 quotes = state.setdefault("quotes", [])
@@ -3032,7 +3032,7 @@ class ActionExecutor:
                 if existing:
                     existing["content"] = data.get("content", "")
                     existing["tags"] = ["问题"]
-                    existing["updatedAt"] = datetime.now().isoformat()
+                    existing["updatedAt"] = utc_now_iso()
                 else:
                     quotes.insert(
                         0,
@@ -3042,7 +3042,7 @@ class ActionExecutor:
                             "content": data.get("content", ""),
                             "tags": ["问题"],
                             "kind": "question",
-                            "createdAt": datetime.now().isoformat(),
+                            "createdAt": utc_now_iso(),
                         },
                     )
             elif action["type"] == "link_thought":
@@ -3071,7 +3071,7 @@ class ActionExecutor:
                     "kind": kind,
                     "thought": str(data.get("thought", "")).strip(),
                     "tags": data.get("tags", []) if isinstance(data.get("tags"), list) else [],
-                    "createdAt": datetime.now().isoformat(),
+                    "createdAt": utc_now_iso(),
                 })
             save_state(conn, user_id, state)
             return ExecutionResult(True, ACTION_STATUS_EXECUTED, action, updated_state=state)
