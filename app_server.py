@@ -2956,9 +2956,18 @@ class ActionExecutor:
     def execute_action(self, conn: sqlite3.Connection, user_id: str, action: dict) -> ExecutionResult:
         if action["status"] != ACTION_STATUS_APPROVED:
             return ExecutionResult(False, action["status"], action, error_message="action must be approved before execution")
-        state = load_state(conn, user_id)
-        data = action["data"]
+        # OPT-029: make the read-modify-write atomic. Without a write lock, two
+        # concurrent approvals (e.g. two browser tabs) both load the same state,
+        # each apply their mutation, then the second save silently overwrites the
+        # first — losing a book/note with no error. BEGIN IMMEDIATE serializes
+        # the two executions so the second reads the first's committed result.
+        # ensure_user_state() is called first because its rare fresh-row INSERT
+        # commits, which must happen outside our transaction.
+        ensure_user_state(conn, user_id)
         try:
+            conn.execute("BEGIN IMMEDIATE")
+            state = load_state(conn, user_id)
+            data = action["data"]
             if action["type"] == "add_note":
                 state["quotes"].insert(
                     0,
@@ -3076,6 +3085,10 @@ class ActionExecutor:
             save_state(conn, user_id, state)
             return ExecutionResult(True, ACTION_STATUS_EXECUTED, action, updated_state=state)
         except Exception as error:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
             return ExecutionResult(False, ACTION_STATUS_FAILED, action, error_message=str(error))
 
 
