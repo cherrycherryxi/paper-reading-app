@@ -240,3 +240,17 @@ Format per item:
 - description: `PUT /api/state`（`syncState()`）做无条件全量覆盖（blind last-write-wins）。两台设备同分钟内各自编辑——手机加了摘抄、桌面改了备注——第二次 PUT 静默覆盖第一次写入，数据永久丢失且无任何提示。OPT-029 Layer A 仅序列化并发 execute_action 调用，不覆盖此场景。
 - why: 多设备使用是用户常态；整体 blob 的 last-write-wins 是最高风险的静默数据丢失来源。
 - how: 以 `user_state.updated_at` 作乐观锁版本号（零 schema 变更）；后端 `save_state_checked()` 做条件 UPDATE，版本不匹配返回 409 + 当前 server state；前端 `apiFetch` 统一捕获 `stateVersion`，`syncState()` 发 `X-State-Version` header，409 时接受 server state 并 toast 提示而非覆盖。Touch: `app_server.py`（save_state / PUT /api/state handler）；`app.js`（apiFetch / syncState）；`chat.js`（SSE done event stateVersion capture）。
+
+### OPT-031 — `reading_mcp_server.py` 的 `_now_iso()` 使用 naive 本地时间，与 OPT-024 完全相同的排序 bug — 由 explore E47 提拔
+- status: new
+- area: agent
+- description: `reading_mcp_server.py:50-51` 的 `_now_iso()` 定义为 `return datetime.now().isoformat()`，与 OPT-024 修复前 ActionExecutor 的写法完全相同。该函数用于 MCP 工具写入的所有 `createdAt`/`updatedAt`：`add_note`（line 170）、`add_book`（lines 272-273）、`summary`（line 318）、`tag`（line 402）、`link_thought`（line 488）。OPT-024 修复了旧执行路径，但 MCP 路径独立开发，从未更新。
+- why: 前端以 `new Date(b.createdAt) - new Date(a.createdAt)` 排序书籍和摘抄。UTC+8 服务器上 MCP 创建的记录本地时间字面比同时刻用户创建记录（UTC+Z）大 ~8 小时，导致 agent 通过 MCP 工具新增的书/摘抄恒排在最前面——与 OPT-024 的根因完全一致，影响所有使用 agent action 功能的用户。修复方式也与 OPT-024 完全一致，极低风险。
+- how: 将 `reading_mcp_server.py:50-51` 的 `_now_iso()` 改为返回 UTC+Z 格式（`datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`，或从 `app_server.py` import `utc_now_iso`）。在 `tests/agent/reading_mcp_server_tools_test.py` 中加一条断言：工具返回的 `createdAt` 以 `Z` 结尾。Touch: `reading_mcp_server.py:50-51`；`tests/agent/reading_mcp_server_tools_test.py`。
+
+### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
+- status: new
+- area: backend
+- description: `get_conn()` 在 `app_server.py:334` 启动时设置 `PRAGMA journal_mode = WAL`，但从未显式触发完整检查点（TRUNCATE 模式）。SQLite 默认的自动检查点（PASSIVE，1000 页阈值）在并发读负载下遇到活跃 reader 时会跳过，不回收 WAL 文件磁盘空间。`_run_gc()` 每 6 小时运行一次，使用独立 connection，是执行显式检查点的天然位置。
+- why: 每天 240 次写入、持续运行数周后，WAL 文件可累积至数十 MB 且永不收缩。`PRAGMA wal_checkpoint(TRUNCATE)` 等待所有 reader 退出后将 WAL 清零，一行代码即可消除这一静默磁盘泄漏。该调用是幂等且无副作用的——若无 WAL 页需要刷盘，调用直接返回。
+- how: 在 `_run_gc()` 的 try 块末尾（`app_server.py:5244` 之前）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。在 `gc_thread_test.py` 中加一条断言验证该调用存在。Touch: `app_server.py:5236-5244`；`tests/agent/gc_thread_test.py`。

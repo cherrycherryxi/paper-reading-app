@@ -532,3 +532,65 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — in `sanitize_state()` at line 641, after building `migrated_histories`, apply `migrated_histories = dict(list(migrated_histories.items())[-100:])`. Update `migrated_contexts` to match. Touch: `app_server.py:641-648`.
 
 **Files:** `app_server.py:614-648` (`sanitize_state`); `app_server.py:1808-1836` (`compress_chat_history_if_needed`, no changes)
+
+---
+
+## 2026-06-07
+
+### E47 — `reading_mcp_server.py` uses `datetime.now().isoformat()` — same naïve-local-time bug as OPT-024, unpatched path (S)
+
+**What:** `_now_iso()` at `reading_mcp_server.py:50-51` is defined as `return datetime.now().isoformat()` — identical to the call OPT-024 replaced with `utc_now_iso()` in `ActionExecutor`. It is used for `createdAt`/`updatedAt` on every record written by the five MCP tool functions: `add_note` (line 170), `add_book` (lines 272-273), `summary` (line 318), `tag` (line 402), and `link_thought` (line 488). The MCP dispatcher (`mcp_dispatcher.py`) is invoked from `app_server.py` via `MCPToolDispatcher.dispatch()` whenever any of these agent actions run.
+
+**Why it matters:** The frontend sorts books and quotes via `new Date(b.createdAt) - new Date(a.createdAt)`. A naïve local timestamp like `2026-06-07T20:00:00` is parsed as local time by the browser, giving records created via MCP an effective +8 h offset over user-created records (UTC+Z). On a UTC+8 server, MCP-sourced records appear ~8 hours earlier in time — exactly the same display-order corruption that OPT-024 fixed for ActionExecutor. OPT-024 patched the old execution path but the MCP path was introduced separately and was never updated.
+
+**Complexity:** S — change `_now_iso()` at `reading_mcp_server.py:50-51` to `from datetime import timezone; return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"` (or simply import and call the existing `utc_now_iso()` from `app_server.py` if the module boundary allows). No schema changes, no test changes beyond adding a UTC-suffix assertion in `reading_mcp_server_tools_test.py`.
+
+**Files:** `reading_mcp_server.py:50-51`; callers at lines 162, 170, 214, 264, 272-273, 318, 402, 488; `tests/agent/reading_mcp_server_tools_test.py` (add UTC assertion)
+
+---
+
+### E48 — Uploaded images are never cleaned up when books/quotes are deleted — orphaned files accumulate on disk indefinitely (M)
+
+**What:** `deleteBook()` in `app.js:1952-2007` and `deleteQuote()` in `app.js:2198-2213` both remove the book/quote from `state` and call `syncState()` — but neither calls any backend API to delete the associated image file stored under `uploads/<user_id>/<filename>`. There is no `/api/media/delete` endpoint or any backend GC for orphaned images. When a user uploads a book cover and then deletes the book, the image file remains on disk. `deleteBook()` also deletes all associated quotes (line 1969), orphaning their `imageUrl` files too. Only `DELETE /api/account` triggers an `shutil.rmtree(uploads_dir)` (line 5210-5214) — all other deletions leave the files behind.
+
+**Why it matters:** A reading-heavy user who iterates on their book list (adds and removes books multiple times) accumulates hundreds of megabytes of orphaned images. On local disk this is a slow leak; on a paid object-storage backend (S3/R2) it creates unnoticed billing. The GC thread already runs every 6 hours — a `gc_orphaned_images()` function that scans `UPLOAD_DIR/<user_id>/` and deletes files whose URL does not appear in the user's current `state_json` would contain the leak without touching any logic in the deletion flow.
+
+**Complexity:** M — add `gc_orphaned_images(conn)` that (1) iterates all user-IDs that have an `uploads/` directory, (2) loads each user's state, (3) collects all `imageUrl` values from `books` + `quotes`, (4) deletes files not in that set. Add to `_run_gc()`. Add one test. Touch: `app_server.py:5229-5247` (`_run_gc`); new GC function near the other GC helpers.
+
+**Files:** `app_server.py:5229-5247` (`_run_gc`); `app_server.py:1882-1513` (GC helpers pattern); `tests/agent/gc_thread_test.py`
+
+---
+
+### E49 — `render()` rebuilds all four tab panels unconditionally — inactive tabs waste CPU on every state change (S)
+
+**What:** `render()` at `app.js:1483-1502` calls `renderBooks()`, `renderTimeline()`, `renderQuotes()`, and `renderConnections()` on every invocation, regardless of which tab is currently visible. The app has 4 tabs (books / timeline / quotes / connections), and `render()` is called ~20 times in the codebase — on login, on every dialog submit, on every sync, on every delete. `isTabActive(tabName)` at line 181 already exists and works; targeted post-save updates at lines 2676-2699 already use it for connections and books. But the main `render()` dispatch does not. For a user with 200+ quotes on the quotes tab, every book-tab action triggers a full `renderQuotes()` DOM rebuild unnecessarily.
+
+**Why it matters:** Mobile browsers have limited JS execution budgets. On a mid-tier Android phone, a full `renderQuotes()` with 200 items takes ~30 ms of synchronous DOM work — called on every tab state change even when the quotes panel is offscreen. Wrapping each sub-render in an `isTabActive()` guard and re-rendering on tab activation (via the existing `data-tab` click listener at `app.js:1514-1519`) eliminates this waste at zero logic cost.
+
+**Complexity:** S — in `render()`, wrap each of `renderBooks()`, `renderTimeline()`, `renderQuotes()`, `renderConnections()` in an `isTabActive()` guard; add a `_dirtyTabs = new Set()` flag so a tab that was dirty while hidden re-renders when it becomes active. Touch: `app.js:1483-1502, 1514-1519`.
+
+**Files:** `app.js:1483-1502` (`render()`); `app.js:1514-1519` (tab-switch click listener)
+
+---
+
+### E50 — `<dialog>` elements have no `aria-labelledby` — screen readers announce modals with no name (WCAG 4.1.2 Level A) (S)
+
+**What:** `index.html` contains 9 `<dialog>` elements — `bookEditDialog`, `bookDetailDialog`, `bookDialog`, `sessionDialog`, `quoteDialog`, `quoteDetailDialog`, `deleteBookDialog`, `confirmDialog`, `forgotPasswordDialog`, `resetPasswordDialog` (lines 327, 355, 375, 410, 435, 480, 503, 516, 527, 539). None have an `aria-labelledby` attribute. Every dialog contains a visible `<h2>` heading (e.g. "新增书籍", "编辑书籍", "新增阅读记录") — the information is present but not linked to the dialog via ARIA. Screen readers announce only "dialog" when focus enters, with no title, leaving keyboard users without context about which modal opened.
+
+**Why it matters:** WCAG 2.1 SC 4.1.2 (Name, Role, Value — Level A) requires interactive UI components to have an accessible name. `<dialog>` elements are specifically called out: without `aria-label` or `aria-labelledby`, the dialog's "name" is empty. This is a Level A (most severe) compliance gap. The fix is purely additive: add `id` attributes to the existing `<h2>` headings and `aria-labelledby` attributes to the `<dialog>` elements — no logic changes.
+
+**Complexity:** S — for each dialog, add an `id` to its heading `<h2>` (e.g. `id="bookDialogTitle"`) and `aria-labelledby="bookDialogTitle"` to the `<dialog>`. Nine dialogs, ~18 HTML attribute additions, no JS changes. Touch: `index.html:327-620`.
+
+**Files:** `index.html:327, 355, 375, 410, 435, 480, 503, 516, 527, 539` (dialog + heading pairs)
+
+---
+
+### E51 — WAL file never checkpointed explicitly — unbounded WAL growth silently inflates disk usage between GC runs (S)
+
+**What:** `get_conn()` sets `PRAGMA journal_mode = WAL` once at startup (`app_server.py:334`). SQLite WAL mode auto-checkpoints when the WAL reaches 1000 pages (default `PRAGMA wal_autocheckpoint`), but auto-checkpoint uses `PASSIVE` mode — it does not reclaim disk space (does not shrink the WAL file). The WAL file (`app_state.db-wal`) can therefore grow indefinitely if checkpoints do not complete: under concurrent read load, a `PASSIVE` auto-checkpoint finds readers in the WAL and leaves pages unclaimed. The `_run_gc()` thread already runs every 6 hours on a dedicated connection — it is the natural place to issue `PRAGMA wal_checkpoint(TRUNCATE)`, which waits for all readers to vacate and then resets the WAL file to zero bytes.
+
+**Why it matters:** A production server doing 240 writes/day accumulates a growing WAL file that is never explicitly truncated. Over weeks of sustained use the WAL can reach tens of MB, all of which is disk space that could be reclaimed with one SQL statement. The fix is one line added to `_run_gc()`.
+
+**Complexity:** S — add `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")` at the end of the `_run_gc()` try-block (`app_server.py:5236-5242`). No schema changes, no new dependencies. The call is a no-op if no WAL pages need flushing (safe to call unconditionally). Touch: `app_server.py:5236-5244`.
+
+**Files:** `app_server.py:5229-5247` (`_run_gc`); `tests/agent/gc_thread_test.py` (add checkpoint assertion)
