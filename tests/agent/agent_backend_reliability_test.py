@@ -70,6 +70,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         handler.path = path
         handler.command = method
         handler.headers = headers
+        handler.client_address = ("127.0.0.1", 0)
         handler.rfile = BytesIO(body)
         handler.wfile = BytesIO()
         handler._status_code = None
@@ -105,6 +106,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         handler.path = path
         handler.command = method
         handler.headers = headers
+        handler.client_address = ("127.0.0.1", 0)
         handler.rfile = BytesIO(body)
         handler.wfile = BytesIO()
         handler._status_code = None
