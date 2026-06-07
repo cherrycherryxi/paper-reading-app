@@ -1,0 +1,14 @@
+# OpenWolf 知识文件的合并策略 —— 解决「本地 hook 写 + 夜间云端 agent 写」双写者
+# 每天在同一批被追踪文件上撞 merge 冲突的问题。
+#
+# `merge=union` 是 git 内置驱动：冲突时两边的新增行都保留、不丢失、不报冲突。
+# 仅用于「追加式 / 可重新生成」的 Markdown 文件：
+#   - memory.md   纯追加流水账
+#   - cerebrum.md 追加式学习条目
+#   - anatomy.md  整文件重新生成（union 偶发重复条目，下次 post-write 重写自愈）
+#
+# buglog.json 故意不在此列：它是结构化 JSON 数组，union 会破坏语法。
+# 由 .wolf/sync-knowledge.sh 用 jq 按 .id 去重合并。
+.wolf/memory.md   merge=union
+.wolf/cerebrum.md merge=union
+.wolf/anatomy.md  merge=union
