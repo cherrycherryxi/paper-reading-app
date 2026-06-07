@@ -21,7 +21,7 @@ Key files: `app_server.py:421`（表定义）、`app_server.py:501-509`（索引
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-028 | /debug/* 端点默认对所有人开放 | P0 | S | in-progress (PR #26) | PR open. `_authorized_for_admin()` 改为未设 ADMIN_TOKEN 时仅允许 loopback（127.0.0.1）。解决了默认部署下所有用户私信完全公开的 P0 安全漏洞。 |
-| OPT-025 | agent_trace_events 缺 trace_id 索引 | P1 | S | triaged | **Next up.** `app_server.py:509` 追加 `CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at)`. OPT-017 同类遗漏，零风险，下次启动自动建好。 |
+| OPT-025 | agent_trace_events 缺 trace_id 索引 | P1 | S | in-progress (PR #30) | PR open. `app_server.py:509` 追加 `CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at)`. OPT-017 同类遗漏，零风险，下次启动自动建好。260 Python + 35 JS tests pass. |
 | OPT-029 | execute_action() 非原子读改写 | P1 | M | in-progress (PR #27) | Layer A. `BEGIN IMMEDIATE` 包裹读改写周期，序列化并发审批，防止双标签页静默丢弃变更。`app_server.py:2956-3080`. |
 | OPT-030 | 跨设备 state 整体覆盖（乐观锁 Layer B / E35） | P1 | M | in-progress (PR #29) | Layer B. `updated_at` 版本号 + `PUT /api/state` 条件保存 + 409 冲突 toast。`app_server.py` + `app.js` + `chat.js`. |
 | OPT-022 | 登录/注册端点无限速 | P1 | M | in-progress (PR #28) | IP 维度限速，复用 `check_and_record_rate_limit`（`app_server.py:1462`）；`login`/`register`/`password/reset-request` 三端点均无限速。`app_server.py:3889, 3939, 4015`. |
