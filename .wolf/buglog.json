@@ -4134,6 +4134,22 @@
       "related_bugs": [],
       "occurrences": 6,
       "last_seen": "2026-06-06T18:03:06.435Z"
+    },
+    {
+      "id": "bug-243",
+      "timestamp": "2026-06-07T17:04:21.942Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-07T17:04:35.999Z"
     }
   ]
 }

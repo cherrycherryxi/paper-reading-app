@@ -1190,3 +1190,9 @@
 | 18:06 | Edited optimization/triage.md | inline fix | ~49 |
 | 19:12 | Edited optimization/explore.md | modified match() | ~2594 |
 | 19:12 | Edited optimization/backlog.md | expanded (+14 lines) | ~669 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~45 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~33 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~34 |
+| 17:04 | Edited optimization/backlog.md | expanded (+7 lines) | ~280 |
+| 17:05 | Created optimization/triage.md | — | ~1197 |
