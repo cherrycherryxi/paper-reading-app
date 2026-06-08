@@ -366,7 +366,13 @@
           <div class="section-head"><h3>思想关联</h3></div>
           <div id="bookDetailConnections" class="book-detail-connections"></div>
         </div>
-        <div class="dialog-actions">
+        <div class="dialog-actions dialog-actions-stack">
+          <button type="button" class="button button-primary" id="bookDetailChatBtn">去聊</button>
+          <button type="button" class="button button-ghost" id="bookDetailEditBtn">编辑</button>
+          <button type="button" class="button button-ghost" id="bookDetailConnectBtn">建立关联</button>
+          <button type="button" class="button button-ghost" id="bookDetailAddQuoteBtn">新增摘抄</button>
+          <button type="button" class="button button-ghost" id="bookDetailAddSessionBtn">新增记录</button>
+          <button type="button" class="button button-danger" id="bookDetailDeleteBtn">删除</button>
           <button type="button" class="button button-ghost" data-close-dialog="bookDetailDialog">关闭</button>
         </div>
       </div>
@@ -490,11 +496,28 @@
         <div id="quoteDetailConnectionsWrap" class="is-hidden">
           <div id="quoteDetailConnections" class="quote-detail-connections"></div>
         </div>
-        <div class="dialog-actions">
-          <button type="button" class="button button-ghost" data-close-dialog="quoteDetailDialog">关闭</button>
+        <div class="dialog-actions dialog-actions-stack">
           <button type="button" class="button button-primary" id="quoteDetailChatBtn">去聊</button>
-          <button type="button" class="button button-primary" id="quoteDetailConnectBtn">建立关联</button>
-          <button type="button" class="button button-primary" id="quoteDetailEditBtn">编辑</button>
+          <button type="button" class="button button-ghost" id="quoteDetailEditBtn">编辑</button>
+          <button type="button" class="button button-ghost" id="quoteDetailConnectBtn">建立关联</button>
+          <button type="button" class="button button-danger" id="quoteDetailDeleteBtn">删除</button>
+          <button type="button" class="button button-ghost" data-close-dialog="quoteDetailDialog">关闭</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="sessionDetailDialog">
+      <div class="dialog-form">
+        <div class="section-head">
+          <h2 id="sessionDetailTitle">阅读记录</h2>
+          <p id="sessionDetailMeta"></p>
+        </div>
+        <div id="sessionDetailNote" class="quote-detail-content"></div>
+        <div class="dialog-actions dialog-actions-stack">
+          <button type="button" class="button button-primary" id="sessionDetailChatBtn">去聊</button>
+          <button type="button" class="button button-ghost" id="sessionDetailEditBtn">编辑</button>
+          <button type="button" class="button button-danger" id="sessionDetailDeleteBtn">删除</button>
+          <button type="button" class="button button-ghost" data-close-dialog="sessionDetailDialog">关闭</button>
         </div>
       </div>
     </dialog>

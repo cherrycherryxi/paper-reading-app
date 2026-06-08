@@ -1040,6 +1040,31 @@ function restoreEditedBookPosition(bookId, fallbackScrollTop = 0) {
   requestAnimationFrame(() => requestAnimationFrame(restore));
 }
 
+// OPT-027: shared `⋯` overflow-menu helpers used by book / session / quote
+// cards so all three behave identically (single open menu, click-outside close).
+const CARD_SELECTOR = ".book-grid-card, .session-grid-card, .quote-grid-card";
+
+function closeAllCardMenus() {
+  document.querySelectorAll(".card-context-menu").forEach((m) => {
+    if (!m.hidden) {
+      m.hidden = true;
+      m.closest(CARD_SELECTOR)?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+function toggleCardMenu(menuBtn) {
+  const card = menuBtn.closest(CARD_SELECTOR);
+  const menu = card?.querySelector(".card-context-menu");
+  if (!menu) return;
+  const willOpen = menu.hidden;
+  closeAllCardMenus();
+  if (willOpen) {
+    menu.hidden = false;
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+}
+
 function buildBookSearchCard(book, cache) {
   const progress = getProgress(book);
   const metrics = cache ? (cache.metricsMap.get(book.id) || { count: 0, minutes: 0, pages: 0 }) : getBookMetrics(book.id);
@@ -1065,7 +1090,7 @@ function buildBookSearchCard(book, cache) {
     <div class="book-card-cover has-image ${book.coverImageUrl || fallbackImg ? "" : "has-default-cover"}">
       <img src="${coverImage}" alt="${escapeHtml(book.title)}" />
       <span class="book-status-chip" data-status="${book.status}"><span class="chip-dot chip-dot--${book.status}"></span>${escapeHtml(statusMap[book.status] || book.status)}</span>
-      <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">···</button>
+      <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">⋯</button>
     </div>
     <ul class="card-context-menu" hidden>
       <li><button type="button" data-menu="add-quote">新增摘抄</button></li>
@@ -1090,12 +1115,7 @@ function buildBookSearchCard(book, cache) {
 
   menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const isOpen = !menu.hidden;
-    document.querySelectorAll(".card-context-menu").forEach((m) => { m.hidden = true; m.closest(".book-grid-card")?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false"); });
-    if (!isOpen) {
-      menu.hidden = false;
-      menuBtn.setAttribute("aria-expanded", "true");
-    }
+    toggleCardMenu(menuBtn);
   });
 
   menu.addEventListener("click", (e) => {
@@ -1294,6 +1314,11 @@ function renderTimeline() {
     article.className = "session-grid-card";
     article.dataset.sessionId = session.id;
     article.innerHTML = `
+      <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">⋯</button>
+      <ul class="card-context-menu" hidden>
+        <li><button type="button" data-session-menu="edit">编辑</button></li>
+        <li class="menu-item-danger"><button type="button" data-session-menu="delete">删除</button></li>
+      </ul>
       <div class="session-card-ribbon">
         <div>
           <span class="session-ribbon-label">本次阅读</span>
@@ -1305,15 +1330,22 @@ function renderTimeline() {
         <h3>${book ? formatBookTitle(book.title) : "未知书籍"}</h3>
         <p class="entry-card-meta">📅 ${formatDate(session.date)}</p>
         <p class="entry-card-note entry-card-note-clamp">${escapeHtml(session.note || "无笔记")}</p>
-        <div class="entry-card-actions">
-          <button class="card-action-btn" data-edit-session="${escapeHtml(session.id)}" type="button">编辑</button>
-          <button class="card-action-btn card-action-danger" data-delete-session="${escapeHtml(session.id)}" type="button">删除</button>
-        </div>
       </div>`;
-    const editBtn = article.querySelector("[data-edit-session]");
-    const deleteBtn = article.querySelector("[data-delete-session]");
-    editBtn?.addEventListener("click", (e) => { e.stopPropagation(); editSession(session.id); });
-    deleteBtn?.addEventListener("click", (e) => { e.stopPropagation(); deleteSession(session.id); });
+    const menuBtn = article.querySelector(".card-menu-btn");
+    menuBtn?.addEventListener("click", (e) => { e.stopPropagation(); toggleCardMenu(menuBtn); });
+    article.querySelector(".card-context-menu")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-session-menu]");
+      if (!btn) return;
+      e.stopPropagation();
+      closeAllCardMenus();
+      if (btn.dataset.sessionMenu === "edit") editSession(session.id);
+      else if (btn.dataset.sessionMenu === "delete") deleteSession(session.id);
+    });
+    article.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      closeAllCardMenus();
+      openSessionDetail(session.id);
+    });
     els.timeline.appendChild(article);
   });
 }
@@ -1365,6 +1397,12 @@ function renderQuotes() {
           : (ocrStatus === "failed" ? (quote.ocrError || "识别失败，可重新编辑或重试。") : ""));
       return `
         <article class="quote-grid-card" data-quote-id="${escapeHtml(quote.id)}">
+          <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false" data-card-menu-toggle>⋯</button>
+          <ul class="card-context-menu" hidden>
+            <li><button type="button" data-quote-menu="chat">去聊</button></li>
+            <li><button type="button" data-quote-menu="edit">编辑</button></li>
+            <li class="menu-item-danger"><button type="button" data-quote-menu="delete">删除</button></li>
+          </ul>
           <div class="entry-card-cover">
             <div class="entry-cover-fallback"></div>
             <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
@@ -1374,10 +1412,6 @@ function renderQuotes() {
             <p class="entry-card-meta">第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</p>
             <p class="entry-card-note entry-card-note-clamp">${escapeHtml(quoteContent)}</p>
             <p class="entry-card-tags">${quote.tags?.length ? escapeHtml(quote.tags.join(" / ")) : "无标签"}${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}${getQuoteChatCount(quote.id) > 0 ? ` <span class="quote-conn-badge">💬 ${getQuoteChatCount(quote.id)}</span>` : ""}</p>
-            <div class="entry-card-actions">
-              <button class="card-action-btn" data-edit-quote="${escapeHtml(quote.id)}" type="button">编辑</button>
-              <button class="card-action-btn card-action-danger" data-delete-quote="${escapeHtml(quote.id)}" type="button">删除</button>
-            </div>
           </div>
         </article>
       `;
@@ -2356,6 +2390,19 @@ async function saveBookEdit(formData) {
   } catch (error) {
     showToast(error.message || "保存失败");
   }
+}
+
+let _sessionDetailCurrentId = "";
+function openSessionDetail(sessionId) {
+  const session = state.sessions.find((s) => s.id === sessionId);
+  if (!session) return;
+  const book = state.books.find((b) => b.id === session.bookId);
+  _sessionDetailCurrentId = sessionId;
+  document.getElementById("sessionDetailTitle").textContent = book ? formatBookTitle(book.title) : "未知书籍";
+  document.getElementById("sessionDetailMeta").textContent =
+    `${session.startPage}–${session.endPage} 页 · ${session.minutes} 分钟 · ${formatDate(session.date)}`;
+  document.getElementById("sessionDetailNote").textContent = session.note || "无笔记";
+  document.getElementById("sessionDetailDialog").showModal();
 }
 
 function openBookDetailDialog(bookId) {
@@ -3680,6 +3727,66 @@ function bindEvents() {
     goToQuoteChat(quoteId);
   });
 
+  // OPT-027: quote detail delete (action center now owns the full action set)
+  document.getElementById("quoteDetailDeleteBtn")?.addEventListener("click", () => {
+    const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
+    document.getElementById("quoteDetailDialog").close();
+    deleteQuote(quoteId);
+  });
+
+  // OPT-027: session detail footer
+  document.getElementById("sessionDetailChatBtn")?.addEventListener("click", () => {
+    const session = state.sessions.find((s) => s.id === _sessionDetailCurrentId);
+    document.getElementById("sessionDetailDialog").close();
+    if (!session || !requireAuth("使用探讨功能")) return;
+    activateTab("chat");
+    window.paperReadingApp?.switchChatToBook?.(session.bookId);
+  });
+  document.getElementById("sessionDetailEditBtn")?.addEventListener("click", () => {
+    const id = _sessionDetailCurrentId;
+    document.getElementById("sessionDetailDialog").close();
+    editSession(id);
+  });
+  document.getElementById("sessionDetailDeleteBtn")?.addEventListener("click", () => {
+    const id = _sessionDetailCurrentId;
+    document.getElementById("sessionDetailDialog").close();
+    deleteSession(id);
+  });
+
+  // OPT-027: book detail footer (book detail is now an action center, not read-only)
+  document.getElementById("bookDetailChatBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    if (!requireAuth("使用探讨功能")) return;
+    activateTab("chat");
+    window.paperReadingApp?.switchChatToBook?.(id);
+  });
+  document.getElementById("bookDetailEditBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    openBookEditDialog(id);
+  });
+  document.getElementById("bookDetailConnectBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    openConnectionDialog({ sourceType: "book", sourceId: id });
+  });
+  document.getElementById("bookDetailAddQuoteBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    openNewQuoteForBook(id);
+  });
+  document.getElementById("bookDetailAddSessionBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    openNewSessionForBook(id);
+  });
+  document.getElementById("bookDetailDeleteBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    deleteBook(id);
+  });
+
   document.getElementById("quoteDetailConnections")?.addEventListener("click", (event) => {
     const card = event.target.closest(".conn-mini-nav[data-nav-id]");
     if (!card) return;
@@ -3833,10 +3940,19 @@ function bindEvents() {
   els.bookOcrButton?.addEventListener("click", () => runBookOcr());
 
   els.quotesList?.addEventListener("click", (event) => {
-    const editBtn = event.target.closest("[data-edit-quote]");
-    if (editBtn) { event.stopPropagation(); editQuote(editBtn.dataset.editQuote); return; }
-    const delBtn = event.target.closest("[data-delete-quote]");
-    if (delBtn) { event.stopPropagation(); deleteQuote(delBtn.dataset.deleteQuote); return; }
+    const toggle = event.target.closest("[data-card-menu-toggle]");
+    if (toggle) { event.stopPropagation(); toggleCardMenu(toggle); return; }
+    const menuItem = event.target.closest("[data-quote-menu]");
+    if (menuItem) {
+      event.stopPropagation();
+      const id = menuItem.closest("[data-quote-id]")?.dataset.quoteId;
+      closeAllCardMenus();
+      const action = menuItem.dataset.quoteMenu;
+      if (action === "edit") editQuote(id);
+      else if (action === "delete") deleteQuote(id);
+      else if (action === "chat") goToQuoteChat(id);
+      return;
+    }
     const card = event.target.closest("[data-quote-id]");
     if (card) openQuoteDetail(card.dataset.quoteId);
   });
@@ -3917,14 +4033,7 @@ function bindEvents() {
     }
   });
 
-  document.addEventListener("click", () => {
-    document.querySelectorAll(".card-context-menu").forEach((m) => {
-      if (!m.hidden) {
-        m.hidden = true;
-        m.closest(".book-grid-card")?.querySelector(".card-menu-btn")?.setAttribute("aria-expanded", "false");
-      }
-    });
-  });
+  document.addEventListener("click", closeAllCardMenus);
 }
 
 window.paperReadingApp = {
