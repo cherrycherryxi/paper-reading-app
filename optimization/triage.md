@@ -25,10 +25,10 @@ Key files: `app_server.py:421`（表定义）、`app_server.py:501-509`（索引
 | OPT-029 | execute_action() 非原子读改写 | P1 | M | in-progress (PR #27) | Layer A. `BEGIN IMMEDIATE` 包裹读改写周期，序列化并发审批，防止双标签页静默丢弃变更。`app_server.py:2956-3080`. |
 | OPT-030 | 跨设备 state 整体覆盖（乐观锁 Layer B / E35） | P1 | M | in-progress (PR #29) | Layer B. `updated_at` 版本号 + `PUT /api/state` 条件保存 + 409 冲突 toast。`app_server.py` + `app.js` + `chat.js`. |
 | OPT-022 | 登录/注册端点无限速 | P1 | M | in-progress (PR #28) | IP 维度限速，复用 `check_and_record_rate_limit`（`app_server.py:1462`）；`login`/`register`/`password/reset-request` 三端点均无限速。`app_server.py:3889, 3939, 4015`. |
-| OPT-016 | 非 AI 摘抄 OCR 快路径（百度云 OCR） | P1 | L | in-progress | 代码已完成（21 测试全绿）。**阻塞**：owner 待配置百度 API key 并真机端到端验证。Agent2 无法推进。 |
-| OPT-026 | 书单卡片 ··· 按钮可见性 | P2 | S | triaged | `styles.css:1276` `.card-menu-btn` 无背景/无边框/低对比，无 affordance。加半透明圆形背景 + 提高对比 + hover 反馈。注意用 `var(--color-*)` token 兼容暗色模式。 |
+| OPT-016 | 非 AI 摘抄 OCR 快路径（百度云 OCR） | P1 | L | done | 2026-06-08 owner 配置百度 key + 实名认证 + 真机端到端验证通过，云 OCR 快路径上线（三层回退）。21 测试全绿。 |
+| OPT-026 | 书单卡片 ··· 按钮可见性 | P2 | S | done | 2026-06-08 随 OPT-027 解决。`.card-menu-btn` → 半透明圆底+边框+阴影+`:focus-visible`，glyph `···`→`⋯`，三种卡统一可见菜单钮。 |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:306`）。在书单页 `#openBookDialogBtn` 旁加「批量导入」二级入口，复用现有 `importExcelInput` 处理逻辑。Touch: `index.html` only。 |
-| OPT-027 | 卡片操作入口三页不统一 | P2 | M | triaged | **需 owner 定方向**（A=全部溢出菜单 / B=全部内联按钮）后再动 `app.js` 三个 render 路径 + styles。阻塞于决策，Agent2 不可领取。 |
+| OPT-027 | 卡片操作入口三页不统一 | P2 | M | done | 2026-06-08 方向①（详情即操作中心 + 卡面统一 ⋯ 菜单）。三卡统一 `⋯` 菜单、新建 sessionDetailDialog、书/摘抄详情补 action footer、统一 `dialog-actions-stack` 层级。117 JS 测试绿。详见 backlog OPT-027 done 行。 |
 | OPT-030 | *(see above)* | | | | |
 | OPT-029 | *(see above)* | | | | |
 | OPT-028 | *(see above)* | | | | |

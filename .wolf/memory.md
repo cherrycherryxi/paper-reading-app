@@ -1203,3 +1203,53 @@
 | 18:05 | Edited optimization/triage.md | inline fix | ~71 |
 | 19:07 | Edited optimization/explore.md | modified that() | ~2300 |
 | 19:08 | Edited optimization/backlog.md | expanded (+14 lines) | ~650 |
+| 13:40 | Session end: 52 writes across 11 files (backlog.md, triage.md, app_server.py, admin_gating_test.py, agent_backend_reliability_test.py) | 8 reads | ~137291 tok |
+| 14:10 | Session end: 52 writes across 11 files (backlog.md, triage.md, app_server.py, admin_gating_test.py, agent_backend_reliability_test.py) | 8 reads | ~137291 tok |
+| 14:13 | Session end: 52 writes across 11 files (backlog.md, triage.md, app_server.py, admin_gating_test.py, agent_backend_reliability_test.py) | 8 reads | ~137291 tok |
+
+## Session: 2026-06-08 21:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:28 | Edited optimization/backlog.md | modified done() | ~82 |
+| 21:28 | Edited optimization/backlog.md | inline fix | ~21 |
+| 21:28 | Edited optimization/triage.md | inline fix | ~35 |
+| 21:32 | OPT-016 解锁：百度 OCR key 已配置+真机验证，标 done | optimization/backlog.md, triage.md | done | ~1k |
+| 21:33 | Session end: 3 writes across 2 files (backlog.md, triage.md) | 2 reads | ~19684 tok |
+| 21:36 | Edited optimization/explore.md | 1→3 lines | ~128 |
+| 21:43 | 调研 E24：发现已实现并合并(c5c4281)，标记 explore.md DONE 防再荐 | optimization/explore.md | done | ~2k |
+| 21:44 | Session end: 4 writes across 3 files (backlog.md, triage.md, explore.md) | 3 reads | ~29531 tok |
+| 21:46 | Session end: 4 writes across 3 files (backlog.md, triage.md, explore.md) | 4 reads | ~70847 tok |
+| 22:08 | Session end: 4 writes across 3 files (backlog.md, triage.md, explore.md) | 6 reads | ~99842 tok |
+| 22:15 | Session end: 4 writes across 3 files (backlog.md, triage.md, explore.md) | 6 reads | ~99842 tok |
+| 22:38 | Edited styles.css | expanded (+12 lines) | ~256 |
+| 22:38 | Edited styles.css | CSS: OPT-027, padding-right | ~107 |
+| 22:38 | Edited styles.css | 10→5 lines | ~26 |
+| 22:39 | Edited styles.css | 3→4 lines | ~41 |
+| 22:40 | Edited app.js | added optional chaining | ~246 |
+| 22:40 | Edited app.js | 9→4 lines | ~30 |
+| 22:40 | Edited app.js | inline fix | ~29 |
+| 22:40 | Edited app.js | removed 8 lines | ~16 |
+| 22:41 | Edited app.js | modified formatBookTitle() | ~417 |
+| 22:41 | Edited app.js | added 3 condition(s) | ~215 |
+| 22:42 | Edited app.js | added 4 condition(s) | ~478 |
+| 22:42 | Edited index.html | expanded (+17 lines) | ~373 |
+| 22:42 | Edited styles.css | CSS: OPT-027, flex-direction, align-items | ~96 |
+| 22:43 | Edited index.html | expanded (+6 lines) | ~207 |
+| 22:43 | Edited app.js | added 1 condition(s) | ~208 |
+| 22:43 | Edited app.js | added 2 condition(s) | ~778 |
+| 22:57 | Edited tests/frontend/regression-fixed-bugs.test.js | buttons() → menu() | ~219 |
+| 23:01 | Edited tests/frontend/regression-fixed-bugs.test.js | modified openSessionDetail() | ~427 |
+| 23:02 | Edited styles.css | CSS: OPT-027 | ~62 |
+| 23:03 | Edited optimization/backlog.md | modified done() | ~65 |
+| 23:04 | Edited optimization/backlog.md | modified done() | ~181 |
+| 23:04 | Edited optimization/triage.md | "styles.css:1276" → ".card-menu-btn" | ~39 |
+| 23:04 | Edited optimization/triage.md | "app.js" → "⋯" | ~55 |
+| 23:04 | OPT-027 方向①落地: 三卡统一 ⋯ 菜单 + 详情即操作中心 | app.js, index.html, styles.css | 117 JS测试绿 | ~9k |
+| 23:04 | 新建 sessionDetailDialog + 书/摘抄详情补 action footer (dialog-actions-stack) | index.html, app.js, styles.css | done | ~3k |
+| 23:04 | OPT-026 折叠进 OPT-027: .card-menu-btn 可见性(圆底+⋯+focus-visible) + 删死CSS | styles.css | done | ~1k |
+| 23:06 | Session end: 27 writes across 7 files (backlog.md, triage.md, explore.md, styles.css, app.js) | 7 reads | ~124865 tok |
+| 23:16 | Edited styles.css | expanded (+6 lines) | ~345 |
+| 23:16 | Edited tests/frontend/regression-fixed-bugs.test.js | 2→2 lines | ~34 |
+| 23:18 | Session end: 29 writes across 7 files (backlog.md, triage.md, explore.md, styles.css, app.js) | 7 reads | ~125244 tok |
+| 23:21 | Session end: 29 writes across 7 files (backlog.md, triage.md, explore.md, styles.css, app.js) | 7 reads | ~125244 tok |

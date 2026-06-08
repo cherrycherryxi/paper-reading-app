@@ -19,6 +19,8 @@
 
 - **[2026-05-12] `guess_base_url()` 支持 HTTPS。** 增加读取 `X-Forwarded-Proto` header，确保通过 ngrok/Cloudflare Tunnel 等反向代理时媒体文件 URL 能正确生成 `https://` 前缀。
 
+- **[2026-06-08] 卡片操作有统一范式（OPT-027）。** 书/记录/摘抄三种卡都用同一个 `⋯` 溢出菜单（`.card-menu-btn` + `.card-context-menu` + `.menu-item-danger`），共享 helper `closeAllCardMenus()`/`toggleCardMenu()`（app.js，匹配 `CARD_SELECTOR`）+ 一个文档级 click-outside 关闭。书卡用 createElement 走 per-card 绑定；记录卡同样 per-card 绑定；摘抄卡是 innerHTML 字符串走 `els.quotesList` 委托（`data-quote-menu`/`data-card-menu-toggle`）。**新增卡操作时改这三处 + 共享 helper，别再发明内联按钮。** 详情弹窗是"操作中心"：书/记录/摘抄都有 detail dialog，footer 统一 `dialog-actions dialog-actions-stack`（1 个 `button-primary`=去聊 + 若干 `button-ghost` + `button-danger`=删除 + `button-ghost`=关闭）。记录详情=`sessionDetailDialog`/`openSessionDetail()`。
+
 ## Key Learnings
 
 - **[2026-06-07] 一会话连开多个 PR 时，`.wolf/` bookkeeping 一律不进功能 PR 分支，session 末在 `feature/agent` 上单独一次性提交。** 原因：`buglog.json` 被 `.gitattributes` 故意排除在 `merge=union` 外（结构化 JSON，union 会破坏语法，靠 sync-knowledge.sh 的 jq 按 .id 去重），所以两个都改 buglog 的 PR 合并时必冲突（正是 [2026-06-04] Do-Not-Repeat 那条的同类）。做法：每个 PR 分支 `git add` 只点名 code+test 文件；若手滑把 .wolf 提交进去了，用 `git checkout feature/agent -- .wolf/<f>` 还原工作树版本再 `git commit --amend`（注意：`git rm --cached` 会把它变成"删除"提交，反而更糟，别用）。memory/cerebrum/anatomy 是 union 安全的，但为统一也一起留到末尾。
@@ -62,6 +64,7 @@
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
 
+- [2026-06-08] **推荐 explore.md 的 E 项前必须核代码，别只信描述。** 把 E24（流式聊天无超时）当蓄水池候选荐给用户，结果一 grep `chat.js` 发现早已实现并合并（commit c5c4281，含 30s idle timeout + AbortController + 重试按钮 + 测试），实现比 explore 提案还周到。根因：explore.md 是 Agent3 **append-only 日报**，写于 2026-06-02 反映当时状态；E 项被直接改代码闭环时**不会回头标 done**，于是过时条目永久挂在文件里等着被再次误荐。教训：① 从 explore.md 选候选/做调研前，先 `grep` 关键标识符（常量名/函数名）核实代码现状，再看 git log `-S`；② 调研一个项第一步永远是「它是不是已经做了」，别对着过时描述编分析；③ 闭环一个 explore 项后顺手在该条目标 `✅ DONE (commit)`，防再荐。
 - [2026-06-04] **批量 worktree 子 agent 会把 `.wolf/memory.md` 一起提交进功能 PR，导致合并冲突；用 `gh pr merge` 会直接报 CONFLICTING。** `/batch` 起的 background agent 各自在 worktree 里跑，OpenWolf 的 stop/post-action 钩子会自动 append 并 `git add` `.wolf/memory.md`，于是哪怕 prompt 明确说"PR 只含本单元代码"，PR 仍混入 memory.md。三个 PR 与主干上我刚提交的 memory.md 记账行**全部 append-冲突**，`gh pr merge 19` 直接 `GraphQL: Pull Request has merge conflicts`。解法：① **本地 `git merge --no-ff origin/<worktree-branch>` 逐个合**——代码文件（app_server.py 不同区域 / styles.css）都能自动合，只有 memory.md 冲突；② memory.md 是纯追加流水账，主干侧通常是子 agent 侧的超集，直接 `git checkout --ours .wolf/memory.md && git add` 即并集解决，无需手工拼；③ 合完 push 到 base 分支，GitHub 自动把 PR 标 MERGED，再删远程分支 + `git worktree remove`。**更好的预防**：批量 worker 的 wrap-up 指令里应让它 commit 前 `git restore --staged .wolf/ && git checkout -- .wolf/` 或在 worktree 内禁用 wolf 钩子，从源头不带 memory.md。
 
 - [2026-06-04] **`curl -I`（HEAD 请求）打本服务器返 501，因为 `ThreadingHTTPServer` handler 没实现 `do_HEAD`。** 写静态文件/头部的 e2e 验证脚本别用 `curl -I`，会误判成"头没设上"。改用 `curl -sD - -o /dev/null <url>`（GET 但只看响应头）。这是个独立的小遗漏（HEAD 应返 200 + 头、空 body），已记 buglog，未修——若要修在 Handler 上加 `do_HEAD` 复用 `do_GET` 的头部逻辑但不写 body。

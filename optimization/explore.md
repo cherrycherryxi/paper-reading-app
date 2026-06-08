@@ -268,7 +268,9 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E24 — Streaming chat fetch has no AbortController timeout — server hang or silent network drop freezes the UI indefinitely (M)
+### E24 — Streaming chat fetch has no AbortController timeout — server hang or silent network drop freezes the UI indefinitely (M) — ✅ DONE (commit c5c4281)
+**已实现，勿再提拔为 OPT 项。** `chat.js` 已加 `AbortController` + 30s idle timeout（`STREAM_IDLE_TIMEOUT_MS`，`chat.js:5,606-611`），计时器在 `await fetch` 前就 arm（覆盖 header 阶段的 iOS 切网半关闭）、每个 delta 重置、`finally` 清理；`AbortError` 渲染「请求超时，请重试」+ 内联重试按钮（`renderStreamTimeout`）。测试：`tests/frontend/chat-agent-approval.test.js:556`（fake timer 快进 30s）。
+
 **What:** `_doStreamAndFinalize()` in `chat.js:572-680` opens a streaming `fetch()` to `/api/chat/stream` with no `signal` attached. The inner `reader.read()` loop at line 622 stalls indefinitely if the connection goes silent — which happens regularly on iPhone when LTE/WiFi transitions occur mid-stream (the OS half-closes the TCP connection without sending an EOF). The user sees the "thinking" animation for potentially 5+ minutes until the OS TCP keepalive finally triggers a RST. The existing `recoverCompletedChatAfterLoadError` at line 526 only fires on an explicit JS exception, not on a stalled-but-open reader.
 
 **Why it matters:** Mobile reading sessions frequently happen in transit (commute, bed, café). A 5-minute frozen UI with no "retry" affordance erodes user trust and burns battery. The fix requires ~15 lines: create an `AbortController`, pass its `signal` to `fetch()`, and reset a 30-second inactivity `setTimeout` on each received `delta` chunk. Catch `AbortError` and render "请求超时，请重试" with a retry button.

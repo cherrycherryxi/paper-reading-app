@@ -154,15 +154,16 @@ Format per item:
 - how: 在 `app_server.py:2241` 将 `"existing_connections": user_state.get("connections", [])[:20]` 改为 `"existing_connections": [] if book_id else user_state.get("connections", [])[:20]`。Touch: `app_server.py:2241`。
 
 ### OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（备选录入方式）
-- status: in-progress
+- status: done
 - area: backend
+- done (2026-06-08): owner 已在百度智能云建应用、配置 `BAIDU_OCR_API_KEY`/`BAIDU_OCR_SECRET_KEY`，完成实名认证 + 领取免费资源（1000 次/月），真机端到端验证通过。云 OCR 快路径（accurate + `_assemble_baidu_lines` 滤噪拼接）上线，三层回退（云 OCR → Tesseract → AI 精识别）就位。
 - progress (2026-06-02):
   - 止血：快路径 Tesseract 语言由 `chi_sim+eng`→`chi_sim`，消灭整页拉丁乱码（bug-197）。
   - 中期落地：快路径接入**云 OCR（百度高精度版 accurate_basic）**，与 Kimi 同套 urllib、零新依赖、零 Dockerfile 改动。新增 `call_cloud_ocr`/`_baidu_access_token`(token 30天缓存)/`_resolve_fast_engine`/`run_fast_ocr`。三层回退：云 OCR → Tesseract(无 key/离线) → 提示改用 AI 精识别。env：`BAIDU_OCR_API_KEY`/`BAIDU_OCR_SECRET_KEY`/`FAST_OCR_ENGINE=auto|cloud|tesseract`。
   - 排版修复（bug-199）：endpoint 用 `accurate`（含位置）+ 新增 `_assemble_baidu_lines` 按位置滤掉对页串入噪声、把折行连续拼接、垂直大间距才分段。真机端到端输出干净连续。env `BAIDU_OCR_ENDPOINT` 可切。
   - 账户侧（bug-198）：百度 error 18(QPS) 需实名认证+控制台领取免费资源后才可用，已通。
   - 测试：tests/agent/quote_ocr_engine_test.py 21 passed（含云解析/token缓存/配额错误/回落/路由/滤噪拼接/分段/无位置回退）。
-  - **待办**：owner 去百度智能云建应用拿 key（免费 1000次/月），配置后做真机端到端验证（mock 已全绿，无 key 时自动回落 Tesseract 实测可读）。
+  - ~~**待办**：owner 去百度智能云建应用拿 key，配置后做真机端到端验证~~ → 已完成（见上方 done 行，2026-06-08）。
   - 已排除 Apple VisionKit/实况文本：纯原生 API、无 Web 接口，对本 Web App 不可行。
 - description: （owner 提出）新增摘抄拍照后，提供一种「非 AI」的本地/快速 OCR 全文提取方式作为备选——现有 AI（Kimi vision / DeepSeek）太慢。
 - why: AI OCR 延迟高，影响录入流畅度；一个快速的传统 OCR（如 Tesseract、Apple Vision/iOS 端 VisionKit、或浏览器端 OCR 库）能在多数清晰书页上秒级出文，作为默认快路径，AI 作为识别质量兜底。
@@ -205,15 +206,21 @@ Format per item:
 - how: 在 `init_db()` 的 `executescript` 块（`app_server.py:500-509`）追加：`CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at);`。Touch: `app_server.py:500-509`。
 
 ### OPT-026 — 「书单」卡片右上角三个点（···）操作入口太不明显
-- status: triaged
+- status: done
+- done (2026-06-08, 随 OPT-027 一并解决): `.card-menu-btn` 从无背景/低对比的隐形字符改成「半透明圆底 + 边框 + 阴影 + `:focus-visible`」的真按钮，glyph 由 `···` 换成横排 `⋯`；现在书/记录/摘抄三种卡统一用同一个可见菜单钮。`styles.css` `.card-menu-btn`。
 - area: frontend
 - description: （owner 提出）书单页卡片的操作菜单触发器是右上角的 `···`（`.card-menu-btn`，渲染于 `app.js:1027`，文案就是三个点字符），视觉上几乎看不出是可点的按钮——颜色淡、无边框/背景、与封面叠在一起，用户发现不了编辑/删除藏在这里。
 - why: 操作入口的可发现性差，新用户找不到怎么改书/删书。可见性（contrast/affordance）是基础可用性问题。
-- how: 在 `styles.css` 的 `.card-menu-btn`（约 line 1254 区域）增强可见性——加半透明圆形背景/描边、提高 `color` 对比、hover/active 反馈；必要时换更通用的图标（竖排三点 ⋮ 或齿轮）。注意暗色模式用 `var(--color-*)` token。Touch: `styles.css`（`.card-menu-btn` 规则）。
+- how: 在 `styles.css` 的 `.card-menu-btn`（约 line 1254 区域）增强可见性——加半透明圆形背景/描边、提高 `color` 对比、hover/active 反馈；必要时换更通用的图标（竖排三点 ⋯ 或齿轮）。注意暗色模式用 `var(--color-*)` token。Touch: `styles.css`（`.card-menu-btn` 规则）。
 - 关联: 与 OPT-027 是同一处 UI，建议合并一轮处理。
 
 ### OPT-027 — 卡片操作入口三个页面不统一（书单藏在 ··· 菜单，记录/摘抄是卡面内联按钮）
-- status: triaged
+- status: done
+- done (2026-06-08, 方向① 详情即操作中心 + 卡面统一 ⋯ 菜单): owner 拍板后核了全链路代码，发现错位不止卡面、还含详情弹窗（书详情只读、记录无详情、摘抄 action 集卡面/详情互不覆盖）。统一操作模型落地：
+  - **卡面**：书/记录/摘抄三种卡统一用可见的 `⋯` 溢出菜单（抽 `closeAllCardMenus`/`toggleCardMenu` 共享 helper + 文档级 click-outside）；删除/编辑从内联钮移入菜单。
+  - **详情=操作中心**：新建 `sessionDetailDialog`（记录原本无详情）；书详情补全 footer（去聊/编辑/关联/新增摘抄/新增记录/删除）；摘抄详情补「删除」。三个详情 footer 统一 `dialog-actions-stack`：1 primary（去聊）+ ghost + danger，消灭摘抄详情「3 个等权金块」。
+  - 删除死 CSS（`.entry-card-actions`/`.card-action-*`）。117 JS 测试全绿（含新增 OPT-027 守卫 + 改写 P1-002 删除守卫到新选择器）。
+  - **遗留**：真机/designqc 截图未抓，建议肉眼复核菜单在封面图卡 vs 纯色卡的对比、以及 7 按钮书详情 footer 在小屏的滚动观感。
 - area: frontend
 - description: （owner 提出）操作入口模式不一致：「书单」卡把编辑/删除收进右上角 `···` 弹出菜单（`.card-context-menu` / `menu-item-danger`，`app.js:1029-1035`），而「记录」「摘抄」卡把删除直接做成卡面内联按钮（`.card-action-btn.card-action-danger`，`app.js:1269` / `1338`）。同一 app 两套交互范式，用户在不同页面要重新学怎么操作。
 - why: 一致性是 UI 基本要求；不统一既增加认知负担，也让人以为某些卡「不能编辑/删除」。
