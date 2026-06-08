@@ -261,3 +261,17 @@ Format per item:
 - description: `get_conn()` 在 `app_server.py:334` 启动时设置 `PRAGMA journal_mode = WAL`，但从未显式触发完整检查点（TRUNCATE 模式）。SQLite 默认的自动检查点（PASSIVE，1000 页阈值）在并发读负载下遇到活跃 reader 时会跳过，不回收 WAL 文件磁盘空间。`_run_gc()` 每 6 小时运行一次，使用独立 connection，是执行显式检查点的天然位置。
 - why: 每天 240 次写入、持续运行数周后，WAL 文件可累积至数十 MB 且永不收缩。`PRAGMA wal_checkpoint(TRUNCATE)` 等待所有 reader 退出后将 WAL 清零，一行代码即可消除这一静默磁盘泄漏。该调用是幂等且无副作用的——若无 WAL 页需要刷盘，调用直接返回。
 - how: 在 `_run_gc()` 的 try 块末尾（`app_server.py:5244` 之前）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。在 `gc_thread_test.py` 中加一条断言验证该调用存在。Touch: `app_server.py:5236-5244`；`tests/agent/gc_thread_test.py`。
+
+### OPT-033 — `<dialog>` 元素缺少 `aria-labelledby`，屏幕阅读器宣告模态框时无名称（WCAG 4.1.2 Level A） — 由 explore E50 提拔
+- status: new
+- area: frontend
+- description: `index.html` 中共有 12 个 `<dialog>` 元素（`bookEditDialog`、`bookDetailDialog`、`bookDialog`、`sessionDialog`、`quoteDialog`、`quoteDetailDialog`、`sessionDetailDialog`、`deleteBookDialog`、`confirmDialog`、`forgotPasswordDialog`、`resetPasswordDialog`、`connectionDialog`，lines 327/355/381/416/441/486/509/526/539/550/562/575）均无 `aria-labelledby` 属性。每个 dialog 都含有可见的 `<h2>` 标题（如「新增书籍」「编辑书籍」），信息已存在但未与 dialog 通过 ARIA 关联。屏幕阅读器焦点进入 dialog 时只会宣告「dialog」，用户无法得知当前打开了哪个模态框。
+- why: WCAG 2.1 SC 4.1.2（Name, Role, Value — Level A）要求交互 UI 组件有无障碍名称；`<dialog>` 元素没有 `aria-label` 或 `aria-labelledby` 时其 accessible name 为空。这是最严重等级（Level A）的合规缺口。修复完全是加法操作——给已有的 `<h2>` 加 `id`、给 `<dialog>` 加 `aria-labelledby`，无任何逻辑变更，零风险。这也延续了 OPT-013/018/019 的无障碍系列修复。
+- how: 对每个 dialog：给其内部 `<h2>` 加 `id`（如 `id="bookDialogTitle"`），给 `<dialog>` 加 `aria-labelledby="bookDialogTitle"`；对无 `<h2>` 的 confirm 类 dialog 改用 `aria-label`。约 12 个 dialog × 2 属性 = 24 处 HTML 属性添加，无 JS 变更。Touch: `index.html:327-620`。
+
+### OPT-034 — debug 看板将用户内容直接插入 HTML f-string，存在存储型 XSS — 由 explore E52 提拔
+- status: new
+- area: backend
+- description: `/debug/logs` 的 HTML 生成块（`app_server.py:3848-3885`）通过 f-string 直接注入 `row['prompt']`、`row['input']`、`row['output']`、`row['username']`、`row['error']`、`json.dumps(action['data'])` 等字段，未做任何 HTML 转义。`app_server.py` 未 `import html`。注册用户只要发送一条包含 `</pre><script>…</script>` 的聊天消息，该内容即被存入 `model_logs.input`；admin 打开 `/debug/logs` 时 payload 在其浏览器中执行，可读取所有用户 state、伪造 API 调用或劫持管理员会话。`/debug/errors` 和 `/debug/agent-dashboard` 的 HTML 生成块存在相同模式。
+- why: OPT-028 已将 `/debug/*` 访问限制为 loopback 或 admin 用户，但任何已注册用户均可植入恶意内容。存储型 XSS 是商业应用的 P1 安全缺陷。修复只需 `import html`（stdlib）并对全部用户可控插值点调用 `html.escape()`，代价极低。
+- how: 在 `app_server.py` 顶部 imports 中加 `import html`；在 `/debug/logs`（lines 3848-3885）、`/debug/errors`（~line 3917）、`/debug/agent-dashboard`（~line 3950）的 HTML builder 中，将 `{row['prompt']}`、`{row['input']}`、`{row['output']}`、`{row['username']}`、`{row['error']}`、`{action['errorMessage']}`、`{json.dumps(action['data'],...)}`（这些由 `json.dumps` 已是字符串，仍需转义 `<>&`）全部替换为 `{html.escape(str(…))}`。约 10 处替换，无逻辑变更，无测试变更（可加一条回归断言：插入 `<script>` 消息后 debug HTML 中不含 `<script>`）。Touch: `app_server.py:3848-3885`；扫描 ~3917、~3950 同类块。

