@@ -522,6 +522,8 @@ def init_db() -> None:
             ON agent_actions (trace_id);
         CREATE INDEX IF NOT EXISTS idx_agent_traces_user_created
             ON agent_traces (user_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_trace_events_trace
+            ON agent_trace_events (trace_id, created_at);
         """
     )
     user_cols = {
