@@ -681,14 +681,67 @@ def load_state(conn: sqlite3.Connection, user_id: str) -> dict:
     return sanitize_state(json.loads(row["state_json"]))
 
 
+def state_version(conn: sqlite3.Connection, user_id: str) -> str:
+    """Return the current optimistic-locking version token for a user's state.
+
+    The token is the `user_state.updated_at` value, which is write-only (no
+    logic reads it) and bumped on every save. Clients echo it back on PUT so
+    the server can detect a concurrent overwrite (OPT-029 Layer B / E35)."""
+    row = conn.execute(
+        "SELECT updated_at FROM user_state WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    return row["updated_at"] if row else ""
+
+
 def save_state(conn: sqlite3.Connection, user_id: str, state: dict) -> dict:
     sanitized = sanitize_state(state)
     conn.execute(
         "UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?",
-        (json.dumps(sanitized, ensure_ascii=False), now_iso(), user_id),
+        # utc_now_iso() (millisecond UTC) makes the version token effectively
+        # unique across rapid saves, unlike second-granularity now_iso().
+        (json.dumps(sanitized, ensure_ascii=False), utc_now_iso(), user_id),
     )
     conn.commit()
     return sanitized
+
+
+class StateVersionConflict(Exception):
+    """Raised when a versioned save loses to a concurrent write. Carries the
+    current server-side state + version so the caller can return them to the
+    client for reconciliation."""
+
+    def __init__(self, current_state: dict, current_version: str):
+        super().__init__("state version conflict")
+        self.current_state = current_state
+        self.current_version = current_version
+
+
+def save_state_checked(
+    conn: sqlite3.Connection, user_id: str, state: dict, expected_version: str
+) -> tuple[dict, str]:
+    """Optimistic-locking save: write only if the stored version still matches
+    `expected_version`. Returns (sanitized_state, new_version) on success;
+    raises StateVersionConflict otherwise.
+
+    Atomicity comes from the single conditional UPDATE (... WHERE updated_at = ?)
+    — no explicit transaction, so this never nests with another BEGIN IMMEDIATE
+    (e.g. ActionExecutor's)."""
+    sanitized = sanitize_state(state)
+    new_version = utc_now_iso()
+    cur = conn.execute(
+        "UPDATE user_state SET state_json = ?, updated_at = ? "
+        "WHERE user_id = ? AND updated_at = ?",
+        (json.dumps(sanitized, ensure_ascii=False), new_version, user_id, expected_version),
+    )
+    conn.commit()
+    if cur.rowcount == 0:
+        row = conn.execute(
+            "SELECT state_json, updated_at FROM user_state WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        current_state = sanitize_state(json.loads(row["state_json"])) if row else sanitize_state(None)
+        current_version = row["updated_at"] if row else ""
+        raise StateVersionConflict(current_state, current_version)
+    return sanitized, new_version
 
 
 def normalize_ocr_text(text: str) -> str:
@@ -3593,10 +3646,11 @@ class Handler(BaseHTTPRequestHandler):
             if not conn:
                 return
             state = load_state(conn, user["id"])
+            version = state_version(conn, user["id"])
             conn.close()
             user_dict = dict(user)
             user_dict["is_admin"] = is_admin_username(user["username"])
-            self._send_json({"user": user_dict, "state": state})
+            self._send_json({"user": user_dict, "state": state, "stateVersion": version})
             return
 
         if parsed.path == "/api/model-logs":
@@ -4006,10 +4060,13 @@ class Handler(BaseHTTPRequestHandler):
             token = create_session(conn, user_id)
             user = conn.execute("SELECT id, username, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
             state = load_state(conn, user_id)
+            version = state_version(conn, user_id)
             conn.close()
             user_dict = dict(user)
             user_dict["is_admin"] = is_admin_username(user["username"])
-            self._send_json({"token": token, "user": user_dict, "state": state}, 201)
+            self._send_json(
+                {"token": token, "user": user_dict, "state": state, "stateVersion": version}, 201
+            )
             return
 
         if parsed.path == "/api/login":
@@ -4033,6 +4090,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             token = create_session(conn, row["id"])
             state = load_state(conn, row["id"])
+            version = state_version(conn, row["id"])
             conn.close()
             self._send_json(
                 {
@@ -4044,6 +4102,7 @@ class Handler(BaseHTTPRequestHandler):
                         "is_admin": is_admin_username(row["username"]),
                     },
                     "state": state,
+                    "stateVersion": version,
                 }
             )
             return
@@ -4614,9 +4673,10 @@ class Handler(BaseHTTPRequestHandler):
                         output_tokens=estimate_tokens(cleaned),
                         parse_status="success" if cleaned else "empty",
                     )
+                    version = state_version(conn, user["id"])
                     conn.close()
                     self._send_json(
-                        {"state": state, "quoteId": quote_id,
+                        {"state": state, "stateVersion": version, "quoteId": quote_id,
                          "status": "done" if cleaned else "failed",
                          "recognizedText": cleaned, "ocrSource": ocr_source,
                          "traceId": trace_id},
@@ -4632,6 +4692,7 @@ class Handler(BaseHTTPRequestHandler):
                         target_quote["ocrUpdatedAt"] = utc_now_iso()
                         target_quote["ocrError"] = str(error)
                     state = save_state(conn, user["id"], state)
+                    version = state_version(conn, user["id"])
                     trace_manager.update_trace(
                         conn, trace_id, status=AGENT_STATUS_ERROR,
                         latency_ms=int((time.perf_counter() - request_started_at) * 1000),
@@ -4639,7 +4700,7 @@ class Handler(BaseHTTPRequestHandler):
                     )
                     conn.close()
                     self._send_json(
-                        {"state": state, "quoteId": quote_id, "status": "failed",
+                        {"state": state, "stateVersion": version, "quoteId": quote_id, "status": "failed",
                          "recognizedText": "", "error": "fast_ocr_failed",
                          "message": f"快速识别失败（{error}），请改用 AI 精识别。",
                          "traceId": trace_id},
@@ -4647,6 +4708,7 @@ class Handler(BaseHTTPRequestHandler):
                     )
                     return
 
+            version = state_version(conn, user["id"])
             conn.close()
             start_background_ocr(
                 _run_quote_ocr_job,
@@ -4658,7 +4720,11 @@ class Handler(BaseHTTPRequestHandler):
                 trace_id,
                 request_started_at,
             )
-            self._send_json({"state": state, "quoteId": quote_id, "status": "pending", "traceId": trace_id}, 202)
+            self._send_json(
+                {"state": state, "stateVersion": version, "quoteId": quote_id,
+                 "status": "pending", "traceId": trace_id},
+                202,
+            )
             return
 
         if parsed.path == "/api/chat/stream":
@@ -4851,6 +4917,7 @@ class Handler(BaseHTTPRequestHandler):
                     parse_status=parse_result.parse_status,
                     validation_status=validated_actions.validation_status,
                 )
+                version = state_version(conn, user["id"])
                 conn.close()
                 sse_write({
                     "done": True,
@@ -4864,6 +4931,7 @@ class Handler(BaseHTTPRequestHandler):
                     "history": history,
                     "historyKey": history_key,
                     "context": context,
+                    "stateVersion": version,
                 })
             except Exception as error:
                 trace_manager.update_trace(
@@ -5048,6 +5116,7 @@ class Handler(BaseHTTPRequestHandler):
                     parse_status=parse_result.parse_status,
                     validation_status=validated_actions.validation_status,
                 )
+                version = state_version(conn, user["id"])
                 conn.close()
                 self._send_json(
                     {
@@ -5061,6 +5130,7 @@ class Handler(BaseHTTPRequestHandler):
                         "history": history,
                         "historyKey": history_key,
                         "context": context,
+                        "stateVersion": version,
                     }
                 )
             except Exception as error:
@@ -5148,8 +5218,12 @@ class Handler(BaseHTTPRequestHandler):
                         action_status=ACTION_STATUS_EXECUTED,
                         metric_name="agent.action.executed",
                     )
+                    version = state_version(conn, user["id"])
                     conn.close()
-                    self._send_json({"ok": True, "action": final_action, "state": execution.updated_state})
+                    self._send_json({
+                        "ok": True, "action": final_action,
+                        "state": execution.updated_state, "stateVersion": version,
+                    })
                     return
                 final_action = state_machine.transition(
                     conn,
@@ -5224,9 +5298,35 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         payload = self._read_json()
+        # OPT-029 Layer B / E35: optimistic concurrency. If the client sends the
+        # version it last loaded, only overwrite when the server is still at that
+        # version — otherwise a stale tab/device would silently clobber a newer
+        # save. Clients that send no version (legacy) keep last-write-wins.
+        expected_version = self.headers.get("X-State-Version", "")
+        if expected_version:
+            try:
+                state, new_version = save_state_checked(
+                    conn, user["id"], payload, expected_version
+                )
+            except StateVersionConflict as conflict:
+                conn.close()
+                self._send_json(
+                    {
+                        "error": "state_conflict",
+                        "message": "数据已在其他设备更新，已为你加载最新版本。",
+                        "state": conflict.current_state,
+                        "stateVersion": conflict.current_version,
+                    },
+                    409,
+                )
+                return
+            conn.close()
+            self._send_json({"state": state, "stateVersion": new_version})
+            return
         state = save_state(conn, user["id"], payload)
+        version = state_version(conn, user["id"])
         conn.close()
-        self._send_json({"state": state})
+        self._send_json({"state": state, "stateVersion": version})
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)

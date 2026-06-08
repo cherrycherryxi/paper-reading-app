@@ -679,6 +679,12 @@
           history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
           const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
           setChatHistory(responseContext, history);
+          // The SSE stream bypasses apiFetch's central version capture, so
+          // refresh the optimistic-locking token from the done event here
+          // (OPT-029 Layer B / E35).
+          if (typeof finalPayload.stateVersion === "string") {
+            window.paperReadingApp.setStateVersion?.(finalPayload.stateVersion);
+          }
           await window.paperReadingApp.loadRemoteLogs?.();
           if (actions.length > 0) {
             handleAgentActions(actions);
