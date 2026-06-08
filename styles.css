@@ -952,7 +952,10 @@ textarea {
   overflow: hidden;
 }
 
-.book-grid-card {
+/* OPT-027: all three card types anchor their absolutely-positioned `⋯` menu. */
+.book-grid-card,
+.session-grid-card,
+.quote-grid-card {
   position: relative;
 }
 
@@ -964,7 +967,8 @@ textarea {
 
 .session-card-ribbon {
   min-height: 82px;
-  padding: 14px;
+  /* right padding clears the top-right `⋯` menu button (OPT-027) */
+  padding: 14px 48px 14px 14px;
   background:
     linear-gradient(135deg, var(--color-ribbon-a), var(--color-ribbon-b)),
     repeating-linear-gradient(0deg, transparent 0 13px, var(--color-ribbon-stripe) 13px 14px);
@@ -1200,43 +1204,9 @@ textarea {
   opacity: 1;
 }
 
-.entry-card-actions {
-  display: flex;
-  flex-shrink: 0;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--color-border);
-}
-
-.quote-grid-card .entry-card-actions {
-  margin-top: auto;
-}
-
-.card-action-btn {
-  flex: 1;
-  font-size: 12.5px;
-  font-weight: 500;
-  padding: 7px 0;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-ink-soft);
-  cursor: pointer;
-  text-align: center;
-  letter-spacing: 0.02em;
-}
-
-.card-action-danger {
-  color: var(--color-danger-muted-fg);
-  border-color: var(--color-danger-muted-border);
-}
-
-.card-action-chat {
-  color: var(--color-ink);
-  background: var(--color-yellow);
-  border-color: var(--color-yellow);
-}
+/* OPT-027: removed dead .entry-card-actions / .card-action-* rules — session &
+   quote cards no longer use inline action buttons; actions moved to the unified
+   ⋯ menu and the detail dialogs. */
 
 .book-grid-body,
 .entry-card-body {
@@ -1273,26 +1243,44 @@ textarea {
   font-size: 14px;
 }
 
+/* OPT-026 + OPT-027: the card overflow trigger (horizontal `⋯`) is the single
+   unified action entry across book / session / quote cards. Light treatment:
+   bare dots by default — but a surface-coloured text-shadow halo keeps them
+   legible over both cover images and plain card surfaces (OPT-026). The circular
+   chip only materialises on hover / focus / while the menu is open. */
 .card-menu-btn {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: none;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
   cursor: pointer;
-  font-size: 18px;
-  letter-spacing: 1px;
-  color: var(--color-success-fg);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-ink);
+  text-shadow: 0 0 3px var(--color-surface), 0 0 6px var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.card-menu-btn:hover {
-  color: var(--color-success-fg-strong);
+.card-menu-btn:hover,
+.card-menu-btn[aria-expanded="true"] {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: 0 1px 4px rgba(50, 45, 35, 0.18);
+  text-shadow: none;
+}
+
+.card-menu-btn:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
 }
 
 .card-context-menu {
@@ -2233,6 +2221,14 @@ dialog::backdrop {
 
 .dialog-actions {
   justify-content: flex-end;
+}
+
+/* OPT-027: detail dialogs are the action center — stack their full action set
+   vertically with one clear primary, so hierarchy reads at any width instead of
+   wrapping into a row of equal-weight blocks. */
+.dialog-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .book-detail-dialog-body {

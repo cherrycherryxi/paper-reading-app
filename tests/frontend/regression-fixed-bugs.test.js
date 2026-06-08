@@ -711,20 +711,45 @@ test("P1-002 regression: renderTimeline and renderQuotes include delete buttons"
     chatHistories: {},
   });
 
+  // OPT-027: delete moved from an inline card button into the unified `⋯`
+  // overflow menu. The regression guard still holds — a delete affordance must
+  // remain reachable from the card — only the selector changed.
   hooks.renderTimeline();
   assert.match(
     hooks.els.timeline.innerHTML,
-    /data-delete-session/,
-    "renderTimeline should include data-delete-session delete buttons (regression: cards had no delete button)"
+    /data-session-menu="delete"/,
+    "renderTimeline cards should keep a delete affordance in the ⋯ menu (regression: cards had no delete button)"
   );
 
   hooks.els.quoteTypeChips.querySelector = () => ({ dataset: { quoteType: "all" } });
   hooks.renderQuotes();
   assert.match(
     hooks.els.quotesList.innerHTML,
-    /data-delete-quote/,
-    "renderQuotes should include data-delete-quote delete buttons (regression: cards had no delete button)"
+    /data-quote-menu="delete"/,
+    "renderQuotes cards should keep a delete affordance in the ⋯ menu (regression: cards had no delete button)"
   );
+});
+
+test("OPT-027: unified ⋯ menu across cards + detail dialogs are action centers", () => {
+  // unified card overflow menu (book/session/quote all use .card-menu-btn ⋯)
+  assert.match(appSource, /class="card-menu-btn"[^>]*>⋯/,
+    "cards should use the unified ⋯ overflow-menu button");
+  assert.match(appSource, /data-session-menu="delete"/, "session card menu must expose delete");
+  assert.match(appSource, /data-quote-menu="chat"/, "quote card menu must expose 去聊");
+  assert.match(appSource, /function openSessionDetail\(/, "app.js must define openSessionDetail");
+
+  // session gained a detail dialog (action center parity with book/quote)
+  assert.match(indexHtml, /id="sessionDetailDialog"/, "index.html must include #sessionDetailDialog");
+  assert.match(indexHtml, /id="sessionDetailDeleteBtn"/, "session detail must have a delete action");
+
+  // book detail is no longer read-only — full action footer
+  assert.match(indexHtml, /id="bookDetailChatBtn"/, "book detail must have a 去聊 action");
+  assert.match(indexHtml, /id="bookDetailDeleteBtn"/, "book detail must have a delete action");
+
+  // quote detail gained delete; footer is a stacked hierarchy, not 3 equal primaries
+  assert.match(indexHtml, /id="quoteDetailDeleteBtn"/, "quote detail must have a delete action");
+  assert.match(indexHtml, /class="dialog-actions dialog-actions-stack"/,
+    "detail footers should use the stacked action layout");
 });
 
 test("quote detail go-to-chat routes through switchChatToQuote", () => {
