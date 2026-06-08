@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-08T17:03:37.966Z
-> Files: 115 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-08T18:06:08.303Z
+> Files: 116 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -55,7 +55,7 @@
 - `index.html` — 🐛 又买了一本书 (~9900 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
-- `reading_mcp_server.py` — add_note, add_book, summary, question (~4205 tok)
+- `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~21492 tok)
@@ -149,7 +149,7 @@
 
 - `backlog.md` — Optimization Backlog (~5866 tok)
 - `explore.md` — Exploration — new optimization directions (~18492 tok)
-- `triage.md` — Triage (~1179 tok)
+- `triage.md` — Triage (~1182 tok)
 
 ## scripts/
 
@@ -183,6 +183,7 @@
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~4542 tok)
+- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3253 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
 

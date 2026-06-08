@@ -4374,6 +4374,22 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-06-08T17:03:37.980Z"
+    },
+    {
+      "id": "bug-258",
+      "timestamp": "2026-06-08T18:03:15.444Z",
+      "error_message": "Wrong reference: isoformat should be timezone",
+      "file": "reading_mcp_server.py",
+      "root_cause": "Used \"isoformat\" instead of \"timezone\"",
+      "fix": "Changed isoformat → timezone",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-08T18:03:15.444Z"
     }
   ]
 }
