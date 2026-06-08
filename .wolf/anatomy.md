@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-06-08T15:16:48.245Z
 > Files: 114 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-08T15:28:19.253Z
+> Files: 115 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -23,6 +25,7 @@
 - `2026-06-02.md` — 日报 2026-06-02 (~411 tok)
 - `2026-06-03.md` — 日报 2026-06-03 (~429 tok)
 - `2026-06-04.md` — 日报 2026-06-04 (~524 tok)
+- `2026-06-08.md` — 日报 2026-06-08 (~484 tok)
 
 ## ../../.claude/plans/
 
