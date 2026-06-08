@@ -17,7 +17,7 @@ import json
 import re
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -48,7 +48,7 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def _now_iso() -> str:
-    return datetime.now().isoformat()
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _new_id(prefix: str) -> str:
