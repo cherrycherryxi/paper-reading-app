@@ -62,6 +62,11 @@ AUTH_TOKEN = os.getenv("ADMIN_TOKEN", "")
 # UI in the app (model logs panel, etc.). Defaults to the project author's
 # account so dev sessions Just Work; production should set it explicitly.
 ADMIN_USERNAMES = os.getenv("ADMIN_USERNAMES", "Huangnanxi")
+# When the server runs behind a trusted reverse proxy, set this so per-IP rate
+# limiting reads the real client IP from X-Forwarded-For instead of the proxy's
+# address. Leave unset for direct exposure — X-Forwarded-For is client-spoofable
+# and must only be trusted when a proxy is guaranteed to set it.
+TRUST_X_FORWARDED_FOR = os.getenv("TRUST_X_FORWARDED_FOR", "").strip().lower() in ("1", "true", "yes")
 
 
 def is_admin_username(username: str) -> bool:
@@ -144,6 +149,12 @@ PLAN_LIMITS = {
         "endpoints": {
             "chat": {"hour": 30, "day": 120},
             "ocr": {"hour": 12, "day": 40},
+            # Auth endpoints are limited per client IP (no user yet). Values are
+            # generous enough for legitimate users behind shared NAT but cap
+            # credential-stuffing and spam registration. OPT-022.
+            "login": {"hour": 30, "day": 150},
+            "register": {"hour": 10, "day": 40},
+            "reset": {"hour": 8, "day": 30},
         },
     },
     "plus": {
@@ -152,6 +163,11 @@ PLAN_LIMITS = {
         "endpoints": {
             "chat": {"hour": 60, "day": 240},
             "ocr": {"hour": 24, "day": 80},
+            # Auth limits are pre-auth (always resolved against the free plan);
+            # mirrored here only for symmetry.
+            "login": {"hour": 30, "day": 150},
+            "register": {"hour": 10, "day": 40},
+            "reset": {"hour": 8, "day": 30},
         },
     },
 }
@@ -3424,30 +3440,56 @@ class Handler(BaseHTTPRequestHandler):
             return None, None
         return conn, user
 
+    def _client_ip(self) -> str:
+        """Best-effort client IP for per-IP rate limiting.
+
+        Honors X-Forwarded-For only when TRUST_X_FORWARDED_FOR is set (i.e. the
+        server is known to sit behind a proxy that sets it); otherwise the
+        header is client-spoofable and ignored."""
+        if TRUST_X_FORWARDED_FOR:
+            xff = self.headers.get("X-Forwarded-For", "")
+            if xff:
+                first = xff.split(",")[0].strip()
+                if first:
+                    return first
+        addr = getattr(self, "client_address", None)
+        return addr[0] if addr else ""
+
     def _enforce_rate_limit(
-        self, conn: sqlite3.Connection, user_id: str, endpoint: str
+        self,
+        conn: sqlite3.Connection,
+        user_id: str,
+        endpoint: str,
+        plan: str | None = None,
+        message: str | None = None,
     ) -> bool:
-        """Returns True if request may proceed; False if 429 was sent."""
+        """Returns True if request may proceed; False if 429 was sent.
+
+        `plan` may be passed explicitly to skip the per-user plan lookup (used
+        for pre-auth endpoints keyed by IP). `message` overrides the default
+        user-facing copy."""
         try:
             allowed, retry_after, reason, usage = check_and_record_rate_limit(
-                conn, user_id, endpoint
+                conn, user_id, endpoint, plan
             )
         except Exception:
             # Fail open on counter errors — better to serve than to lock users out.
             return True
         if allowed:
             return True
+        if message is None:
+            message = (
+                "你已达到本小时的使用上限，稍后再试。"
+                if reason == "hour_limit"
+                else "你已达到今日的使用上限，明天再来 ✨"
+            )
         body = json.dumps(
             {
                 "error": "rate_limited",
                 "reason": reason,
                 "retry_after_seconds": retry_after,
                 "usage": usage,
-                "message": (
-                    "你已达到本小时的使用上限，稍后再试。"
-                    if reason == "hour_limit"
-                    else "你已达到今日的使用上限，明天再来 ✨"
-                ),
+                "message": message,
             },
             ensure_ascii=False,
         ).encode("utf-8")
@@ -3931,6 +3973,12 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             conn = get_conn()
+            if not self._enforce_rate_limit(
+                conn, f"ip:{self._client_ip()}", "register", plan="free",
+                message="注册过于频繁，请稍后再试。",
+            ):
+                conn.close()
+                return
             exists = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
             if exists:
                 conn.close()
@@ -3969,6 +4017,12 @@ class Handler(BaseHTTPRequestHandler):
             username = str(payload.get("username", "")).strip()
             password = str(payload.get("password", "")).strip()
             conn = get_conn()
+            if not self._enforce_rate_limit(
+                conn, f"ip:{self._client_ip()}", "login", plan="free",
+                message="登录尝试过于频繁，请稍后再试。",
+            ):
+                conn.close()
+                return
             row = conn.execute(
                 "SELECT id, username, password_hash, created_at FROM users WHERE username = ?",
                 (username,),
@@ -4054,6 +4108,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(generic_ok)
                 return
             conn = get_conn()
+            if not self._enforce_rate_limit(
+                conn, f"ip:{self._client_ip()}", "reset", plan="free",
+                message="操作过于频繁，请稍后再试。",
+            ):
+                conn.close()
+                return
             lookup_email = identifier.lower()
             row = conn.execute(
                 "SELECT id, username, email FROM users WHERE email = ? OR username = ?",
