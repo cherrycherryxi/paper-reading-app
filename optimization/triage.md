@@ -18,7 +18,7 @@ Key files: `reading_mcp_server.py:50-51`（函数定义）、`reading_mcp_server
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | triaged | `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → `datetime.now(timezone.utc).strftime(…Z)`。与 OPT-024 完全同根，影响所有 MCP 路径写入记录的排序。+1 测试断言。 |
+| OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | in-progress | PR #32. `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → `datetime.now(timezone.utc).strftime(…Z)`。与 OPT-024 完全同根，影响所有 MCP 路径写入记录的排序。+3 测试断言。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，磁盘持续膨胀 | P2 | S | triaged | `app_server.py:5434`（finally 块末）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。WAL 文件日增数 MB，数周后累积至数十 MB 且永不回收。一行代码，幂等无副作用。+1 测试断言。 |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:303-306`）。在书单页 `#openBookDialogBtn` 旁（`index.html:78-82`）加「批量导入」二级入口，复用现有 `#importExcelInput` 处理逻辑。Touch: `index.html` only。 |
 | OPT-030 | 跨设备 state 整体覆盖（乐观锁 Layer B / E35） | P1 | M | done | Merged PR #29 (2026-06-08). `updated_at` 版本号 + `PUT /api/state` 条件保存 + 409 冲突 toast。`app_server.py` + `app.js` + `chat.js`. |
