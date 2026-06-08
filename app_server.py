@@ -3376,9 +3376,25 @@ class Handler(BaseHTTPRequestHandler):
             return header[7:].strip()
         return None
 
+    def _is_loopback_client(self) -> bool:
+        """True when the request originates from the local machine.
+
+        Used to keep the documented dev convenience (`127.0.0.1:8787/debug/logs`)
+        working when no ADMIN_TOKEN is configured, without exposing the debug
+        viewers to the public internet on a token-less deployment."""
+        addr = getattr(self, "client_address", None)
+        host = addr[0] if addr else ""
+        # ::ffff:127.0.0.1 is the IPv4-mapped IPv6 form some stacks report.
+        return host in ("127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost")
+
     def _authorized_for_admin(self) -> bool:
+        # OPT-028: when ADMIN_TOKEN is unset (the default), the /debug/* viewers
+        # expose every user's AI conversation. Previously this returned True for
+        # everyone in that case — a public data leak on any token-less deploy.
+        # Now an unset token only grants access to loopback (local dev); remote
+        # operators must set ADMIN_TOKEN and pass X-Log-Token.
         if not AUTH_TOKEN:
-            return True
+            return self._is_loopback_client()
         return self.headers.get("X-Log-Token", "") == AUTH_TOKEN
 
     def _require_user(self) -> tuple[sqlite3.Connection, sqlite3.Row] | tuple[None, None]:
@@ -5254,6 +5270,10 @@ def main() -> None:
     print("[startup] tool schemas loaded:", ToolSchemaProvider.get().action_types())
     gc_thread = threading.Thread(target=_run_gc, daemon=True, name="gc-thread")
     gc_thread.start()
+    if not AUTH_TOKEN:
+        print("[startup] WARNING: ADMIN_TOKEN unset — /debug/* viewers are "
+              "restricted to localhost only. Set ADMIN_TOKEN to allow remote "
+              "operator access.")
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"backend server listening on http://{HOST}:{PORT}")
     server.serve_forever()

@@ -96,5 +96,49 @@ class AdminGatingTests(unittest.TestCase):
         self.assertIn('ADMIN_USERNAMES = os.getenv("ADMIN_USERNAMES", "Huangnanxi")', src)
 
 
+class DebugGateTests(unittest.TestCase):
+    """OPT-028: /debug/* must not be world-readable when ADMIN_TOKEN is unset."""
+
+    def setUp(self):
+        self._orig_token = app_server.AUTH_TOKEN
+
+    def tearDown(self):
+        app_server.AUTH_TOKEN = self._orig_token
+
+    def _handler(self, client_ip, log_token=None):
+        h = app_server.Handler.__new__(app_server.Handler)
+        h.client_address = (client_ip, 54321)
+        h.headers = {"X-Log-Token": log_token} if log_token is not None else {}
+        return h
+
+    def test_token_unset_denies_remote_client(self):
+        app_server.AUTH_TOKEN = ""
+        self.assertFalse(self._handler("203.0.113.7")._authorized_for_admin())
+
+    def test_token_unset_allows_loopback_ipv4(self):
+        app_server.AUTH_TOKEN = ""
+        self.assertTrue(self._handler("127.0.0.1")._authorized_for_admin())
+
+    def test_token_unset_allows_loopback_ipv6(self):
+        app_server.AUTH_TOKEN = ""
+        self.assertTrue(self._handler("::1")._authorized_for_admin())
+
+    def test_token_unset_allows_ipv4_mapped_loopback(self):
+        app_server.AUTH_TOKEN = ""
+        self.assertTrue(self._handler("::ffff:127.0.0.1")._authorized_for_admin())
+
+    def test_token_set_requires_matching_header_even_from_loopback(self):
+        app_server.AUTH_TOKEN = "secret"
+        # Loopback no longer auto-passes once a token is configured.
+        self.assertFalse(self._handler("127.0.0.1")._authorized_for_admin())
+        self.assertFalse(self._handler("127.0.0.1", "wrong")._authorized_for_admin())
+        self.assertTrue(self._handler("127.0.0.1", "secret")._authorized_for_admin())
+
+    def test_token_set_allows_remote_with_matching_header(self):
+        app_server.AUTH_TOKEN = "secret"
+        self.assertTrue(self._handler("203.0.113.7", "secret")._authorized_for_admin())
+        self.assertFalse(self._handler("203.0.113.7", "wrong")._authorized_for_admin())
+
+
 if __name__ == "__main__":
     unittest.main()
