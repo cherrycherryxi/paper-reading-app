@@ -1267,3 +1267,5 @@
 | 18:03 | Edited reading_mcp_server.py | isoformat() → strftime() | ~26 |
 | 18:03 | Edited tests/agent/reading_mcp_server_tools_test.py | modified test_missing_user_state_returns_error_shape() | ~532 |
 | 18:06 | Edited optimization/triage.md | inline fix | ~64 |
+| 19:12 | Edited optimization/explore.md | modified call() | ~2392 |
+| 19:13 | Edited optimization/backlog.md | expanded (+14 lines) | ~818 |
