@@ -21,6 +21,16 @@
 
 ## Key Learnings
 
+- **[2026-06-07] 一会话连开多个 PR 时，`.wolf/` bookkeeping 一律不进功能 PR 分支，session 末在 `feature/agent` 上单独一次性提交。** 原因：`buglog.json` 被 `.gitattributes` 故意排除在 `merge=union` 外（结构化 JSON，union 会破坏语法，靠 sync-knowledge.sh 的 jq 按 .id 去重），所以两个都改 buglog 的 PR 合并时必冲突（正是 [2026-06-04] Do-Not-Repeat 那条的同类）。做法：每个 PR 分支 `git add` 只点名 code+test 文件；若手滑把 .wolf 提交进去了，用 `git checkout feature/agent -- .wolf/<f>` 还原工作树版本再 `git commit --amend`（注意：`git rm --cached` 会把它变成"删除"提交，反而更糟，别用）。memory/cerebrum/anatomy 是 union 安全的，但为统一也一起留到末尾。
+
+- **[2026-06-07] 整块 state 乐观锁用"原子条件 UPDATE + rowcount"，不要"读-比对-写 + BEGIN IMMEDIATE"。** `save_state_checked`（`app_server.py`）用 `UPDATE user_state SET … WHERE user_id=? AND updated_at=?` 单条语句，`cur.rowcount==0` 即版本不匹配→冲突。好处：单语句天然原子、无需显式事务，因此**永不与 ActionExecutor 的 `BEGIN IMMEDIATE`（OPT-029 Layer A）嵌套**（SQLite 不支持嵌套事务，嵌套会抛错）。版本令牌直接复用 `user_state.updated_at`（只写不被任何逻辑读，安全），并把 `save_state` 的写入从 `now_iso()`（秒、本地）改成 `utc_now_iso()`（毫秒、UTC-Z）让令牌跨快速保存唯一。客户端版本令牌的"中心捕获"放在 `apiFetch`（任何响应带 `stateVersion` 就存），只需后端各 state 响应都 emit，省去逐调用点接线；SSE 流绕过 apiFetch，靠 `paperReadingApp.setStateVersion` 在 done 事件里补。
+
+- **[2026-06-07] `ensure_user_state()` 在插入新行时会 `conn.commit()`，所以要在 `BEGIN IMMEDIATE` 之前调用**（否则它的 commit 会提前结束你刚开的事务）。OPT-029 Layer A 包裹 `execute_action` 时即按此顺序：先 `ensure_user_state` → `BEGIN IMMEDIATE` → `load_state`（此时行已存在，内部 ensure 早退不再 commit）→ 改 → `save_state`（其自带 commit 收尾）。
+
+- **[2026-06-07] 前端测试改造：`vm.runInNewContext(appSource + __testHooks块)`，并在 hooks 块前 `showToast = function(m){…}` 重赋值来捕获 toast。** app.js 的 `showToast`/各内部函数是函数声明（非 const），加载后可重赋值劫持。context 里 `fetch` 用可编程 stub 返回 `{ok,status,headers:{get},json}` 即可驱动 `apiFetch`/`syncState`。坑：`node --test` 的总结行是 `ℹ pass N` / `ℹ fail N`（unicode info 符），不是 `# pass`，聚合脚本别 grep `^# pass`。
+
+- **[2026-06-07] 写并发/批量 add_book 测试会撞 free 计划 `book_cap=10`（`PLAN_LIMITS`），第 10 本起被 ActionExecutor 拒，误判成"丢数据"。** 多轮并发回归测试改用 `add_note`（写入 quotes，无 cap）。`ActionExecutor.add_book` 是 book cap 唯一强制点。
+
 - **[2026-06-06] 本地 bookkeeping 改动未提交时不要急着同步分支；夜间 Agent1/Agent3 会重写 backlog/triage/explore + 占用 OPT 编号。** 合并 PR 后想 ff 本地 `feature/agent`，发现远端已被夜间 Agent 推进 8 个提交（含 Agent1 把我手改的状态都做了 + Agent3 用 **OPT-024/025 编号注册了和我完全不同的条目**）。`pull --rebase` 在 .wolf + optimization 上连环冲突。教训：① **OPT 编号是夜间 Agent 的共享命名空间——人想新增 backlog 项前先 `git fetch` 看远端最大编号，别用本地推断的下一个号**（我本地 OPT-024/025 撞了远端，改成 026/027）；② 远端分叉又有本地未推提交时，与其硬解连环冲突，不如 `git branch backup/… ` 备份 → `git reset --hard origin/…` → 只把净新增 delta（新条目、独有的 cerebrum 学习）重打一遍 commit，比 rebase 省事；③ Agent1 夜间通常已把已合并 PR 标 done，人只需补 Agent 不知道的东西（owner 口头提的 UI 项等）。
 
 - **[2026-06-05] `optimization/explore.md` 是 Agent3 的 append-only 原始流水，状态会过时——动手前必须用真实代码复核 E 项。** 调研蓄水池里两个 M 项时发现 **E24（流式 chat 无 AbortController 超时）和 E26（handler conn 泄漏无 try/finally）其实都已实现**：E24 在 `chat.js:606-697`（AbortController + idle timer + finally + catch AbortError → renderStreamTimeout），E26 在 `app_server.py:3263 handle_one_request` 的 `finally`（兜底关 `_active_conn`）。explore.md 仍写「no signal / never closed」是因为它只追加不回写。教训：① explore.md 的 E 项只是「线索」，提拔/调研前先 grep 真实代码确认现状；② 同理 backlog 的「无开着 M/L」可能是真·已清空，不是遗漏。
