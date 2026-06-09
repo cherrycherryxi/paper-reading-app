@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import re
 import hashlib
 import hmac
+import html as _html
 import json
 import secrets
 import socket
@@ -3849,9 +3850,9 @@ class Handler(BaseHTTPRequestHandler):
                 actions_html = "".join(
                     f"""
                     <li style="margin-bottom:8px;">
-                      <b>{action['type']}</b> · {action['status']}
-                      <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{json.dumps(action['data'], ensure_ascii=False, indent=2)}</pre>
-                      <div style="color:#666;">error={action['errorMessage'] or '-'}</div>
+                      <b>{_html.escape(str(action['type']))}</b> · {_html.escape(str(action['status']))}
+                      <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{_html.escape(json.dumps(action['data'], ensure_ascii=False, indent=2))}</pre>
+                      <div style="color:#666;">error={_html.escape(str(action['errorMessage'] or '-'))}</div>
                     </li>
                     """
                     for action in row["actions"]
@@ -3862,23 +3863,23 @@ class Handler(BaseHTTPRequestHandler):
                     f"""
                     <details style="border:1px solid #ddd;border-radius:12px;padding:12px;background:#fff;margin-bottom:12px;">
                       <summary style="cursor:pointer;font-weight:600;">
-                        {row['createdAt']} · {row['username']} · {row['type']} · {row['model']} · {'失败' if row['error'] else '成功'}
+                        {_html.escape(str(row['createdAt']))} · {_html.escape(str(row['username']))} · {_html.escape(str(row['type']))} · {_html.escape(str(row['model']))} · {'失败' if row['error'] else '成功'}
                         <span style="font-weight:400;color:#555;margin-left:8px;">↑{in_tok} ↓{out_tok} tok · {row['latencyMs']}ms</span>
                       </summary>
                       <div style="margin-top:12px;">
-                        <p><b>Trace</b> {row['traceId'] or '-'} · {row['latencyMs']}ms · in={in_tok} out={out_tok} tok · parse={row['parseStatus'] or '-'} · validate={row['validationStatus'] or '-'}</p>
+                        <p><b>Trace</b> {_html.escape(str(row['traceId'] or '-'))} · {row['latencyMs']}ms · in={in_tok} out={out_tok} tok · parse={_html.escape(str(row['parseStatus'] or '-'))} · validate={_html.escape(str(row['validationStatus'] or '-'))}</p>
                         <p><b>Prompt</b></p>
-                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{row['prompt']}</pre>
+                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{_html.escape(str(row['prompt']))}</pre>
                         <p><b>输入</b></p>
-                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{row['input']}</pre>
+                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{_html.escape(str(row['input']))}</pre>
                         <p><b>输出</b></p>
-                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{row['output']}</pre>
+                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{_html.escape(str(row['output']))}</pre>
                         <p><b>Actions</b></p>
                         <ul style="padding-left:18px;">{actions_html}</ul>
                         <p><b>Trace Error</b></p>
-                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{row['traceErrorMessage'] or '-'}</pre>
+                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{_html.escape(str(row['traceErrorMessage'] or '-'))}</pre>
                         <p><b>错误</b></p>
-                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{row['error']}</pre>
+                        <pre style="white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:10px;border-radius:8px;">{_html.escape(str(row['error'] or ''))}</pre>
                       </div>
                     </details>
                     """
@@ -3965,7 +3966,7 @@ class Handler(BaseHTTPRequestHandler):
                 cards.append(
                     f"""
                     <section style="background:#fff;border:1px solid #e5e5e5;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 12px 28px rgba(17,17,17,0.06);">
-                      <h2 style="margin:0 0 12px;font-size:20px;">{user_row['username']}</h2>
+                      <h2 style="margin:0 0 12px;font-size:20px;">{_html.escape(str(user_row['username']))}</h2>
                       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
                         <div style="padding:12px;background:#f7f7f7;border-radius:12px;"><b>Requests</b><div>{metrics['requestCount']}</div></div>
                         <div style="padding:12px;background:#f7f7f7;border-radius:12px;"><b>Errors</b><div>{metrics['errorCount']}</div></div>
