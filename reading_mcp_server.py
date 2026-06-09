@@ -17,7 +17,7 @@ import json
 import re
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -48,7 +48,10 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def _now_iso() -> str:
-    return datetime.now().isoformat()
+    # OPT-031: millisecond precision + trailing "Z" to match the frontend's
+    # new Date().toISOString() and app_server's iso helper, so MCP-path records
+    # sort consistently with frontend records even within the same second.
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _new_id(prefix: str) -> str:

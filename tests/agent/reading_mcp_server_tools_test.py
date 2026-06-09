@@ -241,6 +241,40 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("user_state not found for user_id=missing-user", result["error"])
 
+    def test_now_iso_returns_utc_z_suffix(self):
+        # OPT-031: _now_iso() must emit UTC timestamps (ending with Z) so that
+        # MCP-path records sort consistently with frontend records (also UTC+Z).
+        ts = reading_mcp_server._now_iso()
+        self.assertTrue(ts.endswith("Z"), f"_now_iso() returned non-UTC timestamp: {ts!r}")
+        # Lock the format to millisecond precision (e.g. 2026-06-09T05:04:33.123Z)
+        # so it stays byte-comparable with the frontend's new Date().toISOString().
+        # A second-precision ".SSZ"-less value sorts AFTER a same-second ms value
+        # (lexically '.' < 'Z'), which is the bug OPT-031 closed.
+        import re
+        self.assertRegex(ts, r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
+                         f"_now_iso() must be millisecond-precision UTC: {ts!r}")
+        # Verify the format is parseable as a valid ISO-8601 UTC datetime
+        from datetime import datetime, timezone
+        parsed = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        self.assertIsNotNone(parsed)
+
+    def test_add_note_createdAt_is_utc(self):
+        # OPT-031: createdAt written by add_note must end with Z
+        result = reading_mcp_server.add_note(self.user_id, "测试UTC时间戳", "book-1")
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["created"]["createdAt"].endswith("Z"),
+                        f"add_note createdAt is not UTC: {result['created']['createdAt']!r}")
+
+    def test_add_book_timestamps_are_utc(self):
+        # OPT-031: createdAt/updatedAt written by add_book must end with Z
+        result = reading_mcp_server.add_book(self.user_id, "流浪地球", "刘慈欣")
+        self.assertTrue(result["ok"])
+        created = result["created"]
+        self.assertTrue(created["createdAt"].endswith("Z"),
+                        f"add_book createdAt is not UTC: {created['createdAt']!r}")
+        self.assertTrue(created["updatedAt"].endswith("Z"),
+                        f"add_book updatedAt is not UTC: {created['updatedAt']!r}")
+
 
 if __name__ == "__main__":
     unittest.main()
