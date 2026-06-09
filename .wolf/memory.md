@@ -1269,3 +1269,7 @@
 | 18:06 | Edited optimization/triage.md | inline fix | ~64 |
 | 19:12 | Edited optimization/explore.md | modified call() | ~2392 |
 | 19:13 | Edited optimization/backlog.md | expanded (+14 lines) | ~818 |
+| 17:04 | Created optimization/triage.md | — | ~1416 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~39 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~32 |
+| 17:04 | Edited optimization/backlog.md | 2→2 lines | ~25 |
