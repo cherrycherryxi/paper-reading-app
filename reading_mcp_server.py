@@ -48,7 +48,10 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # OPT-031: millisecond precision + trailing "Z" to match the frontend's
+    # new Date().toISOString() and app_server's iso helper, so MCP-path records
+    # sort consistently with frontend records even within the same second.
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _new_id(prefix: str) -> str:

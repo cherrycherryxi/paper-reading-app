@@ -246,9 +246,16 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         # MCP-path records sort consistently with frontend records (also UTC+Z).
         ts = reading_mcp_server._now_iso()
         self.assertTrue(ts.endswith("Z"), f"_now_iso() returned non-UTC timestamp: {ts!r}")
+        # Lock the format to millisecond precision (e.g. 2026-06-09T05:04:33.123Z)
+        # so it stays byte-comparable with the frontend's new Date().toISOString().
+        # A second-precision ".SSZ"-less value sorts AFTER a same-second ms value
+        # (lexically '.' < 'Z'), which is the bug OPT-031 closed.
+        import re
+        self.assertRegex(ts, r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
+                         f"_now_iso() must be millisecond-precision UTC: {ts!r}")
         # Verify the format is parseable as a valid ISO-8601 UTC datetime
         from datetime import datetime, timezone
-        parsed = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        parsed = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
         self.assertIsNotNone(parsed)
 
     def test_add_note_createdAt_is_utc(self):
