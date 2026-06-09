@@ -658,3 +658,53 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:2676, 2695, 2702`. No schema changes, no test changes (trace tests don't assert timestamp format). Touch: `app_server.py:2676, 2695, 2702`.
 
 **Files:** `app_server.py:2676` (`create_trace`), `app_server.py:2695` (`log_event`), `app_server.py:2702` (`update_trace`)
+
+---
+
+## 2026-06-09
+
+### E57 — `#chatInput` textarea has no `maxlength="2000"` — user hits 2000-char backend rejection without any client-side feedback (S)
+
+**What:** `index.html:198` has `<textarea id="chatInput" rows="1" placeholder="输入你的问题或想法…">` with no `maxlength` attribute. The backend's `AgentRequestValidator.validate_chat_request()` rejects messages longer than 2000 characters with a generic error (`app_server.py:2240-2241`). E30 (from 2026-06-04) proposed adding `maxlength` to 7 dialog form inputs (`index.html:379, 380, 402, 426, 459, 470, 607`) but the chat textarea at line 198 is explicitly absent from that list and is on a completely different code path (streaming chat handler, not a form dialog). When a user pastes a long quote or types a multi-paragraph question, they discover the limit only after hitting "发送" — the 2000-char cap is nowhere visible in the UI before submission.
+
+**Why it matters:** The chat input is the highest-frequency interaction surface in the app. An invisible hard limit that produces a post-submit error erodes trust and causes the user to lose their typed message if the input clears. Adding `maxlength="2000"` gives the browser native enforcement (keyboard input stops at the cap) and a native character counter (`<span>` via JS) can show remaining chars when the user approaches 1800+. This is a 1-attribute + ~5-line JS change.
+
+**Complexity:** S — add `maxlength="2000"` to `index.html:198`; optionally wire a live character-counter `<span id="chatInputCounter">` that updates on `input` event in `chat.js` (lines 875–900). No backend changes.
+
+**Files:** `index.html:198`; `chat.js:875-900` (input event handler, optional counter)
+
+---
+
+### E58 — `model_logs.created_at` uses `now_iso()` (naïve local time) — last observability timestamp not aligned with project UTC policy (S)
+
+**What:** `log_model_call()` at `app_server.py:2008` uses `now_iso()` for the `created_at` column of the `model_logs` table. E56 (from 2026-06-08) identified `TraceManager.create_trace()` / `log_event()` / `update_trace()` (lines 2676, 2695, 2702) as the same gap, but `model_logs` is a separate function (`log_model_call`) in the same file that was not covered. The chain of UTC fixes so far: OPT-014 (OCR quote createdAt), OPT-024 (ActionExecutor state JSON), OPT-031 (MCP server), E56/TraceManager (triaged but not yet in backlog). `model_logs.created_at` is the fourth remaining naive-time site in the observability pipeline.
+
+**Why it matters:** The admin debug dashboard at `/debug/logs` orders rows by `model_logs.created_at DESC`. On a single UTC+8 server this is self-consistent (all rows are naive UTC+8), but if the server timezone changes (Docker container rebuild, cloud region migration) the timestamps become incomparable with each other and with future rows written after the change. The `/api/account/export` also includes `modelLogs` with these naive timestamps. Fixing to `utc_now_iso()` at line 2008 costs one identifier substitution and eliminates the last naive timestamp in the LLM call pipeline.
+
+**Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:2008`. No schema changes, no test changes. Touch: `app_server.py:2008`.
+
+**Files:** `app_server.py:1992-2017` (`log_model_call`)
+
+---
+
+### E59 — `buildRenderCache()` builds metrics/quote/connection Maps but omits `bookById` — `renderQuotes()` search path calls O(n) `Array.find()` per quote (S)
+
+**What:** `buildRenderCache()` at `app.js:617-638` pre-computes four Maps (`metricsMap`, `quoteCountMap`, `connCountMap`, `firstQuoteImageMap`) for `renderBooks()`. However, it does not build a `bookById: new Map(state.books.map(b => [b.id, b]))` lookup. `renderQuotes()` at `app.js:1367` performs `state.books.find(b => b.id === item.bookId)` inside the search-filter callback — for each of N quotes, this is O(books). With 300 quotes × 200 books during a search, that's 60,000 comparisons on every keystroke (before the debounce from E5/E14 even fires). `renderTimeline()` at line 1285 has the same pattern during search. `renderConnections()` search filter at lines 735-737 also calls both `state.books.find()` and `state.quotes.find()` per connection.
+
+**Why it matters:** The search path is the performance-critical path: it fires on every debounced keystroke and every call to `render()` while a search is active. Precomputing `bookById` and `quoteById` Maps once (O(n+m) total, amortised over all per-item lookups) converts every inner-loop `.find()` from O(n) to O(1). For the common case of a 200-book / 500-quote user this turns a 100,000-comparison search render into a ~700-comparison one. The cache is already passed to `buildBookSearchCard()` so the wiring pattern is established.
+
+**Complexity:** S — add `bookById: new Map(state.books.map(b => [b.id, b]))` and `quoteById: new Map(state.quotes.map(q => [q.id, q]))` to `buildRenderCache()` return value (`app.js:638`); update `renderQuotes()` and `renderTimeline()` to call `buildRenderCache()` and use `cache.bookById.get(id)` instead of `state.books.find()`. Touch: `app.js:617-638, 1282-1290, 1360-1380`.
+
+**Files:** `app.js:617-638` (`buildRenderCache`); `app.js:1285, 1312` (`renderTimeline` loops); `app.js:1367` (`renderQuotes` search filter); `app.js:735` (`renderConnections` search filter)
+
+---
+
+### E60 — `ActionStateMachine.create_action()` and `transition()` use `now_iso()` for `agent_actions` table timestamps — same naïve-time gap as E56/E58 (S)
+
+**What:** `ActionStateMachine.create_action()` at `app_server.py:2943` assigns `now = now_iso()` for the `created_at` and `updated_at` columns of the `agent_actions` table. `ActionStateMachine.transition()` at `app_server.py:2981` likewise uses `now = now_iso()` for `updated_at`, `approved_at`, and `executed_at`. OPT-024 fixed `ActionExecutor.execute_action()` — the seven calls that write user-visible `createdAt`/`updatedAt` into the **state JSON blob**. But `ActionStateMachine`, which writes the **admin-facing audit columns** of the `agent_actions` SQL table, was not part of that fix. E56 covered `TraceManager` (writing `agent_traces` + `agent_trace_events`); E58 covers `model_logs`. `agent_actions` is the third remaining table in the observability pipeline still using naive time.
+
+**Why it matters:** The `/api/account/export` response includes all `agent_actions` rows with their timestamps (line 3748). The `/debug/agent-dashboard` page renders action data with these timestamps. Users running cross-server analytics (e.g., comparing export timestamps against `user_state.updated_at` which now uses UTC) will see a spurious +8 h skew on UTC+8 servers. The fix is identical in pattern to E56/E58: substitute `utc_now_iso()` for `now_iso()` in two functions.
+
+**Complexity:** S — in `ActionStateMachine.create_action()` (`app_server.py:2943`) and `transition()` (`app_server.py:2981`) replace `now = now_iso()` with `now = utc_now_iso()`. Total: 2 line changes, no schema changes, no test changes. Touch: `app_server.py:2943, 2981`.
+
+**Files:** `app_server.py:2940-2997` (`ActionStateMachine.create_action` and `transition`)

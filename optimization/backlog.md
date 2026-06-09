@@ -275,3 +275,17 @@ Format per item:
 - description: `/debug/logs` 的 HTML 生成块（`app_server.py:3848-3885`）通过 f-string 直接注入 `row['prompt']`、`row['input']`、`row['output']`、`row['username']`、`row['error']`、`json.dumps(action['data'])` 等字段，未做任何 HTML 转义。`app_server.py` 未 `import html`。注册用户只要发送一条包含 `</pre><script>…</script>` 的聊天消息，该内容即被存入 `model_logs.input`；admin 打开 `/debug/logs` 时 payload 在其浏览器中执行，可读取所有用户 state、伪造 API 调用或劫持管理员会话。`/debug/errors` 和 `/debug/agent-dashboard` 的 HTML 生成块存在相同模式。
 - why: OPT-028 已将 `/debug/*` 访问限制为 loopback 或 admin 用户，但任何已注册用户均可植入恶意内容。存储型 XSS 是商业应用的 P1 安全缺陷。修复只需 `import html`（stdlib）并对全部用户可控插值点调用 `html.escape()`，代价极低。
 - how: 在 `app_server.py` 顶部 imports 中加 `import html`；在 `/debug/logs`（lines 3848-3885）、`/debug/errors`（~line 3917）、`/debug/agent-dashboard`（~line 3950）的 HTML builder 中，将 `{row['prompt']}`、`{row['input']}`、`{row['output']}`、`{row['username']}`、`{row['error']}`、`{action['errorMessage']}`、`{json.dumps(action['data'],...)}`（这些由 `json.dumps` 已是字符串，仍需转义 `<>&`）全部替换为 `{html.escape(str(…))}`。约 10 处替换，无逻辑变更，无测试变更（可加一条回归断言：插入 `<script>` 消息后 debug HTML 中不含 `<script>`）。Touch: `app_server.py:3848-3885`；扫描 ~3917、~3950 同类块。
+
+### OPT-035 — `TraceManager` 三个方法使用 `now_iso()` (naive 本地时间)，与项目 UTC 时间戳策略不一致 — 由 explore E56 提拔
+- status: new
+- area: backend
+- description: `TraceManager.create_trace()`（`app_server.py:2676`）、`log_event()`（line 2695）、`update_trace()`（line 2702）均调用 `now_iso()` 写入 `agent_traces` 和 `agent_trace_events` 表的 `created_at`/`updated_at`。项目已通过 OPT-014/024/031 将所有用户可见时间戳迁移到 `utc_now_iso()`，但 `TraceManager` 属于独立类，在上述修复中被遗漏。`/debug/agent-dashboard` 展示这些时间戳，`/api/account/export` 也包含 `agentTraces`。
+- why: 同一服务器上的时间戳自洽，但服务器时区变更（Docker rebuild、云迁移）后新旧记录产生 +8h 断层；与 `user_state.updated_at`（已是 UTC）进行关联分析时会出现虚假偏移。修复仅需将 3 处 `now_iso()` 替换为 `utc_now_iso()`，零逻辑变更，零测试变更。
+- how: 将 `app_server.py:2676, 2695, 2702` 的 `now_iso()` 替换为 `utc_now_iso()`。Touch: `app_server.py:2676, 2695, 2702`（TraceManager 类）。
+
+### OPT-036 — `summarize_metrics()` 对全量历史数据做 O(n) 扫描——每次打开 `/debug/logs` 线性变慢 — 由 explore E40 提拔
+- status: new
+- area: backend
+- description: `MetricsCollector.summarize_metrics()`（`app_server.py:2870-2940`）执行 `SELECT … FROM agent_metrics WHERE user_id = ?`，无任何时间过滤，无 `LIMIT`。Plus 用户每天 240 次请求，一年后 `agent_metrics` 表超 87,000 行；每次 `/debug/logs` 或 `/debug/metrics` 加载都触发完整拉取 + 逐行 `json.loads()`，延迟随使用时长线性增长。`idx_agent_metrics_user` 索引（OPT-017）避免了跨用户扫描，但仍返回该用户所有历史行。
+- why: debug 看板是运营者监控 AI 质量的主要工具，打开速度越来越慢会直接影响日常运营。90 天滚动窗口覆盖所有实用的调试历史（配置变更、模型升级、回归分析），同时将最大扫描行数封顶在约 21,600 行。修复仅需在 SQL WHERE 子句追加一个时间条件，一行代码。
+- how: 在 `app_server.py:2875` 的 `WHERE user_id = ?` 后追加 `AND created_at > datetime('now', '-90 days')`；在 debug 看板 section 标题字符串中更新为"近 90 天汇总"（约 1 处 JS/HTML 字符串）。Touch: `app_server.py:2870-2878`；可选 `app.js` 或 debug HTML 模板中更新标签。
