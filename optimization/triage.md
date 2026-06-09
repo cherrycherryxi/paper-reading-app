@@ -18,7 +18,7 @@ Key files: `app_server.py:3848-3885`（logs 构建块，主战场）、`app_serv
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | triaged | `app_server.py:3848-3885`（logs）+ `3965-3982`（dashboard）无 HTML 转义。`/debug/errors` 已有 `from html import escape as _esc` 可复用。~10 处 `html.escape()` 替换，顶部加 `import html`。零逻辑变更。 |
+| OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | in-progress (PR #33) | `app_server.py:3848-3885`（logs）+ `3965-3982`（dashboard）无 HTML 转义。`/debug/errors` 已有 `from html import escape as _esc` 可复用。~10 处 `html.escape()` 替换，顶部加 `import html`。零逻辑变更。 |
 | OPT-033 | `<dialog>` 元素缺少 aria-labelledby（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html` 12 个 `<dialog>`（lines 327/355/381/416/441/486/509/526/539/550/562/575）均无 `aria-labelledby`。每个已有 `<h2>` 标题，加 `id` + `aria-labelledby` 即可；confirm 类 dialog 用 `aria-label`。24 处 HTML 属性添加，零 JS 变更。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，磁盘持续膨胀 | P2 | S | triaged | `app_server.py:5434`（finally 块末）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。WAL 文件日增数 MB，数周后累积至数十 MB 且永不回收。一行代码，幂等无副作用。+1 测试断言。 |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:303-306`）。在书单页 `#openBookDialogBtn` 旁（`index.html:78-82`）加「批量导入」二级入口，复用现有 `#importExcelInput` 处理逻辑。Touch: `index.html` only。 |
