@@ -1279,3 +1279,5 @@
 | 18:04 | Edited app_server.py | 2→2 lines | ~82 |
 | 18:05 | Created tests/agent/debug_xss_test.py | — | ~1410 |
 | 18:07 | Edited optimization/triage.md | inline fix | ~68 |
+| 19:14 | Edited optimization/explore.md | expanded (+50 lines) | ~1926 |
+| 19:15 | Edited optimization/backlog.md | expanded (+14 lines) | ~761 |
