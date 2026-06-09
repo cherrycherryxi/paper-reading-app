@@ -249,7 +249,7 @@ Format per item:
 - how: 以 `user_state.updated_at` 作乐观锁版本号（零 schema 变更）；后端 `save_state_checked()` 做条件 UPDATE，版本不匹配返回 409 + 当前 server state；前端 `apiFetch` 统一捕获 `stateVersion`，`syncState()` 发 `X-State-Version` header，409 时接受 server state 并 toast 提示而非覆盖。Touch: `app_server.py`（save_state / PUT /api/state handler）；`app.js`（apiFetch / syncState）；`chat.js`（SSE done event stateVersion capture）。
 
 ### OPT-031 — `reading_mcp_server.py` 的 `_now_iso()` 使用 naive 本地时间，与 OPT-024 完全相同的排序 bug — 由 explore E47 提拔
-- status: triaged
+- status: done (2026-06-09, PR #32)
 - area: agent
 - description: `reading_mcp_server.py:50-51` 的 `_now_iso()` 定义为 `return datetime.now().isoformat()`，与 OPT-024 修复前 ActionExecutor 的写法完全相同。该函数用于 MCP 工具写入的所有 `createdAt`/`updatedAt`：`add_note`（line 170）、`add_book`（lines 272-273）、`summary`（line 318）、`tag`（line 402）、`link_thought`（line 488）。OPT-024 修复了旧执行路径，但 MCP 路径独立开发，从未更新。
 - why: 前端以 `new Date(b.createdAt) - new Date(a.createdAt)` 排序书籍和摘抄。UTC+8 服务器上 MCP 创建的记录本地时间字面比同时刻用户创建记录（UTC+Z）大 ~8 小时，导致 agent 通过 MCP 工具新增的书/摘抄恒排在最前面——与 OPT-024 的根因完全一致，影响所有使用 agent action 功能的用户。修复方式也与 OPT-024 完全一致，极低风险。
@@ -263,14 +263,14 @@ Format per item:
 - how: 在 `_run_gc()` 的 try 块末尾（`app_server.py:5244` 之前）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。在 `gc_thread_test.py` 中加一条断言验证该调用存在。Touch: `app_server.py:5236-5244`；`tests/agent/gc_thread_test.py`。
 
 ### OPT-033 — `<dialog>` 元素缺少 `aria-labelledby`，屏幕阅读器宣告模态框时无名称（WCAG 4.1.2 Level A） — 由 explore E50 提拔
-- status: new
+- status: triaged
 - area: frontend
 - description: `index.html` 中共有 12 个 `<dialog>` 元素（`bookEditDialog`、`bookDetailDialog`、`bookDialog`、`sessionDialog`、`quoteDialog`、`quoteDetailDialog`、`sessionDetailDialog`、`deleteBookDialog`、`confirmDialog`、`forgotPasswordDialog`、`resetPasswordDialog`、`connectionDialog`，lines 327/355/381/416/441/486/509/526/539/550/562/575）均无 `aria-labelledby` 属性。每个 dialog 都含有可见的 `<h2>` 标题（如「新增书籍」「编辑书籍」），信息已存在但未与 dialog 通过 ARIA 关联。屏幕阅读器焦点进入 dialog 时只会宣告「dialog」，用户无法得知当前打开了哪个模态框。
 - why: WCAG 2.1 SC 4.1.2（Name, Role, Value — Level A）要求交互 UI 组件有无障碍名称；`<dialog>` 元素没有 `aria-label` 或 `aria-labelledby` 时其 accessible name 为空。这是最严重等级（Level A）的合规缺口。修复完全是加法操作——给已有的 `<h2>` 加 `id`、给 `<dialog>` 加 `aria-labelledby`，无任何逻辑变更，零风险。这也延续了 OPT-013/018/019 的无障碍系列修复。
 - how: 对每个 dialog：给其内部 `<h2>` 加 `id`（如 `id="bookDialogTitle"`），给 `<dialog>` 加 `aria-labelledby="bookDialogTitle"`；对无 `<h2>` 的 confirm 类 dialog 改用 `aria-label`。约 12 个 dialog × 2 属性 = 24 处 HTML 属性添加，无 JS 变更。Touch: `index.html:327-620`。
 
 ### OPT-034 — debug 看板将用户内容直接插入 HTML f-string，存在存储型 XSS — 由 explore E52 提拔
-- status: new
+- status: triaged
 - area: backend
 - description: `/debug/logs` 的 HTML 生成块（`app_server.py:3848-3885`）通过 f-string 直接注入 `row['prompt']`、`row['input']`、`row['output']`、`row['username']`、`row['error']`、`json.dumps(action['data'])` 等字段，未做任何 HTML 转义。`app_server.py` 未 `import html`。注册用户只要发送一条包含 `</pre><script>…</script>` 的聊天消息，该内容即被存入 `model_logs.input`；admin 打开 `/debug/logs` 时 payload 在其浏览器中执行，可读取所有用户 state、伪造 API 调用或劫持管理员会话。`/debug/errors` 和 `/debug/agent-dashboard` 的 HTML 生成块存在相同模式。
 - why: OPT-028 已将 `/debug/*` 访问限制为 loopback 或 admin 用户，但任何已注册用户均可植入恶意内容。存储型 XSS 是商业应用的 P1 安全缺陷。修复只需 `import html`（stdlib）并对全部用户可控插值点调用 `html.escape()`，代价极低。

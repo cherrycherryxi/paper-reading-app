@@ -2,25 +2,27 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-08
+Last triaged: 2026-06-09
 
 ## Next up
 
-**OPT-031 — reading_mcp_server.py `_now_iso()` 使用 naive 本地时间（P1 / S）**
+**OPT-034 — debug 看板存储型 XSS（P1 / S）**
 
-`reading_mcp_server.py:50-51` 的 `_now_iso()` 定义为 `return datetime.now().isoformat()`，与 OPT-024 修复前 `ActionExecutor` 的写法完全相同。该函数写入所有 MCP 工具创建记录的 `createdAt`/`updatedAt`：`add_note`（line 170）、`add_book`（lines 264/272-273）、`summary`（line 318）、`tag`（line 402）、`link_thought`（line 488）。东八区服务器上，MCP 路径创建的记录本地时间字面比同时刻前端创建记录（UTC+Z）大 ~8 小时，导致 agent 新增内容恒排在最前面。OPT-024 已修复旧执行路径，MCP 路径独立开发，从未更新。
+`/debug/logs` 的 HTML 构建块（`app_server.py:3848-3885`）通过 f-string 直接注入 `row['prompt']`、`row['input']`、`row['output']`、`row['username']`、`row['error']`、`action['errorMessage']`、`json.dumps(action['data'])` 等字段，无任何 HTML 转义。`/debug/agent-dashboard`（line 3968）同样注入 `user_row['username']` 未经转义。注册用户发送含 `</pre><script>…</script>` 的消息后，admin 打开 `/debug/logs` 即触发 XSS，可读取所有用户 state 或劫持 admin 会话。
 
-修复极简：将 `_now_iso()` 改为 `datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`（`timezone` 已在 `datetime` 标准库中），在 `tests/agent/reading_mcp_server_tools_test.py` 加一条断言工具返回的 `createdAt` 以 `Z` 结尾。
+关键事实：`/debug/errors`（line 3924）已有 `from html import escape as _esc` 的正确模式——Agent2 直接复用即可。顶部加 `import html`，将 `/debug/logs` 和 `/debug/agent-dashboard` 的全部用户可控插值点替换为 `html.escape(str(…))`，约 10 处替换，无逻辑变更。可选加一条回归断言：插入含 `<script>` 的消息后 debug HTML 中不出现 `<script>`。
 
-Key files: `reading_mcp_server.py:50-51`（函数定义）、`reading_mcp_server.py:162,170,214,264,272-273,318,402,488`（调用点，无需修改）、`tests/agent/reading_mcp_server_tools_test.py`（加断言）。
+Key files: `app_server.py:3848-3885`（logs 构建块，主战场）、`app_server.py:3965-3982`（agent-dashboard 构建块，username 一处）、`app_server.py:1-15`（顶部 imports，加 `import html`）；可选 `tests/agent/` 下新增回归测试。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | in-progress | PR #32. `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → `datetime.now(timezone.utc).strftime(…Z)`。与 OPT-024 完全同根，影响所有 MCP 路径写入记录的排序。+3 测试断言。 |
+| OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | triaged | `app_server.py:3848-3885`（logs）+ `3965-3982`（dashboard）无 HTML 转义。`/debug/errors` 已有 `from html import escape as _esc` 可复用。~10 处 `html.escape()` 替换，顶部加 `import html`。零逻辑变更。 |
+| OPT-033 | `<dialog>` 元素缺少 aria-labelledby（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html` 12 个 `<dialog>`（lines 327/355/381/416/441/486/509/526/539/550/562/575）均无 `aria-labelledby`。每个已有 `<h2>` 标题，加 `id` + `aria-labelledby` 即可；confirm 类 dialog 用 `aria-label`。24 处 HTML 属性添加，零 JS 变更。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，磁盘持续膨胀 | P2 | S | triaged | `app_server.py:5434`（finally 块末）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。WAL 文件日增数 MB，数周后累积至数十 MB 且永不回收。一行代码，幂等无副作用。+1 测试断言。 |
 | OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:303-306`）。在书单页 `#openBookDialogBtn` 旁（`index.html:78-82`）加「批量导入」二级入口，复用现有 `#importExcelInput` 处理逻辑。Touch: `index.html` only。 |
+| OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | done | Merged PR #32 (2026-06-09). `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → `datetime.now(timezone.utc).strftime(…Z)`。与 OPT-024 完全同根，影响所有 MCP 路径写入记录的排序。 |
 | OPT-030 | 跨设备 state 整体覆盖（乐观锁 Layer B / E35） | P1 | M | done | Merged PR #29 (2026-06-08). `updated_at` 版本号 + `PUT /api/state` 条件保存 + 409 冲突 toast。`app_server.py` + `app.js` + `chat.js`. |
 | OPT-029 | execute_action() 非原子读改写 | P1 | M | done | Merged PR #27 (2026-06-08). `BEGIN IMMEDIATE` 包裹读改写周期，序列化并发审批，防止双标签页静默丢弃变更。 |
 | OPT-028 | /debug/* 端点默认对所有人开放 | P0 | S | done | Merged PR #26 (2026-06-08). `_authorized_for_admin()` 改为未设 ADMIN_TOKEN 时仅允许 loopback（127.0.0.1）。 |
