@@ -3,6 +3,8 @@
 > Auto-maintained by OpenWolf. Last scanned: 2026-06-09T19:15:33.326Z
 > Auto-maintained by OpenWolf. Last scanned: 2026-06-09T15:03:36.680Z
 > Files: 117 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-10T13:41:18.611Z
+> Files: 119 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -35,6 +37,11 @@
 - `mellow-yawning-flute.md` — 探讨页 UI/UX 优化建议 (~412 tok)
 - `opt-003-buzzing-graham.md` — OPT-003 — 自动适配不同手机机型 (~880 tok)
 - `opt-016-agile-fog.md` — OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（快速录入备选） (~1344 tok)
+
+## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
+
+- `feedback_reply_in_chinese.md` (~94 tok)
+- `MEMORY.md` (~95 tok)
 
 ## ../../.claude/scripts/
 

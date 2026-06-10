@@ -8,6 +8,8 @@
 
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
+- **[2026-06-10] 始终用中文回复。** 用户母语中文，已多次因为我切回英文而手动提醒。无论 PR 审核、技术分析还是任何场景，回复正文一律用中文（代码、命令、专有名词保持原文即可）。
+
 ## Key Learnings
 
 - **Project:** paper-reading-app
