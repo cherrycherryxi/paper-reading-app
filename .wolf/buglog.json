@@ -4422,6 +4422,38 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-10T17:03:01.440Z"
+    },
+    {
+      "id": "bug-261",
+      "timestamp": "2026-06-10T18:03:25.431Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"bookEditForm\"",
+      "fix": "Changed to \"book-edit-dialog-label\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-06-10T18:03:39.806Z"
+    },
+    {
+      "id": "bug-262",
+      "timestamp": "2026-06-10T18:03:51.657Z",
+      "error_message": "Significant refactor of ",
+      "file": "index.html",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (2 removed) | Also: <dialog id=\"forgotPasswordDialog\">; <div class=\"section-head\"><h2>找回密码</h2> | Also: <dialog id=\"resetPasswordDialog\">; <div class=\"section-head\"><h2>设置新密码</h2> | Also: <dialog id=\"connectionDialog\">; <div class=\"section-head\"><h2>记录思想碰撞</h2>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-10T18:04:08.302Z"
     }
   ]
 }
