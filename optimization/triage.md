@@ -2,26 +2,26 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-09
+Last triaged: 2026-06-10
 
 ## Next up
 
-**OPT-034 — debug 看板存储型 XSS（P1 / S）**
+**OPT-033 — `<dialog>` 元素缺少 `aria-labelledby`（WCAG 2.1 SC 4.1.2 Level A / P1 / S）**
 
-`/debug/logs` 的 HTML 构建块（`app_server.py:3848-3885`）通过 f-string 直接注入 `row['prompt']`、`row['input']`、`row['output']`、`row['username']`、`row['error']`、`action['errorMessage']`、`json.dumps(action['data'])` 等字段，无任何 HTML 转义。`/debug/agent-dashboard`（line 3968）同样注入 `user_row['username']` 未经转义。注册用户发送含 `</pre><script>…</script>` 的消息后，admin 打开 `/debug/logs` 即触发 XSS，可读取所有用户 state 或劫持 admin 会话。
+`index.html` 中全部 12 个 `<dialog>` 元素（`bookEditDialog`、`bookDetailDialog`、`bookDialog`、`sessionDialog`、`quoteDialog`、`quoteDetailDialog`、`sessionDetailDialog`、`deleteBookDialog`、`confirmDialog`、`forgotPasswordDialog`、`resetPasswordDialog`、`connectionDialog`）均无 `aria-labelledby`。每个 dialog 已有可见 `<h2>` 标题，只需给 `<h2>` 加 `id`、给 `<dialog>` 加 `aria-labelledby` 即可；无 `<h2>` 的 confirm 类 dialog 改用 `aria-label`。约 24 处 HTML 属性添加，零 JS / CSS 变更，零逻辑风险。这是 OPT-013/018/019 无障碍系列的直接延续，修复 WCAG 最高等级（Level A）合规缺口。
 
-关键事实：`/debug/errors`（line 3924）已有 `from html import escape as _esc` 的正确模式——Agent2 直接复用即可。顶部加 `import html`，将 `/debug/logs` 和 `/debug/agent-dashboard` 的全部用户可控插值点替换为 `html.escape(str(…))`，约 10 处替换，无逻辑变更。可选加一条回归断言：插入含 `<script>` 的消息后 debug HTML 中不出现 `<script>`。
-
-Key files: `app_server.py:3848-3885`（logs 构建块，主战场）、`app_server.py:3965-3982`（agent-dashboard 构建块，username 一处）、`app_server.py:1-15`（顶部 imports，加 `import html`）；可选 `tests/agent/` 下新增回归测试。
+Key files: `index.html:327-620`（12 个 dialog 定义块，主战场）。可选加一条 JS 测试断言：打开每个 dialog 时 `aria-labelledby` 指向的元素存在且非空。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | in-progress (PR #33) | `app_server.py:3848-3885`（logs）+ `3965-3982`（dashboard）无 HTML 转义。`/debug/errors` 已有 `from html import escape as _esc` 可复用。~10 处 `html.escape()` 替换，顶部加 `import html`。零逻辑变更。 |
-| OPT-033 | `<dialog>` 元素缺少 aria-labelledby（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html` 12 个 `<dialog>`（lines 327/355/381/416/441/486/509/526/539/550/562/575）均无 `aria-labelledby`。每个已有 `<h2>` 标题，加 `id` + `aria-labelledby` 即可；confirm 类 dialog 用 `aria-label`。24 处 HTML 属性添加，零 JS 变更。 |
-| OPT-032 | _run_gc() 缺少 WAL checkpoint，磁盘持续膨胀 | P2 | S | triaged | `app_server.py:5434`（finally 块末）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。WAL 文件日增数 MB，数周后累积至数十 MB 且永不回收。一行代码，幂等无副作用。+1 测试断言。 |
-| OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:303-306`）。在书单页 `#openBookDialogBtn` 旁（`index.html:78-82`）加「批量导入」二级入口，复用现有 `#importExcelInput` 处理逻辑。Touch: `index.html` only。 |
+| OPT-033 | `<dialog>` 元素缺少 aria-labelledby（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html` 12 个 `<dialog>`（lines 327-620）均无 `aria-labelledby`。每个已有 `<h2>` 标题，加 `id` + `aria-labelledby` 即可；confirm 类 dialog 用 `aria-label`。24 处 HTML 属性添加，零 JS 变更。 |
+| OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P2 | S | new | `app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）仍用 naive 本地时间。3 处替换为 `utc_now_iso()`，与 OPT-014/024/031 完成的项目 UTC 策略对齐。零逻辑变更，零测试变更。 |
+| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天滚动窗口 | P2 | S | new | `app_server.py:2872-2879` 的 `WHERE user_id = ?` 无时间过滤。追加 `AND created_at > datetime('now', '-90 days')`，封顶扫描行数，防止 debug 看板随数据增长线性变慢。1 行 SQL 变更，可选标签更新。 |
+| OPT-032 | _run_gc() 缺少 WAL checkpoint，磁盘持续膨胀 | P2 | S | triaged | `app_server.py:5421-5439`（_run_gc try 块）：在 `conn.close()` 前追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。WAL 文件日增数 MB，数周后累积至数十 MB 且永不回收。一行代码，幂等无副作用。+1 测试断言。 |
+| OPT-001 | Excel 批量加书入口位置 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:301-306`）。在书单页 `#openBookDialogBtn` 旁（`index.html:78-82`）加「批量导入」二级入口，复用现有 `#importExcelInput` 处理逻辑。Touch: `index.html` only。 |
+| OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | done (PR #33, 2026-06-10) | `html.escape()` 包裹所有用户可控插值点，顶部加 `import html`，~10 处替换。`/debug/logs`、`/debug/agent-dashboard` 已修复；`/debug/errors` 早已有 `from html import escape as _esc`。 |
 | OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | done | Merged PR #32 (2026-06-09). `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → `datetime.now(timezone.utc).strftime(…Z)`。与 OPT-024 完全同根，影响所有 MCP 路径写入记录的排序。 |
 | OPT-030 | 跨设备 state 整体覆盖（乐观锁 Layer B / E35） | P1 | M | done | Merged PR #29 (2026-06-08). `updated_at` 版本号 + `PUT /api/state` 条件保存 + 409 冲突 toast。`app_server.py` + `app.js` + `chat.js`. |
 | OPT-029 | execute_action() 非原子读改写 | P1 | M | done | Merged PR #27 (2026-06-08). `BEGIN IMMEDIATE` 包裹读改写周期，序列化并发审批，防止双标签页静默丢弃变更。 |
