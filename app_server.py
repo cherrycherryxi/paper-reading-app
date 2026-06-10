@@ -3482,12 +3482,26 @@ class Handler(BaseHTTPRequestHandler):
             return self._is_loopback_client()
         return self.headers.get("X-Log-Token", "") == AUTH_TOKEN
 
-    def _require_user(self) -> tuple[sqlite3.Connection, sqlite3.Row] | tuple[None, None]:
+    def _open_conn(self) -> sqlite3.Connection:
+        """Open a DB connection and register it on ``self._active_conn`` so
+        handle_one_request's finally closes it as a leak safety net if the
+        handler body raises before its explicit ``conn.close()`` (E26 / OPT-037).
+
+        Use this instead of a bare ``get_conn()`` in any request handler that
+        does not go through ``_require_user`` — i.e. the admin /debug/* views
+        and the pre-auth endpoints (login / register / password reset), which
+        otherwise leak their connection (and its shared SQLite lock) on any
+        exception before the explicit close, eventually surfacing as
+        ``database is locked`` on unrelated requests."""
         conn = get_conn()
-        # Record the connection so handle_one_request's finally can close it as a
-        # safety net if the handler body raises before its explicit conn.close()
-        # (E26: connection-leak fallback).
         self._active_conn = conn
+        return conn
+
+    def _require_user(self) -> tuple[sqlite3.Connection, sqlite3.Row] | tuple[None, None]:
+        # _open_conn records the connection on self._active_conn so
+        # handle_one_request's finally can close it as a safety net if the
+        # handler body raises before its explicit conn.close() (E26).
+        conn = self._open_conn()
         user = resolve_user_from_token(conn, self._get_token())
         if not user:
             conn.close()
@@ -3804,7 +3818,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self._authorized_for_admin():
                 self._send_html("<h1>Unauthorized</h1>", 401)
                 return
-            conn = get_conn()
+            conn = self._open_conn()
             logs = list_logs(conn, None, 100)
             conn.close()
 
@@ -3915,7 +3929,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self._authorized_for_admin():
                 self._send_html("<h1>Unauthorized</h1>", 401)
                 return
-            conn = get_conn()
+            conn = self._open_conn()
             rows = conn.execute(
                 "SELECT id, user_id, method, path, status_code, error_class,"
                 " error_message, traceback, client_ip, created_at"
@@ -3957,7 +3971,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self._authorized_for_admin():
                 self._send_html("<h1>Unauthorized</h1>", 401)
                 return
-            conn = get_conn()
+            conn = self._open_conn()
             users = conn.execute("SELECT id, username FROM users ORDER BY created_at ASC").fetchall()
             collector = MetricsCollector()
             cards = []
@@ -4029,7 +4043,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": "请先阅读并同意《用户协议》和《隐私政策》"}, 400)
                 return
 
-            conn = get_conn()
+            conn = self._open_conn()
             if not self._enforce_rate_limit(
                 conn, f"ip:{self._client_ip()}", "register", plan="free",
                 message="注册过于频繁，请稍后再试。",
@@ -4076,7 +4090,7 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._read_json()
             username = str(payload.get("username", "")).strip()
             password = str(payload.get("password", "")).strip()
-            conn = get_conn()
+            conn = self._open_conn()
             if not self._enforce_rate_limit(
                 conn, f"ip:{self._client_ip()}", "login", plan="free",
                 message="登录尝试过于频繁，请稍后再试。",
@@ -4169,7 +4183,7 @@ class Handler(BaseHTTPRequestHandler):
             if not identifier:
                 self._send_json(generic_ok)
                 return
-            conn = get_conn()
+            conn = self._open_conn()
             if not self._enforce_rate_limit(
                 conn, f"ip:{self._client_ip()}", "reset", plan="free",
                 message="操作过于频繁，请稍后再试。",
@@ -4236,7 +4250,7 @@ class Handler(BaseHTTPRequestHandler):
             if not token or len(new_password) < 4:
                 self._send_json({"error": "Invalid token or password"}, 400)
                 return
-            conn = get_conn()
+            conn = self._open_conn()
             user_id, err = consume_password_reset_token(conn, token)
             if err:
                 conn.close()
