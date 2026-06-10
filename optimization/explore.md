@@ -708,3 +708,65 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — in `ActionStateMachine.create_action()` (`app_server.py:2943`) and `transition()` (`app_server.py:2981`) replace `now = now_iso()` with `now = utc_now_iso()`. Total: 2 line changes, no schema changes, no test changes. Touch: `app_server.py:2943, 2981`.
 
 **Files:** `app_server.py:2940-2997` (`ActionStateMachine.create_action` and `transition`)
+
+---
+
+## 2026-06-10
+
+### E61 — `compareBooksForList()` secondary sort still uses `localeCompare` — `renderQuotes()` was defensively fixed by OPT-014 but `renderBooks()` was not (S)
+
+**What:** `compareBooksForList()` at `app.js:1026` sorts books within the same status bucket via `(b.createdAt || "").localeCompare(a.createdAt || "")`. OPT-014 identified this exact string-comparison pattern as bug-prone for timestamps and defensively updated `renderQuotes()` (line 1376) to use `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)`. But `compareBooksForList()` was not updated — it is still using lexicographic string comparison. Additionally, `app.js:2431` uses the same `localeCompare` pattern to find the most-recently-updated book in the agent action context picker. With all timestamps now in UTC+Z format (OPT-024/031), `localeCompare` happens to produce correct results *most of the time*, but fails when one timestamp has milliseconds ("...000Z") and another does not ("...Z"): `"2026-06-10T14:00:00Z".localeCompare("2026-06-10T14:00:00.000Z")` returns positive (wrong) because `"Z"` (ASCII 90) sorts after `"."` (ASCII 46), placing the non-millisecond timestamp incorrectly above the millisecond one at the same second.
+
+**Why it matters:** OPT-014's comment in the fix summary explicitly states "frontend sort改为解析后比较 epoch: `new Date(b.createdAt) - new Date(a.createdAt)`，作为防御性加固" — the intent was to fix all sort sites. `compareBooksForList()` is the primary sort for the `#books` tab (every render call). Agent-created books (UTC, no milliseconds) added in the same second as user-created books (UTC, with milliseconds) can appear in the wrong order. The fix is two 1-line changes.
+
+**Complexity:** S — in `compareBooksForList()` (`app.js:1026`) replace `(b.createdAt || "").localeCompare(a.createdAt || "")` with `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` (note reversed: descending = b - a). Similarly fix line 2431. Touch: `app.js:1026, 2431`.
+
+**Files:** `app.js:1023-1028` (`compareBooksForList`); `app.js:2431` (most-recently-active book finder)
+
+---
+
+### E62 — No `robots.txt` endpoint — search engines can discover and repeatedly crawl `/api/*`, `/debug/*`, `/media/*` (S)
+
+**What:** `app_server.py`'s `do_GET()` handler has no route for `/robots.txt`. All routes not matched by `_STATIC` or explicit path checks fall through to a 404. When search engine crawlers discover the app (via a link, a shared URL, or browser history), they will attempt to index `/api/login`, `/api/register`, `/debug/logs`, `/debug/errors`, and `/media/<uuid>/<file>`. Each such request hits the backend, triggers authentication checks or 404 processing, and leaves server-error entries in the log. For the `/api/*` endpoints this causes spurious 401 entries; for `/debug/*` it may trigger HTML rendering under admin accounts; for `/media/*` it can create unwanted cache entries in CDN/proxy layers.
+
+**Why it matters:** Adding `robots.txt` is a one-file change that: (a) prevents crawler load on API and debug endpoints; (b) avoids `/media/` URLs from being indexed (even partially) by crawlers that ignore the CORS fix from OPT-023; (c) is expected hygiene for any commercial web app. The app already serves other static files from `_STATIC`; adding a `robots.txt` entry follows the exact same pattern.
+
+**Complexity:** S — create `robots.txt` (~8 lines: `User-agent: *`, `Disallow: /api/`, `Disallow: /debug/`, `Disallow: /media/`, `Allow: /`, `Sitemap: …`); add `"robots.txt": ("text/plain", "robots.txt")` to the `_STATIC` dict in `do_GET()` (`app_server.py:3570-3585`). Touch: new `robots.txt` file; `app_server.py:3570-3585`.
+
+**Files:** new `robots.txt`; `app_server.py:3570-3585` (`_STATIC` handler)
+
+---
+
+### E63 — `today_prefix` in debug dashboard computed with `now_iso()[:10]` — will silently miscount "today's" stats after E58 migrates `model_logs.created_at` to UTC (S)
+
+**What:** `app_server.py:3812` computes `today_prefix = now_iso()[:10]` (a local naive date like `"2026-06-10"`) and then filters logs with `(r["createdAt"] or "").startswith(today_prefix)`. Currently `model_logs.created_at` is also written by `now_iso()` (naive local), so both values share the same timezone and the string-prefix filter works. Once E58 lands and `model_logs.created_at` is migrated to `utc_now_iso()` (UTC, e.g. `"2026-06-10T06:30:00Z"`), records created between UTC midnight and UTC+8 midnight (00:00–08:00 local, i.e. 16:00–00:00 UTC the previous day) will have a UTC date string starting with the previous calendar day — they would be excluded from "today's stats" even though they fall in the current local day. On a busy day with 240 requests, up to 80 of them (the first 8 hours' worth) would silently vanish from the dashboard's aggregate counts.
+
+**Why it matters:** The debug dashboard's "today" token and latency aggregates guide daily operational decisions (cost monitoring, anomaly detection). A silent miscount of up to 33% of the day's traffic is a meaningful flaw. The fix is pre-emptive: change `today_prefix = now_iso()[:10]` to `today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")` (UTC date) so it stays consistent with UTC `createdAt` strings after E58. Alternatively, add an explicit `datetime('now', 'localtime')` SQL filter instead of Python startswith. Touch: `app_server.py:3812`.
+
+**Complexity:** S — 1-line change: `today_prefix = now_iso()[:10]` → `today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")`. `datetime` and `timezone` are already imported. No schema changes, no test changes. Touch: `app_server.py:3812`.
+
+**Files:** `app_server.py:3812-3813` (today_prefix + today_logs filter)
+
+---
+
+### E64 — `ocrUpdatedAt` uses `now_iso()` in `_run_quote_ocr_job()` start paths but `utc_now_iso()` at completion paths — mixed timezone on same field (S)
+
+**What:** `_run_quote_ocr_job()` at `app_server.py:1357` and `1403` sets `quote["ocrUpdatedAt"] = now_iso()` for fast-path and Tesseract OCR intermediate status updates. The downstream completion handlers at lines `4656` and `4695` set `target_quote["ocrUpdatedAt"] = utc_now_iso()`. All four writes target the same `ocrUpdatedAt` field in the state JSON. The frontend uses `ocrUpdatedAt` at `app.js:520` via `const startedAt = Date.parse(quote.ocrUpdatedAt || ...)` to compute elapsed OCR time. `Date.parse` handles both naive-local and UTC-Z strings — but interprets them differently: a naive `"2026-06-10T22:30:00"` is parsed as UTC+8 local, while the UTC completion timestamp `"2026-06-10T14:30:00Z"` is parsed as UTC. On a UTC+8 server, these two parses produce the same epoch, so the elapsed timer displays correctly *on the same server*. However, if both start and end timestamps are present in an export and compared offline (or across servers in different timezones), the inconsistency manifests as phantom 8-hour durations.
+
+**Why it matters:** The same UTC migration pattern was applied to every other OCR-related timestamp. Lines 1357 and 1403 were simply missed. Two one-line replacements complete the cleanup and make the entire OCR pipeline timezone-consistent.
+
+**Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:1357` and `1403`. No schema changes, no test changes. Touch: `app_server.py:1357, 1403`.
+
+**Files:** `app_server.py:1317-1430` (`_run_quote_ocr_job`)
+
+---
+
+### E65 — `users.created_at`, `users.terms_accepted_at`, and initial `user_state.updated_at` still use `now_iso()` — final naive-time gap in the user registration and state-initialisation path (S)
+
+**What:** The user registration handler at `app_server.py:4057-4061` writes three naive-time values: `users.created_at = now_iso()`, `users.terms_accepted_at = now_iso()`, and `user_state.updated_at = now_iso()`. `ensure_user_state()` at line 676 writes a fourth: `user_state.updated_at = now_iso()` (the INSERT-if-missing guard called at the start of every request). After OPT-030 (optimistic locking), `user_state.updated_at` is the version field returned to the client as `stateVersion`. For brand-new users, their very first `stateVersion` is a naive-local timestamp, while every subsequent save via `save_state()` writes `utc_now_iso()`. The first optimistic-lock check works because the naive string is an exact match, but mixing naive and UTC values in the same column is semantically inconsistent with the project's UTC migration policy (OPT-014/024/031/035) and the `save_state()` change already noted in E44.
+
+**Why it matters:** Completing the UTC migration in the registration path is the clean-up step for the entire OPT-014 series. The `users.created_at` column appears in the account export and in session responses; naive timestamps there behave inconsistently relative to all other UTC timestamps in the payload. Five `now_iso()` → `utc_now_iso()` replacements at two specific lines finish the migration.
+
+**Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:4057` (2 calls), `app_server.py:4061` (1 call), and `app_server.py:676` (1 call, `ensure_user_state`). No schema changes, no test changes. Touch: `app_server.py:676, 4057-4061`.
+
+**Files:** `app_server.py:676` (`ensure_user_state`); `app_server.py:4057-4061` (registration handler)
