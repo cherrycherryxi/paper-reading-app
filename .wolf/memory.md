@@ -1317,3 +1317,5 @@
 | 18:04 | Edited index.html | 4→4 lines | ~68 |
 | 18:04 | Edited tests/frontend/regression-fixed-bugs.test.js | modified for() | ~496 |
 | 18:06 | Edited optimization/triage.md | inline fix | ~71 |
+| 19:12 | Edited optimization/explore.md | modified not() | ~2560 |
+| 19:13 | Edited optimization/backlog.md | expanded (+14 lines) | ~770 |
