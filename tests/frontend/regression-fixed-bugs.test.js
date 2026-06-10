@@ -1520,3 +1520,40 @@ test("PWA version check: index.html guard script matches BUILD_VERSION in app_se
     "app_server.py should handle /api/build-version GET route"
   );
 });
+
+// OPT-033: all <dialog> elements must have aria-labelledby (or aria-label for those with no <h2>)
+test("OPT-033: all dialog elements have aria-labelledby or aria-label (WCAG 4.1.2 Level A)", () => {
+  const dialogsWithLabelledBy = [
+    { id: "bookEditDialog",       labelId: "book-edit-dialog-label" },
+    { id: "bookDetailDialog",     labelId: "bookDetailTitle" },
+    { id: "bookDialog",           labelId: "book-dialog-label" },
+    { id: "sessionDialog",        labelId: "session-dialog-label" },
+    { id: "quoteDialog",          labelId: "quote-dialog-label" },
+    { id: "quoteDetailDialog",    labelId: "quoteDetailBook" },
+    { id: "sessionDetailDialog",  labelId: "sessionDetailTitle" },
+    { id: "deleteBookDialog",     labelId: "delete-book-dialog-label" },
+    { id: "forgotPasswordDialog", labelId: "forgot-password-dialog-label" },
+    { id: "resetPasswordDialog",  labelId: "reset-password-dialog-label" },
+    { id: "connectionDialog",     labelId: "connection-dialog-label" },
+  ];
+
+  for (const { id, labelId } of dialogsWithLabelledBy) {
+    assert.match(
+      indexHtml,
+      new RegExp(`<dialog[^>]+id="${id}"[^>]+aria-labelledby="${labelId}"`),
+      `#${id} must have aria-labelledby="${labelId}"`
+    );
+    assert.match(
+      indexHtml,
+      new RegExp(`id="${labelId}"`),
+      `Label element #${labelId} referenced by #${id} must exist in the HTML`
+    );
+  }
+
+  // confirmDialog has no <h2>, must use aria-label instead
+  assert.match(
+    indexHtml,
+    /id="confirmDialog"[^>]+aria-label="[^"]+"/,
+    "#confirmDialog (no h2) must have aria-label"
+  );
+});
