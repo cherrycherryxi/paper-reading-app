@@ -4647,6 +4647,41 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T14:16:29.451Z"
+    },
+    {
+      "id": "bug-274",
+      "timestamp": "2026-06-11T15:20:00.000Z",
+      "error_message": "owner 真机测试时导入了一个旧备份（6/8），『导入数据』整体替换 state，把 6/8 之后新增的 3 张摘抄卡（含成功的 OCR 卡『激情耗尽』+ 一条手写笔记）覆盖丢失",
+      "file": "app_state.db (user-690e46cad51749f7 user_state)",
+      "root_cause": "导入语义是整体替换（importData -> syncState -> PUT /api/state 覆盖整张 state_json）。OPT-040 的护栏只拦『解析后内容为 0』；导入的旧档内容非空、只是比当前少，未被拦截，也没有事前对比/确认。user_state 无版本历史，覆盖即丢。",
+      "fix": "数据恢复：用户继续用 App 前先 cp 备份 app_state.db 保住现场；旧 state_json 已被 UPDATE 覆盖，但其 SQLite overflow 页仍在 freelist 未被复用。写脚本按 page_size(4096) 逐页剥掉 4 字节 overflow 头拼回字节流，正则 + 平衡括号提取 quote 对象，与 live state 去重，捞回 3 张缺失卡中的 2 张有内容的，insert 回 user_state.quotes 并 bump updated_at。预防见 OPT-043（导入前显示 N→M 对比 + M<N 时强确认）。教训：① 用户报『导入后数据没了』先 cp DB 保现场（freelist 页会被新写入复用而永久丢失），再取证；② 整体替换型操作必须事前对比+拦截，不能只事后报数。",
+      "tags": [
+        "data-loss",
+        "import",
+        "recovery",
+        "sqlite-freelist",
+        "OPT-043",
+        "forensics"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T15:20:00.000Z"
+    },
+    {
+      "id": "bug-275",
+      "timestamp": "2026-06-11T15:20:13.352Z",
+      "error_message": "Wrong reference: 273 should be 274",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"273\" instead of \"274\"",
+      "fix": "Changed 273 → 274",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T15:20:13.352Z"
     }
   ]
 }

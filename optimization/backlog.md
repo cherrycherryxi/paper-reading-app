@@ -334,3 +334,13 @@ Format per item:
 - description: （owner 提出）快速识别时后端重启，前端报"连接不上后端"；重试成功，但同一张照片产生**两张卡**：一张「识别完成」，一张永远卡在「识别中」。根因：`/api/quotes/ocr`（`app_server.py`）在**同步快速 OCR 之前**就先 `save_state` 落了一张 `ocrStatus:"pending"` 草稿，之后再存最终状态。两次保存之间若被打断（重启/断连），草稿永久孤立在 `pending`；且第一次失败请求的响应没回到前端，前端没记下草稿 id，重试遂新建第二张卡。无任何回收（stale pending 只改了文案）。
 - why: 静默遗留 + 重复卡，用户无法分辨哪张有效；OCR 是核心录入链路。
 - how: **Fix A（后端）** 快速路径只在 OCR 完成后 `save_state` 一次 → 中断则一张卡都不留；只有异步 AI 路径仍预存 pending 草稿（前端轮询 + 后台任务需要）。**Fix B（前端）** `recoverStalePendingOcr()` 在 `loadSession` 时把超过 staleness 窗口仍 `pending` 的卡（其 OCR 任务必死——重启杀后台线程）翻成 `failed`，复用已有 重试/删除 UI，兼清现有孤儿 + 覆盖 AI 路径。Touch: `app_server.py`（OCR handler 保存时机）、`app.js`（`recoverStalePendingOcr` + `loadSession`）、`tests/agent/ocr_pending_orphan_test.py`（新）、`tests/frontend/ocr-stale-recovery.test.js`（新）。
+
+### OPT-043 — 导入数据应在覆盖前显示「N → M 项」对比 + 二次确认（防误导入旧备份丢数据）
+- status: new
+- area: frontend
+- priority: P1
+- complexity: S
+- description: （owner 真机事故触发）导入是整体替换；owner 测 OPT-040/041 时导入了一个**旧备份（6/8）**，把 6/8 之后新增的 3 张摘抄卡（含一张成功的 OCR 卡 + 一条手写笔记）整体覆盖丢失。事后已从 SQLite 已释放页里取证恢复（见 bug-274），但根因是**导入只在"事后"用 OPT-041 弹窗报数量，没有"事前"对比 + 拦截**。OPT-040 的清空护栏只在"解析后内容为 0"时拦，内容非空但**比当前少**（导入旧档的典型特征）时不拦。
+- why: 整体替换是最高危的静默数据丢失来源；事前对比 + 显著拦截能在覆盖发生前给用户一次"咦数量怎么少了"的机会。这是 OPT-040（清空护栏）/OPT-041（结果弹窗）的自然补全。
+- how: 在 `importData()`（`app.js`）应用前,先算当前 vs 待导入的各类数量（books/quotes/sessions/connections），用 `confirmDialog` 展示**对比**（如「书 52→52、摘抄 124→122、记录…」）；当任一类**减少**（M<N）时默认高亮/措辞更强（"将丢失 X 条,确定覆盖?"），需显式确认才继续。内容为 0 的极端情况仍走 OPT-040 现有护栏。纯前端,复用 `showConfirmDialog`。Touch: `app.js`（`importData` + 一个 diff 计算 helper）；`tests/frontend/account-import-format.test.js`（加断言：M<N 时弹对比确认、取消则不覆盖）。
+- 关联: OPT-040（导入格式自适应 + 空内容护栏）、OPT-041（导入结果弹窗）。三者同属"导入数据安全"链路。
