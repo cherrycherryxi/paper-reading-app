@@ -4547,6 +4547,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T06:30:00.000Z"
+    },
+    {
+      "id": "bug-268",
+      "timestamp": "2026-06-11T12:57:25.967Z",
+      "error_message": "CSS fix: font-size, color",
+      "file": "styles.css",
+      "root_cause": "font-size: 13px → 15px; color: var(--color-error-fg) → var(--color-ink)",
+      "fix": "Changed font-size: 13px → 15px; color: var(--color-error-fg) → var(--color-ink)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-11T12:57:52.128Z"
+    },
+    {
+      "id": "bug-269",
+      "timestamp": "2026-06-11T12:59:21.368Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/frontend/account-import-format.test.js",
+      "root_cause": "Had \"数据已导入\"",
+      "fix": "Changed to \"confirmed import shows the result dialog\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T12:59:21.368Z"
     }
   ]
 }
