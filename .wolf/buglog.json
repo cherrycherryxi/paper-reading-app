@@ -4698,6 +4698,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T17:03:26.478Z"
+    },
+    {
+      "id": "bug-277",
+      "timestamp": "2026-06-11T19:13:55.371Z",
+      "error_message": "Missing error handling in is",
+      "file": "optimization/explore.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T19:13:55.371Z"
     }
   ]
 }
