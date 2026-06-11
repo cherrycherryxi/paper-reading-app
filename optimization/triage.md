@@ -18,7 +18,7 @@ Key files: `app.js:3028-3065`（`importData` 函数 + diff 计算 helper）；`t
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | triaged | `app.js:3028-3065`（importData）应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。复用 `stateContentCount`/`showConfirmDialog`，纯前端零后端改动。关联 OPT-040/041。 |
+| OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | in-progress (PR #39) | `app.js:3028-3065`（importData）应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。复用 `stateContentCount`/`showConfirmDialog`，纯前端零后端改动。关联 OPT-040/041。 |
 | OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | triaged | `app.js:1060`（compareBooksForList 二级排序）+ `app.js:2465`（书内摘抄排序）：`(b.createdAt\|\|"").localeCompare(...)` → `(Date.parse(b.createdAt)\|\|0) - (Date.parse(a.createdAt)\|\|0)`（降序 b-a）。书单首屏，排序错误直接可见；OPT-014 遗漏点。可选同修 `app.js:2452`（最近活跃书查找）。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4071, 4075`（register handler 4 处 now_iso）→ `utc_now_iso()`。污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），是 OPT-014 UTC 系列最后一块。5 处替换，零逻辑变更。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）仍用 naive 本地时间。3 处替换，与 OPT-014/024/031 UTC 策略对齐。零逻辑变更，零测试变更。 |
