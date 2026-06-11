@@ -11,7 +11,12 @@ from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WATCH_SUFFIXES = {".py", ".html", ".css", ".js", ".md"}
+# Only backend Python triggers a restart. Frontend files (.html/.css/.js) are
+# served statically and read fresh per request, so restarting the server for
+# them is pointless — and an ill-timed restart can kill an in-flight request
+# (this is what orphaned an OCR card; see OPT-042). Docs (.md) and tests never
+# affect the running server either.
+WATCH_SUFFIXES = {".py"}
 WATCH_DIRS = {
     ROOT,
     ROOT / "scripts",
@@ -25,6 +30,7 @@ IGNORE_DIR_NAMES = {
     "uploads",
     "data",
     "node_modules",
+    "tests",
 }
 POLL_INTERVAL_SECONDS = 1.0
 RESTART_DEBOUNCE_SECONDS = 0.4
@@ -145,7 +151,8 @@ def stop_backend(process: subprocess.Popen) -> None:
 
 
 def main() -> int:
-    print("Dev backend watcher started. Watching source files for changes.", flush=True)
+    print("Dev backend watcher started. Watching backend .py for changes "
+          "(frontend/.md/tests do not trigger a restart).", flush=True)
     try:
         process = start_backend()
     except RuntimeError:
