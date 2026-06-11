@@ -824,6 +824,7 @@ async function loadSession() {
     const data = await apiFetch("/api/session");
     currentUser = data.user || null;
     state = normalizeStateShape(data.state);
+    await recoverStalePendingOcr();
     await loadRemoteLogs();
   } catch {
     setAuthToken("");
@@ -853,6 +854,36 @@ async function refreshSessionState({ renderPage = false } = {}) {
 
 function hasPendingOcrQuotes() {
   return state.quotes.some((quote) => quote.ocrStatus === "pending" && !isStalePendingOcr(quote));
+}
+
+// OPT-042 (Fix B): a quote stuck at ocrStatus:"pending" past the staleness
+// window is orphaned — its OCR job died (a server restart kills the background
+// AI thread; a fast request can be interrupted before completing). Flip such
+// cards to "failed" so they surface the recoverable failed UI (retry / delete)
+// instead of an eternal "识别中" badge. No OCR engine takes minutes, so the
+// staleness window makes false positives effectively impossible. Persists once
+// (best-effort) if anything changed.
+async function recoverStalePendingOcr() {
+  const now = Date.now();
+  let changed = false;
+  for (const quote of state.quotes) {
+    if (quote.ocrStatus === "pending" && isStalePendingOcr(quote, now)) {
+      quote.ocrStatus = "failed";
+      quote.ocrError = quote.ocrError || "识别中断（可能因服务重启），可重试或删除。";
+      quote.ocrUpdatedAt = new Date().toISOString();
+      changed = true;
+    }
+  }
+  if (changed) {
+    try {
+      await syncState();
+    } catch (error) {
+      // Non-fatal: the flip still applies locally this session and is retried
+      // on the next load. Don't block startup on it.
+      console.debug?.("recoverStalePendingOcr sync failed:", error.message);
+    }
+  }
+  return changed;
 }
 
 function scheduleOcrStatusRefresh(delayMs = 5000) {
