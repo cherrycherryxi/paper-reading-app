@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-10T17:04:02.507Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T03:26:54.975Z
 > Files: 120 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -58,7 +58,7 @@
 - `CLAUDE.md` — OpenWolf (~1201 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~9900 tok)
+- `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
@@ -199,7 +199,7 @@
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
-- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19010 tok)
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19497 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3132 tok)
 
 ## wechat-miniprogram/

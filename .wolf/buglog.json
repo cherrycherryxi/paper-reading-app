@@ -4422,6 +4422,22 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-10T17:03:01.440Z"
+    },
+    {
+      "id": "bug-261",
+      "timestamp": "2026-06-11T03:26:36.240Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"确认删除\"",
+      "fix": "Changed to \"confirmDialogMessage\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T03:26:36.240Z"
     }
   ]
 }

@@ -1303,3 +1303,5 @@
 | 17:02 | Edited optimization/backlog.md | 2→2 lines | ~20 |
 | 17:03 | Edited optimization/backlog.md | 2→2 lines | ~30 |
 | 17:04 | Created optimization/triage.md | — | ~1484 |
+| 11:26 | Edited index.html | inline fix | ~27 |
+| 11:26 | Edited tests/frontend/regression-fixed-bugs.test.js | confirmDialog() → prompt() | ~222 |

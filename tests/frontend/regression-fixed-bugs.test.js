@@ -1535,6 +1535,10 @@ test("OPT-033: all dialog elements have aria-labelledby or aria-label (WCAG 4.1.
     { id: "forgotPasswordDialog", labelId: "forgot-password-dialog-label" },
     { id: "resetPasswordDialog",  labelId: "reset-password-dialog-label" },
     { id: "connectionDialog",     labelId: "connection-dialog-label" },
+    // confirmDialog has no <h2>; it points at its dynamic message paragraph so
+    // the announced name matches the actual prompt (it is reused for non-delete
+    // confirmations too, so a static aria-label would mislabel those).
+    { id: "confirmDialog",        labelId: "confirmDialogMessage" },
   ];
 
   for (const { id, labelId } of dialogsWithLabelledBy) {
@@ -1549,11 +1553,4 @@ test("OPT-033: all dialog elements have aria-labelledby or aria-label (WCAG 4.1.
       `Label element #${labelId} referenced by #${id} must exist in the HTML`
     );
   }
-
-  // confirmDialog has no <h2>, must use aria-label instead
-  assert.match(
-    indexHtml,
-    /id="confirmDialog"[^>]+aria-label="[^"]+"/,
-    "#confirmDialog (no h2) must have aria-label"
-  );
 });
