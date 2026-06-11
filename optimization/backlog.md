@@ -263,7 +263,7 @@ Format per item:
 - how: 在 `_run_gc()` 的 try 块末尾（`app_server.py:5244` 之前）追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。在 `gc_thread_test.py` 中加一条断言验证该调用存在。Touch: `app_server.py:5236-5244`；`tests/agent/gc_thread_test.py`。
 
 ### OPT-033 — `<dialog>` 元素缺少 `aria-labelledby`，屏幕阅读器宣告模态框时无名称（WCAG 4.1.2 Level A） — 由 explore E50 提拔
-- status: triaged
+- status: done (PR #34, 2026-06-11)
 - area: frontend
 - description: `index.html` 中共有 12 个 `<dialog>` 元素（`bookEditDialog`、`bookDetailDialog`、`bookDialog`、`sessionDialog`、`quoteDialog`、`quoteDetailDialog`、`sessionDetailDialog`、`deleteBookDialog`、`confirmDialog`、`forgotPasswordDialog`、`resetPasswordDialog`、`connectionDialog`，lines 327/355/381/416/441/486/509/526/539/550/562/575）均无 `aria-labelledby` 属性。每个 dialog 都含有可见的 `<h2>` 标题（如「新增书籍」「编辑书籍」），信息已存在但未与 dialog 通过 ARIA 关联。屏幕阅读器焦点进入 dialog 时只会宣告「dialog」，用户无法得知当前打开了哪个模态框。
 - why: WCAG 2.1 SC 4.1.2（Name, Role, Value — Level A）要求交互 UI 组件有无障碍名称；`<dialog>` 元素没有 `aria-label` 或 `aria-labelledby` 时其 accessible name 为空。这是最严重等级（Level A）的合规缺口。修复完全是加法操作——给已有的 `<h2>` 加 `id`、给 `<dialog>` 加 `aria-labelledby`，无任何逻辑变更，零风险。这也延续了 OPT-013/018/019 的无障碍系列修复。
@@ -305,7 +305,7 @@ Format per item:
 - how: 将 `app_server.py:676`（`ensure_user_state`）和 `app_server.py:4057, 4061`（注册处理器）中的 `now_iso()` 替换为 `utc_now_iso()`。共 4 次调用替换（`4057` 行含 2 次：`created_at` 和 `terms_accepted_at`）。Touch: `app_server.py:676, 4057-4061`。
 
 ### OPT-039 — 数据库连接泄漏：E26 安全网未覆盖 `_require_user` 之外的内联 `get_conn()` — 由 explore E26 提拔
-- status: in-progress (PR #35)
+- status: done (PR #35, 2026-06-11)
 - area: backend
 - note: 原登记为 OPT-037，与夜间 agent 并发认领的 OPT-037（localeCompare 排序）/OPT-038 撞号，改为 OPT-039。PR #35 标题/分支/代码注释仍含 "OPT-037" 字样，以唯一的 explore ID **E26** 为准。
 - description: E26 安全网（`handle_one_request` 的 `finally` 关闭 `self._active_conn`）**只登记 `_require_user()` 开的连接**。7 个不走 `_require_user` 的 handler 自行 `conn = get_conn()`：`/debug/logs`、`/debug/errors`、`/debug/agent-dashboard`，以及鉴权前端点 `/api/register`、`/api/login`、`/api/password/reset-request`、`/api/password/reset`。这些连接未登记，handler body 在显式 `conn.close()` 前抛异常即泄漏连接（及其 SQLite 共享锁），最终在**无关请求**上爆 `database is locked`。最讽刺：泄漏风险最高的公网鉴权端点（无需登录、最易被攻击者高频打），恰恰因为跑在 `_require_user` 之前而落在安全网外。
