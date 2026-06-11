@@ -2930,31 +2930,77 @@ function deleteAccount() {
   });
 }
 
+// Two export formats exist (OPT-040): the lightweight "导出书单备份"
+// (exportData) dumps `state` with fields at the top level, while the full
+// "完整账号导出（GDPR）" (GET /api/account/export) nests state under `.state`
+// and carries an `exportFormat` marker. Detect and unwrap so BOTH files
+// restore correctly — otherwise the GDPR file's top-level `books` etc. read as
+// undefined and the import silently overwrites the account with empty state.
+function resolveImportedState(parsed) {
+  const looksLikeFullExport =
+    parsed &&
+    typeof parsed.state === "object" &&
+    parsed.state &&
+    (parsed.exportFormat !== undefined || !Array.isArray(parsed.books));
+  const source = (looksLikeFullExport ? parsed.state : parsed) || {};
+  return normalizeStateShape({
+    books: Array.isArray(source.books) ? source.books : [],
+    sessions: Array.isArray(source.sessions) ? source.sessions : [],
+    quotes: Array.isArray(source.quotes) ? source.quotes : [],
+    chatHistories:
+      typeof source.chatHistories === "object" && source.chatHistories
+        ? source.chatHistories
+        : Array.isArray(source.chatHistory)
+          ? { "__general__": source.chatHistory }
+          : {},
+    chatContexts: typeof source.chatContexts === "object" && source.chatContexts ? source.chatContexts : {},
+    connections: Array.isArray(source.connections) ? source.connections : [],
+  });
+}
+
+function stateContentCount(s) {
+  if (!s) return 0;
+  return (
+    (Array.isArray(s.books) ? s.books.length : 0) +
+    (Array.isArray(s.sessions) ? s.sessions.length : 0) +
+    (Array.isArray(s.quotes) ? s.quotes.length : 0) +
+    (Array.isArray(s.connections) ? s.connections.length : 0)
+  );
+}
+
 function importData(file) {
   if (!requireAuth("导入数据")) return;
   const reader = new FileReader();
   reader.onload = async () => {
+    let resolved;
     try {
-      const parsed = JSON.parse(String(reader.result));
-      state = normalizeStateShape({
-        books: Array.isArray(parsed.books) ? parsed.books : [],
-        sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-        quotes: Array.isArray(parsed.quotes) ? parsed.quotes : [],
-        chatHistories:
-          typeof parsed.chatHistories === "object" && parsed.chatHistories
-            ? parsed.chatHistories
-            : Array.isArray(parsed.chatHistory)
-              ? { "__general__": parsed.chatHistory }
-              : {},
-        chatContexts: typeof parsed.chatContexts === "object" && parsed.chatContexts ? parsed.chatContexts : {},
-        connections: Array.isArray(parsed.connections) ? parsed.connections : [],
-      });
-      await syncState();
-      render();
-      showToast("数据已导入");
+      resolved = resolveImportedState(JSON.parse(String(reader.result)));
     } catch (error) {
-      showToast(error.message || "导入失败");
+      showToast("文件解析失败，请选择有效的备份 JSON");
+      return;
     }
+    const applyImport = async () => {
+      state = resolved;
+      try {
+        await syncState();
+        render();
+        showToast("数据已导入");
+      } catch (error) {
+        showToast(error.message || "导入失败");
+      }
+    };
+    // Footgun guard (OPT-040): an unrecognized / wrong-format file resolves to
+    // empty content; applied blindly it would wipe a non-empty account. Require
+    // explicit confirmation instead of silently overwriting with nothing.
+    if (stateContentCount(resolved) === 0 && stateContentCount(state) > 0) {
+      showConfirmDialog({
+        message: "该文件未识别到任何书单 / 摘抄 / 记录内容，导入将清空当前账号的全部数据。确定继续？",
+        confirmLabel: "仍要清空导入",
+        onConfirm: applyImport,
+      });
+      return;
+    }
+    await applyImport();
   };
   reader.readAsText(file);
 }
