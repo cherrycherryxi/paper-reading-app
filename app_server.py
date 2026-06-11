@@ -4633,17 +4633,14 @@ class Handler(BaseHTTPRequestHandler):
                 quote_payload["createdAt"] = utc_now_iso()
                 state.setdefault("quotes", []).insert(0, quote_payload)
 
-            state = save_state(conn, user["id"], state)
-            trace_manager.log_event(
-                conn,
-                trace_id,
-                "DRAFT_SAVED",
-                {
-                    "quoteId": quote_id,
-                    "ocrStatus": "pending",
-                    "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
-                },
-            )
+            # NOTE: the in-memory `quote_payload` carries ocrStatus="pending",
+            # but we do NOT commit it here. The fast path below is synchronous
+            # and saves exactly once, *after* OCR finishes (with the final
+            # done/failed status) — so an interrupted fast request (server
+            # restart / dropped connection mid-handler) leaves NO orphaned
+            # "pending" card in the DB. Only the async AI path persists the
+            # pending draft (it must, so the client can poll and the background
+            # job can load it). (OPT-042)
             engine = str(payload.get("engine", "fast") or "fast").lower()
             if engine != "ai":
                 # Fast path: synchronous local Tesseract OCR — no LLM, no polling.
@@ -4725,6 +4722,21 @@ class Handler(BaseHTTPRequestHandler):
                     )
                     return
 
+            # AI path is asynchronous: persist the pending draft now so the
+            # client can poll for it and the background job can load_state and
+            # find this quote. (The fast path never reaches here — it returned
+            # above after its single post-OCR save.)
+            state = save_state(conn, user["id"], state)
+            trace_manager.log_event(
+                conn,
+                trace_id,
+                "DRAFT_SAVED",
+                {
+                    "quoteId": quote_id,
+                    "ocrStatus": "pending",
+                    "elapsedMs": int((time.perf_counter() - request_started_at) * 1000),
+                },
+            )
             version = state_version(conn, user["id"])
             conn.close()
             start_background_ocr(
