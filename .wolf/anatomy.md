@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-10T19:13:06.529Z
-> Files: 120 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T02:56:46.802Z
+> Files: 124 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -13,7 +13,7 @@
 
 ## ../../.claude/
 
-- `settings.json` (~372 tok)
+- `settings.json` (~1052 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
 ## ../../.claude/daily-logs/
@@ -52,7 +52,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~65887 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66124 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~43145 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1201 tok)
@@ -153,9 +153,12 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~7378 tok)
+- `backlog.md` — Optimization Backlog (~7678 tok)
+- `backlog.md` — Optimization Backlog (~7124 tok)
 - `explore.md` — Exploration — new optimization directions (~24791 tok)
+- `explore.md` — Exploration — new optimization directions (~22482 tok)
 - `triage.md` — Triage (~1395 tok)
+- `triage.md` — Triage (~1331 tok)
 
 ## scripts/
 
@@ -182,6 +185,7 @@
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~9184 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
+- `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_retries_on_429, side_effect, test_retries_on_503 + 14 (~2133 tok)

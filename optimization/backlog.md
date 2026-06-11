@@ -303,3 +303,11 @@ Format per item:
 - description: 用户注册处理器（`app_server.py:4057-4061`）用 `now_iso()` 写入 `users.created_at`、`users.terms_accepted_at` 和首条 `user_state.updated_at`；`ensure_user_state()`（`app_server.py:676`）同样用 `now_iso()` 写入 `user_state.updated_at`（INSERT OR IGNORE 路径）。而 `save_state()`（`app_server.py:704`）已改用 `utc_now_iso()`。OPT-030（乐观锁）以 `user_state.updated_at` 作为版本号返回给客户端（`stateVersion`）；新用户的首个 `stateVersion` 是 naive 本地时间，后续所有写入是 UTC+Z，造成版本字段在同一列内格式不一致（初始行 naive，更新行 UTC）。
 - why: 完成 OPT-014 系列（OPT-024/031/035）的最后一块拼图。`users.created_at` 出现在账号导出和 `/api/session` 响应中；naive 时间戳与其他 UTC 字段不一致。最关键的是 `ensure_user_state()` 的 naive `updated_at`：若新注册用户在首次 `PUT /api/state` 前被并发 GC 或 schema 迁移触发 `ensure_user_state()` 重写，版本字段会被重置为 naive，后续乐观锁比较将持续失败直到用户发起 PUT（覆盖为 UTC）。5 处替换，零逻辑变更。
 - how: 将 `app_server.py:676`（`ensure_user_state`）和 `app_server.py:4057, 4061`（注册处理器）中的 `now_iso()` 替换为 `utc_now_iso()`。共 4 次调用替换（`4057` 行含 2 次：`created_at` 和 `terms_accepted_at`）。Touch: `app_server.py:676, 4057-4061`。
+
+### OPT-039 — 数据库连接泄漏：E26 安全网未覆盖 `_require_user` 之外的内联 `get_conn()` — 由 explore E26 提拔
+- status: in-progress (PR #35)
+- area: backend
+- note: 原登记为 OPT-037，与夜间 agent 并发认领的 OPT-037（localeCompare 排序）/OPT-038 撞号，改为 OPT-039。PR #35 标题/分支/代码注释仍含 "OPT-037" 字样，以唯一的 explore ID **E26** 为准。
+- description: E26 安全网（`handle_one_request` 的 `finally` 关闭 `self._active_conn`）**只登记 `_require_user()` 开的连接**。7 个不走 `_require_user` 的 handler 自行 `conn = get_conn()`：`/debug/logs`、`/debug/errors`、`/debug/agent-dashboard`，以及鉴权前端点 `/api/register`、`/api/login`、`/api/password/reset-request`、`/api/password/reset`。这些连接未登记，handler body 在显式 `conn.close()` 前抛异常即泄漏连接（及其 SQLite 共享锁），最终在**无关请求**上爆 `database is locked`。最讽刺：泄漏风险最高的公网鉴权端点（无需登录、最易被攻击者高频打），恰恰因为跑在 `_require_user` 之前而落在安全网外。
+- why: 连接泄漏是隐蔽的生产稳定性问题，运行越久越危险，且报错点（database is locked）与泄漏点（某个抛异常的 handler）完全错位，极难定位。
+- how: 方案 A（已采用，最小侵入）——新增 `self._open_conn()` helper（= `get_conn()` + 登记 `self._active_conn`），把 7 处裸 `get_conn()` 加 `_require_user` 自身全部改走它，复用已验证的 finally 一处兜底。正常路径零行为变更（sqlite3 双关闭是 no-op）。方案 C（全量 `with` 单一范式重构）已评估并刻意推迟为独立大改。Touch: `app_server.py`（`_open_conn` + 8 处）；`tests/agent/connection_leak_test.py`（新增 3 测试，驱动真实请求过 `handle_one_request` + 注入中途异常）。

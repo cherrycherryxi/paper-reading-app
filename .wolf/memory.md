@@ -1319,3 +1319,23 @@
 | 18:06 | Edited optimization/triage.md | inline fix | ~71 |
 | 19:12 | Edited optimization/explore.md | modified not() | ~2560 |
 | 19:13 | Edited optimization/backlog.md | expanded (+14 lines) | ~770 |
+| 22:08 | Session end: 2 writes across 2 files (feedback_reply_in_chinese.md, MEMORY.md) | 1 reads | ~152 tok |
+| 22:12 | Session end: 2 writes across 2 files (feedback_reply_in_chinese.md, MEMORY.md) | 1 reads | ~152 tok |
+| 23:06 | Edited ../../.claude/settings.json | "用户想检查昨晚的工作。昨晚（%s 之后）新建的PR" → "用户想检查昨晚的工作。\\n\\n第0步（先做，不" | ~80 |
+| 10:55 | 实现 OPT-039（原 OPT-037，撞夜间 agent 号；E26 连接泄漏）方案A：加 _open_conn() helper + 7 处裸 get_conn 改走它；新增 connection_leak_test.py(3 测试) | app_server.py, tests/agent/connection_leak_test.py | 308 passed；PR #35 | ~6k |
+| 23:06 | Session end: 3 writes across 3 files (feedback_reply_in_chinese.md, MEMORY.md, settings.json) | 2 reads | ~673 tok |
+| 23:10 | Session end: 3 writes across 3 files (feedback_reply_in_chinese.md, MEMORY.md, settings.json) | 2 reads | ~673 tok |
+| 23:16 | Session end: 3 writes across 3 files (feedback_reply_in_chinese.md, MEMORY.md, settings.json) | 2 reads | ~673 tok |
+| 23:19 | Session end: 3 writes across 3 files (feedback_reply_in_chinese.md, MEMORY.md, settings.json) | 2 reads | ~673 tok |
+| 23:41 | Edited app_server.py | modified _open_conn() | ~343 |
+| 23:41 | Edited app_server.py | get_conn() → _open_conn() | ~24 |
+| 23:41 | Edited app_server.py | get_conn() → _open_conn() | ~42 |
+| 23:41 | Edited app_server.py | get_conn() → _open_conn() | ~40 |
+| 23:41 | Edited app_server.py | inline fix | ~22 |
+| 23:42 | Edited app_server.py | inline fix | ~12 |
+| 23:42 | Edited app_server.py | get_conn() → _open_conn() | ~24 |
+| 23:42 | Edited app_server.py | get_conn() → _open_conn() | ~30 |
+| 23:48 | Created tests/agent/connection_leak_test.py | — | ~1406 |
+| 10:45 | Edited optimization/backlog.md | expanded (+7 lines) | ~342 |
+| 10:56 | Edited optimization/backlog.md | 2→1 lines | ~32 |
+| 10:56 | Edited optimization/backlog.md | 9→9 lines | ~378 |
