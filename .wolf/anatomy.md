@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T02:56:46.802Z
-> Files: 124 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T03:26:54.975Z
-> Files: 120 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T05:09:28.615Z
+> Files: 127 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -55,7 +53,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66124 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~43145 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~43634 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1201 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -156,7 +154,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~7678 tok)
+- `backlog.md` — Optimization Backlog (~7985 tok)
 - `backlog.md` — Optimization Backlog (~7124 tok)
 - `explore.md` — Exploration — new optimization directions (~24791 tok)
 - `explore.md` — Exploration — new optimization directions (~22482 tok)
@@ -203,6 +201,7 @@
 
 ## tests/frontend/
 
+- `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~2342 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)

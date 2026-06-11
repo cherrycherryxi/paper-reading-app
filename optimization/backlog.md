@@ -311,3 +311,11 @@ Format per item:
 - description: E26 安全网（`handle_one_request` 的 `finally` 关闭 `self._active_conn`）**只登记 `_require_user()` 开的连接**。7 个不走 `_require_user` 的 handler 自行 `conn = get_conn()`：`/debug/logs`、`/debug/errors`、`/debug/agent-dashboard`，以及鉴权前端点 `/api/register`、`/api/login`、`/api/password/reset-request`、`/api/password/reset`。这些连接未登记，handler body 在显式 `conn.close()` 前抛异常即泄漏连接（及其 SQLite 共享锁），最终在**无关请求**上爆 `database is locked`。最讽刺：泄漏风险最高的公网鉴权端点（无需登录、最易被攻击者高频打），恰恰因为跑在 `_require_user` 之前而落在安全网外。
 - why: 连接泄漏是隐蔽的生产稳定性问题，运行越久越危险，且报错点（database is locked）与泄漏点（某个抛异常的 handler）完全错位，极难定位。
 - how: 方案 A（已采用，最小侵入）——新增 `self._open_conn()` helper（= `get_conn()` + 登记 `self._active_conn`），把 7 处裸 `get_conn()` 加 `_require_user` 自身全部改走它，复用已验证的 finally 一处兜底。正常路径零行为变更（sqlite3 双关闭是 no-op）。方案 C（全量 `with` 单一范式重构）已评估并刻意推迟为独立大改。Touch: `app_server.py`（`_open_conn` + 8 处）；`tests/agent/connection_leak_test.py`（新增 3 测试，驱动真实请求过 `handle_one_request` + 注入中途异常）。
+
+### OPT-040 — 导入「完整账号导出（GDPR）」文件会静默清空账号 + 该导出实际不可恢复 — 由 explore E10 重新定性提拔
+- status: in-progress (PR pending)
+- area: frontend
+- note: **E10 的前提（"没有 import 端点、备份不可恢复"）经核对不成立**——前端早有 `importData()`（`app.js:2933`）+ "导入数据" 入口（`index.html:296`），常规「导出书单备份」经 `PUT /api/state` 可正常恢复，无需新建后端端点。真正的缺陷是下面这个更危险的格式不一致 bug，故按修正后的描述登记，不照搬 E10 原文。
+- description: 存在两种导出格式：①「导出书单备份」`exportData()`（`app.js:2794`）客户端直接 dump `state`，字段在**顶层**（`books/sessions/quotes/...`）；②「完整账号导出（GDPR）」`GET /api/account/export`（`app_server.py:3745`）把 state **嵌在 `.state`** 下并带 `exportFormat:1`。而 `importData()` 只读**顶层** `parsed.books/...`。用户若把 GDPR 导出文件喂给「导入数据」：顶层字段全 `undefined` → 落成全空 state → `syncState()` 用空 state **覆盖整个账号**（`index.html:297` 自承"会替换当前账号的全部内容"），且无任何二次确认 → 数据全删。即被标榜"合规/可迁移"的那份导出既不可恢复、导入还会清空账号。
+- why: 静默数据丢失（最高危类别），且诱导性强——用户以为在"恢复备份"，实际在清空。修复完全在前端，零后端改动、零新端点。
+- how: 方案 A（已采用，最小）——`importData()` 加格式自适应：检测 `exportFormat`/`.state` 则解包 `parsed.state`，否则按旧顶层格式；并加清空护栏：解析后内容计数为 0 而当前账号非空时，弹 `confirmDialog` 二次确认而非静默覆盖；JSON 解析失败给明确 toast。方案 B（后端 `POST /api/account/import`）评估后判为伪需求（与 `PUT /api/state` 重复、且单独做修不掉前端清空 bug），不采用。Touch: `app.js`（`importData` + 新增 `resolveImportedState`/内容计数 helper）；`tests/frontend/account-import-format.test.js`（新增）。

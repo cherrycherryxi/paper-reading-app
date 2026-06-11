@@ -4513,6 +4513,40 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T03:26:36.240Z"
+    },
+    {
+      "id": "bug-266",
+      "timestamp": "2026-06-11T05:03:06.441Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T05:03:06.441Z"
+    },
+    {
+      "id": "bug-267",
+      "timestamp": "2026-06-11T06:30:00.000Z",
+      "error_message": "OPT-040: importing the full GDPR account-export file via 导入数据 silently wipes the account; that export is also non-restorable",
+      "file": "app.js",
+      "root_cause": "Two export formats: lightweight 导出书单备份 (exportData) puts state fields at top level; full GDPR export (GET /api/account/export) nests state under .state with exportFormat:1. importData() only read top-level parsed.books/... so a GDPR file resolved to all-empty arrays, then syncState() overwrote the whole account with empty state — no confirmation. E10 in explore.md mis-framed this as 'no import endpoint / backups unrestorable'; restore via PUT /api/state already worked for the lightweight backup.",
+      "fix": "Added resolveImportedState() format detection (unwrap parsed.state when exportFormat present or no top-level books) + stateContentCount() guard: when resolved content is 0 but the current account is non-empty, prompt via confirmDialog instead of silently overwriting; invalid JSON now shows a parse-error toast. Frontend-only, no new endpoint. Added tests/frontend/account-import-format.test.js (7 tests).",
+      "tags": [
+        "data-loss",
+        "OPT-040",
+        "import-export",
+        "frontend",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T06:30:00.000Z"
     }
   ]
 }
