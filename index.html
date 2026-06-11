@@ -324,9 +324,9 @@
       </section>
     </div>
 
-    <dialog id="bookEditDialog">
+    <dialog id="bookEditDialog" aria-labelledby="book-edit-dialog-label">
       <form id="bookEditForm" class="dialog-form">
-        <div class="section-head"><h2>编辑书籍</h2><p id="bookEditDialogTitle"></p></div>
+        <div class="section-head"><h2 id="book-edit-dialog-label">编辑书籍</h2><p id="bookEditDialogTitle"></p></div>
         <input type="hidden" name="bookId" />
         <div class="quote-photo-tools">
           <label class="button button-ghost file-button">
@@ -352,7 +352,7 @@
       </form>
     </dialog>
 
-    <dialog id="bookDetailDialog">
+    <dialog id="bookDetailDialog" aria-labelledby="bookDetailTitle">
       <div class="dialog-form book-detail-dialog-body">
         <div class="section-head"><h2 id="bookDetailTitle">书籍详情</h2><p id="bookDetailMeta"></p></div>
         <div id="bookDetailIntro" class="book-detail-intro"></div>
@@ -378,9 +378,9 @@
       </div>
     </dialog>
 
-    <dialog id="bookDialog">
+    <dialog id="bookDialog" aria-labelledby="book-dialog-label">
       <form id="bookForm" class="dialog-form">
-        <div class="section-head"><h2>新增书籍</h2><p>先建档，再持续记录阅读。</p></div>
+        <div class="section-head"><h2 id="book-dialog-label">新增书籍</h2><p>先建档，再持续记录阅读。</p></div>
         <div class="input-grid">
           <label><span>书名</span><input name="title" type="text" placeholder="例如：悉达多" required /></label>
           <label><span>作者</span><input name="author" type="text" placeholder="例如：赫尔曼·黑塞" /></label>
@@ -413,9 +413,9 @@
       </form>
     </dialog>
 
-    <dialog id="sessionDialog">
+    <dialog id="sessionDialog" aria-labelledby="session-dialog-label">
       <form id="sessionForm" class="dialog-form">
-        <div class="section-head"><h2>记录一次阅读</h2><p>按会话记录，方便回看你的节奏。</p></div>
+        <div class="section-head"><h2 id="session-dialog-label">记录一次阅读</h2><p>按会话记录，方便回看你的节奏。</p></div>
         <div class="input-grid">
           <label><span>选择书籍</span>
             <div class="book-combobox" id="sessionBookCombobox">
@@ -438,9 +438,9 @@
       </form>
     </dialog>
 
-    <dialog id="quoteDialog">
+    <dialog id="quoteDialog" aria-labelledby="quote-dialog-label">
       <form id="quoteForm" class="dialog-form">
-        <div class="section-head"><h2>新增摘抄 / 笔记</h2><p>拍照、OCR 和手动整理都在这里完成。</p></div>
+        <div class="section-head"><h2 id="quote-dialog-label">新增摘抄 / 笔记</h2><p>拍照、OCR 和手动整理都在这里完成。</p></div>
         <div class="input-grid">
           <label><span>关联书籍</span>
             <div class="book-combobox" id="quoteBookCombobox">
@@ -483,7 +483,7 @@
     </dialog>
 
     <!-- Quote detail (read-only) dialog -->
-    <dialog id="quoteDetailDialog">
+    <dialog id="quoteDetailDialog" aria-labelledby="quoteDetailBook">
       <div class="dialog-form">
         <div class="section-head">
           <h2 id="quoteDetailBook">摘抄详情</h2>
@@ -506,7 +506,7 @@
       </div>
     </dialog>
 
-    <dialog id="sessionDetailDialog">
+    <dialog id="sessionDetailDialog" aria-labelledby="sessionDetailTitle">
       <div class="dialog-form">
         <div class="section-head">
           <h2 id="sessionDetailTitle">阅读记录</h2>
@@ -523,9 +523,9 @@
     </dialog>
 
     <!-- Custom delete-book confirmation dialog (replaces native window.confirm) -->
-    <dialog id="deleteBookDialog" class="delete-confirm-dialog">
+    <dialog id="deleteBookDialog" class="delete-confirm-dialog" aria-labelledby="delete-book-dialog-label">
       <div class="dialog-form">
-        <h2 class="delete-confirm-title">删除书籍</h2>
+        <h2 id="delete-book-dialog-label" class="delete-confirm-title">删除书籍</h2>
         <p id="deleteBookMessage" class="delete-confirm-body"></p>
         <p class="delete-confirm-warning">⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。</p>
         <div class="dialog-actions">
@@ -536,7 +536,7 @@
     </dialog>
 
     <!-- Generic confirm dialog for session/quote deletes and other confirmations -->
-    <dialog id="confirmDialog" class="delete-confirm-dialog">
+    <dialog id="confirmDialog" class="delete-confirm-dialog" aria-labelledby="confirmDialogMessage">
       <div class="dialog-form">
         <p id="confirmDialogMessage" class="delete-confirm-body"></p>
         <div class="dialog-actions">
@@ -547,9 +547,9 @@
     </dialog>
 
     <!-- Password reset request dialog -->
-    <dialog id="forgotPasswordDialog">
+    <dialog id="forgotPasswordDialog" aria-labelledby="forgot-password-dialog-label">
       <form id="forgotPasswordForm" class="dialog-form">
-        <div class="section-head"><h2>找回密码</h2><p>输入注册邮箱或用户名，我们会发送重置链接。</p></div>
+        <div class="section-head"><h2 id="forgot-password-dialog-label">找回密码</h2><p>输入注册邮箱或用户名，我们会发送重置链接。</p></div>
         <label><span>邮箱或用户名</span><input name="identifier" type="text" required autocomplete="off" /></label>
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" id="forgotPasswordCancelBtn">取消</button>
@@ -559,9 +559,9 @@
     </dialog>
 
     <!-- Password reset perform dialog (opened when URL contains #reset-password=<token>) -->
-    <dialog id="resetPasswordDialog">
+    <dialog id="resetPasswordDialog" aria-labelledby="reset-password-dialog-label">
       <form id="resetPasswordForm" class="dialog-form">
-        <div class="section-head"><h2>设置新密码</h2><p>设置后会自动登出所有设备。</p></div>
+        <div class="section-head"><h2 id="reset-password-dialog-label">设置新密码</h2><p>设置后会自动登出所有设备。</p></div>
         <input type="hidden" name="token" id="resetPasswordToken" />
         <label><span>新密码（至少 4 位）</span><input name="password" type="password" required minlength="4" /></label>
         <div class="dialog-actions">
@@ -572,9 +572,9 @@
     </dialog>
 
     <!-- Connection creation/edit dialog -->
-    <dialog id="connectionDialog">
+    <dialog id="connectionDialog" aria-labelledby="connection-dialog-label">
       <form id="connectionForm" class="dialog-form">
-        <div class="section-head"><h2>记录思想碰撞</h2><p>连接两本书或两段摘抄之间的关联。</p></div>
+        <div class="section-head"><h2 id="connection-dialog-label">记录思想碰撞</h2><p>连接两本书或两段摘抄之间的关联。</p></div>
 
         <div class="conn-side">
           <div class="conn-side-label">来源（触发联想的那一侧）</div>

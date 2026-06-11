@@ -1346,3 +1346,5 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 11:28 | Session end: 5 writes across 4 files (app_server.py, connection_leak_test.py, index.html, regression-fixed-bugs.test.js) | 4 reads | ~95893 tok |
+| 11:26 | Edited index.html | inline fix | ~27 |
+| 11:26 | Edited tests/frontend/regression-fixed-bugs.test.js | confirmDialog() → prompt() | ~222 |

@@ -4496,6 +4496,23 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-11T05:00:00.000Z"
+    },
+    {
+      "id": "bug-265",
+      "timestamp": "2026-06-11T03:26:36.240Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"确认删除\" (confirmDialog hardcoded a static aria-label, misleading for non-delete confirmations)",
+      "fix": "Changed to aria-labelledby=\"confirmDialogMessage\" so the announced name matches the dynamic prompt (OPT-033 follow-up)",
+      "tags": [
+        "auto-detected",
+        "a11y",
+        "OPT-033",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T03:26:36.240Z"
     }
   ]
 }
