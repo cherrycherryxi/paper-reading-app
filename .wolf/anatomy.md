@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T13:24:19.940Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T14:17:15.949Z
 > Files: 129 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -154,7 +154,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~8393 tok)
+- `backlog.md` — Optimization Backlog (~8446 tok)
 - `backlog.md` — Optimization Backlog (~7124 tok)
 - `explore.md` — Exploration — new optimization directions (~24791 tok)
 - `explore.md` — Exploration — new optimization directions (~22482 tok)
@@ -163,7 +163,7 @@
 
 ## scripts/
 
-- `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1582 tok)
+- `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1692 tok)
 - `dev_backend.sh` (~153 tok)
 - `start_backend.sh` (~348 tok)
 

@@ -313,7 +313,7 @@ Format per item:
 - how: 方案 A（已采用，最小侵入）——新增 `self._open_conn()` helper（= `get_conn()` + 登记 `self._active_conn`），把 7 处裸 `get_conn()` 加 `_require_user` 自身全部改走它，复用已验证的 finally 一处兜底。正常路径零行为变更（sqlite3 双关闭是 no-op）。方案 C（全量 `with` 单一范式重构）已评估并刻意推迟为独立大改。Touch: `app_server.py`（`_open_conn` + 8 处）；`tests/agent/connection_leak_test.py`（新增 3 测试，驱动真实请求过 `handle_one_request` + 注入中途异常）。
 
 ### OPT-040 — 导入「完整账号导出（GDPR）」文件会静默清空账号 + 该导出实际不可恢复 — 由 explore E10 重新定性提拔
-- status: in-progress (PR pending)
+- status: done (PR #36, merged 2026-06-11)
 - area: frontend
 - note: **E10 的前提（"没有 import 端点、备份不可恢复"）经核对不成立**——前端早有 `importData()`（`app.js:2933`）+ "导入数据" 入口（`index.html:296`），常规「导出书单备份」经 `PUT /api/state` 可正常恢复，无需新建后端端点。真正的缺陷是下面这个更危险的格式不一致 bug，故按修正后的描述登记，不照搬 E10 原文。
 - description: 存在两种导出格式：①「导出书单备份」`exportData()`（`app.js:2794`）客户端直接 dump `state`，字段在**顶层**（`books/sessions/quotes/...`）；②「完整账号导出（GDPR）」`GET /api/account/export`（`app_server.py:3745`）把 state **嵌在 `.state`** 下并带 `exportFormat:1`。而 `importData()` 只读**顶层** `parsed.books/...`。用户若把 GDPR 导出文件喂给「导入数据」：顶层字段全 `undefined` → 落成全空 state → `syncState()` 用空 state **覆盖整个账号**（`index.html:297` 自承"会替换当前账号的全部内容"），且无任何二次确认 → 数据全删。即被标榜"合规/可迁移"的那份导出既不可恢复、导入还会清空账号。
@@ -321,14 +321,15 @@ Format per item:
 - how: 方案 A（已采用，最小）——`importData()` 加格式自适应：检测 `exportFormat`/`.state` 则解包 `parsed.state`，否则按旧顶层格式；并加清空护栏：解析后内容计数为 0 而当前账号非空时，弹 `confirmDialog` 二次确认而非静默覆盖；JSON 解析失败给明确 toast。方案 B（后端 `POST /api/account/import`）评估后判为伪需求（与 `PUT /api/state` 重复、且单独做修不掉前端清空 bug），不采用。Touch: `app.js`（`importData` + 新增 `resolveImportedState`/内容计数 helper）；`tests/frontend/account-import-format.test.js`（新增）。
 
 ### OPT-041 — 导入成功反馈太不起眼（右下角 toast，重操作易被忽略）— owner 真机测试提出
-- status: in-progress (PR #37)
+- status: done (PR #37, merged 2026-06-11)
 - area: frontend
 - description: （owner 提出）OPT-040 修好导入安全后，导入成功仍只弹右下角的「数据已导入」toast（~2.2s 自动消失），owner 第一次导入没注意到。导入是"整体替换账号"的重操作，反馈应更强。
 - why: 重操作（覆盖全账号）需要明确、不易错过的回执；toast 太轻。
 - how: owner 选定"结果弹窗（带数量）"。新增 `<dialog id="importResultDialog">`（居中、单按钮「好的」、列出 书籍/摘抄/记录/关联 各类数量），成功路径用 `showImportResult(state)` 替代成功 toast（dialog 缺失时回落 toast）。遵循项目 dialog 规范：`dialog-form` 放内层 div、带 `aria-labelledby`（延续 OPT-033 无障碍）；样式用主题感知的 `--color-success-*`/`--color-soft-accent`（暗色模式可用）。Touch: `index.html`（新 dialog）、`styles.css`（`.import-result*`）、`app.js`（`showImportResult` + `importData` 成功路径 + OK 按钮）、`tests/frontend/account-import-format.test.js`（断言成功开弹窗）。
 
 ### OPT-042 — 快速 OCR 在后端中断时遗留卡死在「识别中」的孤儿摘抄卡 — owner 真机测试发现
-- status: in-progress (PR #38)
+- status: done (PR #38, merged 2026-06-11)
+- followup: dev watcher (`scripts/dev_backend.py`) 收窄为只监控后端 `.py`（`WATCH_SUFFIXES={".py"}` + 忽略 `tests/`），前端/.md/测试改动不再重启后端——根除"改前端误重启后端、打断在飞请求"这一触发源（OPT-042 的修复也已让 OCR 对重启免疫，二者互补）。
 - area: backend + frontend
 - description: （owner 提出）快速识别时后端重启，前端报"连接不上后端"；重试成功，但同一张照片产生**两张卡**：一张「识别完成」，一张永远卡在「识别中」。根因：`/api/quotes/ocr`（`app_server.py`）在**同步快速 OCR 之前**就先 `save_state` 落了一张 `ocrStatus:"pending"` 草稿，之后再存最终状态。两次保存之间若被打断（重启/断连），草稿永久孤立在 `pending`；且第一次失败请求的响应没回到前端，前端没记下草稿 id，重试遂新建第二张卡。无任何回收（stale pending 只改了文案）。
 - why: 静默遗留 + 重复卡，用户无法分辨哪张有效；OCR 是核心录入链路。
