@@ -546,6 +546,20 @@
       </div>
     </dialog>
 
+    <!-- Import result acknowledgement (OPT-041): import replaces the whole
+         account, so its success needs a prominent, must-dismiss confirmation
+         with a per-type summary — a bottom-corner toast was too easy to miss. -->
+    <dialog id="importResultDialog" aria-labelledby="import-result-title">
+      <div class="dialog-form import-result">
+        <h2 id="import-result-title" class="import-result-title">✓ 导入完成</h2>
+        <p class="import-result-sub">已恢复到当前账号：</p>
+        <ul id="importResultList" class="import-result-list"></ul>
+        <div class="dialog-actions">
+          <button type="button" class="button button-primary" id="importResultOkBtn">好的</button>
+        </div>
+      </div>
+    </dialog>
+
     <!-- Password reset request dialog -->
     <dialog id="forgotPasswordDialog" aria-labelledby="forgot-password-dialog-label">
       <form id="forgotPasswordForm" class="dialog-form">
