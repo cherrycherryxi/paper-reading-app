@@ -4406,6 +4406,24 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-06-09T17:04:54.010Z"
+    },
+    {
+      "id": "bug-260",
+      "timestamp": "2026-06-11T00:00:00.000Z",
+      "error_message": "OPT-037 review: /api/billing/webhook still used bare get_conn() — a public unauthenticated handler the conn-leak safety net did not cover; if log_server_error in its except-path raises, the connection leaks",
+      "file": "app_server.py",
+      "root_cause": "OPT-037 converted 7 bare get_conn() sites to self._open_conn() but missed the billing webhook handler (also public/pre-auth), so its connection was never registered on self._active_conn for the handle_one_request finally to close",
+      "fix": "Routed /api/billing/webhook through self._open_conn(); added test_billing_webhook_leak_closed_by_safety_net asserting the conn is closed when the except-path logging itself fails",
+      "tags": [
+        "conn-leak",
+        "OPT-037",
+        "billing",
+        "safety-net",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T00:00:00.000Z"
     }
   ]
 }

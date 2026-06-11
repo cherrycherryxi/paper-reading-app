@@ -108,6 +108,39 @@ class ConnectionLeakSafetyNetTest(unittest.TestCase):
         )
         self.assertIsNone(h._active_conn)
 
+    def test_billing_webhook_leak_closed_by_safety_net(self):
+        """Pre-auth public endpoint (POST /api/billing/webhook): if the handler
+        raises after _open_conn AND its own except-path close also fails
+        (log_server_error raises), the safety net must still close the conn."""
+        h = _make_handler()
+
+        def _fail_only_inner_log(conn, *a, **kw):
+            # The billing handler's except-path passes the open conn; make that
+            # close-path logging fail. handle_one_request's outer handler passes
+            # conn=None — let that succeed so no exception escapes _drive.
+            if conn is not None:
+                raise RuntimeError("logging down")
+            return None
+
+        with mock.patch.object(
+            app_server, "verify_stripe_webhook_signature", return_value=True
+        ), mock.patch.object(
+            app_server, "apply_billing_event", side_effect=RuntimeError("boom")
+        ), mock.patch.object(
+            app_server, "log_server_error", side_effect=_fail_only_inner_log
+        ):
+            _drive(
+                h,
+                b"POST /api/billing/webhook HTTP/1.1\r\nHost: x\r\n"
+                b"Stripe-Signature: t=1,v1=x\r\nContent-Length: 2\r\n\r\n{}",
+            )
+        self.assertTrue(self.opened, "handler should have opened a connection")
+        self.assertTrue(
+            _is_closed(self.opened[0]),
+            "/api/billing/webhook leaked its connection — safety net did not close it",
+        )
+        self.assertIsNone(h._active_conn)
+
     def test_normal_request_resets_active_conn(self):
         """Regression: a successful request closes its conn explicitly, the
         finally double-closes (sqlite3 no-op), and _active_conn resets to None."""

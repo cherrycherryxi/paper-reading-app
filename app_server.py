@@ -4328,7 +4328,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 self._send_json({"error": "invalid_payload"}, 400)
                 return
-            conn = get_conn()
+            conn = self._open_conn()
             try:
                 status = apply_billing_event(conn, event)
             except Exception as exc:
