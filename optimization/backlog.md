@@ -344,3 +344,17 @@ Format per item:
 - why: 整体替换是最高危的静默数据丢失来源；事前对比 + 显著拦截能在覆盖发生前给用户一次"咦数量怎么少了"的机会。这是 OPT-040（清空护栏）/OPT-041（结果弹窗）的自然补全。
 - how: 在 `importData()`（`app.js`）应用前,先算当前 vs 待导入的各类数量（books/quotes/sessions/connections），用 `confirmDialog` 展示**对比**（如「书 52→52、摘抄 124→122、记录…」）；当任一类**减少**（M<N）时默认高亮/措辞更强（"将丢失 X 条,确定覆盖?"），需显式确认才继续。内容为 0 的极端情况仍走 OPT-040 现有护栏。纯前端,复用 `showConfirmDialog`。Touch: `app.js`（`importData` + 一个 diff 计算 helper）；`tests/frontend/account-import-format.test.js`（加断言：M<N 时弹对比确认、取消则不覆盖）。
 - 关联: OPT-040（导入格式自适应 + 空内容护栏）、OPT-041（导入结果弹窗）。三者同属"导入数据安全"链路。
+
+### OPT-044 — `payments` 表 `created_at`/`updated_at` 使用 `now_iso()`（naive 本地时间），`plan_expires_at` 用 `datetime.fromtimestamp()` 转换 Stripe 时间戳为本地时间 — 由 explore E67 提拔
+- status: new
+- area: backend
+- description: Stripe webhook handler（`app_server.py:1850-1940`）在所有 4 处 `payments` INSERT 中用 `now_iso()` 写入 `created_at`/`updated_at`（约 lines 1852, 1890, 1915, 1935）。`period_end_iso`（line 1876）将 Stripe 的 UTC Unix 时间戳 `period_end` 用 `datetime.fromtimestamp(int(period_end)).isoformat()` 转为 naive 本地时间后存入 `users.plan_expires_at`。UTC 清理系列（OPT-014/024/031/035/038, E56/E58/E60/E63/E64/E65）已覆盖所有其他表；`payments` 是唯一尚未迁移的财务审计表。
+- why: 财务记录应使用无歧义时区的时间戳。服务器迁移时区后，历史账单行与新行不可比较；`plan_expires_at` 若后续迁移为 UTC+Z，`_parse_iso_to_epoch()` 当前的 naive 解析将使订阅到期检查偏差 ±TZ_OFFSET 小时（详见 E66）。4 处 `now_iso()` 替换 + 1 处 `datetime.fromtimestamp` 修正，零逻辑变更，零测试变更。
+- how: 将 `app_server.py:~1852, ~1890, ~1915, ~1935` 的 `now_iso()` 替换为 `utc_now_iso()`；将 `app_server.py:1876` 的 `datetime.fromtimestamp(int(period_end)).isoformat(timespec="seconds")` 改为 `datetime.fromtimestamp(int(period_end), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`（`timezone` 已 import）。Touch: `app_server.py:1876, 1852, 1890, 1915, 1935`。
+
+### OPT-045 — Session 和 Connection CRUD 无前端 JS 测试覆盖——四个主 Tab 中两个对回归免疫 — 由 explore E68 提拔
+- status: new
+- area: frontend
+- description: `tests/frontend/` 共 13 个测试文件，书单 Tab（`book-duplicate.test.js` 等）和摘抄 Tab（`quote-content-display.test.js` 等）均有覆盖，但**记录（Session）Tab** 和**关联（Connection）Tab** 无任何专项前端 JS 测试。`renderTimeline()`（`app.js:1335-1480`，~145 行，含日期分组、状态筛选、卡片事件绑定）及 `addSession()`/`deleteSession()`（`app.js:2290-2340`）均无测试。`renderConnections()`（`app.js:720-760`）和关联增删改亦无测试。OPT-027 刚对所有 4 个 Tab 卡面做了统一 ⋯ 菜单重构，无测试保护的代码已被重要改动过一次。
+- why: Session 是最高频的日常写入操作（每次阅读结束记一条）；Connection 是 app 的差异化功能。两者均无 regression 守卫，任何未来重构都是盲目的。Node vm-sandbox 测试模式已有 13 个文件的既成模板，新增测试文件不需要运行服务器、不依赖新框架。
+- how: 新建 `tests/frontend/session-crud.test.js`（用 fixture 渲染，断言卡片计数、状态筛选、deleteSession 调用 syncState、菜单触发删除确认）；新建 `tests/frontend/connection-crud.test.js`（用 fixture 渲染，断言双向标签解析、搜索筛选、deleteConnection 路径）。约 60-80 行/文件。Touch: `tests/frontend/`（新建两文件）；`app.js:1335-1480, 2290-2340, 720-760`（不改代码，仅测试现有行为）。

@@ -770,3 +770,53 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:4057` (2 calls), `app_server.py:4061` (1 call), and `app_server.py:676` (1 call, `ensure_user_state`). No schema changes, no test changes. Touch: `app_server.py:676, 4057-4061`.
 
 **Files:** `app_server.py:676` (`ensure_user_state`); `app_server.py:4057-4061` (registration handler)
+
+---
+
+## 2026-06-11
+
+### E66 — `_parse_iso_to_epoch()` strips "Z" without setting UTC timezone — will silently miscalculate session and subscription expiry once any UTC+Z value is stored in those columns (S)
+
+**What:** `_parse_iso_to_epoch()` at `app_server.py:1443-1449` is implemented as `datetime.fromisoformat(value.replace("Z", "")).timestamp()`. Stripping the `"Z"` suffix makes `fromisoformat()` produce a **timezone-naive** datetime; `.timestamp()` then converts it using the server's **local** timezone. On a UTC+8 server, the UTC string `"2026-06-11T14:00:00Z"` parses to epoch 1749614400 (14:00 UTC+8 = 06:00 UTC) instead of the correct 1749643200 (14:00 UTC). This function is used to parse `sessions.last_seen_at` (session expiry check, line 1466) and `users.plan_expires_at` (subscription check, line 1499). Currently both columns store naive-local strings (consistent), so the parsing is accidentally self-consistent. However, as the UTC migration series (OPT-014/024/031/035/038/E56/E67) progresses, the first moment either column starts receiving `utc_now_iso()` output, the expiry calculation will be silently wrong by ±TZ_OFFSET hours — sessions expire 8 hours early, Plus subscriptions appear expired while still valid, or vice versa.
+
+**Why it matters:** The fix is a 2-line change and eliminates a landmine that will trigger the moment `sessions.last_seen_at` or `users.plan_expires_at` migrates to UTC. A silent session-expiry regression would log users out unexpectedly; a silent subscription-expiry regression would either lock out paying users or silently extend free access. The correct approach: if value ends with `"Z"`, replace with `"+00:00"` before `fromisoformat()` so the datetime is timezone-aware UTC; otherwise parse as-is.
+
+**Complexity:** S — replace `datetime.fromisoformat(value.replace("Z", "")).timestamp()` with `datetime.fromisoformat(value if not value.endswith("Z") else value[:-1] + "+00:00").timestamp()`. No schema changes, no test changes. Touch: `app_server.py:1447`.
+
+**Files:** `app_server.py:1443-1449` (`_parse_iso_to_epoch`); downstream callers at lines 1466 (`resolve_user_from_token`) and 1499 (`_resolve_user_plan`)
+
+---
+
+### E67 — `payments` table `created_at`/`updated_at` use `now_iso()` (naive local) — billing audit trail is the last un-migrated table in the UTC cleanup series (S)
+
+**What:** The Stripe webhook handler (`app_server.py:1805-1940`) writes `now_iso()` for `payments.created_at` and `payments.updated_at` at lines ~1852, 1890, 1915, and 1935. Additionally, `period_end_iso` at line 1876 is computed via `datetime.fromtimestamp(int(period_end)).isoformat(timespec="seconds")` — converting Stripe's UTC Unix timestamp to **naive local time** before storing in `users.plan_expires_at`. The UTC migration series (OPT-014/024/031/035/038, E56, E58, E60, E63, E64, E65) has now addressed every other table in the observability and user-data pipelines. The `payments` table — a financial audit record that flows into `/api/account/export` — is the sole remaining table still using naive local timestamps.
+
+**Why it matters:** Financial audit records should carry timezone-unambiguous timestamps. If the server migrates between data centres or is rebuilt in a different timezone, historical payment rows become incomparable with new rows. More concretely: the current `period_end_iso` stored in `plan_expires_at` is in naive local time, parsed back by `_parse_iso_to_epoch()` — both are currently self-consistent (same local TZ), but once E66's fix is applied (making `_parse_iso_to_epoch()` correct for UTC strings), this column should also migrate to UTC to remain consistent. Six `now_iso()` → `utc_now_iso()` substitutions and one `datetime.fromtimestamp(period_end)` → `datetime.fromtimestamp(period_end, tz=timezone.utc).strftime(...)` substitution complete the UTC cleanup.
+
+**Complexity:** S — replace `now_iso()` with `utc_now_iso()` at the 4 `payments` INSERT sites (`app_server.py:~1852, ~1890, ~1915, ~1935`); change line 1876 from `datetime.fromtimestamp(int(period_end)).isoformat(timespec="seconds")` to `datetime.fromtimestamp(int(period_end), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`. `timezone` is already imported. Touch: `app_server.py:1876, 1852, 1890, 1915, 1935`.
+
+**Files:** `app_server.py:1850-1940` (Stripe webhook handler); `app_server.py:1876` (`period_end_iso` conversion)
+
+---
+
+### E68 — Session CRUD and Connection CRUD have no frontend JS tests — two of the four main tabs are regression-blind (M)
+
+**What:** `tests/frontend/` contains 13 test files, but none cover the session timeline or connections tabs. The books tab has `book-duplicate.test.js`, `book-list-ordering-fix.test.js`, `book-ocr.test.js`; the quotes tab has `quote-content-display.test.js`, `ocr-stale-recovery.test.js`. The **sessions** tab (`renderTimeline()` at `app.js:1335-1480`, `addSession()`/`editSession()`/`deleteSession()` at `app.js:2290-2340`) and **connections** tab (`renderConnections()` at `app.js:720-760`, `addConnection()`/`editConnection()`/`deleteConnection()` at `app.js:3480-3530`) have zero dedicated test coverage. `renderTimeline()` is ~145 lines of DOM logic with date-grouping, status-filter, and card-link wiring that could silently regress. The connections sub-render is 40 lines with bidirectional label resolution.
+
+**Why it matters:** Sessions are the primary daily-use feature (users log reading time after each session). Connections are the unique "thought-linking" capability that differentiates the app from a simple book tracker. Both have been touched in recent refactors (OPT-027 unified the card menu, adding new event wiring). Yet neither has a single JS test to catch regressions. Adding test files follows the exact same Node vm-sandbox pattern already established in `tests/frontend/ui-redesign.test.js` and `tests/frontend/chat-agent-approval.test.js` — no server needed, no new test framework.
+
+**Complexity:** M — write `tests/frontend/session-crud.test.js` (render with fixture sessions, assert card count, assert delete calls syncState, assert status filter); write `tests/frontend/connection-crud.test.js` (render with fixture connections, assert bidirectional card labels, assert search filter). ~60-80 lines each. Touch: `tests/frontend/` (two new test files); `app.js:1335-1480, 2290-2340, 720-760` (no changes, test against existing code).
+
+**Files:** `app.js:1335-1480` (`renderTimeline`); `app.js:2290-2340` (`deleteSession`); `app.js:720-760` (`renderConnections`); `tests/frontend/` (new test files)
+
+---
+
+### E69 — No per-user limit on concurrent `/api/chat/stream` SSE connections — many open tabs can exhaust the `ThreadingHTTPServer` thread pool (M)
+
+**What:** `ThreadingHTTPServer` spawns one OS thread per connection; active SSE clients hold their thread alive for up to 30 seconds (the idle-abort timeout from E24/OPT). There is no per-user or global cap on concurrent open SSE connections. A user with 10 browser tabs can fire 10 simultaneous streaming chat requests (each passing the per-user rate-limit check since they are distinct requests in rapid succession before any counter increments). Each request blocks a thread waiting on `DeepSeek` streaming response (5–30 s). At 10 tabs × 30 s, that user monopolises ~10 threads for 30 seconds; at the OS default thread-stack size (~2–8 MB), 200 concurrent connections exhaust 400–1600 MB of RAM. The existing `_enforce_rate_limit()` is count-based (requests/hour) and fires at the top of the handler — it does not track in-flight connections.
+
+**Why it matters:** For a small-VPS deployment (2-4 CPU cores, 2-4 GB RAM) with moderate concurrent users, a single abusive session (or a crash-looping client retrying every second) can absorb enough threads to cause `EAGAIN` / `ECONNREFUSED` for all other users. A simple `threading.Semaphore` global counter (`MAX_STREAM_CONNECTIONS = 20`) that each handler acquires before entering the SSE loop and releases in `finally` would cap worst-case thread consumption. The acquire could use `timeout=0` and return 503 immediately if the limit is reached.
+
+**Complexity:** M — add `_stream_semaphore = threading.Semaphore(MAX_STREAM_CONNECTIONS)` constant (default 20, configurable via env); in the `/api/chat/stream` handler (`app_server.py:~4440`), acquire before entering the generator loop and release in `finally`. Add one integration test that fires `MAX_STREAM_CONNECTIONS + 1` concurrent requests and asserts the last gets 503. Touch: `app_server.py:4440-4688` (streaming handler); `tests/agent/` (new concurrency test).
+
+**Files:** `app_server.py:4440-4688` (streaming chat handler); `tests/agent/` (new concurrency test)
