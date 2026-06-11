@@ -1394,3 +1394,6 @@
 | 23:24 | Session end: 33 writes across 11 files (app_server.py, connection_leak_test.py, index.html, regression-fixed-bugs.test.js, backlog.md) | 13 reads | ~210356 tok |
 | 23:25 | Session end: 33 writes across 11 files (app_server.py, connection_leak_test.py, index.html, regression-fixed-bugs.test.js, backlog.md) | 13 reads | ~210356 tok |
 | 23:35 | Created ../../.claude/daily-logs/2026-06-11.md | — | ~496 |
+| 17:03 | Edited optimization/backlog.md | 2→2 lines | ~37 |
+| 17:03 | Edited optimization/backlog.md | inline fix | ~10 |
+| 17:04 | Created optimization/triage.md | — | ~2023 |
