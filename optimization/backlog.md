@@ -326,3 +326,10 @@ Format per item:
 - description: （owner 提出）OPT-040 修好导入安全后，导入成功仍只弹右下角的「数据已导入」toast（~2.2s 自动消失），owner 第一次导入没注意到。导入是"整体替换账号"的重操作，反馈应更强。
 - why: 重操作（覆盖全账号）需要明确、不易错过的回执；toast 太轻。
 - how: owner 选定"结果弹窗（带数量）"。新增 `<dialog id="importResultDialog">`（居中、单按钮「好的」、列出 书籍/摘抄/记录/关联 各类数量），成功路径用 `showImportResult(state)` 替代成功 toast（dialog 缺失时回落 toast）。遵循项目 dialog 规范：`dialog-form` 放内层 div、带 `aria-labelledby`（延续 OPT-033 无障碍）；样式用主题感知的 `--color-success-*`/`--color-soft-accent`（暗色模式可用）。Touch: `index.html`（新 dialog）、`styles.css`（`.import-result*`）、`app.js`（`showImportResult` + `importData` 成功路径 + OK 按钮）、`tests/frontend/account-import-format.test.js`（断言成功开弹窗）。
+
+### OPT-042 — 快速 OCR 在后端中断时遗留卡死在「识别中」的孤儿摘抄卡 — owner 真机测试发现
+- status: in-progress (PR #38)
+- area: backend + frontend
+- description: （owner 提出）快速识别时后端重启，前端报"连接不上后端"；重试成功，但同一张照片产生**两张卡**：一张「识别完成」，一张永远卡在「识别中」。根因：`/api/quotes/ocr`（`app_server.py`）在**同步快速 OCR 之前**就先 `save_state` 落了一张 `ocrStatus:"pending"` 草稿，之后再存最终状态。两次保存之间若被打断（重启/断连），草稿永久孤立在 `pending`；且第一次失败请求的响应没回到前端，前端没记下草稿 id，重试遂新建第二张卡。无任何回收（stale pending 只改了文案）。
+- why: 静默遗留 + 重复卡，用户无法分辨哪张有效；OCR 是核心录入链路。
+- how: **Fix A（后端）** 快速路径只在 OCR 完成后 `save_state` 一次 → 中断则一张卡都不留；只有异步 AI 路径仍预存 pending 草稿（前端轮询 + 后台任务需要）。**Fix B（前端）** `recoverStalePendingOcr()` 在 `loadSession` 时把超过 staleness 窗口仍 `pending` 的卡（其 OCR 任务必死——重启杀后台线程）翻成 `failed`，复用已有 重试/删除 UI，兼清现有孤儿 + 覆盖 AI 路径。Touch: `app_server.py`（OCR handler 保存时机）、`app.js`（`recoverStalePendingOcr` + `loadSession`）、`tests/agent/ocr_pending_orphan_test.py`（新）、`tests/frontend/ocr-stale-recovery.test.js`（新）。

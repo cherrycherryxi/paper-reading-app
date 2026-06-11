@@ -4579,6 +4579,58 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T12:59:21.368Z"
+    },
+    {
+      "id": "bug-270",
+      "timestamp": "2026-06-11T13:16:15.938Z",
+      "error_message": "Function not marked async",
+      "file": "app_server.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T13:16:15.938Z"
+    },
+    {
+      "id": "bug-271",
+      "timestamp": "2026-06-11T13:17:52.467Z",
+      "error_message": "Missing error handling in hasPendingOcrQuotes",
+      "file": "app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T13:17:52.467Z"
+    },
+    {
+      "id": "bug-272",
+      "timestamp": "2026-06-11T13:40:00.000Z",
+      "error_message": "OPT-042: fast OCR (快速识别) during a backend restart left a quote card stuck forever at ocrStatus:'pending'; the failed request's response never reached the client so a retry created a SECOND card (one photo -> two cards, one 识别完成 + one 识别中 forever)",
+      "file": "app_server.py",
+      "root_cause": "/api/quotes/ocr committed an ocrStatus:'pending' draft via save_state BEFORE running the synchronous fast OCR, then saved again with the final status. An interruption (server restart / dropped connection) between the two saves orphaned the draft at 'pending'. No recovery existed (isStalePendingOcr only changed display text; polling excluded stale pendings).",
+      "fix": "Fix A (backend): fast path now save_state's exactly once, AFTER OCR completes, so an interrupted fast request leaves no card; only the async AI path persists the pending draft up front (client polls + background job loads it). Fix B (frontend app.js): recoverStalePendingOcr() on loadSession flips quotes stuck pending past the staleness window to 'failed' (their job is dead after a restart), reusing the retry/delete UI and cleaning up already-orphaned cards. Tests: tests/agent/ocr_pending_orphan_test.py (3), tests/frontend/ocr-stale-recovery.test.js (3).",
+      "tags": [
+        "ocr",
+        "OPT-042",
+        "orphan",
+        "pending",
+        "server-restart",
+        "py",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T13:40:00.000Z"
     }
   ]
 }

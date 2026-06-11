@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T13:01:04.780Z
-> Files: 127 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T13:24:19.940Z
+> Files: 129 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -52,8 +52,8 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66124 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~43981 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66374 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~43989 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1201 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -154,7 +154,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~8168 tok)
+- `backlog.md` — Optimization Backlog (~8393 tok)
 - `backlog.md` — Optimization Backlog (~7124 tok)
 - `explore.md` — Exploration — new optimization directions (~24791 tok)
 - `explore.md` — Exploration — new optimization directions (~22482 tok)
@@ -193,6 +193,7 @@
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
 - `media_cors_test.py` — Regression test for OPT-023: /media/ route must NOT emit Access-Control-Allow-Origin. (~819 tok)
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
+- `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~4542 tok)
 - `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3253 tok)
@@ -204,6 +205,7 @@
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~2419 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
+- `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19467 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19497 tok)
