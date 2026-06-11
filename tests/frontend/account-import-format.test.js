@@ -174,7 +174,9 @@ test("OPT-040: importing a GDPR file restores its nested content (no wipe)", asy
   await flush();
   assert.equal(h.getState().books.length, 1, "GDPR import must restore books, not import empty");
   assert.equal(h.getState().quotes.length, 1);
-  assert.equal(h.els.toast.textContent, "数据已导入");
+  // OPT-041: success opens a prominent result dialog with a per-type summary.
+  assert.equal(h.els.importResultDialog.open, true, "success must show the import-result dialog");
+  assert.match(h.els.importResultList.innerHTML, /书籍/, "result dialog lists per-type counts");
   assert.equal(h.els.confirmDialog.open, false, "valid non-empty import must not prompt");
 });
 
@@ -196,7 +198,7 @@ test("OPT-040: a file resolving to empty does NOT silently wipe a non-empty acco
   await flush();
   await flush();
   assert.equal(h.getState().books.length, 0, "after explicit confirm the wipe applies");
-  assert.equal(h.els.toast.textContent, "数据已导入");
+  assert.equal(h.els.importResultDialog.open, true, "confirmed import shows the result dialog");
 });
 
 test("OPT-040: invalid JSON shows a parse error and leaves state untouched", async () => {

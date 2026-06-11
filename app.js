@@ -57,6 +57,9 @@ const els = {
   statusFilterChips: document.querySelector("#statusFilterChips"),
   booksResultCount: document.querySelector("#booksResultCount"),
   importInput: document.querySelector("#importInput"),
+  importResultDialog: document.querySelector("#importResultDialog"),
+  importResultList: document.querySelector("#importResultList"),
+  importResultOkBtn: document.querySelector("#importResultOkBtn"),
   importExcelInput: document.querySelector("#importExcelInput"),
   exportButton: document.querySelector("#exportButton"),
   clearLogsBtn: document.querySelector("#clearLogsBtn"),
@@ -2968,6 +2971,29 @@ function stateContentCount(s) {
   );
 }
 
+// Import replaces the whole account, so its success gets a prominent,
+// must-dismiss dialog with a per-type summary (OPT-041) — the bottom-corner
+// toast was too easy to miss. Falls back to a toast if the dialog is absent.
+function showImportResult(s) {
+  const rows = [
+    ["书籍", "本", Array.isArray(s.books) ? s.books.length : 0],
+    ["摘抄", "条", Array.isArray(s.quotes) ? s.quotes.length : 0],
+    ["记录", "条", Array.isArray(s.sessions) ? s.sessions.length : 0],
+    ["关联", "条", Array.isArray(s.connections) ? s.connections.length : 0],
+  ];
+  if (!els.importResultDialog || !els.importResultList) {
+    showToast("数据已导入");
+    return;
+  }
+  els.importResultList.innerHTML = rows
+    .map(
+      ([label, unit, n]) =>
+        `<li><span class="import-result-label">${label}</span><span class="import-result-count">${n} ${unit}</span></li>`
+    )
+    .join("");
+  els.importResultDialog.showModal();
+}
+
 function importData(file) {
   if (!requireAuth("导入数据")) return;
   const reader = new FileReader();
@@ -2984,7 +3010,7 @@ function importData(file) {
       try {
         await syncState();
         render();
-        showToast("数据已导入");
+        showImportResult(state);
       } catch (error) {
         showToast(error.message || "导入失败");
       }
@@ -4031,6 +4057,10 @@ function bindEvents() {
       importData(file);
     }
     event.target.value = "";
+  });
+
+  els.importResultOkBtn?.addEventListener("click", () => {
+    els.importResultDialog?.close();
   });
 
   els.importExcelInput?.addEventListener("change", async (event) => {
