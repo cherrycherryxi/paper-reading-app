@@ -2,33 +2,31 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-11
+Last triaged: 2026-06-12
 
 ## Next up
 
-**OPT-043 — 导入前显示 N→M 对比 + 任一类减少时强确认（P1 / S）**
+本周实现预算已满（近 7 天已有 12 个 auto PR，上限 4），本次不指派
 
-Owner 在 2026-06-11 真机操作中导入了一份旧备份（6/8），把 6/8 之后新增的 3 张摘抄卡整体覆盖丢失，事后靠 SQLite 取证才恢复（bug-274）。OPT-040 的清空护栏只拦"导入内容为 0"的极端情况，不拦"导入旧备份导致数量减少"这一最常见事故场景。修复完全在前端，复用 `stateContentCount`（已有）/ `showConfirmDialog`（已有）/ `resolveImportedState`（已有），约 20–30 行新增代码。
-
-在 `importData()` 的 `applyImport` 调用前，计算当前 vs 待导入各类别数量（books/quotes/sessions/connections）；当任一类 M<N 时，弹 `showConfirmDialog`，措辞强调"将丢失 X 条，确定覆盖？"，取消则中止，继续才执行覆盖。
-
-Key files: `app.js:3028-3065`（`importData` 函数 + diff 计算 helper）；`tests/frontend/account-import-format.test.js`（加断言：M<N 时弹确认、取消不覆盖）。
+近 7 天（2026-06-05 → 2026-06-12）内已开 12 个 `auto/` 分支 PR（#23–#34 + #39），大幅超出 roadmap §5 的每周 4 PR 上限。预算归零前，最高优先级候补为 **OPT-037**（书单首屏 `compareBooksForList` 排序 bug，P1/S，2 行修复）——下次预算重开后优先指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | in-progress (PR #39) | `app.js:3028-3065`（importData）应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。复用 `stateContentCount`/`showConfirmDialog`，纯前端零后端改动。关联 OPT-040/041。 |
-| OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | triaged | `app.js:1060`（compareBooksForList 二级排序）+ `app.js:2465`（书内摘抄排序）：`(b.createdAt\|\|"").localeCompare(...)` → `(Date.parse(b.createdAt)\|\|0) - (Date.parse(a.createdAt)\|\|0)`（降序 b-a）。书单首屏，排序错误直接可见；OPT-014 遗漏点。可选同修 `app.js:2452`（最近活跃书查找）。 |
-| OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4071, 4075`（register handler 4 处 now_iso）→ `utc_now_iso()`。污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），是 OPT-014 UTC 系列最后一块。5 处替换，零逻辑变更。 |
-| OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）仍用 naive 本地时间。3 处替换，与 OPT-014/024/031 UTC 策略对齐。零逻辑变更，零测试变更。 |
-| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P2 | S | triaged | `app_server.py:2872` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。封顶扫描行数，防止 /debug/logs 随运行时间线性变慢。1 行 SQL，可选更新 debug 标签。 |
-| OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P2 | S | triaged | `app_server.py:5461`（_run_gc finally 块）：`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`。WAL 文件数周后累积数十 MB 且永不回收；1 行代码，幂等无副作用。+1 测试断言 in `gc_thread_test.py`。 |
-| OPT-001 | Excel 批量加书入口挪至书单页 | P2 | S | triaged | 入口仅在「我的」抽屉（`index.html:301-306`）。在书单页 `#openBookDialogBtn` 旁（`index.html:78-82`）加「批量导入」二级入口，复用现有 `#importExcelInput` 处理逻辑。Touch: `index.html` only。 |
-| OPT-042 | 快速 OCR 孤儿 pending 卡 | P1 | S | done (PR #38, 2026-06-11) | Fix A：同步 OCR 路径仅在完成后保存一次；Fix B：loadSession 时 `recoverStalePendingOcr()` 把超龄 pending 卡翻成 failed。dev watcher 同步收窄为仅监控 .py（避免前端改动重启后端）。 |
+| OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | triaged | `app.js:1065`（compareBooksForList 二级排序）+ `app.js:2470`（书内摘抄排序）：`(b.createdAt\|\|"").localeCompare(...)` → `(Date.parse(b.createdAt)\|\|0) - (Date.parse(a.createdAt)\|\|0)`（降序 b-a）。书单首屏，排序错误直接可见；OPT-014 遗漏点。可选同修 `app.js:2457`（最近活跃书查找）。roadmap Theme 1「不假思索的默认工具」要求基础可靠。 |
+| OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4071`（register handler created_at + terms_accepted_at）、`app_server.py:4075`（register handler user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。 |
+| OPT-045 | Session/Connection CRUD 前端测试覆盖 | P2 | M | triaged | 新建 `tests/frontend/session-crud.test.js`（renderTimeline/addSession/deleteSession 覆盖，`app.js:1335-1480, 2290-2340`）+ `tests/frontend/connection-crud.test.js`（renderConnections/双向标签/删除，`app.js:720-760`）。Theme 2「回顾有价值」动工前安全网；OPT-027 重构后这两 Tab 无任何守卫。~60-80 行/文件，参照既有 13 个 vm-sandbox 模板。 |
+| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P2 | S | triaged | `app_server.py:2876` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。封顶扫描行数，防止 /debug/logs 随运行时间线性变慢。1 行 SQL，弱北极星（debug 运营工具，不影响阅读主流程）。 |
+| OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5461`（_run_gc finally 块，`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`）。+1 测试断言 in `gc_thread_test.py`。 |
+| OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
+| OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1852, 1876, 1890, 1915, 1935`。 |
+| OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | done (PR #39, 2026-06-12) | signal 2026-06-11：owner 误导入旧备份致 3 张卡丢失。`importData()` 应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。11/11 测试绿。 |
+| OPT-001 | Excel 批量加书入口挪至书单页 | P1 | S | done (PR #40/#41, 2026-06-12) | signal 2026-06-12：owner 明确「这是我最想做的」。书单页 `#openBookDialogBtn` 旁新增圆形按钮入口（PR #40）+ 引导对话框 + 可下载模板（PR #41）。 |
+| OPT-042 | 快速 OCR 孤儿 pending 卡 | P1 | S | done (PR #38, 2026-06-11) | Fix A：同步 OCR 路径仅在完成后保存一次；Fix B：loadSession 时 `recoverStalePendingOcr()` 把超龄 pending 卡翻成 failed。dev watcher 同步收窄为仅监控 .py。 |
 | OPT-041 | 导入成功结果弹窗（带数量） | P1 | S | done (PR #37, 2026-06-11) | 新增 `<dialog id="importResultDialog">` 显示 书/摘抄/记录/关联 各类数量；成功路径调用 `showImportResult(state)` 替代 toast。延续 OPT-033 aria-labelledby 规范。 |
 | OPT-040 | GDPR 导出格式自适应 + 清空护栏 | P1 | M | done (PR #36, 2026-06-11) | `importData()` 检测 `exportFormat/.state` 自动解包；内容为 0 且当前账号非空时二次确认。新增 `resolveImportedState`/`stateContentCount` helper。 |
-| OPT-039 | 连接泄漏：pre-auth/debug 端点未入 _open_conn 安全网 | P1 | M | done (PR #35, 2026-06-11) | 新增 `_open_conn()` helper 统一登记 `self._active_conn`，7 处裸 `get_conn()` 改走它，复用已验证的 `finally` 兜底。3 条新增连接泄漏测试（注入中途异常）。 |
+| OPT-039 | 连接泄漏：pre-auth/debug 端点未入 _open_conn 安全网 | P1 | M | done (PR #35, 2026-06-11) | 新增 `_open_conn()` helper 统一登记 `self._active_conn`，7 处裸 `get_conn()` 改走它，复用已验证的 `finally` 兜底。3 条新增连接泄漏测试。 |
 | OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | done (PR #33, 2026-06-10) | `import html` + `html.escape()` 包裹 /debug/logs、/debug/agent-dashboard 所有用户可控插值点，~10 处替换。 |
 | OPT-033 | `<dialog>` 元素缺少 aria-labelledby（WCAG 4.1.2 Level A） | P1 | S | done (PR #34, 2026-06-11) | 12 个 dialog 各加 `id` 给 `<h2>` + `aria-labelledby` 给 `<dialog>`；confirm 类 dialog 用 `aria-label`。24 处 HTML 属性，零 JS 变更。 |
 | OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | done (PR #32, 2026-06-09) | `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → UTC+Z。MCP 路径写入记录的排序修复（与 OPT-024 同根）。 |
@@ -63,6 +61,6 @@ Key files: `app.js:3028-3065`（`importData` 函数 + diff 计算 helper）；`t
 
 ## Legend
 
-- priority: P0 (do first) / P1 / P2
+- priority: P0 (do first) / P1 / P2 / P3 (parked — no northstar contribution)
 - complexity: S (small, <1 PR) / M (medium) / L (large, should be split)
 - status: new / triaged / in-progress / done
