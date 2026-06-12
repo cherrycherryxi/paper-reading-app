@@ -4746,6 +4746,56 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-12T03:58:37.672Z"
+    },
+    {
+      "id": "bug-280",
+      "timestamp": "2026-06-12T06:56:23.394Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T06:56:23.394Z"
+    },
+    {
+      "id": "bug-281",
+      "timestamp": "2026-06-12T08:01:11.692Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/excel-entry-books-page.test.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→41 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T08:01:11.692Z"
+    },
+    {
+      "id": "bug-282",
+      "timestamp": "2026-06-12T05:55:00Z",
+      "error_message": "owner 真机反馈:书单页 Excel 导入新图标点开直接弹文件选择器,第一次使用没有模板,不知道表格格式无从上传",
+      "file": "index.html / app.js",
+      "root_cause": "PR #40 的入口是 icon-only 按钮直连 input.click(),没有任何格式引导;格式说明只存在于「我的」抽屉的描述文字里",
+      "fix": "PR #41:入口先弹 importExcelDialog 引导框(格式说明+下载模板+选择文件);模板用已加载的 SheetJS 前端生成,表头与 importExcel() 读取列一致;importExcel 跳过「示例：」行",
+      "tags": [
+        "ux",
+        "excel-import",
+        "first-use",
+        "onboarding",
+        "opt-001"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T05:55:00Z"
     }
   ]
 }
