@@ -143,3 +143,5 @@
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
 
 - [2026-05-12] **外网访问方案选型：ngrok（当前）。** 用户 iPhone 已有 VPN，iOS 只允许一个 VPN 配置，故排除 Tailscale。ngrok 免费版够用（个人使用 + 偶尔演示）。每次重启 ngrok 地址会变，这是已知限制，可接受。未来若需要固定域名可迁移至 Cloudflare Tunnel（需购买域名约 ¥60–80/年）。启动命令：`ngrok http 8787`。
+
+- (2026-06-12) Owner 痛点:独自开发缺「宏观决策层」。已建 optimization/roadmap.md(方向层,backlog 是执行层)。关键机制:signals.md 使用信号日志、每周一产品负责人仪式、夜间 implement 每周 ≤4 PR 预算、新 OPT 须写 northstar 行否则 P3。Owner 每天稳定投入 1–2h;项目定位暂按「个人工具打磨到极致」执行,升级触发器写在 roadmap §1。
