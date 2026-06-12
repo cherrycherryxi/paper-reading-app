@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T15:35:56.521Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T19:14:26.902Z
 > Files: 130 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -54,7 +54,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66374 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~43989 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~44586 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1201 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -155,11 +155,11 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~8674 tok)
+- `backlog.md` — Optimization Backlog (~9219 tok)
 - `backlog.md` — Optimization Backlog (~7124 tok)
-- `explore.md` — Exploration — new optimization directions (~24791 tok)
+- `explore.md` — Exploration — new optimization directions (~26958 tok)
 - `explore.md` — Exploration — new optimization directions (~22482 tok)
-- `triage.md` — Triage (~1395 tok)
+- `triage.md` — Triage (~1900 tok)
 - `triage.md` — Triage (~1331 tok)
 
 ## scripts/
@@ -203,7 +203,7 @@
 
 ## tests/frontend/
 
-- `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~2419 tok)
+- `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~3366 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
