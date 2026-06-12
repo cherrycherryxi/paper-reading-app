@@ -61,6 +61,7 @@ const els = {
   importResultList: document.querySelector("#importResultList"),
   importResultOkBtn: document.querySelector("#importResultOkBtn"),
   importExcelInput: document.querySelector("#importExcelInput"),
+  importExcelBooksBtn: document.querySelector("#importExcelBooksBtn"),
   exportButton: document.querySelector("#exportButton"),
   clearLogsBtn: document.querySelector("#clearLogsBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
@@ -4118,6 +4119,12 @@ function bindEvents() {
     if (!file) return;
     await importExcel(file);
     event.target.value = "";
+  });
+
+  // OPT-001: books-page secondary entry forwards to the drawer's hidden
+  // Excel input so both entries share one change handler.
+  els.importExcelBooksBtn?.addEventListener("click", () => {
+    els.importExcelInput?.click();
   });
 
   els.bookEditImageInput?.addEventListener("change", async (event) => {
