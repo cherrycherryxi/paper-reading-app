@@ -28,15 +28,15 @@ Format per item:
 
 ### OPT-001 — Excel 批量加书入口位置
 - status: triaged
-- northstar: 弱——降低批量加书摩擦,但唯一用户已熟知现有入口,对「每天爱用」几乎无增量;Theme 1 沾边。建议 P2 偏低。
+- northstar: 强——owner 2026-06-12 明确表示「这是我最想做的」(最高级别 signal:owner 直接意愿)。Theme 1「采集顺滑」。建议 P1,Next up 候选。
 - area: ux
 - description: Excel 批量加书入口目前在「我的」抽屉里，考虑是否应放到「书单」页面，让用户一眼看到如何快速加书。
 - why: 「我的」是设置类抽屉，新用户不会主动打开找加书功能；首屏「书单」是加书的天然语义位置。
 - how: 在「书单」页空状态 / 加书按钮旁露出"批量从 Excel 导入"二级入口；保留「我的」里的入口作为备用。需对比 UX，不一定全搬。
 
 ### OPT-002 — 「书单」加书支持拍照 OCR 识别
-- status: triaged
-- northstar: 强——直接服务 Theme 1「采集顺滑」(加书也是采集),owner 亲自提出(signal: 2026-05-29 UX backlog)。M/L 复杂度,适合白天功能轨主开发而非夜间 agent。
+- status: done (2026-06-03, commit e90d824 — 「识别封面信息」按钮 + /api/books/ocr;backlog 漏标,2026-06-12 补记)
+- northstar: 强——Theme 1「采集顺滑」,owner 亲自提出。
 - area: backend
 - description: 新增书籍时支持拍照（封面 / 版权页），OCR 自动识别书名、作者、标签，减少手工输入。
 - why: 项目已有 OCR pipeline（Kimi vision + DeepSeek fallback，目前用于摘抄拍照），扩展到加书入口是高价值低成本的复用。

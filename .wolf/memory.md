@@ -1435,3 +1435,8 @@
 | 13:25 | Edited optimization/backlog.md | 6→7 lines | ~80 |
 | 13:56 | backlog 9个未完成项补 northstar 行 + 格式规范加 northstar 字段 | optimization/backlog.md | done | ~3k |
 | 13:56 | Edited optimization/roadmap.md | inline fix | ~33 |
+| 13:57 | Session end: 19 writes across 6 files (CLAUDE.md, backlog.md, feedback_update_stale_docs.md, MEMORY.md, roadmap.md) | 5 reads | ~78896 tok |
+| 14:23 | Edited optimization/backlog.md | 3→3 lines | ~46 |
+| 14:23 | Edited optimization/backlog.md | inline fix | ~28 |
+| 14:23 | Edited optimization/signals.md | 1→2 lines | ~40 |
+| 14:24 | 纠正:OPT-002 补标 done(e90d824)、OPT-001 提为强 northstar/P1 + signals 登记 | backlog.md, signals.md, cerebrum.md | done | ~2k |

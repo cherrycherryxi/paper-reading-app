@@ -145,3 +145,4 @@
 - [2026-05-12] **外网访问方案选型：ngrok（当前）。** 用户 iPhone 已有 VPN，iOS 只允许一个 VPN 配置，故排除 Tailscale。ngrok 免费版够用（个人使用 + 偶尔演示）。每次重启 ngrok 地址会变，这是已知限制，可接受。未来若需要固定域名可迁移至 Cloudflare Tunnel（需购买域名约 ¥60–80/年）。启动命令：`ngrok http 8787`。
 
 - (2026-06-12) Owner 痛点:独自开发缺「宏观决策层」。已建 optimization/roadmap.md(方向层,backlog 是执行层)。关键机制:signals.md 使用信号日志、每周一产品负责人仪式、夜间 implement 每周 ≤4 PR 预算、新 OPT 须写 northstar 行否则 P3。Owner 每天稳定投入 1–2h;项目定位暂按「个人工具打磨到极致」执行,升级触发器写在 roadmap §1。
+- (2026-06-12) Do-Not-Repeat:给 backlog 项判 northstar/优先级时,**不得用自己的臆断覆盖 owner 来源的意愿**——OPT-001 是 owner 亲自提的,我以「唯一用户已熟知入口」为由判'弱',owner 当即纠正「这是我最想做的」。规则:owner 提出/点名的项,northstar 默认为强,除非 owner 自己降级;拿不准就问。另:判优先级前先核状态——OPT-002 早在 2026-06-03 (e90d824) 已实现但 backlog 漏标 done,我没核代码就当它待办。
