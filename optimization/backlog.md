@@ -27,7 +27,7 @@ Format per item:
 ---
 
 ### OPT-001 — Excel 批量加书入口位置
-- status: triaged
+- status: done (PR #40, 2026-06-12 — 书单页 books-search-row 新增圆形按钮,click 转发共享 #importExcelInput 处理链;抽屉入口保留)
 - northstar: 强——owner 2026-06-12 明确表示「这是我最想做的」(最高级别 signal:owner 直接意愿)。Theme 1「采集顺滑」。建议 P1,Next up 候选。
 - area: ux
 - description: Excel 批量加书入口目前在「我的」抽屉里，考虑是否应放到「书单」页面，让用户一眼看到如何快速加书。

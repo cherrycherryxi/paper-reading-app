@@ -77,7 +77,7 @@ C 不设触发器——除非时间预算发生数量级变化。
 
 - [ ] owner 认可本方案(或修订 §1 定位)
 - [x] 创建 `optimization/signals.md`(模板 + 预填 6/11 两条真实事故)— 2026-06-12 完成
-- [ ] 真机复测 OPT-042 / OPT-043
+- [x] 真机复测 OPT-042 / OPT-043 — owner 2026-06-12 确认通过
 - [x] backlog 重排:9 个未完成项已补 `northstar:` 行(2 个 P3 parked:OPT-035 观测一致性、OPT-044 billing 冻结;OPT-032 亦 parked)— 2026-06-12 完成
 - [x] 夜间 agent 提示词已更新(2026-06-12,经 RemoteTrigger API):Agent1 读 roadmap+signals、signal 佐证项加权、无北极星贡献降 P3、每周 ≤4 auto PR 预算阀;Agent2 遇「预算已满/无指派」直接跳过
 - [ ] 下周一第一次产品负责人仪式(定 Theme 1 的第一个焦点)

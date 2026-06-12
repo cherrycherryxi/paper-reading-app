@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T04:34:06.449Z
-> Files: 130 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T06:56:30.782Z
+> Files: 131 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -55,12 +55,12 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66374 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~44586 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 6 more (~44674 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~10282 tok)
+- `index.html` — 🐛 又买了一本书 (~10382 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
@@ -156,10 +156,10 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~9237 tok)
+- `backlog.md` — Optimization Backlog (~9462 tok)
 - `explore.md` — Exploration — new optimization directions (~26958 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~833 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~103 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~123 tok)
 - `triage.md` — Triage (~1900 tok)
 
 ## scripts/
@@ -206,6 +206,7 @@
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~3366 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
+- `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~674 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19467 tok)
