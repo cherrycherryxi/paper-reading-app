@@ -76,8 +76,8 @@ C 不设触发器——除非时间预算发生数量级变化。
 ## 6. 本周落地清单(2026-06-12 起)
 
 - [ ] owner 认可本方案(或修订 §1 定位)
-- [ ] 创建 `optimization/signals.md`(模板 + 第一条:今天想到的任意摩擦)
+- [x] 创建 `optimization/signals.md`(模板 + 预填 6/11 两条真实事故)— 2026-06-12 完成
 - [ ] 真机复测 OPT-042 / OPT-043
 - [ ] backlog 重排:6 new + 3 triaged 补 `northstar:` 行
-- [ ] 夜间 triage agent 的提示词加两条:优先提拔有 signal 佐证的项;尊重每周 4 PR 预算
+- [x] 夜间 agent 提示词已更新(2026-06-12,经 RemoteTrigger API):Agent1 读 roadmap+signals、signal 佐证项加权、无北极星贡献降 P3、每周 ≤4 auto PR 预算阀;Agent2 遇「预算已满/无指派」直接跳过
 - [ ] 下周一第一次产品负责人仪式(定 Theme 1 的第一个焦点)

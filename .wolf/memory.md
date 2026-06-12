@@ -1416,3 +1416,8 @@
 | 12:00 | Session end: 4 writes across 4 files (CLAUDE.md, backlog.md, feedback_update_stale_docs.md, MEMORY.md) | 4 reads | ~77182 tok |
 | 12:12 | Created optimization/roadmap.md | — | ~862 |
 | 12:13 | 写项目推进方案(定位/目标/角色/节奏/质量规则) | optimization/roadmap.md | created | ~4k |
+| 12:13 | Session end: 5 writes across 5 files (CLAUDE.md, backlog.md, feedback_update_stale_docs.md, MEMORY.md, roadmap.md) | 4 reads | ~78106 tok |
+| 12:32 | Created optimization/signals.md | — | ~110 |
+| 12:33 | Edited optimization/roadmap.md | inline fix | ~19 |
+| 12:34 | Edited optimization/roadmap.md | inline fix | ~39 |
+| 12:38 | 建 signals.md + RemoteTrigger 更新 Agent1/Agent2 提示词(signal加权/北极星税/4PR预算阀) | optimization/signals.md, roadmap.md, 远程routine | done | ~5k |
