@@ -1408,3 +1408,8 @@
 | 18:08 | Edited optimization/triage.md | inline fix | ~66 |
 | 19:13 | Edited optimization/explore.md | added error handling | ~2339 |
 | 19:14 | Edited optimization/backlog.md | expanded (+14 lines) | ~593 |
+| 11:58 | Edited CLAUDE.md | inline fix | ~93 |
+| 11:58 | Edited optimization/backlog.md | 2→2 lines | ~38 |
+| 11:58 | Created ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/feedback_update_stale_docs.md | — | ~180 |
+| 11:59 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | 1→2 lines | ~51 |
+| 11:59 | review+merge PR#39 OPT-043; fix stale CLAUDE.md state shape; backlog done | CLAUDE.md, optimization/backlog.md | merged | ~6k |

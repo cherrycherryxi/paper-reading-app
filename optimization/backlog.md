@@ -336,7 +336,7 @@ Format per item:
 - how: **Fix A（后端）** 快速路径只在 OCR 完成后 `save_state` 一次 → 中断则一张卡都不留；只有异步 AI 路径仍预存 pending 草稿（前端轮询 + 后台任务需要）。**Fix B（前端）** `recoverStalePendingOcr()` 在 `loadSession` 时把超过 staleness 窗口仍 `pending` 的卡（其 OCR 任务必死——重启杀后台线程）翻成 `failed`，复用已有 重试/删除 UI，兼清现有孤儿 + 覆盖 AI 路径。Touch: `app_server.py`（OCR handler 保存时机）、`app.js`（`recoverStalePendingOcr` + `loadSession`）、`tests/agent/ocr_pending_orphan_test.py`（新）、`tests/frontend/ocr-stale-recovery.test.js`（新）。
 
 ### OPT-043 — 导入数据应在覆盖前显示「N → M 项」对比 + 二次确认（防误导入旧备份丢数据）
-- status: new
+- status: done (PR #39, merged 2026-06-12 — 夜间 agent 实现；任一类别 M<N 即弹强确认列出丢失项；11/11 测试绿)
 - area: frontend
 - priority: P1
 - complexity: S

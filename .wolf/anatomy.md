@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T19:14:26.902Z
-> Files: 130 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T03:59:04.034Z
+> Files: 131 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -39,7 +39,8 @@
 ## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
 
 - `feedback_reply_in_chinese.md` (~94 tok)
-- `MEMORY.md` (~95 tok)
+- `feedback_update_stale_docs.md` (~188 tok)
+- `MEMORY.md` (~124 tok)
 
 ## ../../.claude/scripts/
 
@@ -56,7 +57,7 @@
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66374 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 7 more (~44586 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
-- `CLAUDE.md` — OpenWolf (~1201 tok)
+- `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~10282 tok)
@@ -155,7 +156,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~9219 tok)
+- `backlog.md` — Optimization Backlog (~9237 tok)
 - `backlog.md` — Optimization Backlog (~7124 tok)
 - `explore.md` — Exploration — new optimization directions (~26958 tok)
 - `explore.md` — Exploration — new optimization directions (~22482 tok)

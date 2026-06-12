@@ -4714,6 +4714,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T19:13:55.371Z"
+    },
+    {
+      "id": "bug-278",
+      "timestamp": "2026-06-12T03:58:22.738Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `{books, sessions, quotes, chatHistories}`",
+      "fix": "Changed to `{books, sessions, quotes, chatHistories, chatCont",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T03:58:22.738Z"
+    },
+    {
+      "id": "bug-279",
+      "timestamp": "2026-06-12T03:58:37.672Z",
+      "error_message": "Wrong reference: new should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"done\"",
+      "fix": "Changed new → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T03:58:37.672Z"
     }
   ]
 }
