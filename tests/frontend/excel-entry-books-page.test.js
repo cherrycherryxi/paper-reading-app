@@ -32,9 +32,44 @@ test("OPT-001: drawer's original entry and input are untouched", () => {
   assert.match(indexHtml, /从 Excel 批量加书[\s\S]*?id="importExcelInput"/, "drawer entry stays as the backup path");
 });
 
-test("OPT-001: app.js forwards the button click to the shared input", () => {
+test("OPT-001: books-page button opens the guide dialog (with input fallback)", () => {
   assert.match(appJs, /importExcelBooksBtn:\s*document\.querySelector\("#importExcelBooksBtn"\)/, "button must be registered in els");
-  const binding = appJs.match(/importExcelBooksBtn\?\.addEventListener\("click",[\s\S]*?\}\);/m);
+  const binding = appJs.match(/importExcelBooksBtn\?\.addEventListener\("click",[\s\S]*?\n  \}\);/m);
   assert.ok(binding, "click binding must exist");
-  assert.match(binding[0], /importExcelInput\?\.click\(\)/, "click must forward to the hidden Excel input");
+  assert.match(binding[0], /importExcelDialog\.showModal\(\)/, "click must open the guide dialog");
+  assert.match(binding[0], /importExcelInput\?\.click\(\)/, "must fall back to the input if the dialog is missing");
+});
+
+test("OPT-001: guide dialog exists with format help, template and file buttons", () => {
+  const dialog = indexHtml.match(/<dialog id="importExcelDialog"[\s\S]*?<\/dialog>/m);
+  assert.ok(dialog, "importExcelDialog must exist");
+  assert.match(dialog[0], /aria-labelledby="import-excel-title"/, "dialog must be labelled (OPT-033 convention)");
+  assert.match(dialog[0], /「书名」/, "format help must mention the required 书名 column");
+  assert.match(dialog[0], /id="downloadExcelTemplateBtn"/, "must offer a template download");
+  assert.match(dialog[0], /id="chooseExcelFileBtn"/, "must offer file selection");
+  assert.match(dialog[0], /id="importExcelCancelBtn"/, "must offer cancel");
+});
+
+test("OPT-001: 选择文件 closes the dialog and forwards to the shared input", () => {
+  const binding = appJs.match(/chooseExcelFileBtn\?\.addEventListener\("click",[\s\S]*?\}\);/m);
+  assert.ok(binding, "choose-file binding must exist");
+  assert.match(binding[0], /importExcelDialog\?\.close\(\)/, "must close the dialog");
+  assert.match(binding[0], /importExcelInput\?\.click\(\)/, "must forward to the hidden Excel input");
+});
+
+test("OPT-001: template generator headers match what importExcel() reads", () => {
+  const fn = appJs.match(/function downloadExcelTemplate\(\)[\s\S]*?\n\}/m);
+  assert.ok(fn, "downloadExcelTemplate must exist");
+  // Every template header must be an alias importExcel() actually looks up.
+  for (const header of ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"]) {
+    assert.match(fn[0], new RegExp(`"${header}"`), `template must include ${header} column`);
+    assert.match(appJs, new RegExp(`getRowField\\(row, \\[[^\\]]*"${header}"`), `importExcel must read the ${header} column`);
+  }
+  assert.match(fn[0], /writeFile/, "must trigger an .xlsx download");
+});
+
+test("OPT-001: importExcel skips the template's example row", () => {
+  assert.match(appJs, /title\.startsWith\("示例："\)/, "example row guard must exist");
+  const fn = appJs.match(/function downloadExcelTemplate\(\)[\s\S]*?\n\}/m);
+  assert.match(fn[0], /"示例：/, "example row title must carry the 示例： prefix the guard skips");
 });

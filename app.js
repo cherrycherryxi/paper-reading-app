@@ -62,6 +62,10 @@ const els = {
   importResultOkBtn: document.querySelector("#importResultOkBtn"),
   importExcelInput: document.querySelector("#importExcelInput"),
   importExcelBooksBtn: document.querySelector("#importExcelBooksBtn"),
+  importExcelDialog: document.querySelector("#importExcelDialog"),
+  downloadExcelTemplateBtn: document.querySelector("#downloadExcelTemplateBtn"),
+  chooseExcelFileBtn: document.querySelector("#chooseExcelFileBtn"),
+  importExcelCancelBtn: document.querySelector("#importExcelCancelBtn"),
   exportButton: document.querySelector("#exportButton"),
   clearLogsBtn: document.querySelector("#clearLogsBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
@@ -3082,6 +3086,24 @@ function importData(file) {
   reader.readAsText(file);
 }
 
+// OPT-001: generate the import template client-side with the same SheetJS
+// build used for parsing, so the downloaded headers always match what
+// importExcel() actually reads.
+function downloadExcelTemplate() {
+  if (!window.XLSX) {
+    showToast("Excel 解析库未加载，请刷新后重试");
+    return;
+  }
+  const headers = ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"];
+  const example = ["示例：百年孤独", "加西亚·马尔克斯", "阅读中", "小说,拉美文学", 360, "2026-06-01", "", "范晔", "布恩迪亚家族七代人的故事", "5"];
+  const sheet = window.XLSX.utils.aoa_to_sheet([headers, example]);
+  sheet["!cols"] = headers.map((h) => ({ wch: h === "书名" || h === "简介" ? 24 : 12 }));
+  const workbook = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(workbook, sheet, "书单");
+  window.XLSX.writeFile(workbook, "书单导入模板.xlsx");
+  showToast("模板已下载，填好后回来选择文件导入");
+}
+
 async function importExcel(file) {
   if (!requireAuth("导入 Excel")) return;
   if (!window.XLSX) {
@@ -3110,6 +3132,8 @@ async function importExcel(file) {
     for (const row of rows) {
       const title = String(getRowField(row, ["书名", "图书名称", "title", "Title"])).trim();
       if (!title) continue;
+      // Skip the template's example row if the user forgot to delete it.
+      if (title.startsWith("示例：")) continue;
       const author = String(getRowField(row, ["作者", "author", "Author"])).trim();
       if (seenBooks.some((book) => isSameBook(title, author, book.title, book.author))) continue;
 
@@ -4121,10 +4145,28 @@ function bindEvents() {
     event.target.value = "";
   });
 
-  // OPT-001: books-page secondary entry forwards to the drawer's hidden
+  // OPT-001: books-page secondary entry opens a guide dialog first (format
+  // help + downloadable template); "选择文件" forwards to the drawer's hidden
   // Excel input so both entries share one change handler.
   els.importExcelBooksBtn?.addEventListener("click", () => {
+    if (els.importExcelDialog) {
+      els.importExcelDialog.showModal();
+    } else {
+      els.importExcelInput?.click();
+    }
+  });
+
+  els.chooseExcelFileBtn?.addEventListener("click", () => {
+    els.importExcelDialog?.close();
     els.importExcelInput?.click();
+  });
+
+  els.importExcelCancelBtn?.addEventListener("click", () => {
+    els.importExcelDialog?.close();
+  });
+
+  els.downloadExcelTemplateBtn?.addEventListener("click", () => {
+    downloadExcelTemplate();
   });
 
   els.bookEditImageInput?.addEventListener("change", async (event) => {

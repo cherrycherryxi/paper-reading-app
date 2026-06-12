@@ -563,6 +563,23 @@
       </div>
     </dialog>
 
+    <!-- Excel batch import guide dialog (OPT-001) -->
+    <dialog id="importExcelDialog" aria-labelledby="import-excel-title">
+      <div class="dialog-form">
+        <div class="section-head">
+          <h2 id="import-excel-title">从 Excel 批量加书</h2>
+          <p>表格首行需含「书名」列（必填）。可选列：作者 / 状态（想读、阅读中、已读完、暂停）/ 标签 / 总页数 / 开始时间 / 完成时间 / 译者 / 简介 / 喜欢程度。已存在的书不会重复导入。</p>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" id="downloadExcelTemplateBtn">下载模板</button>
+          <button type="button" class="button button-primary" id="chooseExcelFileBtn">选择文件</button>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" id="importExcelCancelBtn">取消</button>
+        </div>
+      </div>
+    </dialog>
+
     <!-- Password reset request dialog -->
     <dialog id="forgotPasswordDialog" aria-labelledby="forgot-password-dialog-label">
       <form id="forgotPasswordForm" class="dialog-form">
