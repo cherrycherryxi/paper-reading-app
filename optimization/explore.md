@@ -820,3 +820,65 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** M — add `_stream_semaphore = threading.Semaphore(MAX_STREAM_CONNECTIONS)` constant (default 20, configurable via env); in the `/api/chat/stream` handler (`app_server.py:~4440`), acquire before entering the generator loop and release in `finally`. Add one integration test that fires `MAX_STREAM_CONNECTIONS + 1` concurrent requests and asserts the last gets 503. Touch: `app_server.py:4440-4688` (streaming handler); `tests/agent/` (new concurrency test).
 
 **Files:** `app_server.py:4440-4688` (streaming chat handler); `tests/agent/` (new concurrency test)
+
+---
+
+## 2026-06-12
+
+### E70 — Tab navigation `<nav>` missing `role="tablist"`, `role="tab"`, and `aria-selected` — screen readers announce 6 anonymous buttons (WCAG 4.1.2 Level A) (S)
+
+**What:** `<nav class="mobile-tabs" id="mobileTabs">` at `index.html:679` contains 6 `<button>` elements (`data-tab="books"`, `session`, `quote`, `chat`, `connections`, `me`) that form the app's primary navigation. `activateTab()` at `app.js:1627-1633` switches them by toggling a CSS `active` class on buttons and `tab-active` on panels. No ARIA attributes are set: there is no `role="tablist"` on the nav, no `role="tab"` on the buttons, no `aria-selected` to communicate selected/deselected state, no `aria-controls` linking buttons to their panels, and no `id` on the panel `<section>` elements for that link to target. When a screen reader user focuses the nav, they hear "书单 button, 记录 button, …" — 6 unlabeled buttons with no indication that they form a tab widget or which one is currently active.
+
+**Why it matters:** WCAG 2.1 SC 4.1.2 (Name, Role, Value — Level A) requires interactive components to expose their role and current state to assistive technology. The ARIA tab pattern — `role="tablist"` on the container, `role="tab"` + `aria-selected="true/false"` on each button, `role="tabpanel"` + `aria-labelledby` on each panel — is the standard expected by screen readers for this interaction model. Without it, screen reader users cannot discover which tab is selected, cannot use the standard arrow-key navigation shortcut for tabs, and are effectively locked out of the primary app structure. The fix is ~12 HTML attribute additions and 1 JS line in `activateTab()`.
+
+**Complexity:** S — add `role="tablist"` to `index.html:679`; add `role="tab"` + `aria-selected="true"/"false"` + `aria-controls="<panel-id>"` to each of the 6 `<button>` elements (6×3 attrs); add matching `id` attributes + `role="tabpanel"` + `aria-labelledby` to each `<section data-tab-section>` (6 panels × 3 attrs); in `activateTab()` at `app.js:1629`, add one line to update `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`. Touch: `index.html:679-704` (nav + buttons), `index.html:72-160` (panel sections), `app.js:1628-1630`.
+
+**Files:** `index.html:679-704` (tab nav); `index.html:72-160` (panel `<section>` elements); `app.js:1627-1633` (`activateTab`)
+
+---
+
+### E71 — `deleteBook` confirmation shows only the book title — cascade count (N quotes, M sessions) not mentioned; users lose data silently (S)
+
+**What:** `deleteBook()` at `app.js:2066-2122` cascades: it removes all quotes, sessions, chat histories, and connections associated with the book. The confirmation dialog at line 2072 sets only `els.deleteBookMessage.textContent = book.title` — showing only the book title. A user with 30 quotes and 15 sessions under the book has no warning they're about to lose 45 records. The dialog text at `index.html:529` says "确定删除这本书吗？" with no mention of what else will be deleted. By contrast, OPT-043 (just shipped) added pre-import cascade warnings for the same class of silent data loss; the same principle applies here.
+
+**Why it matters:** The data loss is irreversible — there is no undo path. The cascade includes quote images stored under `/uploads/<user_id>/` (a GC job would clean orphaned files, but the state data is gone). A user who accidentally confirms a book deletion loses all their quote cards, reading sessions, and annotations for that book with no recovery path (unless they have a recent export). Showing "删除《书名》还将同时删除 N 张摘抄、M 条记录和 K 个关联" takes ~5 lines of JS and directly matches the safety precedent of OPT-043.
+
+**Complexity:** S — in `deleteBook()` at `app.js:2069`, add: `const qCount = state.quotes.filter(q => q.bookId === bookId).length; const sCount = state.sessions.filter(s => s.bookId === bookId).length;`. If either is non-zero, append the cascade summary to the message string before showing the dialog. Touch: `app.js:2069-2073` (4 lines inserted before existing dialog show).
+
+**Files:** `app.js:2066-2073` (`deleteBook`); `index.html:526-537` (`deleteBookDialog` — message line may need to be a full sentence rather than a bare title)
+
+---
+
+### E72 — Login/register forms missing `autocomplete` attributes — password managers fail to auto-fill; WCAG 1.3.5 Level AA (S)
+
+**What:** The login form at `index.html:247-248` has `<input name="username" type="text" ...>` and `<input name="password" type="password" ...>` with no `autocomplete` attribute. The registration form at `index.html:255-257` has the same gap on `username`, `email`, and `password` inputs. The search inputs (`booksSearchInput`, `sessionSearch`, etc.) correctly carry `autocomplete="off"` — the problem is specific to the two auth forms. Without `autocomplete="current-password"` on the login password field, iOS Safari and Chrome on Android don't offer to fill from the keychain (they fall back to URL-based heuristics which often fail for same-domain SPA apps). Without `autocomplete="new-password"` on the registration password field, browsers may auto-complete an old password rather than generate and save a new one.
+
+**Why it matters:** WCAG 2.1 SC 1.3.5 (Identify Input Purpose — Level AA) requires inputs that collect personal data to carry `autocomplete` tokens so assistive technology — including switch control and voice control — can fill them automatically. For a mobile-first Chinese reading app, iOS Face ID / WeChat keychain autofill is a key UX convenience; the absence of `autocomplete` tokens blocks it. The fix is 5 HTML attribute additions with zero JS or backend changes.
+
+**Complexity:** S — add `autocomplete="username"` to `index.html:247` (login username) and `index.html:255` (register username); `autocomplete="current-password"` to `index.html:248` (login password); `autocomplete="email"` to `index.html:256` (register email); `autocomplete="new-password"` to `index.html:257` (register password). Touch: `index.html:247-257`.
+
+**Files:** `index.html:247-257` (login + register form inputs)
+
+---
+
+### E73 — `resolve_user_from_token` writes `last_seen_at = now_iso()` (naive local time) while `gc_expired_sessions` compares a UTC-naive-Z cutoff — sessions survive ~8 extra hours past expiry on UTC+8 servers (S)
+
+**What:** `resolve_user_from_token()` at `app_server.py:1473` executes `conn.execute("UPDATE sessions SET last_seen_at = ? WHERE token = ?", (now_iso(), token))`. `now_iso()` returns naive local time (e.g. `2026-06-12T22:00:00` on UTC+8). `gc_expired_sessions()` at `app_server.py:1481` computes its deletion cutoff as `utc_iso_z_from_epoch(time.time() - days * 86400)` — a UTC-naive-Z string (e.g. `2026-05-13T14:00:00.000000Z`). The SQL comparison `DELETE FROM sessions WHERE last_seen_at < cutoff` compares these two different-timezone strings lexicographically. On UTC+8, naive-local strings are 8h "ahead" of their UTC equivalents (`T22:00` vs `T14:00Z`), so sessions on UTC+8 always appear `+8h` fresher than they actually are — they survive approximately 8 hours past their intended expiry window before GC removes them.
+
+**Why it matters:** Sessions that should expire at T continue to work until T+8h on UTC+8 servers. For the 30-day `SESSION_LIFETIME_DAYS`, the effective session window is 30 days 8 hours instead of 30 days. While low-severity, this is the last remaining naive-time write in the authentication critical path, and it interacts directly with the GC system. Migrating to `utc_now_iso()` (1-character change from `now_iso`) also pairs naturally with E23's threshold-write proposal (reduce write frequency by adding `if time.time() - last_seen_epoch > 300:` guard), so both fixes can land together.
+
+**Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:1473`. Optionally add the 300-second guard from E23 in the same diff. Touch: `app_server.py:1473`.
+
+**Files:** `app_server.py:1473` (`resolve_user_from_token` last_seen_at update); `app_server.py:1466-1474` (session expiry + update block)
+
+---
+
+### E74 — `PromptBuilder.all_books_summary` injected without count limit — 500-book users pay ~8,000 extra tokens per chat request (S)
+
+**What:** `PromptBuilder.build_chat_prompt()` at `app_server.py:2326-2329` always injects `all_books_summary` as the full list of every book in the user's library: `[{"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")} for b in user_state.get("books", [])]` — no limit. OPT-020 already addressed a similar waste (`existing_connections[:20]` conditionally excluded for book/quote context) but did not cap `all_books_summary`. A power user with 500 books injects ~500 × 3 fields: assuming 16-char IDs, 25-char titles, 15-char authors = ~56 chars per entry × 500 = 28,000 chars ≈ 7,000 tokens added to every chat system prompt, unconditionally. The system instructions (lines 2359, 2363) reference `all_books_summary` IDs only for `link_thought` target selection — and OPT-020's rationale was that `link_thought` is only generated when the user explicitly asks. The `all_books_summary` is therefore wasted for 80%+ of requests in the same way `existing_connections` was.
+
+**Why it matters:** OPT-020 reduced per-request token waste by ~150 tokens and was shipped immediately as a cost saving. The `all_books_summary` issue is proportionally larger: a 500-book user wastes 7,000 tokens/request × 240 requests/day = 1,680,000 tokens/day in redundant book summaries. The fix is the same conditional pattern as OPT-020: cap at `[:50]` (enough for `link_thought` target selection) and only include books beyond the current one for the `link_thought` use case. Alternatively, inject only `{"count": N}` plus the top-10 most-recently-active books as a minimal summary when no `link_thought` use is expected.
+
+**Complexity:** S — change `app_server.py:2326-2329` to cap `all_books_summary` at the 50 most-recently-active books: `[...books_sorted_by_recency...][:50]`. For extra savings, exclude the current book from `all_books_summary` (it's already in the `book` field). This is a 2-line change with zero behavior change for the 95%+ of users with fewer than 50 books. Touch: `app_server.py:2326-2329`.
+
+**Files:** `app_server.py:2312-2331` (`PromptBuilder.build_chat_prompt`); no test changes needed.
