@@ -3057,6 +3057,25 @@ function importData(file) {
       });
       return;
     }
+    // Decrease guard (OPT-043): importing an older backup silently shrinks
+    // counts in one or more categories — the most common real data-loss
+    // scenario (bug-274). Require explicit confirmation listing what will be lost.
+    const _categoryLabels = { books: "书籍", quotes: "摘抄", sessions: "记录", connections: "关联" };
+    const _losses = Object.entries(_categoryLabels)
+      .map(([key, label]) => {
+        const cur = Array.isArray(state[key]) ? state[key].length : 0;
+        const inc = Array.isArray(resolved[key]) ? resolved[key].length : 0;
+        return inc < cur ? `${label} ${cur - inc} 条` : null;
+      })
+      .filter(Boolean);
+    if (_losses.length > 0) {
+      showConfirmDialog({
+        message: `导入备份后将丢失：${_losses.join("、")}。确定用这份备份覆盖当前数据？`,
+        confirmLabel: "确认覆盖（将丢失上述数据）",
+        onConfirm: applyImport,
+      });
+      return;
+    }
     await applyImport();
   };
   reader.readAsText(file);

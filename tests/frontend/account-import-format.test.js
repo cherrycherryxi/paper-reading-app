@@ -212,3 +212,69 @@ test("OPT-040: invalid JSON shows a parse error and leaves state untouched", asy
   assert.equal(h.getState().books.length, 1, "parse failure must not change state");
   assert.equal(h.els.toast.textContent, "文件解析失败，请选择有效的备份 JSON");
 });
+
+// --- OPT-043: decrease guard ---
+
+test("OPT-043: importing fewer books than current prompts a high-danger confirm", async () => {
+  const h = createHarness();
+  // Current account has 3 books and 5 quotes; backup only has 1 book and 5 quotes.
+  h.setState({ ...emptyState(), books: [{ id: "b1" }, { id: "b2" }, { id: "b3" }], quotes: [{ id: "q1" }, { id: "q2" }, { id: "q3" }, { id: "q4" }, { id: "q5" }] });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  const backup = { books: [{ id: "b1" }], sessions: [], quotes: [{ id: "q1" }, { id: "q2" }, { id: "q3" }, { id: "q4" }, { id: "q5" }] };
+  h.importData({ __text: JSON.stringify(backup) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, true, "must prompt when any category shrinks");
+  assert.match(h.els.confirmDialogMessage.textContent, /书籍/, "message must mention the shrinking category");
+  assert.match(h.els.confirmDialogMessage.textContent, /2 条/, "message must state the count lost");
+  assert.equal(h.getState().books.length, 3, "account untouched until confirmed");
+});
+
+test("OPT-043: cancelling the decrease-guard prompt leaves state untouched", async () => {
+  const h = createHarness();
+  h.setState({ ...emptyState(), books: [{ id: "b1" }, { id: "b2" }] });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  const backup = { books: [{ id: "b1" }], sessions: [], quotes: [] };
+  h.importData({ __text: JSON.stringify(backup) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, true);
+  // Cancel: do NOT click confirmBtn — only cancel
+  h.els.confirmDialogCancelBtn._click();
+  await flush();
+  assert.equal(h.getState().books.length, 2, "cancel must leave state unchanged");
+  assert.equal(h.els.importResultDialog.open, false, "result dialog must not appear on cancel");
+});
+
+test("OPT-043: confirming the decrease-guard prompt applies the import", async () => {
+  const h = createHarness();
+  h.setState({ ...emptyState(), books: [{ id: "b1" }, { id: "b2" }], quotes: [{ id: "q1" }, { id: "q2" }, { id: "q3" }] });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  const backup = { books: [{ id: "b1" }], sessions: [], quotes: [] };
+  h.importData({ __text: JSON.stringify(backup) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, true);
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+  await flush();
+  assert.equal(h.getState().books.length, 1, "after confirm the backup is applied");
+  assert.equal(h.getState().quotes.length, 0);
+  assert.equal(h.els.importResultDialog.open, true, "result dialog shown after confirmed import");
+});
+
+test("OPT-043: importing same or more items in all categories skips the guard", async () => {
+  const h = createHarness();
+  h.setState({ ...emptyState(), books: [{ id: "b1" }], quotes: [{ id: "q1" }] });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  const backup = { books: [{ id: "b1" }, { id: "b2" }], sessions: [], quotes: [{ id: "q1" }, { id: "q2" }] };
+  h.importData({ __text: JSON.stringify(backup) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, false, "no prompt when all categories are same or larger");
+  assert.equal(h.getState().books.length, 2, "import applied directly");
+});
