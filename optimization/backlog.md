@@ -18,6 +18,7 @@ Format per item:
 ### OPT-NNN — <short title>
 - status: new | triaged | in-progress | done
 - area: frontend | backend | agent | wechat | infra | ux
+- northstar: <对北极星(roadmap §2)的贡献,一句话;写不出来 → 自动 P3 parked(roadmap §5 北极星税)>
 - description: <what>
 - why: <motivation / value>
 - how: <implementation hint, files to touch>
@@ -27,6 +28,7 @@ Format per item:
 
 ### OPT-001 — Excel 批量加书入口位置
 - status: triaged
+- northstar: 弱——降低批量加书摩擦,但唯一用户已熟知现有入口,对「每天爱用」几乎无增量;Theme 1 沾边。建议 P2 偏低。
 - area: ux
 - description: Excel 批量加书入口目前在「我的」抽屉里，考虑是否应放到「书单」页面，让用户一眼看到如何快速加书。
 - why: 「我的」是设置类抽屉，新用户不会主动打开找加书功能；首屏「书单」是加书的天然语义位置。
@@ -34,6 +36,7 @@ Format per item:
 
 ### OPT-002 — 「书单」加书支持拍照 OCR 识别
 - status: triaged
+- northstar: 强——直接服务 Theme 1「采集顺滑」(加书也是采集),owner 亲自提出(signal: 2026-05-29 UX backlog)。M/L 复杂度,适合白天功能轨主开发而非夜间 agent。
 - area: backend
 - description: 新增书籍时支持拍照（封面 / 版权页），OCR 自动识别书名、作者、标签，减少手工输入。
 - why: 项目已有 OCR pipeline（Kimi vision + DeepSeek fallback，目前用于摘抄拍照），扩展到加书入口是高价值低成本的复用。
@@ -257,6 +260,7 @@ Format per item:
 
 ### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
 - status: triaged
+- northstar: 无直接贡献(磁盘卫生,仅间接长期可靠性)。按 roadmap §5 北极星税 → P3 parked,预算富余周再做。
 - area: backend
 - description: `get_conn()` 在 `app_server.py:334` 启动时设置 `PRAGMA journal_mode = WAL`，但从未显式触发完整检查点（TRUNCATE 模式）。SQLite 默认的自动检查点（PASSIVE，1000 页阈值）在并发读负载下遇到活跃 reader 时会跳过，不回收 WAL 文件磁盘空间。`_run_gc()` 每 6 小时运行一次，使用独立 connection，是执行显式检查点的天然位置。
 - why: 每天 240 次写入、持续运行数周后，WAL 文件可累积至数十 MB 且永不收缩。`PRAGMA wal_checkpoint(TRUNCATE)` 等待所有 reader 退出后将 WAL 清零，一行代码即可消除这一静默磁盘泄漏。该调用是幂等且无副作用的——若无 WAL 页需要刷盘，调用直接返回。
@@ -278,6 +282,7 @@ Format per item:
 
 ### OPT-035 — `TraceManager` 三个方法使用 `now_iso()` (naive 本地时间)，与项目 UTC 时间戳策略不一致 — 由 explore E56 提拔
 - status: new
+- northstar: 无直接贡献(纯内部观测时间戳一致性,用户不可见)。→ P3 parked。
 - area: backend
 - description: `TraceManager.create_trace()`（`app_server.py:2676`）、`log_event()`（line 2695）、`update_trace()`（line 2702）均调用 `now_iso()` 写入 `agent_traces` 和 `agent_trace_events` 表的 `created_at`/`updated_at`。项目已通过 OPT-014/024/031 将所有用户可见时间戳迁移到 `utc_now_iso()`，但 `TraceManager` 属于独立类，在上述修复中被遗漏。`/debug/agent-dashboard` 展示这些时间戳，`/api/account/export` 也包含 `agentTraces`。
 - why: 同一服务器上的时间戳自洽，但服务器时区变更（Docker rebuild、云迁移）后新旧记录产生 +8h 断层；与 `user_state.updated_at`（已是 UTC）进行关联分析时会出现虚假偏移。修复仅需将 3 处 `now_iso()` 替换为 `utc_now_iso()`，零逻辑变更，零测试变更。
@@ -285,6 +290,7 @@ Format per item:
 
 ### OPT-036 — `summarize_metrics()` 对全量历史数据做 O(n) 扫描——每次打开 `/debug/logs` 线性变慢 — 由 explore E40 提拔
 - status: new
+- northstar: 弱——debug 看板是运营工具,变慢影响监控 AI 质量,不影响阅读主流程。P2 偏低。
 - area: backend
 - description: `MetricsCollector.summarize_metrics()`（`app_server.py:2870-2940`）执行 `SELECT … FROM agent_metrics WHERE user_id = ?`，无任何时间过滤，无 `LIMIT`。Plus 用户每天 240 次请求，一年后 `agent_metrics` 表超 87,000 行；每次 `/debug/logs` 或 `/debug/metrics` 加载都触发完整拉取 + 逐行 `json.loads()`，延迟随使用时长线性增长。`idx_agent_metrics_user` 索引（OPT-017）避免了跨用户扫描，但仍返回该用户所有历史行。
 - why: debug 看板是运营者监控 AI 质量的主要工具，打开速度越来越慢会直接影响日常运营。90 天滚动窗口覆盖所有实用的调试历史（配置变更、模型升级、回归分析），同时将最大扫描行数封顶在约 21,600 行。修复仅需在 SQL WHERE 子句追加一个时间条件，一行代码。
@@ -292,6 +298,7 @@ Format per item:
 
 ### OPT-037 — `compareBooksForList()` 对 `createdAt` 仍用 `localeCompare` 字符串排序——OPT-014 防御性修复遗漏了书单排序 — 由 explore E61 提拔
 - status: new
+- northstar: 中——书单是首屏主视图,排序错误直接可见;「不假思索的默认工具」要求基础可靠。两行修复,夜间预算内优选。P1。
 - area: frontend
 - description: `compareBooksForList()`（`app.js:1026`）对同状态书籍做二级排序时使用 `(b.createdAt || "").localeCompare(a.createdAt || "")`。OPT-014 已将 `renderQuotes()` 改为 `Date.parse(b.createdAt) - Date.parse(a.createdAt)` 防御性修复，但 `compareBooksForList()` 未同步。另 `app.js:2431` 用同一模式查找最近活跃书籍。OPT-024/031 完成后所有时间戳已统一 UTC+Z，但 `localeCompare` 在同一秒内对有毫秒（`...000Z`）与无毫秒（`...Z`）的字符串排序结果相反（"Z" ASCII 90 > "." ASCII 46），导致 agent 创建的书籍与用户创建的书籍在同秒添加时顺序错误。
 - why: OPT-014 的修复原则是"全部时间戳改为 epoch 数值比较"；`compareBooksForList()` 是遗漏的执行点。书单是 App 首屏主视图，排序错误直接可见。修复是 2 处各一行代码，零风险。
@@ -299,6 +306,7 @@ Format per item:
 
 ### OPT-038 — 用户注册与 `ensure_user_state()` 使用 `now_iso()` 写入 `user_state.updated_at`——与 `save_state()` 的 `utc_now_iso()` 不一致，污染乐观锁版本字段 — 由 explore E65 提拔
 - status: new
+- northstar: 中——乐观锁是防跨设备丢数据机制(bug-274 同类痛点,数据安全链路),版本字段污染可致锁失效。P2。
 - area: backend
 - description: 用户注册处理器（`app_server.py:4057-4061`）用 `now_iso()` 写入 `users.created_at`、`users.terms_accepted_at` 和首条 `user_state.updated_at`；`ensure_user_state()`（`app_server.py:676`）同样用 `now_iso()` 写入 `user_state.updated_at`（INSERT OR IGNORE 路径）。而 `save_state()`（`app_server.py:704`）已改用 `utc_now_iso()`。OPT-030（乐观锁）以 `user_state.updated_at` 作为版本号返回给客户端（`stateVersion`）；新用户的首个 `stateVersion` 是 naive 本地时间，后续所有写入是 UTC+Z，造成版本字段在同一列内格式不一致（初始行 naive，更新行 UTC）。
 - why: 完成 OPT-014 系列（OPT-024/031/035）的最后一块拼图。`users.created_at` 出现在账号导出和 `/api/session` 响应中；naive 时间戳与其他 UTC 字段不一致。最关键的是 `ensure_user_state()` 的 naive `updated_at`：若新注册用户在首次 `PUT /api/state` 前被并发 GC 或 schema 迁移触发 `ensure_user_state()` 重写，版本字段会被重置为 naive，后续乐观锁比较将持续失败直到用户发起 PUT（覆盖为 UTC）。5 处替换，零逻辑变更。
@@ -347,6 +355,7 @@ Format per item:
 
 ### OPT-044 — `payments` 表 `created_at`/`updated_at` 使用 `now_iso()`（naive 本地时间），`plan_expires_at` 用 `datetime.fromtimestamp()` 转换 Stripe 时间戳为本地时间 — 由 explore E67 提拔
 - status: new
+- northstar: 无——billing 已按 roadmap §1 冻结,冻结期间财务表时间戳无用户价值。→ P3 parked,直至项目定位升级到 C(认真做产品)。
 - area: backend
 - description: Stripe webhook handler（`app_server.py:1850-1940`）在所有 4 处 `payments` INSERT 中用 `now_iso()` 写入 `created_at`/`updated_at`（约 lines 1852, 1890, 1915, 1935）。`period_end_iso`（line 1876）将 Stripe 的 UTC Unix 时间戳 `period_end` 用 `datetime.fromtimestamp(int(period_end)).isoformat()` 转为 naive 本地时间后存入 `users.plan_expires_at`。UTC 清理系列（OPT-014/024/031/035/038, E56/E58/E60/E63/E64/E65）已覆盖所有其他表；`payments` 是唯一尚未迁移的财务审计表。
 - why: 财务记录应使用无歧义时区的时间戳。服务器迁移时区后，历史账单行与新行不可比较；`plan_expires_at` 若后续迁移为 UTC+Z，`_parse_iso_to_epoch()` 当前的 naive 解析将使订阅到期检查偏差 ±TZ_OFFSET 小时（详见 E66）。4 处 `now_iso()` 替换 + 1 处 `datetime.fromtimestamp` 修正，零逻辑变更，零测试变更。
@@ -354,6 +363,7 @@ Format per item:
 
 ### OPT-045 — Session 和 Connection CRUD 无前端 JS 测试覆盖——四个主 Tab 中两个对回归免疫 — 由 explore E68 提拔
 - status: new
+- northstar: 中——Session 是最高频日常写入、Connection 是差异化功能;回归守卫是 Theme 2「回顾有价值」动工前的安全网。P2,宜在 Theme 2 开始前完成。
 - area: frontend
 - description: `tests/frontend/` 共 13 个测试文件，书单 Tab（`book-duplicate.test.js` 等）和摘抄 Tab（`quote-content-display.test.js` 等）均有覆盖，但**记录（Session）Tab** 和**关联（Connection）Tab** 无任何专项前端 JS 测试。`renderTimeline()`（`app.js:1335-1480`，~145 行，含日期分组、状态筛选、卡片事件绑定）及 `addSession()`/`deleteSession()`（`app.js:2290-2340`）均无测试。`renderConnections()`（`app.js:720-760`）和关联增删改亦无测试。OPT-027 刚对所有 4 个 Tab 卡面做了统一 ⋯ 菜单重构，无测试保护的代码已被重要改动过一次。
 - why: Session 是最高频的日常写入操作（每次阅读结束记一条）；Connection 是 app 的差异化功能。两者均无 regression 守卫，任何未来重构都是盲目的。Node vm-sandbox 测试模式已有 13 个文件的既成模板，新增测试文件不需要运行服务器、不依赖新框架。
