@@ -1457,3 +1457,10 @@
 | 16:01 | Edited tests/frontend/excel-entry-books-page.test.js | modified downloadExcelTemplate() | ~780 |
 | 16:03 | Edited optimization/signals.md | 1→2 lines | ~47 |
 | 16:04 | OPT-001 收尾:引导框+下载模板(PR #41)+ signals/buglog 登记 | index.html, app.js, signals.md, buglog.json | merged | ~6k |
+| 17:06 | Created optimization/triage.md | — | ~2083 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~31 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~31 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~36 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~46 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~49 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~29 |
