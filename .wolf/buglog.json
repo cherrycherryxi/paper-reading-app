@@ -4812,6 +4812,38 @@
       "related_bugs": [],
       "occurrences": 6,
       "last_seen": "2026-06-12T17:07:05.145Z"
+    },
+    {
+      "id": "bug-284",
+      "timestamp": "2026-06-13T03:34:46.545Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/newproj.sh",
+      "root_cause": "Had \"?是否在此目录 git init?[Y/n] \"",
+      "fix": "Changed to \"是否在此目录 git init?[Y/n] \"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T03:34:55.265Z"
+    },
+    {
+      "id": "bug-285",
+      "timestamp": "2026-06-13T08:27:09.470Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T08:27:17.499Z"
     }
   ]
 }
