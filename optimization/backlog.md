@@ -384,3 +384,11 @@ Format per item:
 - description: `tests/frontend/` 共 13 个测试文件，书单 Tab（`book-duplicate.test.js` 等）和摘抄 Tab（`quote-content-display.test.js` 等）均有覆盖，但**记录（Session）Tab** 和**关联（Connection）Tab** 无任何专项前端 JS 测试。`renderTimeline()`（`app.js:1335-1480`，~145 行，含日期分组、状态筛选、卡片事件绑定）及 `addSession()`/`deleteSession()`（`app.js:2290-2340`）均无测试。`renderConnections()`（`app.js:720-760`）和关联增删改亦无测试。OPT-027 刚对所有 4 个 Tab 卡面做了统一 ⋯ 菜单重构，无测试保护的代码已被重要改动过一次。
 - why: Session 是最高频的日常写入操作（每次阅读结束记一条）；Connection 是 app 的差异化功能。两者均无 regression 守卫，任何未来重构都是盲目的。Node vm-sandbox 测试模式已有 13 个文件的既成模板，新增测试文件不需要运行服务器、不依赖新框架。
 - how: 新建 `tests/frontend/session-crud.test.js`（用 fixture 渲染，断言卡片计数、状态筛选、deleteSession 调用 syncState、菜单触发删除确认）；新建 `tests/frontend/connection-crud.test.js`（用 fixture 渲染，断言双向标签解析、搜索筛选、deleteConnection 路径）。约 60-80 行/文件。Touch: `tests/frontend/`（新建两文件）；`app.js:1335-1480, 2290-2340, 720-760`（不改代码，仅测试现有行为）。
+
+### OPT-048 — `#chatMessages` 缺少 `role="log"` live region，屏幕阅读器无法感知新消息（WCAG 4.1.3 AA） — 由 explore E75 提拔
+- status: new
+- area: frontend
+- northstar: 弱——延续已有 a11y 系列（OPT-013/018/019/033/046），Chat 是 AI 对话核心入口，`role="log"` 使 AA 级合规在对话模块闭环。S 复杂度，1 行 HTML + 1 条测试。
+- description: `<div id="chatMessages" class="chat-messages chat-messages-inline">` at `index.html:177` has no `role="log"`, `aria-live`, or `aria-relevant` attribute. `chat.js` never sets any live-region attribute on this element. Without `role="log"` (which implies `aria-live="polite"` + `aria-relevant="additions text"`), screen readers do not announce incoming AI replies as they stream in. The `a11y-baseline.test.js` already guards OPT-013/018/019 but has no assertion for this gap.
+- why: Chat是 AI 交互的主界面。缺少 live region，屏幕阅读器用户每次交换后必须手动导航到消息列表——无法听到实时回复。与 OPT-019（toast `role="status"`）性质完全相同，修复量更小（1 个 HTML 属性 + 1 条测试断言），零 JS/backend 改动。
+- how: `index.html:177`：在 `<div id="chatMessages">` 上加 `role="log"`。`tests/frontend/a11y-baseline.test.js`：新增一个 test 块，断言 `#chatMessages` 元素存在且 `role="log"`。Touch: `index.html:177`；`tests/frontend/a11y-baseline.test.js`。
