@@ -1473,3 +1473,5 @@
 | 19:12 | Edited optimization/explore.md | expanded (+62 lines) | ~2763 |
 | 19:13 | Edited optimization/backlog.md | expanded (+16 lines) | ~564 |
 | 03:00 | explore run: identified E70-E74 (tab ARIA, deleteBook cascade, autocomplete, session GC UTC, all_books_summary cap); promoted E70→OPT-046, E74→OPT-047 | optimization/explore.md, optimization/backlog.md | done | ~6000 |
+| 10:17 | Edited optimization/explore.md | modified What() | ~198 |
+| 10:17 | 核正 E71 错误前提(删书确认已有级联警告,缺的只是具体数量) | optimization/explore.md | corrected | ~2k |

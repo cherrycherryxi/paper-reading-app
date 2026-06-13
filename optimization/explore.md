@@ -837,9 +837,11 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E71 — `deleteBook` confirmation shows only the book title — cascade count (N quotes, M sessions) not mentioned; users lose data silently (S)
+### E71 — `deleteBook` confirmation warns about the cascade but not the *concrete counts* (N quotes, M sessions) (S)
 
-**What:** `deleteBook()` at `app.js:2066-2122` cascades: it removes all quotes, sessions, chat histories, and connections associated with the book. The confirmation dialog at line 2072 sets only `els.deleteBookMessage.textContent = book.title` — showing only the book title. A user with 30 quotes and 15 sessions under the book has no warning they're about to lose 45 records. The dialog text at `index.html:529` says "确定删除这本书吗？" with no mention of what else will be deleted. By contrast, OPT-043 (just shipped) added pre-import cascade warnings for the same class of silent data loss; the same principle applies here.
+> ⚠️ 前提已核正(2026-06-13,owner + 核代码):原标题与正文称「cascade not mentioned / 确定删除这本书吗？ with no mention / users lose data silently」**均不实**。`index.html:533` 已有静态警告「⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。」,级联删除(`app.js:2080-2101`)也干净。真正缺的只是具体数量。本条据此降级,见下。
+
+**What(已修正):** `deleteBook()`(`app.js:2066-2122`)级联删除该书的 quotes/sessions/chatHistories/connections,且确认框 `index.html:529-539` **已含**类别级警告(line 533)。唯一不足:`els.deleteBookMessage`(line 2072)只填 `book.title`,未给出**具体条数**。一个该书下有 30 摘抄、15 记录的用户看不到「将删除 45 条」的量级。性质:不是「静默丢数据」(类别警告已防),而是「让既有警告更具体」的低风险 UX 增强,思路同 OPT-043 但等级低得多。Touch: `app.js:2072`(填入按 bookId 统计的 quotes/sessions 数)。northstar 弱-中,不紧急。
 
 **Why it matters:** The data loss is irreversible — there is no undo path. The cascade includes quote images stored under `/uploads/<user_id>/` (a GC job would clean orphaned files, but the state data is gone). A user who accidentally confirms a book deletion loses all their quote cards, reading sessions, and annotations for that book with no recovery path (unless they have a recent export). Showing "删除《书名》还将同时删除 N 张摘抄、M 条记录和 K 个关联" takes ~5 lines of JS and directly matches the safety precedent of OPT-043.
 
