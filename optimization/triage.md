@@ -2,26 +2,30 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-12
+Last triaged: 2026-06-13
 
 ## Next up
 
-本周实现预算已满（近 7 天已有 12 个 auto PR，上限 4），本次不指派
+本周实现预算已满（近 7 天已有 10 个 auto PR，上限 4），本次不指派
 
-近 7 天（2026-06-05 → 2026-06-12）内已开 12 个 `auto/` 分支 PR（#23–#34 + #39），大幅超出 roadmap §5 的每周 4 PR 上限。预算归零前，最高优先级候补为 **OPT-037**（书单首屏 `compareBooksForList` 排序 bug，P1/S，2 行修复）——下次预算重开后优先指派。
+近 7 天（2026-06-06 → 2026-06-13）内已开 10 个 `auto/` 分支 PR（#25–#34 + #39），大幅超出 roadmap §5 的每周 4 PR 上限。预算归零前不指派任何实现任务。
+
+**预算重开后首选：OPT-047**（`PromptBuilder.all_books_summary` 无数量上限，P1/S）——northstar「强」，与已落地的 OPT-020 同一机制，规模是 OPT-020 的 50×（500 书用户每次请求多注入 ~7,000 tokens，每日 240 请求 = 168 万多余 tokens），修复仅需 `app_server.py:2326-2329` 加排序 + `[:50]` 截断，零逻辑变更，零测试变更。贡献 Theme 1「采集顺滑」（降低 API 延迟与成本）。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | triaged | `app.js:1065`（compareBooksForList 二级排序）+ `app.js:2470`（书内摘抄排序）：`(b.createdAt\|\|"").localeCompare(...)` → `(Date.parse(b.createdAt)\|\|0) - (Date.parse(a.createdAt)\|\|0)`（降序 b-a）。书单首屏，排序错误直接可见；OPT-014 遗漏点。可选同修 `app.js:2457`（最近活跃书查找）。roadmap Theme 1「不假思索的默认工具」要求基础可靠。 |
-| OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4071`（register handler created_at + terms_accepted_at）、`app_server.py:4075`（register handler user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。 |
-| OPT-045 | Session/Connection CRUD 前端测试覆盖 | P2 | M | triaged | 新建 `tests/frontend/session-crud.test.js`（renderTimeline/addSession/deleteSession 覆盖，`app.js:1335-1480, 2290-2340`）+ `tests/frontend/connection-crud.test.js`（renderConnections/双向标签/删除，`app.js:720-760`）。Theme 2「回顾有价值」动工前安全网；OPT-027 重构后这两 Tab 无任何守卫。~60-80 行/文件，参照既有 13 个 vm-sandbox 模板。 |
-| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P2 | S | triaged | `app_server.py:2876` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。封顶扫描行数，防止 /debug/logs 随运行时间线性变慢。1 行 SQL，弱北极星（debug 运营工具，不影响阅读主流程）。 |
+| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | triaged | `app_server.py:2326-2329`：`for b in user_state.get("books", [])` → 按 `updatedAt` 倒序后取 `[:50]`，全局上下文同限制，book/quote 上下文可更激进截 20。northstar「强」，OPT-020 同类已证可落地，500 书用户每日节省 168 万 tokens。Theme 1「采集顺滑」+ 成本控制。 |
+| OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 给 `<nav>` 加 `role="tablist"`，6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1631` `activateTab()` 补一行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 是最严格合规等级，Tab 是 App 主导航骨架，northstar「中」。 |
+| OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
+| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P2 | S | triaged | `app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。封顶扫描行数，防止 /debug/logs 随运行时间线性变慢。1 行 SQL，northstar「弱」（debug 运营工具，不影响阅读主流程）。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5461`（_run_gc finally 块，`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`）。+1 测试断言 in `gc_thread_test.py`。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
-| OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1852, 1876, 1890, 1915, 1935`。 |
+| OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1876, 1852, 1890, 1915, 1935`。 |
+| OPT-045 | Session/Connection CRUD 前端测试覆盖 | P2 | M | done (PR #43, 2026-06-13) | 新增 `tests/frontend/session-crud.test.js` + `tests/frontend/connection-crud.test.js`，17 条测试；159/159 全绿，未改 app.js。 |
 | OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | done (PR #39, 2026-06-12) | signal 2026-06-11：owner 误导入旧备份致 3 张卡丢失。`importData()` 应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。11/11 测试绿。 |
+| OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | done (PR #42, 2026-06-13) | `app.js:1026`（compareBooksForList 二级排序）+ `app.js:2431`（最近活跃书查找）：`localeCompare` → `Date.parse` 数值比较。142/142 测试绿。OPT-014 遗漏执行点，书单首屏排序修复。 |
 | OPT-001 | Excel 批量加书入口挪至书单页 | P1 | S | done (PR #40/#41, 2026-06-12) | signal 2026-06-12：owner 明确「这是我最想做的」。书单页 `#openBookDialogBtn` 旁新增圆形按钮入口（PR #40）+ 引导对话框 + 可下载模板（PR #41）。 |
 | OPT-042 | 快速 OCR 孤儿 pending 卡 | P1 | S | done (PR #38, 2026-06-11) | Fix A：同步 OCR 路径仅在完成后保存一次；Fix B：loadSession 时 `recoverStalePendingOcr()` 把超龄 pending 卡翻成 failed。dev watcher 同步收窄为仅监控 .py。 |
 | OPT-041 | 导入成功结果弹窗（带数量） | P1 | S | done (PR #37, 2026-06-11) | 新增 `<dialog id="importResultDialog">` 显示 书/摘抄/记录/关联 各类数量；成功路径调用 `showImportResult(state)` 替代 toast。延续 OPT-033 aria-labelledby 规范。 |

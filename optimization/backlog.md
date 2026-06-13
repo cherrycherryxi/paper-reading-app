@@ -362,7 +362,7 @@ Format per item:
 - how: 将 `app_server.py:~1852, ~1890, ~1915, ~1935` 的 `now_iso()` 替换为 `utc_now_iso()`；将 `app_server.py:1876` 的 `datetime.fromtimestamp(int(period_end)).isoformat(timespec="seconds")` 改为 `datetime.fromtimestamp(int(period_end), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`（`timezone` 已 import）。Touch: `app_server.py:1876, 1852, 1890, 1915, 1935`。
 
 ### OPT-046 — Tab 导航缺少 ARIA role/aria-selected 属性，屏幕阅读器无法感知 Tab 切换（WCAG 4.1.2 Level A） — 由 explore E70 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——无障碍合规是商业化基线，Level A 违规比 Level AA 更严重；Tab 是 App 主骨架，修不好其他 ARIA 修复意义减半。P1 候选，S 复杂度。
 - description: `<nav class="mobile-tabs">` 的 6 个 `<button>` 无 `role="tablist"`/`role="tab"`/`aria-selected`/`aria-controls`，`activateTab()` 只切换 CSS class，不更新任何 ARIA 状态。屏幕阅读器用户听到的是 6 个匿名按钮，无选中/未选中提示，无法用箭头键按 ARIA tab 模式导航。
@@ -370,7 +370,7 @@ Format per item:
 - how: `index.html:679` 加 `role="tablist"`；6 个 `<button>` 各加 `role="tab"` + `aria-selected` + `aria-controls="<panel-id>"`；6 个 `<section data-tab-section>` 各加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补一行 `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`。Touch: `index.html:72-160, 679-704`；`app.js:1628-1630`。
 
 ### OPT-047 — `PromptBuilder.all_books_summary` 无数量上限，500 本书用户每次对话多注入 ~7000 tokens — 由 explore E74 提拔
-- status: new
+- status: triaged
 - area: agent
 - northstar: 强——直接降低 DeepSeek API 用量/成本，与 OPT-020（`existing_connections` 条件注入）同类，OPT-020 已证明 P1 可落地。Theme 1「采集顺滑」 + 成本控制。
 - description: `PromptBuilder.build_chat_prompt()` 的 `all_books_summary`（`app_server.py:2326-2329`）是用户全量书单，无 LIMIT。500 本书 × ~56 字符 ≈ 28,000 字符 ≈ 7,000 tokens，每次请求都注入，无条件。`all_books_summary` 仅在 `link_thought` 时用于 targetId 验证，而 OPT-020 已说明 link_thought 只在用户明确要求时才返回——即 80%+ 的请求里这 7,000 tokens 是无效注入。Plus 用户每日 240 请求 × 7,000 tokens = 168 万 tokens/天多余消耗。
