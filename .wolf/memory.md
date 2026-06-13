@@ -1463,3 +1463,13 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 17:06 | Created optimization/triage.md | — | ~2083 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~31 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~31 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~36 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~46 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~49 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~29 |
+| 19:12 | Edited optimization/explore.md | expanded (+62 lines) | ~2763 |
+| 19:13 | Edited optimization/backlog.md | expanded (+16 lines) | ~564 |
+| 03:00 | explore run: identified E70-E74 (tab ARIA, deleteBook cascade, autocomplete, session GC UTC, all_books_summary cap); promoted E70→OPT-046, E74→OPT-047 | optimization/explore.md, optimization/backlog.md | done | ~6000 |

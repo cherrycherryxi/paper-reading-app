@@ -281,7 +281,7 @@ Format per item:
 - how: 在 `app_server.py` 顶部 imports 中加 `import html`；在 `/debug/logs`（lines 3848-3885）、`/debug/errors`（~line 3917）、`/debug/agent-dashboard`（~line 3950）的 HTML builder 中，将 `{row['prompt']}`、`{row['input']}`、`{row['output']}`、`{row['username']}`、`{row['error']}`、`{action['errorMessage']}`、`{json.dumps(action['data'],...)}`（这些由 `json.dumps` 已是字符串，仍需转义 `<>&`）全部替换为 `{html.escape(str(…))}`。约 10 处替换，无逻辑变更，无测试变更（可加一条回归断言：插入 `<script>` 消息后 debug HTML 中不含 `<script>`）。Touch: `app_server.py:3848-3885`；扫描 ~3917、~3950 同类块。
 
 ### OPT-035 — `TraceManager` 三个方法使用 `now_iso()` (naive 本地时间)，与项目 UTC 时间戳策略不一致 — 由 explore E56 提拔
-- status: new
+- status: triaged
 - northstar: 无直接贡献(纯内部观测时间戳一致性,用户不可见)。→ P3 parked。
 - area: backend
 - description: `TraceManager.create_trace()`（`app_server.py:2676`）、`log_event()`（line 2695）、`update_trace()`（line 2702）均调用 `now_iso()` 写入 `agent_traces` 和 `agent_trace_events` 表的 `created_at`/`updated_at`。项目已通过 OPT-014/024/031 将所有用户可见时间戳迁移到 `utc_now_iso()`，但 `TraceManager` 属于独立类，在上述修复中被遗漏。`/debug/agent-dashboard` 展示这些时间戳，`/api/account/export` 也包含 `agentTraces`。
@@ -289,7 +289,7 @@ Format per item:
 - how: 将 `app_server.py:2676, 2695, 2702` 的 `now_iso()` 替换为 `utc_now_iso()`。Touch: `app_server.py:2676, 2695, 2702`（TraceManager 类）。
 
 ### OPT-036 — `summarize_metrics()` 对全量历史数据做 O(n) 扫描——每次打开 `/debug/logs` 线性变慢 — 由 explore E40 提拔
-- status: new
+- status: triaged
 - northstar: 弱——debug 看板是运营工具,变慢影响监控 AI 质量,不影响阅读主流程。P2 偏低。
 - area: backend
 - description: `MetricsCollector.summarize_metrics()`（`app_server.py:2870-2940`）执行 `SELECT … FROM agent_metrics WHERE user_id = ?`，无任何时间过滤，无 `LIMIT`。Plus 用户每天 240 次请求，一年后 `agent_metrics` 表超 87,000 行；每次 `/debug/logs` 或 `/debug/metrics` 加载都触发完整拉取 + 逐行 `json.loads()`，延迟随使用时长线性增长。`idx_agent_metrics_user` 索引（OPT-017）避免了跨用户扫描，但仍返回该用户所有历史行。
@@ -297,7 +297,7 @@ Format per item:
 - how: 在 `app_server.py:2875` 的 `WHERE user_id = ?` 后追加 `AND created_at > datetime('now', '-90 days')`；在 debug 看板 section 标题字符串中更新为"近 90 天汇总"（约 1 处 JS/HTML 字符串）。Touch: `app_server.py:2870-2878`；可选 `app.js` 或 debug HTML 模板中更新标签。
 
 ### OPT-037 — `compareBooksForList()` 对 `createdAt` 仍用 `localeCompare` 字符串排序——OPT-014 防御性修复遗漏了书单排序 — 由 explore E61 提拔
-- status: new
+- status: triaged
 - northstar: 中——书单是首屏主视图,排序错误直接可见;「不假思索的默认工具」要求基础可靠。两行修复,夜间预算内优选。P1。
 - area: frontend
 - description: `compareBooksForList()`（`app.js:1026`）对同状态书籍做二级排序时使用 `(b.createdAt || "").localeCompare(a.createdAt || "")`。OPT-014 已将 `renderQuotes()` 改为 `Date.parse(b.createdAt) - Date.parse(a.createdAt)` 防御性修复，但 `compareBooksForList()` 未同步。另 `app.js:2431` 用同一模式查找最近活跃书籍。OPT-024/031 完成后所有时间戳已统一 UTC+Z，但 `localeCompare` 在同一秒内对有毫秒（`...000Z`）与无毫秒（`...Z`）的字符串排序结果相反（"Z" ASCII 90 > "." ASCII 46），导致 agent 创建的书籍与用户创建的书籍在同秒添加时顺序错误。
@@ -305,7 +305,7 @@ Format per item:
 - how: 将 `app.js:1026` 的 `(b.createdAt || "").localeCompare(a.createdAt || "")` 改为 `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)`（降序 = b - a）；同样修复 `app.js:2431`。Touch: `app.js:1026, 2431`。
 
 ### OPT-038 — 用户注册与 `ensure_user_state()` 使用 `now_iso()` 写入 `user_state.updated_at`——与 `save_state()` 的 `utc_now_iso()` 不一致，污染乐观锁版本字段 — 由 explore E65 提拔
-- status: new
+- status: triaged
 - northstar: 中——乐观锁是防跨设备丢数据机制(bug-274 同类痛点,数据安全链路),版本字段污染可致锁失效。P2。
 - area: backend
 - description: 用户注册处理器（`app_server.py:4057-4061`）用 `now_iso()` 写入 `users.created_at`、`users.terms_accepted_at` 和首条 `user_state.updated_at`；`ensure_user_state()`（`app_server.py:676`）同样用 `now_iso()` 写入 `user_state.updated_at`（INSERT OR IGNORE 路径）。而 `save_state()`（`app_server.py:704`）已改用 `utc_now_iso()`。OPT-030（乐观锁）以 `user_state.updated_at` 作为版本号返回给客户端（`stateVersion`）；新用户的首个 `stateVersion` 是 naive 本地时间，后续所有写入是 UTC+Z，造成版本字段在同一列内格式不一致（初始行 naive，更新行 UTC）。
@@ -354,15 +354,31 @@ Format per item:
 - 关联: OPT-040（导入格式自适应 + 空内容护栏）、OPT-041（导入结果弹窗）。三者同属"导入数据安全"链路。
 
 ### OPT-044 — `payments` 表 `created_at`/`updated_at` 使用 `now_iso()`（naive 本地时间），`plan_expires_at` 用 `datetime.fromtimestamp()` 转换 Stripe 时间戳为本地时间 — 由 explore E67 提拔
-- status: new
+- status: triaged
 - northstar: 无——billing 已按 roadmap §1 冻结,冻结期间财务表时间戳无用户价值。→ P3 parked,直至项目定位升级到 C(认真做产品)。
 - area: backend
 - description: Stripe webhook handler（`app_server.py:1850-1940`）在所有 4 处 `payments` INSERT 中用 `now_iso()` 写入 `created_at`/`updated_at`（约 lines 1852, 1890, 1915, 1935）。`period_end_iso`（line 1876）将 Stripe 的 UTC Unix 时间戳 `period_end` 用 `datetime.fromtimestamp(int(period_end)).isoformat()` 转为 naive 本地时间后存入 `users.plan_expires_at`。UTC 清理系列（OPT-014/024/031/035/038, E56/E58/E60/E63/E64/E65）已覆盖所有其他表；`payments` 是唯一尚未迁移的财务审计表。
 - why: 财务记录应使用无歧义时区的时间戳。服务器迁移时区后，历史账单行与新行不可比较；`plan_expires_at` 若后续迁移为 UTC+Z，`_parse_iso_to_epoch()` 当前的 naive 解析将使订阅到期检查偏差 ±TZ_OFFSET 小时（详见 E66）。4 处 `now_iso()` 替换 + 1 处 `datetime.fromtimestamp` 修正，零逻辑变更，零测试变更。
 - how: 将 `app_server.py:~1852, ~1890, ~1915, ~1935` 的 `now_iso()` 替换为 `utc_now_iso()`；将 `app_server.py:1876` 的 `datetime.fromtimestamp(int(period_end)).isoformat(timespec="seconds")` 改为 `datetime.fromtimestamp(int(period_end), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`（`timezone` 已 import）。Touch: `app_server.py:1876, 1852, 1890, 1915, 1935`。
 
-### OPT-045 — Session 和 Connection CRUD 无前端 JS 测试覆盖——四个主 Tab 中两个对回归免疫 — 由 explore E68 提拔
+### OPT-046 — Tab 导航缺少 ARIA role/aria-selected 属性，屏幕阅读器无法感知 Tab 切换（WCAG 4.1.2 Level A） — 由 explore E70 提拔
 - status: new
+- area: frontend
+- northstar: 中——无障碍合规是商业化基线，Level A 违规比 Level AA 更严重；Tab 是 App 主骨架，修不好其他 ARIA 修复意义减半。P1 候选，S 复杂度。
+- description: `<nav class="mobile-tabs">` 的 6 个 `<button>` 无 `role="tablist"`/`role="tab"`/`aria-selected`/`aria-controls`，`activateTab()` 只切换 CSS class，不更新任何 ARIA 状态。屏幕阅读器用户听到的是 6 个匿名按钮，无选中/未选中提示，无法用箭头键按 ARIA tab 模式导航。
+- why: WCAG 2.1 SC 4.1.2（Name, Role, Value — Level A）要求 Tab 组件声明正确的 role 并在切换时同步 `aria-selected`。Level A 是商业化最严格的合规等级；这 6 个 Tab 是 App 的主导航骨架，修复后所有后续 ARIA 修复才有完整语义上下文。修复是纯加法（HTML 属性 + 1 行 JS），零逻辑变更，零风险。
+- how: `index.html:679` 加 `role="tablist"`；6 个 `<button>` 各加 `role="tab"` + `aria-selected` + `aria-controls="<panel-id>"`；6 个 `<section data-tab-section>` 各加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补一行 `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`。Touch: `index.html:72-160, 679-704`；`app.js:1628-1630`。
+
+### OPT-047 — `PromptBuilder.all_books_summary` 无数量上限，500 本书用户每次对话多注入 ~7000 tokens — 由 explore E74 提拔
+- status: new
+- area: agent
+- northstar: 强——直接降低 DeepSeek API 用量/成本，与 OPT-020（`existing_connections` 条件注入）同类，OPT-020 已证明 P1 可落地。Theme 1「采集顺滑」 + 成本控制。
+- description: `PromptBuilder.build_chat_prompt()` 的 `all_books_summary`（`app_server.py:2326-2329`）是用户全量书单，无 LIMIT。500 本书 × ~56 字符 ≈ 28,000 字符 ≈ 7,000 tokens，每次请求都注入，无条件。`all_books_summary` 仅在 `link_thought` 时用于 targetId 验证，而 OPT-020 已说明 link_thought 只在用户明确要求时才返回——即 80%+ 的请求里这 7,000 tokens 是无效注入。Plus 用户每日 240 请求 × 7,000 tokens = 168 万 tokens/天多余消耗。
+- why: OPT-020 以同样的逻辑节省了 ~150 tokens/请求并立即落地。`all_books_summary` 的问题规模是 OPT-020 的 50×，修复方式也完全一致：加 `[:50]` 上限（覆盖 95%+ 用户全量，对重度用户截断）+ 按最近活跃书排序。S 复杂度，零逻辑变更，零测试变更。
+- how: `app_server.py:2326-2329`：将 `for b in user_state.get("books", [])` 改为先按 `b.get("updatedAt","")` 倒序排列再取 `[:50]`。或更激进：当 `book_id` 存在时（book/quote 上下文），仅保留当前书 + 近 20 本（`link_thought` 极少跨 50 本）；全局上下文保留 `[:50]`。Touch: `app_server.py:2326-2329`。
+
+### OPT-045 — Session 和 Connection CRUD 无前端 JS 测试覆盖——四个主 Tab 中两个对回归免疫 — 由 explore E68 提拔
+- status: triaged
 - northstar: 中——Session 是最高频日常写入、Connection 是差异化功能;回归守卫是 Theme 2「回顾有价值」动工前的安全网。P2,宜在 Theme 2 开始前完成。
 - area: frontend
 - description: `tests/frontend/` 共 13 个测试文件，书单 Tab（`book-duplicate.test.js` 等）和摘抄 Tab（`quote-content-display.test.js` 等）均有覆盖，但**记录（Session）Tab** 和**关联（Connection）Tab** 无任何专项前端 JS 测试。`renderTimeline()`（`app.js:1335-1480`，~145 行，含日期分组、状态筛选、卡片事件绑定）及 `addSession()`/`deleteSession()`（`app.js:2290-2340`）均无测试。`renderConnections()`（`app.js:720-760`）和关联增删改亦无测试。OPT-027 刚对所有 4 个 Tab 卡面做了统一 ⋯ 菜单重构，无测试保护的代码已被重要改动过一次。
