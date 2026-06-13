@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T19:13:16.868Z
-> Files: 131 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-13T08:27:17.480Z
+> Files: 141 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -13,6 +13,7 @@
 
 ## ../../.claude/
 
+- `CLAUDE.md` — 全局工作约定（跨项目） (~300 tok)
 - `settings.json` (~1052 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
@@ -36,14 +37,26 @@
 - `opt-003-buzzing-graham.md` — OPT-003 — 自动适配不同手机机型 (~880 tok)
 - `opt-016-agile-fog.md` — OPT-016 — 摘抄拍照后用非 AI 工具自动提取全文（快速录入备选） (~1344 tok)
 
+## ../../.claude/playbook/
+
+- `PLAYBOOK.md` — 个人项目推进 Playbook (~685 tok)
+
+## ../../.claude/playbook/templates/
+
+- `agent-pipeline-prompts.md` — 夜间三 agent 流水线提示词模板 (~1438 tok)
+- `roadmap.template.md` — 项目推进方案（roadmap） (~191 tok)
+- `signals.template.md` — Signals — 真实使用信号日志 (~64 tok)
+
 ## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
 
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~124 tok)
+- `MEMORY.md` (~158 tok)
+- `reference_global_playbook.md` (~332 tok)
 
 ## ../../.claude/scripts/
 
+- `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `weekly-report.sh` (~274 tok)
 
 ## ../../Library/LaunchAgents/
@@ -55,7 +68,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66374 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 6 more (~45179 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 6 more (~45284 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -156,8 +169,8 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~9974 tok)
-- `explore.md` — Exploration — new optimization directions (~29523 tok)
+- `backlog.md` — Optimization Backlog (~10014 tok)
+- `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~147 tok)
 - `triage.md` — Triage (~1953 tok)
@@ -205,12 +218,15 @@
 
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~3366 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
+- `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
+- `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19467 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19497 tok)
+- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~2616 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3132 tok)
 
 ## wechat-miniprogram/

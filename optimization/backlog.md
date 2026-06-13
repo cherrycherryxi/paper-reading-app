@@ -297,7 +297,7 @@ Format per item:
 - how: 在 `app_server.py:2875` 的 `WHERE user_id = ?` 后追加 `AND created_at > datetime('now', '-90 days')`；在 debug 看板 section 标题字符串中更新为"近 90 天汇总"（约 1 处 JS/HTML 字符串）。Touch: `app_server.py:2870-2878`；可选 `app.js` 或 debug HTML 模板中更新标签。
 
 ### OPT-037 — `compareBooksForList()` 对 `createdAt` 仍用 `localeCompare` 字符串排序——OPT-014 防御性修复遗漏了书单排序 — 由 explore E61 提拔
-- status: triaged
+- status: done (PR #42, 2026-06-13 — 三处 createdAt/updatedAt 改 Date.parse 数值比较;142/142 测试绿)
 - northstar: 中——书单是首屏主视图,排序错误直接可见;「不假思索的默认工具」要求基础可靠。两行修复,夜间预算内优选。P1。
 - area: frontend
 - description: `compareBooksForList()`（`app.js:1026`）对同状态书籍做二级排序时使用 `(b.createdAt || "").localeCompare(a.createdAt || "")`。OPT-014 已将 `renderQuotes()` 改为 `Date.parse(b.createdAt) - Date.parse(a.createdAt)` 防御性修复，但 `compareBooksForList()` 未同步。另 `app.js:2431` 用同一模式查找最近活跃书籍。OPT-024/031 完成后所有时间戳已统一 UTC+Z，但 `localeCompare` 在同一秒内对有毫秒（`...000Z`）与无毫秒（`...Z`）的字符串排序结果相反（"Z" ASCII 90 > "." ASCII 46），导致 agent 创建的书籍与用户创建的书籍在同秒添加时顺序错误。
@@ -378,7 +378,7 @@ Format per item:
 - how: `app_server.py:2326-2329`：将 `for b in user_state.get("books", [])` 改为先按 `b.get("updatedAt","")` 倒序排列再取 `[:50]`。或更激进：当 `book_id` 存在时（book/quote 上下文），仅保留当前书 + 近 20 本（`link_thought` 极少跨 50 本）；全局上下文保留 `[:50]`。Touch: `app_server.py:2326-2329`。
 
 ### OPT-045 — Session 和 Connection CRUD 无前端 JS 测试覆盖——四个主 Tab 中两个对回归免疫 — 由 explore E68 提拔
-- status: triaged
+- status: done (PR #43, 2026-06-13 — 新增 session-crud + connection-crud 两测试文件 17 条;159/159 测试绿;未改 app.js)
 - northstar: 中——Session 是最高频日常写入、Connection 是差异化功能;回归守卫是 Theme 2「回顾有价值」动工前的安全网。P2,宜在 Theme 2 开始前完成。
 - area: frontend
 - description: `tests/frontend/` 共 13 个测试文件，书单 Tab（`book-duplicate.test.js` 等）和摘抄 Tab（`quote-content-display.test.js` 等）均有覆盖，但**记录（Session）Tab** 和**关联（Connection）Tab** 无任何专项前端 JS 测试。`renderTimeline()`（`app.js:1335-1480`，~145 行，含日期分组、状态筛选、卡片事件绑定）及 `addSession()`/`deleteSession()`（`app.js:2290-2340`）均无测试。`renderConnections()`（`app.js:720-760`）和关联增删改亦无测试。OPT-027 刚对所有 4 个 Tab 卡面做了统一 ⋯ 菜单重构，无测试保护的代码已被重要改动过一次。
