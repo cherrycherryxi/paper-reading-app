@@ -146,3 +146,4 @@
 
 - (2026-06-12) Owner 痛点:独自开发缺「宏观决策层」。已建 optimization/roadmap.md(方向层,backlog 是执行层)。关键机制:signals.md 使用信号日志、每周一产品负责人仪式、夜间 implement 每周 ≤4 PR 预算、新 OPT 须写 northstar 行否则 P3。Owner 每天稳定投入 1–2h;项目定位暂按「个人工具打磨到极致」执行,升级触发器写在 roadmap §1。
 - (2026-06-12) Do-Not-Repeat:给 backlog 项判 northstar/优先级时,**不得用自己的臆断覆盖 owner 来源的意愿**——OPT-001 是 owner 亲自提的,我以「唯一用户已熟知入口」为由判'弱',owner 当即纠正「这是我最想做的」。规则:owner 提出/点名的项,northstar 默认为强,除非 owner 自己降级;拿不准就问。另:判优先级前先核状态——OPT-002 早在 2026-06-03 (e90d824) 已实现但 backlog 漏标 done,我没核代码就当它待办。
+- (2026-06-13) 夜间 Agent3(explore)提示词已加「EVIDENCE RULE」硬约束:断言任何现有代码缺陷/缺失前必须 Read 核实并引用 file:line,禁止臆造 UI 文案/行为;提拔进 backlog 的项必须经此核实,否则不提拔。同时 Agent3 现也读 roadmap/signals、每条带 northstar 行。起因:E71 谎称删书确认框「无级联提示、静默丢数据」,实际 index.html:533 早有警告,需人工核正(浪费 review 时间)。三个夜间 agent 现已全部接入方向层(roadmap+signals+northstar)。
