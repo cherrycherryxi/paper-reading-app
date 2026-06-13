@@ -289,6 +289,46 @@ test("renderBooks should group books by reading status before creation date", ()
   ]);
 });
 
+test("OPT-037: same-second books with mixed timestamp precision sort newest-first", () => {
+  // The real bug: createdAt is mixed format — utc_now_iso() emits millisecond
+  // precision ("...20.500Z") while legacy now_iso() emits second precision
+  // ("...20Z"). String localeCompare orders "." (46) before "Z" (90), so the
+  // newer ".500Z" book would wrongly sort AFTER the ".000"/second one. Date.parse
+  // normalizes both to epoch, restoring correct newest-first order.
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "user-1" });
+  hooks.setState({
+    books: [
+      // second-precision (no ms), created at :20.000
+      createBook({ id: "older", title: "整秒书", status: "reading", createdAt: "2026-04-22T08:00:20Z" }),
+      // millisecond-precision, created 500ms LATER in the same second
+      createBook({ id: "newer", title: "毫秒书", status: "reading", createdAt: "2026-04-22T08:00:20.500Z" }),
+    ],
+    sessions: [],
+    quotes: [],
+    chatHistories: {},
+  });
+
+  hooks.renderBooks();
+
+  // newest (毫秒书, :20.500) must come first; localeCompare would invert this.
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["毫秒书", "整秒书"]);
+});
+
+test("OPT-037: compareBooksForList uses numeric Date.parse comparison, not localeCompare on timestamps", () => {
+  // Guard the fix in source: no localeCompare on createdAt/updatedAt remains.
+  assert.doesNotMatch(
+    appSource,
+    /createdAt[^\n]*\)\.localeCompare\(/,
+    "createdAt comparisons must use Date.parse numeric diff, not localeCompare"
+  );
+  assert.doesNotMatch(
+    appSource,
+    /updatedAt[^\n]*\)\.localeCompare\(/,
+    "updatedAt comparisons must use Date.parse numeric diff, not localeCompare"
+  );
+});
+
 test("bug exploration: saveBookEdit should explicitly preserve and normalize tags in source", () => {
   assert.match(
     appSource,

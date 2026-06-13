@@ -1062,7 +1062,11 @@ function matchQuotes(query) {
 function compareBooksForList(a, b) {
   const statusDelta = (bookStatusOrder[a.status] ?? 99) - (bookStatusOrder[b.status] ?? 99);
   if (statusDelta !== 0) return statusDelta;
-  return (b.createdAt || "").localeCompare(a.createdAt || "");
+  // OPT-037: compare timestamps numerically, not as strings. createdAt is mixed
+  // format (utc_now_iso ms+Z vs legacy now_iso second-precision), and
+  // localeCompare orders "...20.500Z" before "...20Z" ('.'<'Z'), inverting
+  // same-second order. Date.parse normalizes both. (Matches OPT-014 at line ~1415.)
+  return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
 }
 
 function restoreEditedBookPosition(bookId, fallbackScrollTop = 0) {
@@ -2454,7 +2458,7 @@ function openBookDetailDialog(bookId) {
 
   const bookQuestion = state.quotes
     .filter((q) => q.bookId === bookId && q.kind === "question")
-    .sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
+    .sort((a, b) => (Date.parse(b.updatedAt || b.createdAt) || 0) - (Date.parse(a.updatedAt || a.createdAt) || 0))[0]; // OPT-037
   const questionWrap = document.getElementById("bookDetailQuestionWrap");
   const questionEl = document.getElementById("bookDetailQuestion");
   if (questionWrap && questionEl && bookQuestion?.content) {
@@ -2467,7 +2471,7 @@ function openBookDetailDialog(bookId) {
 
   const bookQuotes = state.quotes
     .filter((q) => q.bookId === bookId && isRegularQuote(q))
-    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    .sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)); // OPT-037
   if (els.bookDetailQuotes) {
     const previewQuotes = bookQuotes.slice(0, 2);
     const quoteCards = previewQuotes.map((quote) => `
