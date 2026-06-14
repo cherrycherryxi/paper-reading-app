@@ -884,3 +884,78 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — change `app_server.py:2326-2329` to cap `all_books_summary` at the 50 most-recently-active books: `[...books_sorted_by_recency...][:50]`. For extra savings, exclude the current book from `all_books_summary` (it's already in the `book` field). This is a 2-line change with zero behavior change for the 95%+ of users with fewer than 50 books. Touch: `app_server.py:2326-2329`.
 
 **Files:** `app_server.py:2312-2331` (`PromptBuilder.build_chat_prompt`); no test changes needed.
+
+---
+
+## 2026-06-13
+
+### E75 — `#chatMessages` div missing `role="log"` — screen readers don't hear incoming AI replies (WCAG 4.1.3 AA) (S)
+
+**What:** `<div id="chatMessages" class="chat-messages chat-messages-inline">` at `index.html:177` carries no `role="log"`, `aria-live`, or `aria-relevant` attribute. A grep across both `index.html` and `chat.js` for "log", "aria-live", and "aria-atomic" returns zero matches inside the chat message region. `chat.js` never calls `setAttribute("aria-live", ...)` on this element anywhere. The existing `a11y-baseline.test.js` tests OPT-013 (button `:focus-visible`), OPT-018 (prefers-reduced-motion), and OPT-019 (`#toast role="status"`) but has no assertion covering `#chatMessages`.
+
+**Why it matters:** The AI replies stream in asynchronously. Without a WCAG 4.1.3 live region, screen readers (VoiceOver on iOS, NVDA/JAWS on desktop) will not announce new messages as they arrive — users must manually navigate into the message list to hear each reply. `role="log"` is the correct ARIA role for this pattern: it implies `aria-live="polite"` + `aria-relevant="additions text"`, so incremental content (each streamed reply) is read aloud once complete without interrupting other announcements. This is identical in character to OPT-019 (toast `role="status"`), which was shipped as P1. Chat is a far higher-traffic surface than the toast.
+
+**Complexity:** S — add `role="log"` to `index.html:177` (1 attribute); add one `test()` block to `tests/frontend/a11y-baseline.test.js` asserting `#chatMessages` carries `role="log"`. No JS or backend changes needed.
+
+**Files:** `index.html:177`; `tests/frontend/a11y-baseline.test.js`
+
+**northstar:** 弱——仅影响屏幕阅读器用户，但延续已有 a11y 系列（OPT-013/018/019/033/046），且 Chat 是 AI 对话核心入口；修复使 AA 级合规在 Chat 模块闭环。→ **promoted to OPT-048**
+
+---
+
+### E77 — Dead-code chain: `openOrganizeDialog()` / `#organizeDialog` / `/api/organize/parse` all reference entities that don't exist (S/M)
+
+**What:** Three verified dead-code artefacts form an incomplete feature scaffold:
+1. `app.js:114`: `els.organizeDialog = document.querySelector("#organizeDialog")` — the selector returns `null` because no element with that id exists anywhere in `index.html` (grep confirms zero matches).
+2. `app.js:2569-2583`: `function openOrganizeDialog(bookId)` calls `els.organizeDialog.showModal()` — a `null.showModal()` that would throw a `TypeError` if this function were ever invoked.
+3. `app.js:2623`: `await apiFetch("/api/organize/parse", { method: "POST", ... })` — there is no handler for this path in `app_server.py` (grep for "organize" in `app_server.py` returns no matches in the request-routing section).
+
+Similarly, `app.js:114` sets `els.candidatesDialog = document.querySelector("#candidatesDialog")` which also resolves to `null` (no `#candidatesDialog` in `index.html`).
+
+**Why it matters:** Dead-code scaffolding (a) misleads future readers who may try to invoke `openOrganizeDialog()` and only discover the crash at runtime; (b) means ~80 lines of JS (`openOrganizeDialog`, `submitOrganizePaste`, and related helpers) are never executed and never tested but must be mentally parsed during every refactor of `app.js`. If this is a planned feature, it needs an OPT item and a backend endpoint; if it was abandoned, removing it reduces the module surface from ~4,500 to ~4,420 lines.
+
+**Complexity:** S to remove (delete the ~80 dead JS lines + 2 null-selector registrations); M to complete (add `#organizeDialog` to `index.html`, add `/api/organize/parse` backend handler, wire up `activateTab` entry point).
+
+**Files:** `app.js:114` (null selector registrations); `app.js:2569-2634` (dead `openOrganizeDialog` + `submitOrganizePaste`); `index.html` (no dialog element present); `app_server.py` (no route handler present)
+
+**northstar:** 弱/无——代码卫生，无直接用户价值。若补全成功能则可能贡献 Theme 2「回顾有价值」（整理/归类摘抄），但前提是明确产品意图。当前建议先确认方向再决定删除还是实现。
+
+---
+
+### E78 — `formatDate()` parses `YYYY-MM-DD` strings as UTC midnight — session dates show one day early for UTC-minus timezone users (S)
+
+**What:** `formatDate()` at `app.js:439-446`:
+```
+return new Date(dateString).toLocaleDateString("zh-CN", {
+  year: "numeric", month: "short", day: "numeric"
+});
+```
+Per the ES2015 spec, `new Date("2026-06-13")` (ISO 8601 date-only) is parsed as `2026-06-13T00:00:00Z` (UTC midnight). On UTC+8 this localizes to `2026-06-13T08:00:00+08:00` — still June 13, correct. But on UTC-5 (US Eastern), this becomes `2026-06-12T19:00:00-05:00` — one day early. `session.date` is stored as a plain `YYYY-MM-DD` string (set directly from `<input type="date">.value`), so the only call sites affected are `renderTimeline()` at `app.js:1374` (`session.date`) and `renderSessions()`. Quote timestamps use full ISO+Z strings (fixed by OPT-014), which parse correctly in all timezones.
+
+**Why it matters:** For the current owner (UTC+8), this is a latent bug that causes no visible symptoms — UTC+8 midnight + 8 hours is still the same day. However, it is a correctness issue for any UTC-minus user who might later share the app (roadmap §1 option B) or access it while traveling. The fix is trivial and future-proof: replace `new Date(dateString)` with `new Date(dateString + "T12:00:00")` to anchor to local noon, or use `.split("-")` to construct the date directly.
+
+**Complexity:** S — change `app.js:441` from `new Date(dateString)` to `new Date(\`${dateString}T12:00:00\`)`. Touch: `app.js:439-446` only; no test changes needed.
+
+**Files:** `app.js:439-446` (`formatDate`); affected call sites: `app.js:1374` (`renderTimeline`), `app.js:1455` (`renderQuotes` — uses full ISO strings, already OK)
+
+**northstar:** 弱——当前唯一用户在 UTC+8，bug 不可见；对未来分享/商业化（路线图 §1 option B/C）是前置正确性修复。P3 候选，不紧急。
+
+---
+
+### E79 — `quoteSearch` and `sessionSearch` trigger full DOM rebuilds on every keystroke with no debounce — inconsistent with the debounced global book search (S)
+
+**What:** `app.js:4069-4070`:
+```javascript
+els.sessionSearch?.addEventListener("input", renderTimeline);
+els.quoteSearch?.addEventListener("input", renderQuotes);
+```
+Both fire their render function synchronously on every `input` event — no debounce. In contrast, `booksSearchInput` at `app.js:4121-4126` uses a 200ms `setTimeout` debounce before calling `globalSearch()`. `renderQuotes()` at `app.js:1428` performs a full `innerHTML` rebuild of all quote cards on each call, including O(N×M) per-card lookups: `getConnectionCount()` at `app.js:671` filters the entire `state.connections` array for each quote; `getQuoteChatCount()` at `app.js:675` scans `chatHistories`. For a user with 150 quotes and 50 connections, every keystroke costs ~150 × 50 = 7,500 filter comparisons plus a full DOM rebuild.
+
+**Why it matters:** On a mid-range mobile device (iPhone 12, which is the target per CLAUDE.md), rapid typing in the quotes search box will trigger 5-8 rebuilds per second. While the current data scale (50-100 quotes) keeps each rebuild under ~10ms, the inconsistency is an unforced error: the debounce pattern is already established and working for books search. Adding debounce to quote/session search takes 4 lines of JS and makes all three search inputs consistent in behaviour.
+
+**Complexity:** S — wrap both listeners with a `setTimeout`/`clearTimeout` debounce pattern matching `app.js:4121-4126`. No logic changes to render functions needed.
+
+**Files:** `app.js:4069-4070` (listener registrations); no test changes needed
+
+**northstar:** 弱——减少不必要的 DOM 重建，保持 UI 响应流畅；与 Theme 1「采集顺滑」的顺滑感有间接关联。不紧急，但与已有代码模式保持一致的低风险改进。
+
