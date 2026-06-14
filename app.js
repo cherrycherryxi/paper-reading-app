@@ -2482,11 +2482,11 @@ function openBookDetailDialog(bookId) {
       </button>
     `).join("");
     const moreButton = bookQuotes.length > 2
-      ? `<button class="detail-link-btn" type="button" data-book-detail-action="quotes">查看全部 ${bookQuotes.length} 条摘抄</button>`
+      ? `<button class="detail-link-btn" type="button" data-book-detail-action="quotes">查看全部 ${bookQuotes.length} 条摘抄 / 笔记</button>`
       : "";
     els.bookDetailQuotes.innerHTML = bookQuotes.length
       ? `${quoteCards}${moreButton}`
-      : `<p class="detail-empty-text">这本书还没有摘抄。</p>`;
+      : `<p class="detail-empty-text">这本书还没有摘抄或笔记。</p>`;
   }
 
   const bookConns = (state.connections || []).filter((c) =>
@@ -2513,6 +2513,11 @@ function openBookDetailDialog(bookId) {
 
   _bookDetailCurrentId = bookId;
   els.bookDetailDialog.showModal();
+  // OPT-049 ①: showModal() autofocuses the first focusable element — a 摘抄 card
+  // button mid-content — and scrolls it into view, leaving the dialog opened
+  // mid-card. Reset the scroll container to the top so the user reads top-down.
+  const detailBody = els.bookDetailDialog.querySelector(".dialog-form");
+  if (detailBody) detailBody.scrollTop = 0;
 }
 
 function goToBookQuotes() {
