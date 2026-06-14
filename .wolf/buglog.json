@@ -4860,6 +4860,22 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-13T17:04:13.487Z"
+    },
+    {
+      "id": "bug-287",
+      "timestamp": "2026-06-14T17:06:21.243Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T17:06:21.243Z"
     }
   ]
 }

@@ -1528,3 +1528,5 @@
 | 10:56 | Created tests/frontend/book-detail-ux.test.js | — | ~1704 |
 | 11:27 | Edited optimization/signals.md | 3→3 lines | ~67 |
 | 11:40 | OPT-049 书详情 UX 三连修(PR#44)+ signals/backlog 簿记 | app.js, styles.css, index.html, tests | merged | ~9k |
+| 17:06 | Created optimization/triage.md | — | ~2398 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~33 |
