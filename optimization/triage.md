@@ -2,13 +2,13 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-13
+Last triaged: 2026-06-14
 
 ## Next up
 
-本周实现预算已满（近 7 天已有 10 个 auto PR，上限 4），本次不指派
+本周实现预算已满（近 7 天已有 9 个 auto PR，上限 4），本次不指派
 
-近 7 天（2026-06-06 → 2026-06-13）内已开 10 个 `auto/` 分支 PR（#25–#34 + #39），大幅超出 roadmap §5 的每周 4 PR 上限。预算归零前不指派任何实现任务。
+近 7 天（2026-06-07 → 2026-06-14）内已开 9 个 `auto/` 分支 PR（#26–#30 + #32–#34 + #39），大幅超出 roadmap §5 的每周 4 PR 上限。预算归零前不指派任何实现任务。
 
 **预算重开后首选：OPT-047**（`PromptBuilder.all_books_summary` 无数量上限，P1/S）——northstar「强」，与已落地的 OPT-020 同一机制，规模是 OPT-020 的 50×（500 书用户每次请求多注入 ~7,000 tokens，每日 240 请求 = 168 万多余 tokens），修复仅需 `app_server.py:2326-2329` 加排序 + `[:50]` 截断，零逻辑变更，零测试变更。贡献 Theme 1「采集顺滑」（降低 API 延迟与成本）。
 
@@ -17,12 +17,14 @@ Last triaged: 2026-06-13
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | triaged | `app_server.py:2326-2329`：`for b in user_state.get("books", [])` → 按 `updatedAt` 倒序后取 `[:50]`，全局上下文同限制，book/quote 上下文可更激进截 20。northstar「强」，OPT-020 同类已证可落地，500 书用户每日节省 168 万 tokens。Theme 1「采集顺滑」+ 成本控制。 |
-| OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 给 `<nav>` 加 `role="tablist"`，6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1631` `activateTab()` 补一行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 是最严格合规等级，Tab 是 App 主导航骨架，northstar「中」。 |
+| OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 给 `<nav>` 加 `role="tablist"`，6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` `activateTab()` 补一行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 是最严格合规等级，Tab 是 App 主导航骨架，northstar「中」。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
+| OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P2 | S | triaged | `index.html:177`：`<div id="chatMessages">` 加 `role="log"`（隐含 aria-live="polite"，screen reader 实时宣告新消息）。`tests/frontend/a11y-baseline.test.js`：加 1 条断言。1 行 HTML + 1 条测试，零 JS/backend 改动，零风险。northstar「弱」（a11y AA 系列在 Chat 闭环），延续 OPT-013/018/019/033/046 系列。 |
 | OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P2 | S | triaged | `app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。封顶扫描行数，防止 /debug/logs 随运行时间线性变慢。1 行 SQL，northstar「弱」（debug 运营工具，不影响阅读主流程）。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5461`（_run_gc finally 块，`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`）。+1 测试断言 in `gc_thread_test.py`。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
 | OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1876, 1852, 1890, 1915, 1935`。 |
+| OPT-049 | 书详情弹窗 UX 三连修（滚动复位/锁横滑/摘抄·笔记区分） | P1 | S | done (PR #44, 2026-06-14) | signal 2026-06-13 (×3)：owner 真机反馈详情页滚动停中段/可左右滑/「相关摘抄」含笔记不区分。`app.js`（openBookDetailDialog 滚动复位 + 文案）、`styles.css`（overflow-x）、`index.html`（标题）。4 条新测试；163/163 绿。 |
 | OPT-045 | Session/Connection CRUD 前端测试覆盖 | P2 | M | done (PR #43, 2026-06-13) | 新增 `tests/frontend/session-crud.test.js` + `tests/frontend/connection-crud.test.js`，17 条测试；159/159 全绿，未改 app.js。 |
 | OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | done (PR #39, 2026-06-12) | signal 2026-06-11：owner 误导入旧备份致 3 张卡丢失。`importData()` 应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。11/11 测试绿。 |
 | OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | done (PR #42, 2026-06-13) | `app.js:1026`（compareBooksForList 二级排序）+ `app.js:2431`（最近活跃书查找）：`localeCompare` → `Date.parse` 数值比较。142/142 测试绿。OPT-014 遗漏执行点，书单首屏排序修复。 |
