@@ -392,3 +392,11 @@ Format per item:
 - description: `<div id="chatMessages" class="chat-messages chat-messages-inline">` at `index.html:177` has no `role="log"`, `aria-live`, or `aria-relevant` attribute. `chat.js` never sets any live-region attribute on this element. Without `role="log"` (which implies `aria-live="polite"` + `aria-relevant="additions text"`), screen readers do not announce incoming AI replies as they stream in. The `a11y-baseline.test.js` already guards OPT-013/018/019 but has no assertion for this gap.
 - why: Chat是 AI 交互的主界面。缺少 live region，屏幕阅读器用户每次交换后必须手动导航到消息列表——无法听到实时回复。与 OPT-019（toast `role="status"`）性质完全相同，修复量更小（1 个 HTML 属性 + 1 条测试断言），零 JS/backend 改动。
 - how: `index.html:177`：在 `<div id="chatMessages">` 上加 `role="log"`。`tests/frontend/a11y-baseline.test.js`：新增一个 test 块，断言 `#chatMessages` 元素存在且 `role="log"`。Touch: `index.html:177`；`tests/frontend/a11y-baseline.test.js`。
+
+### OPT-049 — 书详情弹窗 UX 三连修(滚动复位 / 锁横滑 / 摘抄·笔记区分)— owner 真机 signal 触发
+- status: done (PR #44, 2026-06-14 — ① showModal 后滚动容器 scrollTop=0;② .book-detail-dialog-body 去 min-width + .dialog-form overflow-x:hidden;③ 相关摘抄标题/文案改「摘抄 / 笔记」;新增 book-detail-ux.test.js 4 条,163/163 绿)
+- area: frontend
+- northstar: 强——owner 真机使用直接反馈(signals 2026-06-13 三条),Theme 1「不假思索的默认工具」要求阅读主路径的详情页基础体验可靠。
+- description: ① 点书卡进详情页打开时滚动停在中段(showModal 自动聚焦中段摘抄按钮);② 详情页可左右滑(body min-width 720 > dialog 560 横向溢出);③「相关摘抄」实含笔记(isRegularQuote 只排除 question)却不标注。
+- why: 阅读主路径(翻书单→看书详情)的基础体验,直接影响「每天爱用」。
+- how: 见 PR #44。app.js(openBookDetailDialog 滚动复位 + 文案)、styles.css(.dialog-form overflow-x + .book-detail-dialog-body width)、index.html(标题)、tests/frontend/book-detail-ux.test.js。
