@@ -2255,6 +2255,8 @@ dialog::backdrop {
   max-height: calc(100vh - 24px);
   max-height: calc(100dvh - 24px);
   overflow-y: auto;
+  /* OPT-049 ②: never allow horizontal scroll/swipe inside a dialog. */
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -2271,7 +2273,10 @@ dialog::backdrop {
 }
 
 .book-detail-dialog-body {
-  min-width: min(720px, calc(100vw - 24px));
+  /* OPT-049 ②: was `min-width: min(720px, …)`, wider than the dialog's 560px,
+     causing the body to overflow horizontally (swipeable left/right). Let it
+     follow the dialog width instead. */
+  width: 100%;
 }
 
 .book-detail-intro {
