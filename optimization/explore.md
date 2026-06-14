@@ -959,3 +959,121 @@ Both fire their render function synchronously on every `input` event — no debo
 
 **northstar:** 弱——减少不必要的 DOM 重建，保持 UI 响应流畅；与 Theme 1「采集顺滑」的顺滑感有间接关联。不紧急，但与已有代码模式保持一致的低风险改进。
 
+---
+
+## 2026-06-14
+
+### E80 — `deleteQuote()` 删除摘抄时遗漏 chatHistories / chatContexts 清理，产生孤儿状态 (S)
+
+**What:** `app.js:2316-2332`，`deleteQuote()` 在 `onConfirm` 回调中执行：
+```javascript
+state.quotes = state.quotes.filter((item) => item.id !== quoteId);
+state.connections = (state.connections || []).filter(
+  (c) => c.sourceId !== quoteId && c.targetId !== quoteId
+);
+```
+删掉了 quote 本体及其 connections，但未清理 `state.chatHistories["quote:${quoteId}"]` 和 `state.chatContexts["quote:${quoteId}"]`。key 格式由 `app_server.py:608-614` 的 `chat_context_history_key()` 定义：`return f"quote:{normalized['quoteId']}"`.
+
+对比：`deleteBook()` 在 `app.js:2088-2100` 做了完整清理：
+```javascript
+delete state.chatHistories[bookId];
+delete state.chatHistories[`book:${bookId}`];
+delete state.chatContexts[bookId];
+delete state.chatContexts[`book:${bookId}`];
+Object.entries(state.chatContexts).forEach(([key, context]) => {
+  if (context?.bookId === bookId) {
+    delete state.chatContexts[key];
+    delete state.chatHistories[key];
+  }
+});
+```
+`deleteQuote()` 没有对应的清理逻辑。
+
+**Why it matters:** 每次删摘抄后，`state.chatHistories` 和 `state.chatContexts` 都会各积累一个死键。这些孤儿键随 `syncState()` 永久写入服务器 SQLite blob，状态随使用次数线性膨胀；若将来 quoteId 被复用（UUID 极小概率但理论存在），旧对话历史会「复活」附着在新摘抄上，导致混乱。
+
+**Complexity:** S — 在 `app.js:2329`（`await syncState()` 之前）插入两行：
+```javascript
+delete (state.chatHistories || {})["quote:" + quoteId];
+delete (state.chatContexts || {})["quote:" + quoteId];
+```
+Fix mirrors `deleteBook()` pattern exactly.
+
+**Files:** `app.js:2316-2332`（唯一改动点）
+
+**northstar:** 弱——防止 state blob 静默膨胀，属数据健康度修缮。与 Theme 1「采集顺滑」无直接关联，但 state 整洁是一切功能可靠性的基础。P2 候选。
+
+---
+
+### E81 — `a11y-baseline.test.js` 未守卫 OPT-033 的对话框 `aria-labelledby`（已在 PR #34 落地但无回归测试）(S)
+
+**What:** `tests/frontend/a11y-baseline.test.js` 文件头注释明确说明覆盖范围（line 1-2）：
+```javascript
+// Regression tests for the a11y baseline pass: OPT-018 (prefers-reduced-motion),
+// OPT-013 (button :focus-visible), OPT-019 (toast aria-live).
+```
+全文 54 行，仅含 3 个 test 块，分别验证 OPT-018/013/019。
+
+OPT-033（PR #34，已合并）给 12 个对话框加了 `aria-labelledby` 属性，但没有在此文件新增任何 test 断言。若日后有人重构 `index.html` 中的对话框标签，`aria-labelledby` 属性会静默丢失，无测试拦截。
+
+**Why it matters:** a11y 改动的价值来自「不退化」。OPT-046（tab ARIA，已 triaged）和 OPT-048（chatMessages role，已 triaged）都预期在此文件增加断言——在它们落地前，先为已完成的 OPT-033 补一条基线断言，成本极低（1 个 test 块，3 行有效代码）。
+
+**Complexity:** S — 在 `a11y-baseline.test.js` 新增一个 test 块：断言 `index.html` 中至少一个 `<dialog>` 或 `role="dialog"` 元素含 `aria-labelledby` 属性。具体可检查已知的 `#addBookDialog` 或 `#confirmDialog`（需 grep index.html 确认实际属性值后再写断言）。
+
+**Files:** `tests/frontend/a11y-baseline.test.js`（新增 1 test 块）
+
+**northstar:** 弱——回归安全，防止已有 a11y 工作静默降级。不影响功能，但与整个 a11y 系列（OPT-013/018/019/033/046/048）的长期维护性高度一致。
+
+---
+
+### E82 — `/api/upload-image` 端点无速率限制，与 `/api/books/ocr` 行为不一致 (S)
+
+**What:** `app_server.py:4385-4403`，处理 `/api/upload-image` 的分支：
+```python
+if parsed.path == "/api/upload-image":
+    conn, user = self._require_user()
+    if not conn:
+        return
+    payload = self._read_json()
+    # 无 _enforce_rate_limit() 调用
+    data_url = str(payload.get("dataUrl", "")).strip()
+    ...
+    url = save_image(user["id"], data_url, filename)
+```
+对比同文件 `/api/books/ocr` 端点（line 4455）：
+```python
+if not self._enforce_rate_limit(conn, user["id"], "ocr"):
+    conn.close()
+    return
+```
+OCR 端点有速率限制，图片上传端点没有。
+
+**Why it matters:** `save_image()` 将 base64 数据 decode 后直接写入 `uploads/<user-id>/` 目录。无速率限制意味着认证用户可在短时间内批量 POST 任意数量的图片，耗尽磁盘。当前为个人工具（单用户）风险极低，但若迁移到 option B（小范围分享）场景，此端点成为明显的攻击面。
+
+**Complexity:** S — 在 `_require_user()` 之后插入一行 `_enforce_rate_limit(conn, user["id"], "upload-image")`，复用现有速率限制基础设施。速率阈值参考 OCR 端点配置即可。
+
+**Files:** `app_server.py:4385-4403`（唯一改动点）
+
+**northstar:** 弱/无——安全/可靠性修缮，当前单用户场景无感知收益。若升级到 B/C 定位则为必要前置。P3 候选。
+
+---
+
+### E83 — GDPR 导出的 `exportedAt` 字段使用 `now_iso()`（naive 本地时间），是导出管道最后一个非 UTC 时间戳 (S)
+
+**What:** `app_server.py:3782`：
+```python
+export = {
+    "exportFormat": 1,
+    "exportedAt": now_iso(),  # ← naive 本地时间
+    ...
+}
+```
+`now_iso()` 在同文件定义（line ~130）返回不带时区的 ISO 8601 字符串（`datetime.now().isoformat()`）。OPT-038（注册时间）、OPT-035（TraceManager）、OPT-031（MCP server）等已逐步将系统其他时间戳迁移至 UTC+Z，`exportedAt` 是导出 payload 中最后一个遗留的 naive 时间字段。
+
+**Why it matters:** 导出文件是用户最重要的数据载体。`exportedAt` 是导入校验和增量备份逻辑的潜在参考字段——若时区偏移不一致，跨时区恢复时会产生歧义。目前仅 owner 单人使用且 UTC+8，问题不可见，但修复成本极低（替换为 `now_utc_iso()` 或等价表达式）。
+
+**Complexity:** S — 将 `app_server.py:3782` 的 `now_iso()` 替换为返回 UTC+Z 格式的辅助函数（`now_utc_iso()` 或 `datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00","Z")`）。
+
+**Files:** `app_server.py:3782`（1 行改动）
+
+**northstar:** 弱/无——元数据一致性修缮，与北极星无直接关联。P3 候选，搭便车修。
+

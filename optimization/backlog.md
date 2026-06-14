@@ -400,3 +400,19 @@ Format per item:
 - description: ① 点书卡进详情页打开时滚动停在中段(showModal 自动聚焦中段摘抄按钮);② 详情页可左右滑(body min-width 720 > dialog 560 横向溢出);③「相关摘抄」实含笔记(isRegularQuote 只排除 question)却不标注。
 - why: 阅读主路径(翻书单→看书详情)的基础体验,直接影响「每天爱用」。
 - how: 见 PR #44。app.js(openBookDetailDialog 滚动复位 + 文案)、styles.css(.dialog-form overflow-x + .book-detail-dialog-body width)、index.html(标题)、tests/frontend/book-detail-ux.test.js。
+
+### OPT-050 — `deleteQuote()` 删除摘抄时遗漏 chatHistories / chatContexts 清理，产生孤儿状态
+- status: new
+- area: frontend
+- northstar: 弱——防止 state blob 随摘抄删除操作静默膨胀，属数据健康度修缮。state 整洁是一切功能可靠性的基础；与 Theme 1「采集顺滑」间接相关（删除操作是采集流程的清理环节）。
+- description: `app.js:2316-2332` 的 `deleteQuote()` 删除 quote 本体及其 connections，但未清理 `state.chatHistories["quote:${quoteId}"]` 和 `state.chatContexts["quote:${quoteId}"]`。key 格式由 `app_server.py:608-614` 的 `chat_context_history_key()` 确认（`return f"quote:{normalized['quoteId']}"`）。每次删摘抄后，两个死键随 `syncState()` 永久写入服务器 SQLite blob，状态随使用次数线性膨胀。
+- why: `deleteBook()` 在 `app.js:2088-2100` 已有完整清理模式（`delete state.chatHistories[...]` + `delete state.chatContexts[...]` + 遍历 context.bookId）。`deleteQuote()` 缺少对应逻辑，是功能对等性缺口。
+- how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
+
+### OPT-051 — 添加 Web App Manifest，使 Android/Chrome 用户可以「添加到主屏幕」安装 PWA
+- status: new
+- area: frontend
+- northstar: 中——降低非 iOS 用户的每日使用门槛；PWA 安装到主屏幕后体验接近原生，有助于「不假思索的默认工具」目标。若未来升级到路线图 §1 option B（小范围分享），manifest 是必要前置。
+- description: `index.html:8-10` 仅有 Apple 专属 PWA meta 标签（`apple-mobile-web-app-capable` / `apple-mobile-web-app-title`），没有 `<link rel="manifest">`。仓库根目录无 `manifest.json` 文件。Android Chrome 的「添加到主屏幕」和 PWA 安装提示均依赖 manifest；缺失时用户只能手动将网址固定到浏览器书签，不会触发系统级安装提示。
+- why: owner 每天用 iPhone，manifest 收益目前为零；但 roadmap §1 把升级到 B（10-100 人分享）设为可能路径，Android 用户比例不低。manifest.json 是 15 行 JSON + 1 行 HTML，一次性低成本补全，此后无维护负担。
+- how: ① 新建 `manifest.json`（根目录，15 行）：name/short_name/start_url/display:standalone/background_color/theme_color/icons（复用现有 favicon 或添加 192×192 PNG）。② `index.html` `<head>` 加 `<link rel="manifest" href="/manifest.json">`。③ `app_server.py` 静态文件分发列表（`_STATIC` dict 或等价 if-chain）加入 `manifest.json` 条目。复杂度 S。
