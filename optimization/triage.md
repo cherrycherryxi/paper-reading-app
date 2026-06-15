@@ -2,13 +2,13 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-14
+Last triaged: 2026-06-15
 
 ## Next up
 
-本周实现预算已满（近 7 天已有 9 个 auto PR，上限 4），本次不指派
+本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派
 
-近 7 天（2026-06-07 → 2026-06-14）内已开 9 个 `auto/` 分支 PR（#26–#30 + #32–#34 + #39），大幅超出 roadmap §5 的每周 4 PR 上限。预算归零前不指派任何实现任务。
+近 7 天（2026-06-08 → 2026-06-15）内已开 4 个 `auto/` 分支 PR（#32 opt-031-mcp-now-iso-utc、#33 opt-034-debug-xss-escape、#34 opt-033-dialog-aria-labelledby、#39 opt-043-import-decrease-guard），恰好触及 roadmap §5 的每周 4 PR 上限。预算归零前不指派任何实现任务。
 
 **预算重开后首选：OPT-047**（`PromptBuilder.all_books_summary` 无数量上限，P1/S）——northstar「强」，与已落地的 OPT-020 同一机制，规模是 OPT-020 的 50×（500 书用户每次请求多注入 ~7,000 tokens，每日 240 请求 = 168 万多余 tokens），修复仅需 `app_server.py:2326-2329` 加排序 + `[:50]` 截断，零逻辑变更，零测试变更。贡献 Theme 1「采集顺滑」（降低 API 延迟与成本）。
 
@@ -20,6 +20,8 @@ Last triaged: 2026-06-14
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 给 `<nav>` 加 `role="tablist"`，6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` `activateTab()` 补一行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 是最严格合规等级，Tab 是 App 主导航骨架，northstar「中」。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
 | OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P2 | S | triaged | `index.html:177`：`<div id="chatMessages">` 加 `role="log"`（隐含 aria-live="polite"，screen reader 实时宣告新消息）。`tests/frontend/a11y-baseline.test.js`：加 1 条断言。1 行 HTML + 1 条测试，零 JS/backend 改动，零风险。northstar「弱」（a11y AA 系列在 Chat 闭环），延续 OPT-013/018/019/033/046 系列。 |
+| OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | 代码核实：`app.js:2316-2332` deleteQuote() 删 quote 本体和 connections，但无 `delete state.chatHistories["quote:" + quoteId]` / `delete state.chatContexts["quote:" + quoteId]`。对比 deleteBook()（`app.js:2088-2101`）已有完整清理模板。修复：在 `onConfirm` 的 `await syncState()` 前加 2 行，复用 deleteBook 模式。northstar「弱」（state 健康度修缮），无 signal 佐证。 |
+| OPT-051 | 添加 Web App Manifest，支持 Android/Chrome 「添加到主屏幕」PWA | P2 | S | triaged | `index.html:8-10` 仅有 Apple 专属 meta，无 `<link rel="manifest">`，已核实。修复：① 新建 `manifest.json`（根目录）② `index.html <head>` 加 `<link rel="manifest" href="/manifest.json">` ③ `app_server.py` 静态路由加 manifest.json 条目。northstar「中」（降低非 iOS 门槛），但 roadmap §1 当前为 path A（owner 专用 iPhone），Android 用户暂无；若升级到 B 则升 P1。无 signal 佐证，暂 P2 末位。 |
 | OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P2 | S | triaged | `app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。封顶扫描行数，防止 /debug/logs 随运行时间线性变慢。1 行 SQL，northstar「弱」（debug 运营工具，不影响阅读主流程）。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5461`（_run_gc finally 块，`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`）。+1 测试断言 in `gc_thread_test.py`。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |

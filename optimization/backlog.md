@@ -402,7 +402,7 @@ Format per item:
 - how: 见 PR #44。app.js(openBookDetailDialog 滚动复位 + 文案)、styles.css(.dialog-form overflow-x + .book-detail-dialog-body width)、index.html(标题)、tests/frontend/book-detail-ux.test.js。
 
 ### OPT-050 — `deleteQuote()` 删除摘抄时遗漏 chatHistories / chatContexts 清理，产生孤儿状态
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 弱——防止 state blob 随摘抄删除操作静默膨胀，属数据健康度修缮。state 整洁是一切功能可靠性的基础；与 Theme 1「采集顺滑」间接相关（删除操作是采集流程的清理环节）。
 - description: `app.js:2316-2332` 的 `deleteQuote()` 删除 quote 本体及其 connections，但未清理 `state.chatHistories["quote:${quoteId}"]` 和 `state.chatContexts["quote:${quoteId}"]`。key 格式由 `app_server.py:608-614` 的 `chat_context_history_key()` 确认（`return f"quote:{normalized['quoteId']}"`）。每次删摘抄后，两个死键随 `syncState()` 永久写入服务器 SQLite blob，状态随使用次数线性膨胀。
@@ -410,7 +410,7 @@ Format per item:
 - how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
 
 ### OPT-051 — 添加 Web App Manifest，使 Android/Chrome 用户可以「添加到主屏幕」安装 PWA
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——降低非 iOS 用户的每日使用门槛；PWA 安装到主屏幕后体验接近原生，有助于「不假思索的默认工具」目标。若未来升级到路线图 §1 option B（小范围分享），manifest 是必要前置。
 - description: `index.html:8-10` 仅有 Apple 专属 PWA meta 标签（`apple-mobile-web-app-capable` / `apple-mobile-web-app-title`），没有 `<link rel="manifest">`。仓库根目录无 `manifest.json` 文件。Android Chrome 的「添加到主屏幕」和 PWA 安装提示均依赖 manifest；缺失时用户只能手动将网址固定到浏览器书签，不会触发系统级安装提示。
