@@ -1537,3 +1537,6 @@
 |------|--------|---------|---------|--------|
 | 19:19 | Edited optimization/explore.md | added optional chaining | ~1239 |
 | 19:19 | Edited optimization/backlog.md | expanded (+16 lines) | ~555 |
+| 17:05 | Created optimization/triage.md | — | ~2639 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~26 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~24 |
