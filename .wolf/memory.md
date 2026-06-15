@@ -1540,3 +1540,5 @@
 | 17:05 | Created optimization/triage.md | — | ~2639 |
 | 17:05 | Edited optimization/backlog.md | 2→2 lines | ~26 |
 | 17:05 | Edited optimization/backlog.md | 2→2 lines | ~24 |
+| 19:17 | Edited optimization/explore.md | added 3 condition(s) | ~855 |
+| 19:17 | Edited optimization/backlog.md | added 2 condition(s) | ~460 |
