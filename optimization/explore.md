@@ -1077,3 +1077,75 @@ export = {
 
 **northstar:** 弱/无——元数据一致性修缮，与北极星无直接关联。P3 候选，搭便车修。
 
+---
+
+## 2026-06-15
+
+### E84 — `renderTimeline()` 硬限 10 条且无「加载更多」——历史阅读记录只能靠搜索翻阅 (S)
+
+**What:** `app.js:1332`：
+```javascript
+const sessions = searchRaw
+  ? allSorted.filter(...)
+  : allSorted.slice(0, 10);   // ← 无 "show more"
+```
+无搜索时强制截取最近 10 条，`index.html:111` 的 `<div id="timeline">` 旁边没有「加载更多」按钮或分页入口。若用户已记录 30 条阅读（读了 20+ 本书），第 11 条及更早的记录在「记录」Tab 首屏完全不可见，只能通过搜索书名才能翻出来。对比「摘抄」Tab（`renderQuotes()` 渲染全量，`app.js:1428`）和「书单」Tab（`renderBooks()` 分批 rAF 渲染全量）均无截断。
+
+**Why it matters:** 记录 Tab 是 Theme 2「回顾有价值」的主要界面。随着使用积累（1 年 ≈ 100+ 次记录），10 条硬限让历史记录无法浏览；用户必须知道书名才能搜索，不能自由翻阅"上周读了什么"。最小修复：去掉 `.slice(0, 10)`（全量渲染，sessions 总量通常 <200，无性能问题），或加一个「全部 N 条」展开按钮。
+
+**Complexity:** S — 仅改 `app.js:1332` 一行；或加一个展开按钮（+约 10 行 JS，0 行 CSS 新增，复用已有样式）。无后端改动、无 schema 变动。
+
+**Files:** `app.js:1332`（主改动点）；`index.html:111`（可选加展开按钮占位）
+
+**northstar:** 中——Theme 2「回顾有价值」的基础入口：无法浏览历史记录，回顾就无从谈起。是 Theme 2 开始前的前置条件之一（比 OPT-045 的测试覆盖更直接影响用户体验）。
+
+---
+
+### E85 — Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 (S)
+
+**What:** `app.js:1335-1342`：
+```javascript
+if (els.sessionStats) {
+  if (searchRaw && sessions.length) {
+    // 计算 totalMin / totalPages / count
+    els.sessionStats.classList.remove("is-hidden");
+  } else {
+    els.sessionStats.classList.add("is-hidden"); // ← 无搜索时始终隐藏
+  }
+}
+```
+`#sessionStats`（`index.html:110`）仅在有搜索关键词时显示匹配集合的汇总数字。无搜索时（即用户日常打开「记录」Tab 时），统计条始终 `is-hidden`——用户无法在不搜索的情况下看到自己的累计阅读时间或总页数。对比「书单」Tab 顶部的 `renderHero()`（`app.js:934-940`）始终展示总书数/总分钟/总摘抄数。
+
+**Why it matters:** Roadmap §2 的北极星可观测代理指标是「本周使用天数 / 本周新增摘抄数 / 本周回顾操作次数」，能在「记录」Tab 立即看到「共 38 次阅读 · 2140 分钟 · 约 480 页」是养成习惯的正向强化。最小修复：当无搜索时，计算全量 `state.sessions` 的汇总并展示（3 行代码改动）；搜索时继续展示过滤后的子集汇总（现有行为）。
+
+**Complexity:** S — 改 `app.js:1335-1342`，将 `if (searchRaw && sessions.length)` 改为总是显示，无搜索时从 `state.sessions` 全量计算，有搜索时从 `sessions` 过滤结果计算。无 HTML 变更、无 CSS 变更、无后端变更。
+
+**Files:** `app.js:1335-1342`（唯一改动点）
+
+**northstar:** 中——直接佐证 Roadmap §2「可观测代理指标」：让阅读积累可见是「每天爱用」的正向循环基础。在 Theme 2「回顾有价值」启动前的低成本预热。
+
+---
+
+### E86 — 摘抄卡面从不显示图片缩略图——拍照 OCR 后卡面无视觉区分度 (S)
+
+**What:** `renderQuotes()` 中的卡面模板（`app.js:1449-1452`）：
+```javascript
+<div class="entry-card-cover">
+  <div class="entry-cover-fallback"></div>
+  <span class="entry-type-chip ...">...</span>
+</div>
+```
+无论 `quote.imageUrl` 是否存在，始终只渲染占位块 `entry-cover-fallback`，不显示图片。对比书卡（`app.js:1133-1134`）：
+```javascript
+<img src="${coverImage}" alt="${escapeHtml(book.title)}" />
+```
+会显示封面或摘抄图片 fallback。`openQuoteDetail()`（`app.js:2159-2160`）在详情弹窗中 **确实**加载了图片（`img.src = resolveImageUrl(quote.imageUrl)`），说明图片已上传并有 URL，只是卡面未渲染。
+
+**Why it matters:** Theme 1「采集顺滑」要求拍照→OCR→成卡的全链路可靠且有清晰反馈。拍了照、识别了文字，但成卡后卡面与纯文字卡完全一样（同一个灰色占位块）——用户没有视觉确认"照片已关联到这张卡"。随着 OCR 摘抄增多，整个卡片墙视觉单调、无法区分哪些是图片卡。修复仅需在卡面模板条件渲染一个 `<img>`（类似书卡已有实现），约 3 行。
+
+**Complexity:** S — 在 `app.js:1449` 的 `entry-card-cover` 内条件加 `${quote.imageUrl ? \`<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄图片">\` : '<div class="entry-cover-fallback"></div>'}`；CSS 样式沿用已有 `.entry-card-cover img`（书卡已定义）。无后端改动、无测试变更。
+
+**Files:** `app.js:1449-1452`（模板改动）；`styles.css`（如需调整摘抄卡内图片尺寸规则，约 2 行）
+
+**northstar:** 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认；与「不假思索的默认工具」北极星一致（完成操作后立即得到正向反馈）。S 复杂度，无副作用。
+
