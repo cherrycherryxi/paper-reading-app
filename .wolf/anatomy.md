@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T19:17:31.066Z
-> Files: 143 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T06:03:44.644Z
-> Files: 156 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T06:08:44.844Z
+> Files: 159 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -66,7 +64,7 @@
 - `email-cheatsheet.sh` — email-cheatsheet — 把全局共享工具 / 常用命令速查发到邮箱。 (~473 tok)
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~593 tok)
+- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~642 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
 - `weekly-report.sh` (~476 tok)
 
@@ -185,10 +183,10 @@
 ## optimization/
 
 - `backlog.md` — Optimization Backlog (~11377 tok)
-- `explore.md` — Exploration — new optimization directions (~33309 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
+- `explore.md` — Exploration — new optimization directions (~33309 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~210 tok)
 - `triage.md` — Triage (~2474 tok)
@@ -197,7 +195,7 @@
 
 - `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1692 tok)
 - `dev_backend.sh` (~153 tok)
-- `run_backend_service.sh` — Unattended backend runner for launchd (stable serving, NOT the dev watcher). (~131 tok)
+- `run_backend_service.sh` — Unattended backend runner for launchd (stable serving, NOT the dev watcher). (~123 tok)
 - `start_backend.sh` (~348 tok)
 
 ## tests/
