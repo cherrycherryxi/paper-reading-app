@@ -18,7 +18,7 @@ Last triaged: 2026-06-16
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | triaged | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；全局上下文同。roadmap §2 明确首推，northstar「强」，Theme 1 成本控制，500 书用户每日节省 168 万 tokens。 |
+| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | in-progress (PR #45) | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；全局上下文同。roadmap §2 明确首推，northstar「强」，Theme 1 成本控制，500 书用户每日节省 168 万 tokens。 |
 | OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | triaged | `app.js:1449-1452`：`entry-card-cover` 始终只渲染 `entry-cover-fallback`，`quote.imageUrl` 存在时未显示；详情弹窗 `app.js:2159-2160` 已加载图片，卡面遗漏。条件渲染 `<img>` + 2 行 CSS。northstar「强」，Theme 1「采集顺滑」；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。P1 次席。 |
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` `activateTab()` 补 1 行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 最严级合规，Tab 是 App 主骨架。northstar「中」。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
