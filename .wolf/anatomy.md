@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-06-15T19:17:31.066Z
 > Files: 143 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T06:03:44.644Z
+> Files: 156 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -13,7 +15,8 @@
 
 ## ../../.claude/
 
-- `CLAUDE.md` — 全局工作约定（跨项目） (~300 tok)
+- `CLAUDE.md` — 全局工作约定（跨项目） (~421 tok)
+- `product-owner-latest.md` — 产品负责人周一焦点 — 2026-W25（6/16） (~157 tok)
 - `settings.json` (~1052 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
@@ -40,7 +43,7 @@
 
 ## ../../.claude/playbook/
 
-- `PLAYBOOK.md` — 个人项目推进 Playbook (~685 tok)
+- `PLAYBOOK.md` — 个人项目推进 Playbook (~800 tok)
 
 ## ../../.claude/playbook/templates/
 
@@ -52,16 +55,27 @@
 
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~158 tok)
+- `MEMORY.md` (~253 tok)
 - `reference_global_playbook.md` (~332 tok)
+- `reference_personal_infra_index.md` (~327 tok)
+- `reference_remote_access_setup.md` (~415 tok)
+- `reference_weekly_report_email.md` (~339 tok)
 
 ## ../../.claude/scripts/
 
+- `email-cheatsheet.sh` — email-cheatsheet — 把全局共享工具 / 常用命令速查发到邮箱。 (~473 tok)
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
-- `weekly-report.sh` (~274 tok)
+- `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
+- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~593 tok)
+- `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
+- `weekly-report.sh` (~476 tok)
 
 ## ../../Library/LaunchAgents/
 
+- `com.huangnanqi.caffeinate.plist` (~174 tok)
+- `com.huangnanqi.paper-backend.plist` (~291 tok)
+- `com.huangnanqi.paper-tunnel.plist` (~255 tok)
+- `com.huangnanqi.product-owner.plist` (~307 tok)
 - `com.huangnanqi.weekly-report.plist` (~301 tok)
 
 ## ./
@@ -173,6 +187,9 @@
 - `backlog.md` — Optimization Backlog (~11377 tok)
 - `explore.md` — Exploration — new optimization directions (~33309 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
+- `backlog.md` — Optimization Backlog (~10520 tok)
+- `explore.md` — Exploration — new optimization directions (~29517 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~210 tok)
 - `triage.md` — Triage (~2474 tok)
 
@@ -180,6 +197,7 @@
 
 - `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1692 tok)
 - `dev_backend.sh` (~153 tok)
+- `run_backend_service.sh` — Unattended backend runner for launchd (stable serving, NOT the dev watcher). (~131 tok)
 - `start_backend.sh` (~348 tok)
 
 ## tests/

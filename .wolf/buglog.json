@@ -4863,6 +4863,38 @@
     },
     {
       "id": "bug-287",
+      "timestamp": "2026-06-14T02:55:23.954Z",
+      "error_message": "CSS fix: min-width",
+      "file": "styles.css",
+      "root_cause": "min-width: min(720px, calc(100vw - 24px)) → min(720px, …)`, wider than the dialog's 560px,",
+      "fix": "Changed min-width: min(720px, calc(100vw - 24px)) → min(720px, …)`, wider than the dialog's 560px,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T02:55:23.954Z"
+    },
+    {
+      "id": "bug-288",
+      "timestamp": "2026-06-14T03:27:58.450Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/signals.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T03:27:58.450Z"
+    },
+    {
+      "id": "bug-289",
       "timestamp": "2026-06-14T17:06:21.243Z",
       "error_message": "Wrong reference: new should be triaged",
       "file": "optimization/backlog.md",
@@ -4878,7 +4910,7 @@
       "last_seen": "2026-06-14T17:06:21.243Z"
     },
     {
-      "id": "bug-288",
+      "id": "bug-290",
       "timestamp": "2026-06-14T19:19:04.834Z",
       "error_message": "Null/undefined access in ",
       "file": "optimization/explore.md",
@@ -4894,7 +4926,7 @@
       "last_seen": "2026-06-14T19:19:04.834Z"
     },
     {
-      "id": "bug-289",
+      "id": "bug-291",
       "timestamp": "2026-06-14T19:19:36.359Z",
       "error_message": "Missing await",
       "file": "optimization/backlog.md",
@@ -4910,7 +4942,7 @@
       "last_seen": "2026-06-14T19:19:36.359Z"
     },
     {
-      "id": "bug-290",
+      "id": "bug-292",
       "timestamp": "2026-06-15T17:05:31.394Z",
       "error_message": "Wrong reference: new should be triaged",
       "file": "optimization/backlog.md",
@@ -4924,6 +4956,54 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-15T17:05:36.047Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-06-16T04:27:52.170Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/send-email.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 18→23 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-16T04:27:52.170Z"
+    },
+    {
+      "id": "bug-294",
+      "timestamp": "2026-06-16T04:28:59.938Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_weekly_report_email.md",
+      "root_cause": "Had `GMAIL_ADDR=<gmail> python3 ~/.claude/scripts/send",
+      "fix": "Changed to `python3 ~/.claude/scripts/send-email.py --subject",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-16T04:28:59.938Z"
+    },
+    {
+      "id": "bug-295",
+      "timestamp": "2026-06-16T06:02:59.204Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/roadmap.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 5→10 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-16T06:02:59.204Z"
     }
   ]
 }

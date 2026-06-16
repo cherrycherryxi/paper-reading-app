@@ -290,7 +290,7 @@ Format per item:
 
 ### OPT-036 — `summarize_metrics()` 对全量历史数据做 O(n) 扫描——每次打开 `/debug/logs` 线性变慢 — 由 explore E40 提拔
 - status: triaged
-- northstar: 弱——debug 看板是运营工具,变慢影响监控 AI 质量,不影响阅读主流程。P2 偏低。
+- northstar: 弱——debug 看板是运营工具,不影响阅读主流程。→ P3 parked(2026-06-16 产品负责人仪式:对北极星无直接贡献,纯运营工具优化,预算富余周再做)。
 - area: backend
 - description: `MetricsCollector.summarize_metrics()`（`app_server.py:2870-2940`）执行 `SELECT … FROM agent_metrics WHERE user_id = ?`，无任何时间过滤，无 `LIMIT`。Plus 用户每天 240 次请求，一年后 `agent_metrics` 表超 87,000 行；每次 `/debug/logs` 或 `/debug/metrics` 加载都触发完整拉取 + 逐行 `json.loads()`，延迟随使用时长线性增长。`idx_agent_metrics_user` 索引（OPT-017）避免了跨用户扫描，但仍返回该用户所有历史行。
 - why: debug 看板是运营者监控 AI 质量的主要工具，打开速度越来越慢会直接影响日常运营。90 天滚动窗口覆盖所有实用的调试历史（配置变更、模型升级、回归分析），同时将最大扫描行数封顶在约 21,600 行。修复仅需在 SQL WHERE 子句追加一个时间条件，一行代码。
@@ -388,7 +388,7 @@ Format per item:
 ### OPT-048 — `#chatMessages` 缺少 `role="log"` live region，屏幕阅读器无法感知新消息（WCAG 4.1.3 AA） — 由 explore E75 提拔
 - status: triaged
 - area: frontend
-- northstar: 弱——延续已有 a11y 系列（OPT-013/018/019/033/046），Chat 是 AI 对话核心入口，`role="log"` 使 AA 级合规在对话模块闭环。S 复杂度，1 行 HTML + 1 条测试。
+- northstar: 弱——延续已有 a11y 系列（OPT-013/018/019/033/046），Chat 是 AI 对话核心入口，`role="log"` 使 AA 级合规在对话模块闭环。S 复杂度，1 行 HTML + 1 条测试。→ P3 parked（2026-06-16 仪式：当前定位 A「个人工具」唯一用户为 owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。
 - description: `<div id="chatMessages" class="chat-messages chat-messages-inline">` at `index.html:177` has no `role="log"`, `aria-live`, or `aria-relevant` attribute. `chat.js` never sets any live-region attribute on this element. Without `role="log"` (which implies `aria-live="polite"` + `aria-relevant="additions text"`), screen readers do not announce incoming AI replies as they stream in. The `a11y-baseline.test.js` already guards OPT-013/018/019 but has no assertion for this gap.
 - why: Chat是 AI 交互的主界面。缺少 live region，屏幕阅读器用户每次交换后必须手动导航到消息列表——无法听到实时回复。与 OPT-019（toast `role="status"`）性质完全相同，修复量更小（1 个 HTML 属性 + 1 条测试断言），零 JS/backend 改动。
 - how: `index.html:177`：在 `<div id="chatMessages">` 上加 `role="log"`。`tests/frontend/a11y-baseline.test.js`：新增一个 test 块，断言 `#chatMessages` 元素存在且 `role="log"`。Touch: `index.html:177`；`tests/frontend/a11y-baseline.test.js`。
