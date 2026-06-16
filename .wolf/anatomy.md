@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T06:08:44.844Z
-> Files: 159 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T07:23:28.457Z
+> Files: 160 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -29,6 +29,7 @@
 - `2026-06-09.md` — 日报 2026-06-09 (~416 tok)
 - `2026-06-11.md` — 日报 2026-06-11 (~465 tok)
 - `2026-06-13.md` — 日报 2026-06-13 (~486 tok)
+- `2026-06-16.md` — 日报 2026-06-16 (~481 tok)
 
 ## ../../.claude/plans/
 
@@ -55,7 +56,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~253 tok)
 - `reference_global_playbook.md` (~332 tok)
-- `reference_personal_infra_index.md` (~327 tok)
+- `reference_personal_infra_index.md` (~419 tok)
 - `reference_remote_access_setup.md` (~415 tok)
 - `reference_weekly_report_email.md` (~339 tok)
 
@@ -188,7 +189,7 @@
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~210 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~249 tok)
 - `triage.md` — Triage (~2474 tok)
 
 ## scripts/
