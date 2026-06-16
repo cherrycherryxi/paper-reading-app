@@ -2325,7 +2325,7 @@ class PromptBuilder:
             },
             "all_books_summary": [
                 {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")}
-                for b in user_state.get("books", [])
+                for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:50]
             ],
             "existing_connections": [] if book_id else user_state.get("connections", [])[:20],
         }
