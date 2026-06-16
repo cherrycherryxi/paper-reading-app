@@ -410,7 +410,7 @@ Format per item:
 - how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
 
 ### OPT-052 — 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 — 由 explore E86 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认「照片已关联」；与北极星「不假思索的默认工具」一致（操作后立即得到正向反馈）。S 复杂度，P1 候选。
 - description: `app.js:1449-1452` 的摘抄卡模板中 `entry-card-cover` 始终只渲染 `entry-cover-fallback`（灰色占位块），无论 `quote.imageUrl` 是否存在均不显示图片。`openQuoteDetail()`（`app.js:2159-2160`）在详情弹窗中 **已**加载图片（`img.src = resolveImageUrl(quote.imageUrl)`），证明图片有效，只是卡面未渲染。对比书卡（`app.js:1133-1134`）会展示封面图片或 fallback 摘抄图片。
@@ -418,7 +418,7 @@ Format per item:
 - how: 在 `app.js:1449` 的 `entry-card-cover` 内条件渲染 `<img>`：有 `quote.imageUrl` 时显示缩略图，无则保留 `entry-cover-fallback`。CSS 样式可沿用书卡已有 `book-card-cover img` 规则（`.entry-card-cover img { width:100%; height:100%; object-fit:cover; }` 约 2 行）。无后端改动。Touch: `app.js:1449-1452`；`styles.css`（2 行 CSS 规则可选）。
 
 ### OPT-053 — Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 — 由 explore E85 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——直接佐证 Roadmap §2「可观测代理指标」（本周使用天数/新增摘抄数/回顾操作次数）；让阅读积累可见是「每天爱用」的正向循环基础；Theme 2「回顾有价值」预热。S 复杂度，3 行代码改动。
 - description: `app.js:1335-1342`：`if (searchRaw && sessions.length)` 使统计条（`#sessionStats`，`index.html:110`）仅在有搜索词时显示匹配集合的汇总数字。无搜索时始终 `is-hidden`，用户日常打开「记录」Tab 看不到「共 38 次阅读 · 2140 分钟 · 约 480 页」。对比书单 Tab 的 `renderHero()`（`app.js:934-940`）始终展示总书数/总分钟/总摘抄数。
