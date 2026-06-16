@@ -432,3 +432,19 @@ Format per item:
 - description: `index.html:8-10` 仅有 Apple 专属 PWA meta 标签（`apple-mobile-web-app-capable` / `apple-mobile-web-app-title`），没有 `<link rel="manifest">`。仓库根目录无 `manifest.json` 文件。Android Chrome 的「添加到主屏幕」和 PWA 安装提示均依赖 manifest；缺失时用户只能手动将网址固定到浏览器书签，不会触发系统级安装提示。
 - why: owner 每天用 iPhone，manifest 收益目前为零；但 roadmap §1 把升级到 B（10-100 人分享）设为可能路径，Android 用户比例不低。manifest.json 是 15 行 JSON + 1 行 HTML，一次性低成本补全，此后无维护负担。
 - how: ① 新建 `manifest.json`（根目录，15 行）：name/short_name/start_url/display:standalone/background_color/theme_color/icons（复用现有 favicon 或添加 192×192 PNG）。② `index.html` `<head>` 加 `<link rel="manifest" href="/manifest.json">`。③ `app_server.py` 静态文件分发列表（`_STATIC` dict 或等价 if-chain）加入 `manifest.json` 条目。复杂度 S。
+
+### OPT-054 — 「↓ 最新」按钮独占布局行压缩聊天区——改为叠加在消息列表上的浮动按钮 — 由 explore E87 提拔
+- status: new
+- area: frontend
+- northstar: 中——chat 是「探讨」核心入口，输入区舒适度影响写作流畅度；owner 真机 signal 2026-06-16 驱动，S 复杂度；Theme 1「不假思索的默认工具」辅助。
+- description: `index.html:190-192` 的 `<div class="chat-scroll-btn-row" id="chatScrollBtnRow">` 是聊天面板 flex 列的独立子元素（在 `#chatMessages` 与 `.chat-composer` 之间）。`styles.css:2069-2073` 定义为 `display: flex; padding: 4px 4px 0`，可见时占用 ~30px 垂直高度。桌面端（`styles.css:3597-3600`）亦占独立 `grid-row: 3`。聊天面板高度固定，该行出现时从消息区直接扣除 ~30px。Owner signal 2026-06-16："聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。
+- why: 「↓ 最新」按钮不需要占用布局空间——叠加在消息列表右下角是标准聊天应用模式（WhatsApp/Telegram），不影响 composer 可用高度。S 复杂度，零逻辑变更。
+- how: `styles.css`：给 `#chatMessages` 加 `position: relative`；将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 8px; z-index: 2; display: block` （移除 `display: flex; padding`）；同步移除桌面端 `grid-row: 3` override（按钮叠加后不占 grid 行）。`chat.js:273, 441, 894` 的 `hidden` 逻辑无需改动。Touch: `styles.css:2069-2073`（`.chat-scroll-btn-row`）、`styles.css:3597-3600`（桌面 override）。
+
+### OPT-055 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 — 由 explore E88 提拔
+- status: new
+- area: frontend
+- northstar: 强——Theme 1「采集顺滑」直接障碍：快速 OCR 已「快」，但产生整页冗余文本使「顺」失效；owner 真机 signal 2026-06-16 明确指出。每次录入都需额外 20-60 秒手工删行，与北极星「不假思索的默认工具」直接冲突。M 复杂度，无后端改动。
+- description: `index.html:476` helper text 明确写"「快速识别」秒出整页全文"；`app.js:511-523` `normalizeOcrText()` 保留 `\n` 分隔多行；`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea（`contentEl.value = recognizedText`）。OCR 完成后 quote 对话框无任何行级操作 UI，用户须在 textarea 里手动选删不需要的行才能保留划线句。Owner 2026-06-16 signals："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
+- why: 是 Theme 1 两周验收观察期（roadmap §2 W25 焦点）中最直接的采集摩擦点：降低 OCR 录入的后处理成本，才能做到"拍照→成卡"零停顿。
+- how: 在 `syncOpenQuoteFormFromState()`（`app.js:1548-1566`）的 `ocrStatus === "done"` 分支：若识别文本行数 ≥ 3，隐藏 `#quoteContent` textarea，显示新增的「行选择列表」（每行一个 `<div>` + 删除 `✕` 按钮）；用户点删后，剩余行合并写回 textarea，并恢复正常编辑视图。约 40 行 JS + 20 行 CSS。行数 < 3 时跳过，直接填入 textarea（现有行为）。Touch: `app.js:1548-1566`；`index.html:444-486`（quote dialog，可加行列表 UI 占位）；`styles.css`（新增 `.ocr-line-selector` 组件样式）。

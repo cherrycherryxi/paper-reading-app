@@ -1149,3 +1149,106 @@ if (els.sessionStats) {
 
 **northstar:** 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认；与「不假思索的默认工具」北极星一致（完成操作后立即得到正向反馈）。S 复杂度，无副作用。
 
+---
+
+## 2026-06-16
+
+### E87 — 「↓ 最新」按钮独占一个布局行压缩消息区——改为叠加在消息列表上的浮动按钮 (S)
+
+**What:** `index.html:190-192` 中，「↓ 最新」按钮包裹在独立的 `<div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>`：
+
+```html
+<div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>
+  <button id="chatScrollBtn" class="chat-scroll-btn" type="button" aria-label="回到最新">↓ 最新</button>
+</div>
+```
+
+该 div 是 `.chat-panel` flex 列的第三个子元素（夹在 `#chatMessages` 和 `.chat-composer` 之间），`styles.css:2069-2073` 定义为 `display: flex; padding: 4px 4px 0`，可见时占用约 30px 垂直高度。在桌面端（`styles.css:3597-3600`），该 div 同样占 `grid-row: 3`，夹在 `grid-row: 2`（`1fr` messages）和 `grid-row: 4`（composer）之间。由于聊天面板高度固定（`height: min(860px, calc(100dvh - 64px))`），该行出现时直接从 `#chatMessages` 的可用高度里扣除 ~30px。Owner 在 signals 2026-06-16 记录："聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。
+
+**Why it matters:** 「↓ 最新」在用户滚动回看历史消息时出现，此时聊天面板空间已因消息区被占而更紧；弹出后再压缩 30px 会让 composer 区（快捷 chip 行 + 输入框 + 发送键）更拥挤。修复是将该按钮改为 `position: absolute` 叠加在 `#chatMessages` 右下角——这是 WhatsApp/Telegram 等聊天应用的标准模式，不占任何布局空间。
+
+**Complexity:** S — 改 `styles.css`：给 `#chatMessages` 加 `position: relative`，将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 8px; z-index: 2`（并移除 `display: flex` 容器改 `display: block`），或直接改按钮本身为 `position: absolute`。同步修改 `chat.js:273, 441, 894`（控制 `scrollBtnRow.hidden` 的逻辑不变）。无 HTML 结构改动，无 JS 逻辑改动。
+
+**Files:** `styles.css:2069-2073`（`.chat-scroll-btn-row` 规则）；`styles.css:3597-3600`（桌面端 grid-row override）
+
+**northstar:** 中——chat 是「探讨」核心入口，输入区舒适度直接影响写作流畅度；owner 真机 signal 驱动，S 复杂度，Theme 1「不假思索的默认工具」辅助。
+
+---
+
+### E88 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 (M)
+
+**What:** `index.html:476` 的帮助文本已明确写道："「快速识别」秒出整页全文"。`app.js:511-523` 的 `normalizeOcrText()` 保留 `\n` 分隔的多行结构（`split("\n").map(line=>line.trim()).join("\n")`）。快速 OCR 完成后，`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea：
+
+```javascript
+contentEl.value = recognizedText;  // ← 整页全文，可能十几行
+```
+
+此后没有任何行级操作 UI——用户必须在 textarea 里手动选中并删除不需要的行，才能保留划线的那一两句。Quote 编辑弹窗（`index.html:444-486`）目前在 OCR 完成后没有提供行选择或批量删除辅助界面。Owner 2026-06-16 signals 记录："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
+
+**Why it matters:** 这是 Theme 1「采集顺滑」验收标准的直接障碍。拍照→快速 OCR→删到只剩划线句，每次需要额外 20-60 秒手工删除，而 AI 精识别虽可自动提取，但更慢（又回到 OPT-016 的原始痛点）。理想流程：快速 OCR 返回全页文本后，把文本按行展示为可逐行删除的 chip 列表；用户点删不要的行（1-2 次点击），留下的行合并为最终内容；比 textarea 选删更快。
+
+**Complexity:** M — 在 `quoteDialog` 的 OCR 完成路径里新增一个「行选择」UI 组件：`syncOpenQuoteFormFromState()`（`app.js:1548-1556`）检测识别文本行数 ≥ 3 时，隐藏 textarea、展示行列表（每行含删除按钮），「确认行选择」按钮把留下的行合并写回 textarea 并恢复正常编辑模式。需新增约 40 行 JS + 20 行 CSS；无后端改动，无 schema 变更。
+
+**Files:** `app.js:1548-1566`（`syncOpenQuoteFormFromState` OCR done 分支）；`index.html:444-486`（quote dialog 可加行列表 UI 区）；`styles.css`（新增行删除组件样式）
+
+**northstar:** 强——直接驱动 Theme 1「采集顺滑」：快速 OCR 已「快」，但产生整页冗余文本让「顺」失效；owner 真机 signal 2026-06-16 明确指出这是采集摩擦。是现阶段最值得投入的 M 复杂度功能改进。
+
+---
+
+### E89 — `deleteBook` 弹窗仅显示书名，级联删除数量不具体——用户删前不知将失去多少内容 (S)
+
+**What:** `deleteBook()` 在显示确认弹窗前（`app.js:2076`）只将书名写入 `#deleteBookMessage`：
+
+```javascript
+els.deleteBookMessage.textContent = book.title;
+els.deleteBookDialog.showModal();
+```
+
+`index.html:532-533` 中弹窗固定显示通用警告：
+
+```html
+<p id="deleteBookMessage" class="delete-confirm-body"></p>
+<p class="delete-confirm-warning">⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。</p>
+```
+
+具体的摘抄数和阅读记录数需到 `onConfirm` 里才计算（`app.js:2084` 的 `deletedQuoteIds`），弹窗显示阶段对用户不可见。
+
+**Why it matters:** 对于有 30+ 张摘抄的书，用户在点击确认前不知道"到底要失去多少"；提前展示具体数量（「将删除「书名」及其 12 条摘抄、5 条阅读记录，无法恢复」）能在第一次显示时就让用户看到量级，大幅减少误删焦虑。修复在 `showModal()` 前先做一次 O(n) 计数（两行 JS），将结果拼入 `deleteBookMessage`。
+
+**Complexity:** S — 在 `app.js:2074-2077` 的 `showModal()` 前新增：
+```javascript
+const nQuotes = state.quotes.filter(q => q.bookId === bookId).length;
+const nSessions = (state.sessions || []).filter(s => s.bookId === bookId).length;
+els.deleteBookMessage.textContent = `「${book.title}」及其 ${nQuotes} 条摘抄、${nSessions} 条阅读记录将被永久删除。`;
+```
+无 HTML 变动（`deleteBookMessage` 已存在），无后端变动。
+
+**Files:** `app.js:2070-2078`（`deleteBook` 函数 showModal 前）；`index.html:532`（可酌情简化固定 warning 文案）
+
+**northstar:** 弱/中——删除是不可逆操作；显示具体数量是「不假思索的默认工具」对数据安全的最低透明度要求。直接改善删除决策质量，与 Theme 1 数据可靠性间接相关。S 复杂度，无风险。
+
+---
+
+### E90 — 摘抄搜索不包含 `reflection`（「我的理解」）字段——用户按自己的思考笔记无法检索 (S)
+
+**What:** `renderQuotes()` 的搜索过滤器（`app.js:1409-1418`）构建 haystack 时：
+
+```javascript
+const haystack = [
+  book?.title || "",
+  book?.author || "",
+  item.content || "",      // ← 摘抄原文
+  (item.tags || []).join(" "),
+].join(" ").toLowerCase();
+```
+
+没有包含 `item.reflection`。`index.html:479` 的「我的理解」输入框（`<textarea name="reflection" rows="3">`）是用户记录个人洞察的地方，内容通过 `state.quotes[n].reflection` 持久化。若用户在「我的理解」里写了"这和笛卡尔二元论有关"，在摘抄搜索框输入"笛卡尔"什么都搜不到。
+
+**Why it matters:** `reflection` 是用户最个人化的思考记录，往往比摘抄原文更容易记住（"我当时写了什么？"）。搜索命中 `reflection` 是 Theme 2「回顾有价值」的低成本预热——让自己的洞察变得可检索，才能在日后真正回流到阅读生活。一行修复，零测试变更（可加一条断言）。
+
+**Complexity:** S — 在 `app.js:1411-1416` 的 haystack 数组末尾追加 `item.reflection || ""`。可同时在 `tests/frontend/quote-content-display.test.js` 或 `regression-fixed-bugs.test.js` 追加一条断言。
+
+**Files:** `app.js:1411-1416`（haystack 数组）；可选 `tests/frontend/quote-content-display.test.js`（追加测试）
+
+**northstar:** 中——使用户的个人洞察（reflection）变得可检索，直接支撑 Theme 2「回顾有价值」；累积 50+ 张摘抄后 reflection 检索是最自然的二次入口之一。
+
