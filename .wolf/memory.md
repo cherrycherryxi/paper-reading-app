@@ -1600,3 +1600,6 @@
 | 14:50 | Edited optimization/signals.md | 1→3 lines | ~67 |
 | 14:50 | Session end: 9 writes across 7 files (roadmap.md, backlog.md, product-owner-latest.md, product-owner-monday.sh, run_backend_service.sh) | 4 reads | ~14507 tok |
 | 15:23 | Created ../../.claude/daily-logs/2026-06-16.md | — | ~513 |
+| 17:06 | Created optimization/triage.md | — | ~2750 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~22 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~23 |
