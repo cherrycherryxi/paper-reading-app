@@ -1608,3 +1608,6 @@
 | 18:05 | Edited optimization/triage.md | inline fix | ~61 |
 | 19:11 | Edited optimization/explore.md | added optional chaining | ~1394 |
 | 19:11 | Edited optimization/backlog.md | expanded (+16 lines) | ~806 |
+| 17:05 | Created optimization/triage.md | — | ~2941 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~23 |
