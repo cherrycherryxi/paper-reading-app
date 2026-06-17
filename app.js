@@ -131,6 +131,7 @@ const els = {
   ocrButton: document.querySelector("#ocrButton"),
   aiOcrButton: document.querySelector("#aiOcrButton"),
   ocrStatus: document.querySelector("#ocrStatus"),
+  ocrLineSelector: document.querySelector("#ocrLineSelector"),
   heroBooks: document.querySelector("#heroBooks"),
   heroMinutes: document.querySelector("#heroMinutes"),
   heroQuotes: document.querySelector("#heroQuotes"),
@@ -1552,6 +1553,7 @@ function syncOpenQuoteFormFromState() {
     const currentContent = normalizeOcrText(contentEl.value);
     if (recognizedText && (!currentContent || (ocrBaseContent && currentContent === ocrBaseContent))) {
       contentEl.value = recognizedText;
+      renderOcrLineSelector(recognizedText);
     }
     delete els.quoteForm.dataset.ocrBaseContent;
     delete els.quoteForm.dataset.ocrQuoteId;
@@ -1929,6 +1931,51 @@ async function uploadBookImageIfNeeded() {
   return uploadBookCoverImage(pendingBookImage);
 }
 
+function renderOcrLineSelector(text) {
+  const sel = els.ocrLineSelector;
+  if (!sel) return;
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 3) {
+    sel.hidden = true;
+    sel.innerHTML = "";
+    sel.onclick = null;
+    return;
+  }
+  sel.hidden = false;
+  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——点 ✕ 删去不需要的行：</p>`;
+  const items = lines
+    .map(
+      (line, i) =>
+        `<div class="ocr-line-selector__row" data-line-idx="${i}"><span class="ocr-line-selector__text">${escapeHtml(line)}</span><button type="button" class="ocr-line-selector__del" aria-label="删除此行" data-line-idx="${i}">✕</button></div>`
+    )
+    .join("");
+  sel.innerHTML = header + items;
+  sel.onclick = (e) => {
+    const btn = e.target.closest(".ocr-line-selector__del");
+    if (!btn) return;
+    const row = btn.closest(".ocr-line-selector__row");
+    if (row) row.remove();
+    const remaining = Array.from(sel.querySelectorAll(".ocr-line-selector__row")).map(
+      (r) => r.querySelector(".ocr-line-selector__text").textContent
+    );
+    if (els.quoteContent) els.quoteContent.value = remaining.join("\n");
+    const hint = sel.querySelector(".ocr-line-selector__hint");
+    if (hint) hint.textContent = `整页全文已识别——已保留 ${remaining.length} 行：`;
+    if (remaining.length < 3) {
+      sel.hidden = true;
+      sel.innerHTML = "";
+      sel.onclick = null;
+    }
+  };
+}
+
+function hideOcrLineSelector() {
+  if (!els.ocrLineSelector) return;
+  els.ocrLineSelector.hidden = true;
+  els.ocrLineSelector.innerHTML = "";
+  els.ocrLineSelector.onclick = null;
+}
+
 function resetQuoteDraft() {
   if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   pendingQuoteImage = null;
@@ -1938,6 +1985,7 @@ function resetQuoteDraft() {
   document.querySelector("#quoteBookCombobox")?._comboboxReset?.();
   renderImagePreview();
   renderQuoteTagPicker([]);
+  hideOcrLineSelector();
 }
 
 function resetBookDraft() {
