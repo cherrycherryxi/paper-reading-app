@@ -2,31 +2,35 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-16
+Last triaged: 2026-06-17
 
 ## Next up
 
-**指派：OPT-047** — `PromptBuilder.all_books_summary` 无数量上限（P1 / S）
+**指派：OPT-055** — 快速 OCR 行级删除 UI（P1 / M）
 
-**预算状态**：近 7 天（2026-06-09 → 2026-06-16）已开 3 个 `auto/` PR（#33 opt-034-debug-xss-escape、#34 opt-033-dialog-aria-labelledby、#39 opt-043-import-decrease-guard），距上限 4 还剩 **1 个名额**，正常指派。
+**预算状态**：近 7 天（2026-06-10 → 2026-06-17）已开 3 个 `auto/` PR（#45 opt-047-all-books-summary-limit、#39 opt-043-import-decrease-guard、#34 opt-033-dialog-aria-labelledby），距上限 4 还剩 **1 个名额**，正常指派。
 
-**理由**：Roadmap §2 短期节明确命名「预算重开后首推 OPT-047」；northstar「强」，Theme 1「采集顺滑」+ 成本控制；OPT-020（`existing_connections` 条件注入）同类机制已验证 P1 可落地，此处规模是 OPT-020 的 50×（500 书用户每日节省 ~168 万 tokens）。P1/S：仅 `app_server.py:2326-2329` 一处改动——`for b in user_state.get("books", [])` → 按 `b.get("updatedAt","")` 倒序后取 `[:50]`；零测试变更，零逻辑变更。
+**理由**：Owner 真机 signal 2026-06-16："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。这是 roadmap §2 W25 焦点「有摩擦才开工」所等待的精确信号——Theme 1「采集顺滑」验收三条之一「零等太久」已达标，但「拍照→成卡零停顿」仍被 OCR 后处理成本阻断。northstar「强」，M 复杂度，纯前端无后端改动。在一个预算名额内可完整交付。
 
-**关键文件**：`app_server.py:2326-2329`（`build_chat_prompt` 的 `all_books_summary` 生成块）。
+**关键文件**：`app.js:1548-1566`（`syncOpenQuoteFormFromState` 的 `ocrStatus === "done"` 分支）、`index.html:444-486`（quote dialog，新增行列表占位）、`styles.css`（新增 `.ocr-line-selector` 组件样式，~20 行）。
+
+**Signal 佐证**：signals.md 2026-06-16（快速 OCR 全文 → 逐行删除需求）。**Roadmap 主题**：Theme 1「采集顺滑」——此项是本轮两周真机验收的核心摩擦点。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | in-progress (PR #45) | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；全局上下文同。roadmap §2 明确首推，northstar「强」，Theme 1 成本控制，500 书用户每日节省 168 万 tokens。 |
-| OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | triaged | `app.js:1449-1452`：`entry-card-cover` 始终只渲染 `entry-cover-fallback`，`quote.imageUrl` 存在时未显示；详情弹窗 `app.js:2159-2160` 已加载图片，卡面遗漏。条件渲染 `<img>` + 2 行 CSS。northstar「强」，Theme 1「采集顺滑」；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。P1 次席。 |
+| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | in-progress (PR #45) | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；roadmap §2 明确首推，northstar「强」，Theme 1 成本控制。PR #45 开放中，待合并。 |
+| OPT-055 | 快速 OCR 行级删除 UI | P1 | M | triaged | Signal 2026-06-16：owner 真机「整页全文，只想留划线句，得逐行删」。northstar「强」，Theme 1 直接摩擦。`app.js:1548-1566` + `index.html:444-486` + `styles.css`（新 `.ocr-line-selector`）；行数 ≥ 3 时显示行选择列表，点 ✕ 删行，剩余合并写回 textarea。~40 JS + ~20 CSS。 |
+| OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | triaged | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` 加 `position:relative` + 桌面端 `styles.css:3597-3600` 删 `grid-row:3`；注意 `regression-fixed-bugs.test.js:1458` 测试 `[hidden]` 规则仍需保留。零逻辑变更。 |
+| OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | triaged | `app.js:1449-1452`：`entry-card-cover` 始终渲染 fallback，`quote.imageUrl` 存在时未显示；详情弹窗 `app.js:2159-2160` 已加载图片，证明有效，卡面遗漏。条件渲染 `<img>` + 2 行 CSS。northstar「强」，Theme 1「采集顺滑」；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。 |
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` `activateTab()` 补 1 行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 最严级合规，Tab 是 App 主骨架。northstar「中」。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：`if (searchRaw && sessions.length)` 导致无搜索时统计条始终隐藏。改为两路：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。3 行改动，无 HTML/CSS/后端变动。northstar「中」，Roadmap §2 可观测代理指标（使用天数/分钟数）。 |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332` deleteQuote() 删 quote 本体和 connections，但无 `delete state.chatHistories["quote:" + quoteId]` / `delete state.chatContexts["quote:" + quoteId]`。对比 deleteBook()（`app.js:2088-2101`）已有完整清理模板。修复：`onConfirm` 内 `await syncState()` 前加 2 行，复用 deleteBook 模式。northstar「弱」（state 健康度修缮），无 signal 佐证。 |
 | OPT-051 | 添加 Web App Manifest，支持 Android/Chrome 「添加到主屏幕」PWA | P2 | S | triaged | `index.html:8-10` 仅有 Apple 专属 meta，无 `<link rel="manifest">`，已核实。修复：① 新建 `manifest.json`（根目录）② `index.html <head>` 加 `<link rel="manifest" href="/manifest.json">` ③ `app_server.py` 静态路由加 manifest.json 条目。northstar「中」（降低非 iOS 门槛），但 roadmap §1 当前为 path A（owner 专用 iPhone），Android 用户暂无；若升级到 B 则升 P1。无 signal 佐证，暂 P2 末位。 |
-| OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P3 | S | triaged | P3 parked（2026-06-16 PM 仪式：定位 A「个人工具」唯一用户为 owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。`index.html:177` 加 `role="log"`。 |
-| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P3 | S | triaged | P3 parked（2026-06-16 PM 仪式：debug 看板是运营工具，不影响阅读主流程，对北极星无直接贡献）。`app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。 |
+| OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P3 | S | triaged | P3 parked（2026-06-16 仪式：定位 A「个人工具」唯一用户为 owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。`index.html:177` 加 `role="log"`。 |
+| OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P3 | S | triaged | P3 parked（2026-06-16 仪式：debug 看板是运营工具，不影响阅读主流程，对北极星无直接贡献）。`app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。 |
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5461`（_run_gc finally 块，`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`）。+1 测试断言 in `gc_thread_test.py`。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
 | OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1876, 1852, 1890, 1915, 1935`。 |
