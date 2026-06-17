@@ -448,3 +448,19 @@ Format per item:
 - description: `index.html:476` helper text 明确写"「快速识别」秒出整页全文"；`app.js:511-523` `normalizeOcrText()` 保留 `\n` 分隔多行；`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea（`contentEl.value = recognizedText`）。OCR 完成后 quote 对话框无任何行级操作 UI，用户须在 textarea 里手动选删不需要的行才能保留划线句。Owner 2026-06-16 signals："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
 - why: 是 Theme 1 两周验收观察期（roadmap §2 W25 焦点）中最直接的采集摩擦点：降低 OCR 录入的后处理成本，才能做到"拍照→成卡"零停顿。
 - how: 在 `syncOpenQuoteFormFromState()`（`app.js:1548-1566`）的 `ocrStatus === "done"` 分支：若识别文本行数 ≥ 3，隐藏 `#quoteContent` textarea，显示新增的「行选择列表」（每行一个 `<div>` + 删除 `✕` 按钮）；用户点删后，剩余行合并写回 textarea，并恢复正常编辑视图。约 40 行 JS + 20 行 CSS。行数 < 3 时跳过，直接填入 textarea（现有行为）。Touch: `app.js:1548-1566`；`index.html:444-486`（quote dialog，可加行列表 UI 占位）；`styles.css`（新增 `.ocr-line-selector` 组件样式）。
+
+### OPT-056 — 摘抄搜索不包含「我的理解」(reflection) 字段，用户按自己的思考笔记无法检索 — 由 explore E90 提拔
+- status: new
+- area: frontend
+- northstar: 中——使用户的个人洞察（reflection）变得可检索，直接支撑 Theme 2「回顾有价值」；累积 50+ 张摘抄后 reflection 检索是最自然的二次入口之一；与北极星「第三个数 > 0」（回顾/检索/关联操作次数）正相关。
+- description: `app.js:1411-1416`（`renderQuotes()` 搜索过滤器）构建 haystack 时未包含 `item.reflection`：`[book?.title, book?.author, item.content, (item.tags||[]).join(" ")].join(" ").toLowerCase()`。`index.html:479` 的「我的理解」textarea（`name="reflection"`）内容通过 `state.quotes[n].reflection` 持久化。若用户在「我的理解」里写了"这和笛卡尔二元论有关"，搜索"笛卡尔"什么都找不到。
+- why: `reflection` 是用户最个人化的思考记录，按自己写下的洞察检索是 Theme 2「回顾有价值」最低成本的实现方式；一行改动，零后端变更，可选追加测试断言。
+- how: `app.js:1411-1416`，在 haystack 数组末尾追加 `item.reflection || ""`。可同时在 `tests/frontend/` 追加一条断言覆盖 reflection 命中场景。Touch: `app.js:1411-1416`。
+
+### OPT-057 — 「动态」Tab 时间线硬限 10 条，积累大量摘抄后无法看到更多历史条目 — 由 explore E84 提拔
+- status: new
+- area: frontend
+- northstar: 中——「动态」Tab 是 Theme 2「回顾有价值」的主要入口之一；硬限 10 条使有价值的历史动态不可见，与「让积累的摘抄回流到阅读生活」直接冲突；积累 20+ 条目后用户无法看到自己的阅读轨迹全貌。
+- description: `app.js:1332`（`renderTimeline()` 内）：`const visible = allSorted.slice(0, 10);`——无论实际条目数量，始终只渲染最新 10 条，无「加载更多」入口。`allSorted` 由 books（added）、sessions、quotes 时间戳合并排序组成（`app.js:1295-1329`）。用户持续使用后条目快速超过 10 条，更早的阅读里程碑（某本书的第一张摘抄、某次长时阅读）永远不可见。
+- why: 10 条硬限在产品初期是合理保护，但阻碍 Theme 2；「加载更多」或提升至 20 条是最低代价的解法；S 复杂度，无后端改动。
+- how: 方案 A（最简）：将硬限从 10 改为 20，`app.js:1332` 单行改动；方案 B（推荐）：在时间线底部追加「查看更多」按钮，点击后 `slice(0, count + 10)`，通过 `state` 或局部变量跟踪当前展示数量。Touch: `app.js:1295-1345`（`renderTimeline`）；`index.html:119`（timeline 容器，可加「更多」按钮占位）。

@@ -1252,3 +1252,96 @@ const haystack = [
 
 **northstar:** 中——使用户的个人洞察（reflection）变得可检索，直接支撑 Theme 2「回顾有价值」；累积 50+ 张摘抄后 reflection 检索是最自然的二次入口之一。
 
+
+---
+
+## 2026-06-17
+
+### E91 — `renderQuotes()` 每张摘抄卡片重复调用 `getConnectionCount` 和 `getQuoteChatCount` 两次，徒增 O(N×M) 遍历 (S)
+
+**What:** `app.js:1457`（`renderQuotes()` 模板字符串内）：
+
+```javascript
+${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}${getQuoteChatCount(quote.id) > 0 ? ` <span class="quote-conn-badge">💬 ${getQuoteChatCount(quote.id)}</span>` : ""}
+```
+
+两个函数各被调用两次：第一次做 `> 0` 判断，第二次取值嵌入 HTML。`getConnectionCount()`（`app.js:660-669`）遍历 `state.connections` 全量（O(connections)）；`getQuoteChatCount()`（`app.js:671-677`）遍历 `state.chatHistories[bookId]`（O(history)）。每次 `renderQuotes()` 以 N=100 条摘抄、M=50 条 connections 计，产生 200×50=10,000 次比较——实为 `buildRenderCache()`（`app.js:1100-1130`）已为书卡缓存 `connCountMap`（`app.js:1115`）的同类操作，但摘抄卡没有对应缓存。
+
+**Fix:** 在模板外用局部变量计算一次，模板内直接引用：
+```javascript
+const connCnt = getConnectionCount(quote.id);
+const chatCnt = getQuoteChatCount(quote.id);
+// 模板中直接用 connCnt / chatCnt
+```
+仅 `app.js` 改动，无测试变动。
+
+**Complexity:** S — 约 3 行改动，零副作用。
+
+**Files:** `app.js:1450-1460`（`renderQuotes` 模板段）
+
+**northstar:** 低/中——减少无效 CPU 时间，摘抄数量多时（50+ 张）渲染流畅度有感知提升；与 Theme 1「采集顺滑」周边体验相关，但非核心摩擦点。
+
+---
+
+### E92 — `deleteQuote()` 级联删除关联关系时无任何提示，与 `deleteBook()` 的透明度差异明显 (S)
+
+**What:** `app.js:2316-2332`（`deleteQuote()` 函数）：
+
+```javascript
+// line 2319 — 当前 confirm 文案：
+els.deleteMessage.textContent = "确定删除这张摘抄卡片吗？";
+// ...
+// line 2322 — 级联删除 connections：
+state.connections = (state.connections || []).filter(
+  (c) => c.sourceId !== quoteId && c.targetId !== quoteId
+);
+```
+
+用户看到的对话框文案只问「确定删除这张摘抄卡片吗？」，没有提及该卡片可能已建立的「关联」会一并消失。对比 `deleteBook()`（`app.js:2080-2101`）显示「⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。」（`index.html:533`）。关联（connections）是用户手动建立的摘抄间语义链，误删后无法恢复，与摘抄原文一样属于用户数据资产。
+
+**Fix:** 在展示 confirm 对话框前，先计算 `getConnectionCount(quoteId)`，若 > 0 则在文案中追加「及其 N 个关联」——与 E89（deleteBook 显示具体数量）是同类补丁：
+```javascript
+const connCount = getConnectionCount(quoteId);
+const connNote = connCount > 0 ? `及其 ${connCount} 个关联` : "";
+els.deleteMessage.textContent = `确定删除这张摘抄卡片${connNote}吗？`;
+```
+无 HTML/后端改动。
+
+**Complexity:** S — 约 4 行改动。
+
+**Files:** `app.js:2316-2325`（`deleteQuote` 函数 confirm 文案段）
+
+**northstar:** 中——删除是不可逆操作；关联是 Theme 2「回顾有价值」的核心数据（语义连接网络），静默丢失最有害；一行文案补充即可达到与 deleteBook 相同的透明度标准。
+
+---
+
+### E93 — 摘抄对话框 `showModal()` 后未 `focus()` 文本区，移动端需额外点击才能开始输入 (S)
+
+**What:** `openNewQuoteForBook()`（`app.js:2233-2248`）和 `editQuote()`（`app.js:2265-2283`）均在最后调用 `els.quoteDialog.showModal()`，之后无任何 `focus()` 调用：
+
+```javascript
+// app.js:2248
+els.quoteDialog.showModal();
+// (函数结束，无 focus)
+
+// app.js:2283
+els.quoteDialog.showModal();
+// (函数结束，无 focus)
+```
+
+对话框打开后，`#quoteContent`（`index.html:471`）textarea 不是焦点元素。桌面浏览器通常会聚焦第一个可交互元素，但 iPhone Safari 对 `<dialog>` 内的 textarea 不自动 focus——用户需要额外点一次才能开始输入。对于「新建摘抄」（每次拍照后的主操作），这是一个固定摩擦点。
+
+**Fix:** 两处 `showModal()` 调用后追加：
+```javascript
+requestAnimationFrame(() =>
+  document.getElementById("quoteContent")?.focus()
+);
+```
+`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 的异步显示时序。
+
+**Complexity:** S — 两处各 3 行，无副作用，无 CSS/HTML/后端改动。
+
+**Files:** `app.js:2248`（`openNewQuoteForBook` 末尾）；`app.js:2283`（`editQuote` 末尾）
+
+**northstar:** 中——直接降低「拍照→OCR→成卡」最后一步的移动端输入摩擦；CLAUDE.md 明确「mobile-first (iPhone 12)」；Theme 1「采集顺滑」具体触点。
+
