@@ -5052,6 +5052,38 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-17T17:05:27.345Z"
+    },
+    {
+      "id": "bug-299",
+      "timestamp": "2026-06-17T18:03:38.411Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"quoteImagePreview\"",
+      "fix": "Changed to \"ocrLineSelector\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-17T18:03:38.411Z"
+    },
+    {
+      "id": "bug-300",
+      "timestamp": "2026-06-17T18:03:55.882Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !sel",
+      "fix": "Added guard clause: if (!sel)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-17T18:03:55.882Z"
     }
   ]
 }
