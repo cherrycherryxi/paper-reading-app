@@ -1345,3 +1345,102 @@ requestAnimationFrame(() =>
 
 **northstar:** 中——直接降低「拍照→OCR→成卡」最后一步的移动端输入摩擦；CLAUDE.md 明确「mobile-first (iPhone 12)」；Theme 1「采集顺滑」具体触点。
 
+---
+
+## 2026-06-18
+
+### E94 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨用户（00:00–08:00）看到昨天日期 (S)
+
+**What:** `app.js:2261`（`openNewSessionForm()` 中），新建阅读记录表单的日期字段预填：
+```javascript
+els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];
+```
+`new Date().toISOString()` 返回 UTC 时间的 ISO 字符串，`.split("T")[0]` 取日期部分为 **UTC 日期**。UTC+8 时区下，本地时间 00:00–07:59（例如凌晨 1 点读书）对应 UTC 前一天 16:00–23:59——`toISOString()` 给出昨天的日期，但用户实际在今天读书。
+
+`app.js:2140`（`editSession()` 中）有同族写法：
+```javascript
+const dateStr = session.date ? new Date(session.date).toISOString().split("T")[0] : "";
+```
+此处 `session.date` 存储为 `YYYY-MM-DD` 字符串，`new Date("2026-06-18")` 解析为 UTC 00:00，再 `toISOString()` 仍得 `"2026-06-18"`——此处实际安全，但依赖 UTC midnight 日期字符串的特殊行为，可读性差。
+
+`index.html:430` 的日期 `<input>` 无 `max` 属性，用户可选择未来日期而不受限：
+```html
+<label><span>日期</span><input name="date" type="date" /></label>
+```
+
+**Fix（最小改动）：** 仅需修 `app.js:2261`：
+```javascript
+// 旧：new Date().toISOString().split("T")[0]
+// 新：
+const todayLocal = new Intl.DateTimeFormat("sv").format(new Date());
+input.value = todayLocal;
+input.max = todayLocal;  // 同步加 max 防未来日期，搭便车修
+```
+`"sv"` locale 在所有现代浏览器中返回 `YYYY-MM-DD` 本地时区格式，无需任何 polyfill。
+
+**Complexity:** S — 1-2 行改动；`index.html:430` 可选搭便车加 `max`（JS 动态设置）；无后端改动，无测试变更（可选加断言）。
+
+**Files:** `app.js:2261`（主改动点）；`app.js:2140`（可选清理同族写法）；`index.html:430`（可选搭便车 max 属性）
+
+**northstar:** 中——Theme 1「采集顺滑」数据准确性：凌晨读书记录日期错误直接损害「零丢失/零错数据」验收标准，owner 是 UTC+8，晚睡读书高频场景。S 复杂度，零风险。
+
+---
+
+### E95 — 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 (S)
+
+**What:** `app.js:740-756`（`renderConnections()` 搜索过滤块）构建 haystack：
+```javascript
+const haystack = [
+  getBookTitle(c.sourceType, c.sourceId),
+  getBookTitle(c.targetType, c.targetId),
+  c.thought || "",
+].join(" ").toLowerCase();
+```
+`getBookTitle()`（`app.js:742-748`）对 `quoteType` 只返回该摘抄所属书的书名，不包含摘抄本体的 `.content` 字段。若用户建立了一条「笛卡尔」摘抄→「人工智能」摘抄的关联，在关联搜索框输入"笛卡尔"——若两本书名都不含"笛卡尔"，搜索返回零结果，即使 `c.thought`（关联想法）也没有这个词。
+
+**Why it matters:** 用户建立关联时脑中记住的往往是「那句话说了什么」，而不是「它属于哪本书」。按摘抄原文检索关联，才能「想到就找到」。修复只需在 haystack 中加入 source/target 的 quote content 查找：
+```javascript
+const sourceContent = c.sourceType === "quote"
+  ? (state.quotes.find(q => q.id === c.sourceId)?.content || "")
+  : "";
+const targetContent = c.targetType === "quote"
+  ? (state.quotes.find(q => q.id === c.targetId)?.content || "")
+  : "";
+const haystack = [
+  getBookTitle(c.sourceType, c.sourceId),
+  getBookTitle(c.targetType, c.targetId),
+  sourceContent,
+  targetContent,
+  c.thought || "",
+].join(" ").toLowerCase();
+```
+额外查找仅在 `searchRaw` 非空时触发（`if (!searchRaw)` 短路保护已存在于 `app.js:739`），连接数量通常 <100，O(Q) 查找可忽略。
+
+**Complexity:** S — 约 6 行 JS 改动，无 HTML/后端/测试改动（可选追加断言）。
+
+**Files:** `app.js:740-756`（`renderConnections` 搜索块）
+
+**northstar:** 中——Theme 2「回顾有价值」的关键检索入口：关联是 app 的差异化功能，「按摘抄内容找关联」是回顾时最自然的方式；现在按内容搜无法命中，等于让连接网络对用户半透明。
+
+---
+
+### E96 — Excel 导入成功仍用 2 秒自动消失 toast，与 JSON 导入的详细结果弹窗不一致 (S)
+
+**What:** `app.js:3188`（`importFromExcel()` 成功路径）：
+```javascript
+showToast(`Excel 导入成功：新增 ${imported} 本`);
+```
+对比 JSON 备份导入（`app.js:3161-3166`，OPT-041 升级后的 `importFromJSON()`）：
+```javascript
+showImportResult(state);  // 显示详细结果弹窗：新增书数/摘抄数/记录数
+```
+OPT-041（PR #42）已将 JSON 导入从 toast 升级为 `showImportResult()` 详细结果弹窗，但 `importFromExcel()` 未做同等升级。两个导入入口输出形式不一致——Excel 用户只看到 2 秒消失的「新增 3 本」，不知道是否有记录被跳过；JSON 用户看到持久弹窗 + 明细数字。
+
+**Why it matters:** 导入操作的结果透明度是 OPT-041 的立意核心（误导入后数据丢失事故驱动）。Excel 导入同样可能出现「已存在书被跳过」场景（`imported` 可能小于文件中书的总数），toast 自动消失后用户无法回看；双入口体验不一致，降低用户对导入功能的信任感。`showImportResult()` 已存在，复用成本极低。
+
+**Complexity:** S — 改 `app.js:3188` 约 3-5 行；`showImportResult()` 可能需轻微调整以适配「无摘抄/记录」的 Excel 场景（Excel 只导入书，state 里的 quotes/sessions 不变）；无后端/HTML/测试改动。
+
+**Files:** `app.js:3161-3190`（`importFromExcel` 成功路径）；`app.js` `showImportResult` 函数（可能需 1 行适配）
+
+**northstar:** 弱/中——与 OPT-041 一脉相承，数据导入操作结果透明度；间接支持 Theme 1「零丢失」验收标准（用户须清晰知道导入了什么）。S 复杂度，低风险。
+

@@ -464,3 +464,19 @@ Format per item:
 - description: `app.js:1332`（`renderTimeline()` 内）：`const visible = allSorted.slice(0, 10);`——无论实际条目数量，始终只渲染最新 10 条，无「加载更多」入口。`allSorted` 由 books（added）、sessions、quotes 时间戳合并排序组成（`app.js:1295-1329`）。用户持续使用后条目快速超过 10 条，更早的阅读里程碑（某本书的第一张摘抄、某次长时阅读）永远不可见。
 - why: 10 条硬限在产品初期是合理保护，但阻碍 Theme 2；「加载更多」或提升至 20 条是最低代价的解法；S 复杂度，无后端改动。
 - how: 方案 A（最简）：将硬限从 10 改为 20，`app.js:1332` 单行改动；方案 B（推荐）：在时间线底部追加「查看更多」按钮，点击后 `slice(0, count + 10)`，通过 `state` 或局部变量跟踪当前展示数量。Touch: `app.js:1295-1345`（`renderTimeline`）；`index.html:119`（timeline 容器，可加「更多」按钮占位）。
+
+### OPT-058 — 摘抄对话框 `showModal()` 后未 `focus()` 文本区，移动端每次打开须额外点击才能输入 — 由 explore E93 提拔
+- status: new
+- area: frontend
+- northstar: 中——Theme 1「采集顺滑」触点：摘抄对话框是拍照→OCR→成卡的最终操作界面，每次打开须额外点击才能输入，直接给核心链路增加固定摩擦；CLAUDE.md 明确「mobile-first (iPhone 12)」；S 复杂度，2 行改动，零副作用。
+- description: `openNewQuoteForBook()`（`app.js:2248`）和 `editQuote()`（`app.js:2283`）均以 `els.quoteDialog.showModal()` 结束，之后无 `focus()` 调用。iPhone Safari 对 `<dialog>` 内 textarea 不自动聚焦——`#quoteContent`（`index.html:471`）在弹窗打开后不是焦点元素，用户需额外点击才能开始输入。桌面浏览器通常自动聚焦首个可交互元素，但 iPhone Safari 不支持此行为（dialog 规范差异）。
+- why: 「新建摘抄」是拍照→OCR 后的核心操作入口，每次打开弹窗必须额外点击一次，在高频使用场景下摩擦感累积显著。这是 Theme 1「采集顺滑」两周验收观察期中的具体触点。
+- how: 在两处 `showModal()` 后各追加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`（共 2 处，各 3 行）。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序，与 OPT-049 等先例中已用模式一致。Touch: `app.js:2248`（`openNewQuoteForBook` 末尾）；`app.js:2283`（`editQuote` 末尾）。
+
+### OPT-059 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨（00:00–08:00）读书记录日期差一天 — 由 explore E94 提拔
+- status: new
+- area: frontend
+- northstar: 中——Theme 1「采集顺滑」数据准确性：凌晨阅读记录日期自动填入昨天，owner 晚睡读书场景高频；记录日期错误直接损害「零丢失/零错数据」验收标准，且用户通常不会注意日期字段并手动修正。S 复杂度，1 行改动。
+- description: `app.js:2261`：`els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];`——`toISOString()` 返回 UTC 日期，UTC+8 凌晨 00:00–07:59 对应 UTC 前一天，导致「今晚」的阅读被记录为「昨天」。`index.html:430` 的日期 `<input>` 亦无 `max` 属性，用户可无限制选择未来日期。
+- why: owner 为 UTC+8 且有晚睡读书习惯——roadmap §2 三个可观测指标第一条是「本周使用天数」，日期填错会导致指标统计失真；用户在提交 session 表单时极少会核对日期字段。
+- how: `app.js:2261` 将 `new Date().toISOString().split("T")[0]` 改为 `new Intl.DateTimeFormat("sv").format(new Date())`（`"sv"` locale 返回 `YYYY-MM-DD` 本地时区格式，所有现代浏览器兼容，无 polyfill 需求）；可同步在 JS 初始化时动态给 `index.html:430` 的 `<input name="date">` 设置 `max` 属性（防未来日期）。Touch: `app.js:2261`（主改动点）；可选 `index.html:430` + JS 初始化段设置 `max`。
