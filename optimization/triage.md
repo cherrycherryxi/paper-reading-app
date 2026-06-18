@@ -2,19 +2,19 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-17
+Last triaged: 2026-06-18
 
 ## Next up
 
-**指派：OPT-055** — 快速 OCR 行级删除 UI（P1 / M）
+**指派：OPT-054** — 「↓ 最新」按钮改浮动叠加，不占布局行（P1 / S）
 
-**预算状态**：近 7 天（2026-06-10 → 2026-06-17）已开 3 个 `auto/` PR（#45 opt-047-all-books-summary-limit、#39 opt-043-import-decrease-guard、#34 opt-033-dialog-aria-labelledby），距上限 4 还剩 **1 个名额**，正常指派。
+**预算状态**：近 7 天（2026-06-11 → 2026-06-18）已开 3 个 `auto/` PR（#46 opt-055-ocr-line-delete-ui、#45 opt-047-all-books-summary-limit、#39 opt-043-import-decrease-guard），距上限 4 还剩 **1 个名额**，正常指派。
 
-**理由**：Owner 真机 signal 2026-06-16："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。这是 roadmap §2 W25 焦点「有摩擦才开工」所等待的精确信号——Theme 1「采集顺滑」验收三条之一「零等太久」已达标，但「拍照→成卡零停顿」仍被 OCR 后处理成本阻断。northstar「强」，M 复杂度，纯前端无后端改动。在一个预算名额内可完整交付。
+**理由**：Owner 真机 signal 2026-06-16 直接指出"「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。OPT-055（行级删除 UI）昨日已开 PR #46 处理本轮 W25 的主要摩擦；此项是 signals.md 同一天的第二条未处理摩擦，S 复杂度纯 CSS 修复（零 JS、零后端改动），在最后一个预算名额内可完整交付，进一步降低聊天录入的空间压迫感。
 
-**关键文件**：`app.js:1548-1566`（`syncOpenQuoteFormFromState` 的 `ocrStatus === "done"` 分支）、`index.html:444-486`（quote dialog，新增行列表占位）、`styles.css`（新增 `.ocr-line-selector` 组件样式，~20 行）。
+**关键文件**：`styles.css:2069-2073`（`.chat-scroll-btn-row` 改 `position:absolute; bottom:8px; right:8px; z-index:2`，移除 `display:flex; padding`）、`styles.css:3597-3600`（桌面端删 `grid-row:3` override）；`#chatMessages` 父容器加 `position:relative`；`tests/frontend/regression-fixed-bugs.test.js:1458`（`[hidden]` 规则断言必须保留，无需改动）。
 
-**Signal 佐证**：signals.md 2026-06-16（快速 OCR 全文 → 逐行删除需求）。**Roadmap 主题**：Theme 1「采集顺滑」——此项是本轮两周真机验收的核心摩擦点。
+**Signal 佐证**：signals.md 2026-06-16（聊天框「最新」独占行挤压空间）。**Roadmap 主题**：Theme 1「采集顺滑」辅助——Chat 是「探讨」核心入口，输入区可用高度影响写作流畅度。
 
 ## Prioritized backlog
 
@@ -25,6 +25,8 @@ Last triaged: 2026-06-17
 | OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | triaged | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` 加 `position:relative` + 桌面端 `styles.css:3597-3600` 删 `grid-row:3`；注意 `regression-fixed-bugs.test.js:1458` 测试 `[hidden]` 规则仍需保留。零逻辑变更。 |
 | OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | triaged | `app.js:1449-1452`：`entry-card-cover` 始终渲染 fallback，`quote.imageUrl` 存在时未显示；详情弹窗 `app.js:2159-2160` 已加载图片，证明有效，卡面遗漏。条件渲染 `<img>` + 2 行 CSS。northstar「强」，Theme 1「采集顺滑」；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。 |
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` `activateTab()` 补 1 行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 最严级合规，Tab 是 App 主骨架。northstar「中」。 |
+| OPT-056 | 摘抄搜索不包含「我的理解」(reflection) 字段 | P2 | S | triaged | `app.js:1411-1416` haystack 数组末尾追加 `item.reflection \|\| ""`；1 行改动，零后端变更，可选追加测试断言。northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；当前 Theme 1 期无 signal 佐证，P2 置于 P1 后。 |
+| OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | `app.js:1332` `const visible = allSorted.slice(0, 10)`；方案 A（最简）改 20，单行；方案 B（推荐）在底部加「查看更多」按钮，点击 slice(0, count+10)。northstar「中」，Theme 2「回顾有价值」；当前 Theme 1 期无 signal 佐证，P2 末位。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：`if (searchRaw && sessions.length)` 导致无搜索时统计条始终隐藏。改为两路：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。3 行改动，无 HTML/CSS/后端变动。northstar「中」，Roadmap §2 可观测代理指标（使用天数/分钟数）。 |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332` deleteQuote() 删 quote 本体和 connections，但无 `delete state.chatHistories["quote:" + quoteId]` / `delete state.chatContexts["quote:" + quoteId]`。对比 deleteBook()（`app.js:2088-2101`）已有完整清理模板。修复：`onConfirm` 内 `await syncState()` 前加 2 行，复用 deleteBook 模式。northstar「弱」（state 健康度修缮），无 signal 佐证。 |
