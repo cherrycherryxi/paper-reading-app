@@ -5100,6 +5100,22 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-18T17:05:58.597Z"
+    },
+    {
+      "id": "bug-302",
+      "timestamp": "2026-06-18T18:05:58.376Z",
+      "error_message": "CSS fix: grid-template-rows",
+      "file": "styles.css",
+      "root_cause": "grid-template-rows: auto 1fr auto auto → auto 1fr auto",
+      "fix": "Changed grid-template-rows: auto 1fr auto auto → auto 1fr auto",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-18T18:06:03.417Z"
     }
   ]
 }

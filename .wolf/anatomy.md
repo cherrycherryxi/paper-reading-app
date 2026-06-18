@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-18T17:05:58.580Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-18T18:08:57.490Z
 > Files: 161 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -87,14 +87,14 @@
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~10620 tok)
+- `index.html` — 🐛 又买了一本书 (~10625 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~22128 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~21799 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -190,7 +190,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~249 tok)
-- `triage.md` — Triage (~2906 tok)
+- `triage.md` — Triage (~2909 tok)
 
 ## scripts/
 
