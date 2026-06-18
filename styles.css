@@ -1832,6 +1832,14 @@ textarea {
   text-overflow: ellipsis;
 }
 
+.chat-messages-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .chat-messages {
   flex: 1;
   min-height: 0;
@@ -2067,9 +2075,10 @@ textarea {
 }
 
 .chat-scroll-btn-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 4px 4px 0;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
 }
 
 .chat-scroll-btn-row[hidden] {
@@ -3505,7 +3514,7 @@ body.is-admin .admin-only { display: revert; }
   .layout [data-tab-section].chat-panel.tab-active {
     display: grid;
     grid-template-columns: 220px 1fr;
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-rows: auto 1fr auto;
     max-width: none;
     width: 100%;
     margin: 0;
@@ -3587,21 +3596,15 @@ body.is-admin .admin-only { display: revert; }
     padding: 18px 22px 0;
   }
 
-  .chat-messages {
+  .chat-messages-wrap {
     grid-column: 2;
     grid-row: 2;
     min-height: 0;
-    overflow-y: auto;
-  }
-
-  .chat-scroll-btn-row {
-    grid-column: 2;
-    grid-row: 3;
   }
 
   .chat-composer {
     grid-column: 2;
-    grid-row: 4;
+    grid-row: 3;
   }
 
   /* Toast bottom-right, clear of the sidebar */
