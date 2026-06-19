@@ -370,7 +370,7 @@ Format per item:
 - how: `index.html:679` 加 `role="tablist"`；6 个 `<button>` 各加 `role="tab"` + `aria-selected` + `aria-controls="<panel-id>"`；6 个 `<section data-tab-section>` 各加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补一行 `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`。Touch: `index.html:72-160, 679-704`；`app.js:1628-1630`。
 
 ### OPT-047 — `PromptBuilder.all_books_summary` 无数量上限，500 本书用户每次对话多注入 ~7000 tokens — 由 explore E74 提拔
-- status: triaged
+- status: in-progress (PR #45, 2026-06-16)
 - area: agent
 - northstar: 强——直接降低 DeepSeek API 用量/成本，与 OPT-020（`existing_connections` 条件注入）同类，OPT-020 已证明 P1 可落地。Theme 1「采集顺滑」 + 成本控制。
 - description: `PromptBuilder.build_chat_prompt()` 的 `all_books_summary`（`app_server.py:2326-2329`）是用户全量书单，无 LIMIT。500 本书 × ~56 字符 ≈ 28,000 字符 ≈ 7,000 tokens，每次请求都注入，无条件。`all_books_summary` 仅在 `link_thought` 时用于 targetId 验证，而 OPT-020 已说明 link_thought 只在用户明确要求时才返回——即 80%+ 的请求里这 7,000 tokens 是无效注入。Plus 用户每日 240 请求 × 7,000 tokens = 168 万 tokens/天多余消耗。
@@ -434,7 +434,7 @@ Format per item:
 - how: ① 新建 `manifest.json`（根目录，15 行）：name/short_name/start_url/display:standalone/background_color/theme_color/icons（复用现有 favicon 或添加 192×192 PNG）。② `index.html` `<head>` 加 `<link rel="manifest" href="/manifest.json">`。③ `app_server.py` 静态文件分发列表（`_STATIC` dict 或等价 if-chain）加入 `manifest.json` 条目。复杂度 S。
 
 ### OPT-054 — 「↓ 最新」按钮独占布局行压缩聊天区——改为叠加在消息列表上的浮动按钮 — 由 explore E87 提拔
-- status: triaged
+- status: in-progress (PR #47, 2026-06-18)
 - area: frontend
 - northstar: 中——chat 是「探讨」核心入口，输入区舒适度影响写作流畅度；owner 真机 signal 2026-06-16 驱动，S 复杂度；Theme 1「不假思索的默认工具」辅助。
 - description: `index.html:190-192` 的 `<div class="chat-scroll-btn-row" id="chatScrollBtnRow">` 是聊天面板 flex 列的独立子元素（在 `#chatMessages` 与 `.chat-composer` 之间）。`styles.css:2069-2073` 定义为 `display: flex; padding: 4px 4px 0`，可见时占用 ~30px 垂直高度。桌面端（`styles.css:3597-3600`）亦占独立 `grid-row: 3`。聊天面板高度固定，该行出现时从消息区直接扣除 ~30px。Owner signal 2026-06-16："聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。
@@ -442,7 +442,7 @@ Format per item:
 - how: `styles.css`：给 `#chatMessages` 加 `position: relative`；将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 8px; z-index: 2; display: block` （移除 `display: flex; padding`）；同步移除桌面端 `grid-row: 3` override（按钮叠加后不占 grid 行）。`chat.js:273, 441, 894` 的 `hidden` 逻辑无需改动。Touch: `styles.css:2069-2073`（`.chat-scroll-btn-row`）、`styles.css:3597-3600`（桌面 override）。
 
 ### OPT-055 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 — 由 explore E88 提拔
-- status: triaged
+- status: in-progress (PR #46, 2026-06-17)
 - area: frontend
 - northstar: 强——Theme 1「采集顺滑」直接障碍：快速 OCR 已「快」，但产生整页冗余文本使「顺」失效；owner 真机 signal 2026-06-16 明确指出。每次录入都需额外 20-60 秒手工删行，与北极星「不假思索的默认工具」直接冲突。M 复杂度，无后端改动。
 - description: `index.html:476` helper text 明确写"「快速识别」秒出整页全文"；`app.js:511-523` `normalizeOcrText()` 保留 `\n` 分隔多行；`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea（`contentEl.value = recognizedText`）。OCR 完成后 quote 对话框无任何行级操作 UI，用户须在 textarea 里手动选删不需要的行才能保留划线句。Owner 2026-06-16 signals："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
@@ -466,7 +466,7 @@ Format per item:
 - how: 方案 A（最简）：将硬限从 10 改为 20，`app.js:1332` 单行改动；方案 B（推荐）：在时间线底部追加「查看更多」按钮，点击后 `slice(0, count + 10)`，通过 `state` 或局部变量跟踪当前展示数量。Touch: `app.js:1295-1345`（`renderTimeline`）；`index.html:119`（timeline 容器，可加「更多」按钮占位）。
 
 ### OPT-058 — 摘抄对话框 `showModal()` 后未 `focus()` 文本区，移动端每次打开须额外点击才能输入 — 由 explore E93 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 1「采集顺滑」触点：摘抄对话框是拍照→OCR→成卡的最终操作界面，每次打开须额外点击才能输入，直接给核心链路增加固定摩擦；CLAUDE.md 明确「mobile-first (iPhone 12)」；S 复杂度，2 行改动，零副作用。
 - description: `openNewQuoteForBook()`（`app.js:2248`）和 `editQuote()`（`app.js:2283`）均以 `els.quoteDialog.showModal()` 结束，之后无 `focus()` 调用。iPhone Safari 对 `<dialog>` 内 textarea 不自动聚焦——`#quoteContent`（`index.html:471`）在弹窗打开后不是焦点元素，用户需额外点击才能开始输入。桌面浏览器通常自动聚焦首个可交互元素，但 iPhone Safari 不支持此行为（dialog 规范差异）。
@@ -474,7 +474,7 @@ Format per item:
 - how: 在两处 `showModal()` 后各追加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`（共 2 处，各 3 行）。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序，与 OPT-049 等先例中已用模式一致。Touch: `app.js:2248`（`openNewQuoteForBook` 末尾）；`app.js:2283`（`editQuote` 末尾）。
 
 ### OPT-059 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨（00:00–08:00）读书记录日期差一天 — 由 explore E94 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 1「采集顺滑」数据准确性：凌晨阅读记录日期自动填入昨天，owner 晚睡读书场景高频；记录日期错误直接损害「零丢失/零错数据」验收标准，且用户通常不会注意日期字段并手动修正。S 复杂度，1 行改动。
 - description: `app.js:2261`：`els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];`——`toISOString()` 返回 UTC 日期，UTC+8 凌晨 00:00–07:59 对应 UTC 前一天，导致「今晚」的阅读被记录为「昨天」。`index.html:430` 的日期 `<input>` 亦无 `max` 属性，用户可无限制选择未来日期。

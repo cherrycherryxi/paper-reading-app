@@ -2,49 +2,51 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-18
+Last triaged: 2026-06-19
 
 ## Next up
 
-**指派：OPT-054** — 「↓ 最新」按钮改浮动叠加，不占布局行（P1 / S）
+**指派：OPT-052** — 摘抄卡面缺少图片缩略图，拍照 OCR 成卡后无视觉区分度（P1 / S）
 
-**预算状态**：近 7 天（2026-06-11 → 2026-06-18）已开 3 个 `auto/` PR（#46 opt-055-ocr-line-delete-ui、#45 opt-047-all-books-summary-limit、#39 opt-043-import-decrease-guard），距上限 4 还剩 **1 个名额**，正常指派。
+**预算状态**：近 7 天（2026-06-12 → 2026-06-19）已开 3 个 `auto/` PR（#47 opt-054-float-scroll-btn、#46 opt-055-ocr-line-delete-ui、#45 opt-047-all-books-summary-limit），距上限 4 还剩 **1 个名额**，正常指派。
 
-**理由**：Owner 真机 signal 2026-06-16 直接指出"「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。OPT-055（行级删除 UI）昨日已开 PR #46 处理本轮 W25 的主要摩擦；此项是 signals.md 同一天的第二条未处理摩擦，S 复杂度纯 CSS 修复（零 JS、零后端改动），在最后一个预算名额内可完整交付，进一步降低聊天录入的空间压迫感。
+**理由**：northstar「强」，Signal 佐证 2026-06-16（OCR 全文录入，图片视觉反馈关键）。OPT-055（行级删除 UI, PR #46 进行中）聚焦录入后编辑摩擦；OPT-052 聚焦录入结果的卡面视觉确认——拍照成卡后卡面与纯文字卡完全一致，用户没有「照片已关联」的正向反馈。两者落地后，「拍照→OCR→成卡」路径视觉闭环完整，符合 Theme 1「采集顺滑」两周验收观察期要求。S 复杂度（2 行 JS + 2 行 CSS），在最后一个预算名额内可完整交付。
 
-**关键文件**：`styles.css:2069-2073`（`.chat-scroll-btn-row` 改 `position:absolute; bottom:8px; right:8px; z-index:2`，移除 `display:flex; padding`）、`styles.css:3597-3600`（桌面端删 `grid-row:3` override）；`#chatMessages` 父容器加 `position:relative`；`tests/frontend/regression-fixed-bugs.test.js:1458`（`[hidden]` 规则断言必须保留，无需改动）。
+**关键文件**：`app.js:1449-1452`（entry-card-cover 模板：有 `quote.imageUrl` 时条件渲染 `<img>`，否则保留 `entry-cover-fallback`；对比书卡 `app.js:1133-1134` 可直接复用逻辑）；`styles.css`（`.entry-card-cover img { width:100%; height:100%; object-fit:cover; }` 约 2 行，沿用书卡已有 `book-card-cover img` 规则）。
 
-**Signal 佐证**：signals.md 2026-06-16（聊天框「最新」独占行挤压空间）。**Roadmap 主题**：Theme 1「采集顺滑」辅助——Chat 是「探讨」核心入口，输入区可用高度影响写作流畅度。
+**Signal 佐证**：signals.md 2026-06-16（拍照摘抄/OCR，快速 OCR 整页全文录入 → 图片视觉反馈是成卡链路的关键确认步骤）。**Roadmap 主题**：Theme 1「采集顺滑」—— 拍照→成卡的全链路可见性与正向反馈闭环。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | in-progress (PR #45) | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；roadmap §2 明确首推，northstar「强」，Theme 1 成本控制。PR #45 开放中，待合并。 |
-| OPT-055 | 快速 OCR 行级删除 UI | P1 | M | in-progress (PR #46) | Signal 2026-06-16：owner 真机「整页全文，只想留划线句，得逐行删」。northstar「强」，Theme 1 直接摩擦。`app.js:1548-1566` + `index.html:444-486` + `styles.css`（新 `.ocr-line-selector`）；行数 ≥ 3 时显示行选择列表，点 ✕ 删行，剩余合并写回 textarea。~40 JS + ~20 CSS。 |
-| OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | in-progress (PR #47) | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` 加 `position:relative` + 桌面端 `styles.css:3597-3600` 删 `grid-row:3`；注意 `regression-fixed-bugs.test.js:1458` 测试 `[hidden]` 规则仍需保留。零逻辑变更。 |
-| OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | triaged | `app.js:1449-1452`：`entry-card-cover` 始终渲染 fallback，`quote.imageUrl` 存在时未显示；详情弹窗 `app.js:2159-2160` 已加载图片，证明有效，卡面遗漏。条件渲染 `<img>` + 2 行 CSS。northstar「强」，Theme 1「采集顺滑」；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。 |
-| OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` `activateTab()` 补 1 行 `setAttribute("aria-selected", ...)`。纯加法，零逻辑变更。Level A 最严级合规，Tab 是 App 主骨架。northstar「中」。 |
-| OPT-056 | 摘抄搜索不包含「我的理解」(reflection) 字段 | P2 | S | triaged | `app.js:1411-1416` haystack 数组末尾追加 `item.reflection \|\| ""`；1 行改动，零后端变更，可选追加测试断言。northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；当前 Theme 1 期无 signal 佐证，P2 置于 P1 后。 |
-| OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | `app.js:1332` `const visible = allSorted.slice(0, 10)`；方案 A（最简）改 20，单行；方案 B（推荐）在底部加「查看更多」按钮，点击 slice(0, count+10)。northstar「中」，Theme 2「回顾有价值」；当前 Theme 1 期无 signal 佐证，P2 末位。 |
+| OPT-055 | 快速 OCR 行级删除 UI | P1 | M | in-progress (PR #46) | Signal 2026-06-16：owner 真机「整页全文，只想留划线句，得逐行删」。northstar「强」，Theme 1 直接摩擦。`app.js:1548-1566` + `index.html:444-486` + `styles.css`（新 `.ocr-line-selector`）。PR #46 开放中，待合并。 |
+| OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | in-progress (PR #47) | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` `position:relative` + 桌面端删 `grid-row:3`。PR #47 开放中，待合并。 |
+| OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | triaged | northstar「强」，Theme 1；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。`app.js:1449-1452`：有 `quote.imageUrl` 时条件渲染 `<img>`，否则保留 fallback；`styles.css` 2 行。**→ 本轮 Next up**。 |
+| OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」核心路径固定摩擦。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`，共 2 处。无 signal 佐证，但 Theme 1 两周验收期直接触点。新增 2026-06-19。 |
+| OPT-059 | Session 日期预填 UTC 日期，UTC+8 凌晨记录日期差一天 | P1 | S | triaged | northstar「中」，Theme 1 数据准确性；影响 roadmap §2「本周使用天数」指标统计。`app.js:2261`：`toISOString().split("T")[0]` → `new Intl.DateTimeFormat("sv").format(new Date())`（sv locale 返回本地时区 YYYY-MM-DD，无 polyfill）。无 signal 佐证，但 UTC+8 凌晨高频场景。新增 2026-06-19。 |
+| OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补 1 行 `setAttribute("aria-selected", ...)`。Level A 最严合规，Tab 是 App 主骨架。northstar「中」。 |
+| OPT-056 | 摘抄搜索不包含「我的理解」reflection 字段 | P2 | S | triaged | `app.js:1411-1416` haystack 数组末尾追加 `item.reflection \|\| ""`；1 行改动，零后端变更，可选追加测试断言。northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；当前 Theme 1 期无 signal 佐证，P2 置于 P1 后。 |
+| OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | `app.js:1332` 底部加「查看更多」按钮，`slice(0, count+10)`，局部变量跟踪当前展示数。northstar「中」，Theme 2；当前 Theme 1 期无 signal 佐证，P2。 |
+| OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。northstar「中」，roadmap §2 可观测代理指标。3 行改动，无 HTML/CSS/后端变动。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
-| OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：`if (searchRaw && sessions.length)` 导致无搜索时统计条始终隐藏。改为两路：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。3 行改动，无 HTML/CSS/后端变动。northstar「中」，Roadmap §2 可观测代理指标（使用天数/分钟数）。 |
-| OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332` deleteQuote() 删 quote 本体和 connections，但无 `delete state.chatHistories["quote:" + quoteId]` / `delete state.chatContexts["quote:" + quoteId]`。对比 deleteBook()（`app.js:2088-2101`）已有完整清理模板。修复：`onConfirm` 内 `await syncState()` 前加 2 行，复用 deleteBook 模式。northstar「弱」（state 健康度修缮），无 signal 佐证。 |
-| OPT-051 | 添加 Web App Manifest，支持 Android/Chrome 「添加到主屏幕」PWA | P2 | S | triaged | `index.html:8-10` 仅有 Apple 专属 meta，无 `<link rel="manifest">`，已核实。修复：① 新建 `manifest.json`（根目录）② `index.html <head>` 加 `<link rel="manifest" href="/manifest.json">` ③ `app_server.py` 静态路由加 manifest.json 条目。northstar「中」（降低非 iOS 门槛），但 roadmap §1 当前为 path A（owner 专用 iPhone），Android 用户暂无；若升级到 B 则升 P1。无 signal 佐证，暂 P2 末位。 |
+| OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332`：syncState() 前加 2 行 `delete state.chatHistories["quote:"+quoteId]; delete state.chatContexts["quote:"+quoteId];`，复用 deleteBook()（`app.js:2088-2101`）模式。northstar「弱」，无 signal 佐证。 |
+| OPT-051 | 添加 Web App Manifest，支持 Android/Chrome PWA 安装 | P2 | S | triaged | 新建 `manifest.json`（根目录）+ `index.html <head>` 加 `<link rel="manifest">` + `app_server.py` 静态路由加条目。northstar「中」；roadmap §1 当前为 path A（owner 专用 iPhone），Android 暂无；无 signal 佐证，暂 P2 末位。 |
 | OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P3 | S | triaged | P3 parked（2026-06-16 仪式：定位 A「个人工具」唯一用户为 owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。`index.html:177` 加 `role="log"`。 |
 | OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P3 | S | triaged | P3 parked（2026-06-16 仪式：debug 看板是运营工具，不影响阅读主流程，对北极星无直接贡献）。`app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。 |
-| OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5461`（_run_gc finally 块，`conn.close()` 前加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`）。+1 测试断言 in `gc_thread_test.py`。 |
-| OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2677, 2696, 2703`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
+| OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5244` 前追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`；`gc_thread_test.py` 加 1 条断言。 |
+| OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2676, 2695, 2702`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
 | OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1876, 1852, 1890, 1915, 1935`。 |
 | OPT-049 | 书详情弹窗 UX 三连修（滚动复位/锁横滑/摘抄·笔记区分） | P1 | S | done (PR #44, 2026-06-14) | signal 2026-06-13 (×3)：owner 真机反馈详情页滚动停中段/可左右滑/「相关摘抄」含笔记不区分。`app.js`（openBookDetailDialog 滚动复位 + 文案）、`styles.css`（overflow-x）、`index.html`（标题）。4 条新测试；163/163 绿。 |
 | OPT-045 | Session/Connection CRUD 前端测试覆盖 | P2 | M | done (PR #43, 2026-06-13) | 新增 `tests/frontend/session-crud.test.js` + `tests/frontend/connection-crud.test.js`，17 条测试；159/159 全绿，未改 app.js。 |
-| OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | done (PR #39, 2026-06-12) | signal 2026-06-11：owner 误导入旧备份致 3 张卡丢失。`importData()` 应用前先计 current vs resolved 各类数量；任一类 M<N 时 `showConfirmDialog` 展示"将丢失 X 条，确定覆盖？"。11/11 测试绿。 |
+| OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | done (PR #39, 2026-06-12) | signal 2026-06-11：owner 误导入旧备份致 3 张卡丢失。`importData()` 应用前先计 current vs resolved 各类数量；任一类 M<N 时弹强确认。11/11 测试绿。 |
 | OPT-037 | compareBooksForList() localeCompare → Date.parse | P1 | S | done (PR #42, 2026-06-13) | `app.js:1026`（compareBooksForList 二级排序）+ `app.js:2431`（最近活跃书查找）：`localeCompare` → `Date.parse` 数值比较。142/142 测试绿。OPT-014 遗漏执行点，书单首屏排序修复。 |
 | OPT-001 | Excel 批量加书入口挪至书单页 | P1 | S | done (PR #40/#41, 2026-06-12) | signal 2026-06-12：owner 明确「这是我最想做的」。书单页 `#openBookDialogBtn` 旁新增圆形按钮入口（PR #40）+ 引导对话框 + 可下载模板（PR #41）。 |
-| OPT-042 | 快速 OCR 孤儿 pending 卡 | P1 | S | done (PR #38, 2026-06-11) | Fix A：同步 OCR 路径仅在完成后保存一次；Fix B：loadSession 时 `recoverStalePendingOcr()` 把超龄 pending 卡翻成 failed。dev watcher 同步收窄为仅监控 .py。 |
-| OPT-041 | 导入成功结果弹窗（带数量） | P1 | S | done (PR #37, 2026-06-11) | 新增 `<dialog id="importResultDialog">` 显示 书/摘抄/记录/关联 各类数量；成功路径调用 `showImportResult(state)` 替代 toast。延续 OPT-033 aria-labelledby 规范。 |
+| OPT-042 | 快速 OCR 孤儿 pending 卡 | P1 | S | done (PR #38, 2026-06-11) | Fix A：同步 OCR 路径仅在完成后保存一次；Fix B：loadSession 时 `recoverStalePendingOcr()` 把超龄 pending 卡翻成 failed。 |
+| OPT-041 | 导入成功结果弹窗（带数量） | P1 | S | done (PR #37, 2026-06-11) | 新增 `<dialog id="importResultDialog">` 显示书/摘抄/记录/关联各类数量；成功路径调用 `showImportResult(state)` 替代 toast。 |
 | OPT-040 | GDPR 导出格式自适应 + 清空护栏 | P1 | M | done (PR #36, 2026-06-11) | `importData()` 检测 `exportFormat/.state` 自动解包；内容为 0 且当前账号非空时二次确认。新增 `resolveImportedState`/`stateContentCount` helper。 |
-| OPT-039 | 连接泄漏：pre-auth/debug 端点未入 _open_conn 安全网 | P1 | M | done (PR #35, 2026-06-11) | 新增 `_open_conn()` helper 统一登记 `self._active_conn`，7 处裸 `get_conn()` 改走它，复用已验证的 `finally` 兜底。3 条新增连接泄漏测试。 |
+| OPT-039 | 连接泄漏：pre-auth/debug 端点未入安全网 | P1 | M | done (PR #35, 2026-06-11) | 新增 `_open_conn()` helper 统一登记 `self._active_conn`，7 处裸 `get_conn()` 改走它，复用已验证的 `finally` 兜底。3 条新增连接泄漏测试。 |
 | OPT-034 | debug 看板存储型 XSS（f-string 直插用户内容） | P1 | S | done (PR #33, 2026-06-10) | `import html` + `html.escape()` 包裹 /debug/logs、/debug/agent-dashboard 所有用户可控插值点，~10 处替换。 |
 | OPT-033 | `<dialog>` 元素缺少 aria-labelledby（WCAG 4.1.2 Level A） | P1 | S | done (PR #34, 2026-06-11) | 12 个 dialog 各加 `id` 给 `<h2>` + `aria-labelledby` 给 `<dialog>`；confirm 类 dialog 用 `aria-label`。24 处 HTML 属性，零 JS 变更。 |
 | OPT-031 | reading_mcp_server _now_iso() naive 本地时间排序 bug | P1 | S | done (PR #32, 2026-06-09) | `reading_mcp_server.py:50-51`：`datetime.now().isoformat()` → UTC+Z。MCP 路径写入记录的排序修复（与 OPT-024 同根）。 |
