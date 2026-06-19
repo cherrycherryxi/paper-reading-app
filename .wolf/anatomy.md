@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-19T17:08:53.204Z
-> Files: 161 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-19T18:07:00.664Z
+> Files: 162 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -82,7 +82,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66392 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 5 more (~45888 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 6 more (~45420 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -190,7 +190,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~249 tok)
-- `triage.md` — Triage (~2890 tok)
+- `triage.md` — Triage (~2910 tok)
 
 ## scripts/
 
@@ -243,6 +243,7 @@
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级删除 UI (~2980 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
+- `quote-card-image-thumb.test.js` — OPT-052: quote card shows image thumbnail when quote.imageUrl is present, (~1647 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19467 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19497 tok)
