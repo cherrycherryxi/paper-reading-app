@@ -410,7 +410,7 @@ Format per item:
 - how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
 
 ### OPT-052 — 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 — 由 explore E86 提拔
-- status: triaged
+- status: in-progress (PR #48, 2026-06-19)
 - area: frontend
 - northstar: 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认「照片已关联」；与北极星「不假思索的默认工具」一致（操作后立即得到正向反馈）。S 复杂度，P1 候选。
 - description: `app.js:1449-1452` 的摘抄卡模板中 `entry-card-cover` 始终只渲染 `entry-cover-fallback`（灰色占位块），无论 `quote.imageUrl` 是否存在均不显示图片。`openQuoteDetail()`（`app.js:2159-2160`）在详情弹窗中 **已**加载图片（`img.src = resolveImageUrl(quote.imageUrl)`），证明图片有效，只是卡面未渲染。对比书卡（`app.js:1133-1134`）会展示封面图片或 fallback 摘抄图片。
@@ -482,7 +482,7 @@ Format per item:
 - how: `app.js:2261` 将 `new Date().toISOString().split("T")[0]` 改为 `new Intl.DateTimeFormat("sv").format(new Date())`（`"sv"` locale 返回 `YYYY-MM-DD` 本地时区格式，所有现代浏览器兼容，无 polyfill 需求）；可同步在 JS 初始化时动态给 `index.html:430` 的 `<input name="date">` 设置 `max` 属性（防未来日期）。Touch: `app.js:2261`（主改动点）；可选 `index.html:430` + JS 初始化段设置 `max`。
 
 ### OPT-060 — 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 — 由 explore E95 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」的关键检索入口：关联是 app 的差异化功能，「按摘抄内容找关联」是回顾时最自然的方式；现在按摘抄原文搜索无法命中关联，等于让连接网络对用户半透明；积累 20+ 个关联后影响显著，是 Theme 2 北极星第三个数「回顾/检索/关联操作次数 > 0」的前提。
 - description: `app.js:740-756`（`renderConnections()` 搜索过滤块）的 haystack 仅含 `getBookTitle()`（`app.js:742-748`，对 quote 类型只返回书名）和 `c.thought`，不含摘抄原文（`quote.content`）。若用户建立了「笛卡尔」摘抄→「AI」摘抄的关联，搜索"笛卡尔"时若两书名均不含该词则返回零结果，即使 thought 字段也没有该词。注意：`resolveConnectionSide()`（`app.js:679-688`）在卡面**展示**时确实包含摘抄原文预览（`quote.content.slice(0,36)`），但搜索 haystack 的构建路径（`getBookTitle()`）与展示路径（`resolveConnectionSide()`）分离，搜索和展示不对齐。
@@ -490,7 +490,7 @@ Format per item:
 - how: 在 `app.js:740-756` 的 haystack 构建中，对 `c.sourceType === "quote"` 和 `c.targetType === "quote"` 的 side，分别通过 `state.quotes.find()` 查找对应 quote 的 `.content`，加入 haystack 数组。额外查找仅在 `searchRaw` 非空时触发（`app.js:739` 已有 `if (!searchRaw) return true` 短路保护，连接数通常 <100，O(Q) 查找可忽略）。Touch: `app.js:740-756`（haystack 构建块，约 6 行改动）。
 
 ### OPT-061 — Session 对话框 `showModal()` 后无 `focus()`，移动端须额外点击才能开始输入 — 由 explore E97 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 1「采集顺滑」每日触点：Session 记录是阅读习惯追踪的核心动作，每次打开弹窗须额外点击 `startPage` 输入框才能填写；mobile-first 原则下此为固定摩擦；OPT-058 已为摘抄对话框做同等修复，本项为平行补丁，S 复杂度，实现风险接近零。
 - description: `editSession()`（`app.js:2142`）和 `openNewSessionForBook()`（`app.js:2262`）均以 `els.sessionDialog.showModal()` 结束，无后续 `focus()` 调用。Session 表单第一个必填手动输入字段是 `startPage`（`[name="startPage"]`，`index.html:431`，`type="number" required`）；`bookId` 和 `date` 均有预填值，`startPage` 才是用户首个须手动填写的字段。iPhone Safari 不对 `<dialog>` 内 input 自动聚焦，导致打开弹窗后须额外点击一次。
