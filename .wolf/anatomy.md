@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-20T17:06:17.962Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-20T19:20:04.556Z
 > Files: 162 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -183,9 +183,9 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~13356 tok)
+- `backlog.md` — Optimization Backlog (~14022 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~37239 tok)
+- `explore.md` — Exploration — new optimization directions (~38380 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~857 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
