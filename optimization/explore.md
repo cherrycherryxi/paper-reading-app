@@ -1531,3 +1531,105 @@ const dateNote = session?.date ? ` · ${session.date}` : "";
 
 **northstar:** 弱——删除是不可逆操作，显示上下文是最低透明度标准；与 E89/E92 是同系列补丁，P2/P3 候选，非当前主题核心摩擦。
 
+---
+
+## 2026-06-20
+
+### E100 — `showConfirmDialog()` 与 `deleteBook()` 均未处理 Escape 关闭，残留 `{ once: true }` 监听器可触发错误删除 (S)
+
+**What:** 两处对话框实现均在 Escape 键关闭时留下游离监听器：
+
+1. **`showConfirmDialog()`**（`app.js:2286-2297`）在 `confirmDialogConfirmBtn` 和 `confirmDialogCancelBtn` 上注册 `{ once: true }` 处理器，但**未**在 `els.confirmDialog` 上注册 `cancel` 事件监听（浏览器原生 Escape 键会触发 `<dialog>` 的 `cancel` 事件）。Escape 关闭时，两个按钮的 `{ once: true }` 处理器从未触发、从未消费，持续存留；下次 `showConfirmDialog()` 调用再次堆叠新处理器——下次点击确认按钮时，旧闭包（捕获上一操作的 `onConfirm`）与新闭包同时触发。该函数被至少 6 处调用：`deleteSession`（`app.js:2301`）、`deleteQuote`（`app.js:2318`）、`deleteAccount`（`app.js:2949`）、Excel 导入守卫（`app.js:3067, 3086`）等。
+2. **`deleteBook()`**（`app.js:2070-2127`）定义了 `cleanup()` 调用 `removeEventListener`，但 `cleanup()` 仅在 `onConfirm`（`app.js:2094`）和 `onCancel`（`app.js:2099`）中调用，**未**在 `deleteBookDialog` 上注册 `cancel` 事件监听。每次 Escape 关闭 deleteBook 对话框，一个捕获特定 `bookId` 的 `onConfirm` 闭包便永久挂在 `deleteBookConfirmBtn` 上；多次 Escape 后，下次点击确认可连续删除多本书。
+
+**Why it matters:** Escape 是 mobile Safari 以外浏览器的常见关闭手势，用户改变主意时频繁使用。漏斗最底层（删除确认）出现幂等性破坏，可导致难以察觉的数据丢失，与 Theme 1「零数据丢失」验收直接冲突。修复极简、风险极低。
+
+**Complexity:** S — `showConfirmDialog` 函数体内追加 1 行 `cancel` 监听；`deleteBook` 内追加同等 1 行，无 HTML/后端/测试改动。
+
+```javascript
+// showConfirmDialog fix (app.js:2295 后追加):
+els.confirmDialog.addEventListener("cancel", () => {}, { once: true });
+// 更准确写法（同时清除 confirm 按钮残留处理器方案，参见 how）
+
+// deleteBook fix (app.js:2127 附近):
+els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true });
+```
+
+**Files:** `app.js:2286-2297`（`showConfirmDialog`），`app.js:2070-2127`（`deleteBook`）
+
+**northstar:** 中——数据安全是 Theme 1「零丢失」验收的硬性约束；S 复杂度修复成本远低于单次误删负影响。
+
+---
+
+### E101 — `PromptBuilder.build_chat_prompt()` 向 LLM 发送摘抄的 UI 专属字段，每次对话浪费数百至数万 token (S)
+
+**What:** `app_server.py:2319` 将摘抄列表以**完整对象**形式写入 LLM payload：
+
+```python
+# app_server.py:2319
+"quotes": quotes,   # 全量摘抄对象，含 UI 渲染字段
+```
+
+每个摘抄对象实际包含以下对 LLM 推理毫无价值的字段：
+- `imageUrl`（上传路径，~8 tokens）
+- `ocrSource` / `ocrStatus`（OCR 元状态，各 ~3 tokens）
+- `ocrError`（出错时约 5 tokens）
+- `ocrUpdatedAt` / `ocrRequestedAt`（各 ~8 tokens）
+- `ocrText`（最严重）：快速 OCR 完成后若用户已手动编辑 content，原始全页 OCR 文本以 `ocrText` 形式保留在对象中（`app_server.py:1347-1352`）；一页书籍 OCR 约 500-2000 字符（125-500 tokens），20 张摘抄中若有 5 张含 `ocrText` 即可额外贡献 2500+ tokens
+
+同理，book 对象（`app_server.py:2316`，`"book": book or {}`）包含 `coverImageUrl`（URL 路径，非 LLM 需要的信息）。
+
+估算：正常 20 张摘抄 ~600 tokens 浪费；`ocrText` 全量存在时可超 10,000 tokens，超过 OPT-047 正在修复的 `all_books_summary` 上限问题量级。
+
+**Why it matters:** DeepSeek 按 token 计费；prompt token 每次对话都在消耗。OPT-020（connections 字段裁剪）、OPT-047（all_books_summary 截断）都是同类优化，本项是同等优先级的配套补丁。`ocrText` 字段是「隐形成本炸弹」：用户 OCR 使用越多，每次对话成本越高。
+
+**Complexity:** S — 在 `build_chat_prompt()` 中对 `quotes` 列表做 dict comprehension 过滤，白名单保留 `id, bookId, content, type, tags, connections, createdAt`；对 `book` 对象同理去掉 `coverImageUrl`。无 API/DB schema 变更，无前端变更。
+
+**Files:** `app_server.py:2312-2345`（`PromptBuilder.build_chat_prompt`），`app_server.py:1347-1352`（`ocrText` 写入点，供验证）
+
+**northstar:** 中——与 OPT-020/OPT-047 同类，直接降低每次探讨的 API 成本，Theme 1 成本控制的遗漏项。
+
+---
+
+### E102 — `compress_chat_history_if_needed()` API 失败时静默写入截断历史，永久丢失旧消息 (S)
+
+**What:** `app_server.py:2267-2292`（`compress_chat_history_if_needed`）在 `call_deepseek()` 抛出异常（超时、429、网络故障）时进入 `except` 分支：
+
+```python
+# app_server.py:2279-2291
+try:
+    summary = call_deepseek(...)
+    compressed = [...summary...] + recent
+except Exception:
+    compressed = recent            # ← fallback: 仅保留最近 6 条
+state.setdefault("chatHistories", {})[history_key] = compressed
+save_state(conn, user_id, state)   # ← 无论成功/失败，都写 DB
+return compressed
+```
+
+`_COMPRESS_KEEP_RECENT = 6`（`app_server.py:2264`），`_COMPRESS_THRESHOLD = 10`（`app_server.py:2263`）。触发条件：历史超过 10 条时压缩；失败则将截断后的 6 条**立即持久化到 SQLite**。下次请求读回的 `chatHistories` 已是截断版本，早期消息永久不可恢复。
+
+一次 DeepSeek 临时限速（返回 429）即可触发：用户连续聊 6 轮后（约 3 分钟使用），若 API 此刻拥堵，第 11 条消息的处理会静默丢弃前 5 条历史。
+
+**Why it matters:** 聊天记录是「探讨历史」的唯一载体，是 Theme 2「回顾有价值」的核心资产。探讨 10 轮已是深度交流，此时发生无声数据丢失对用户体验的破坏性高于任何 UI 摩擦。修复只需 2 行：`except` 块中 `return history`（不保存），让下次请求再次尝试压缩。
+
+**Complexity:** S — 将 `save_state` 移入 `try` 块内（压缩成功才写入），`except` 改为 `return history`；无 schema/前端/测试改动。
+
+```python
+# 修复草案
+try:
+    summary = call_deepseek(...)
+    compressed = [...] + recent
+    state.setdefault("chatHistories", {})[history_key] = compressed
+    save_state(conn, user_id, state)
+    return compressed
+except Exception:
+    return history   # 压缩失败时原样返回，下次重试
+```
+
+**Files:** `app_server.py:2267-2292`（`compress_chat_history_if_needed`）
+
+**northstar:** 中——聊天历史是 Theme 2「回顾有价值」的前提数据；API 瞬断造成的静默丢失与 OPT-040/041 进口丢失同类（数据安全边界），S 修复成本极低。
+
+---
+

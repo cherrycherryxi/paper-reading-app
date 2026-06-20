@@ -496,3 +496,23 @@ Format per item:
 - description: `editSession()`（`app.js:2142`）和 `openNewSessionForBook()`（`app.js:2262`）均以 `els.sessionDialog.showModal()` 结束，无后续 `focus()` 调用。Session 表单第一个必填手动输入字段是 `startPage`（`[name="startPage"]`，`index.html:431`，`type="number" required`）；`bookId` 和 `date` 均有预填值，`startPage` 才是用户首个须手动填写的字段。iPhone Safari 不对 `<dialog>` 内 input 自动聚焦，导致打开弹窗后须额外点击一次。
 - why: 「新增阅读记录」是 Theme 1 每日行为，固定摩擦在高频使用后体感明显；与 OPT-058 完全对称，是已知模式的平行应用，修改仅 2 处 × 3 行，零副作用。
 - how: 在 `editSession()` 末尾（`app.js:2142`）和 `openNewSessionForBook()` 末尾（`app.js:2262`）各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序（与 OPT-058/049 已用模式一致）。Touch: `app.js:2142`；`app.js:2262`。
+
+### OPT-062 — 确认对话框 Escape 关闭后 `{ once: true }` 监听器残留，可触发错误删除 — 由 explore E100 提拔
+- status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 中——Theme 1「采集顺滑」零数据丢失验收：Escape 后残留 onConfirm 闭包在下次确认点击时触发错误删除；showConfirmDialog 覆盖全部 6 处删除入口（deleteSession/deleteQuote/deleteAccount/Excel 守卫），deleteBook 内联 handler 亦同理；S 修复成本远低于单次误删负影响。
+- description: 两处对话框实现均未处理 Escape 关闭事件，导致 `{ once: true }` 按钮监听器永久残留：（1）`showConfirmDialog()`（`app.js:2286-2297`）：在 `confirmDialogConfirmBtn`/`confirmDialogCancelBtn` 上注册 `{ once: true }` 处理器，但未在 `els.confirmDialog` 上注册 `cancel` 事件监听（Escape 触发 `<dialog>` `cancel` 事件，按钮处理器从不消费）；每次 Escape 关闭后，下次 `showConfirmDialog()` 再次堆叠新处理器，点击确认时旧闭包（含前次操作的 `onConfirm`）与新闭包同时触发。（2）`deleteBook()`（`app.js:2070-2127`）：`cleanup()` 仅在 `onConfirm`/`onCancel` 中调用，未在 `deleteBookDialog` 上注册 `cancel` 监听；多次 Escape 后可积累多个捕获不同 `bookId` 的闭包，下次点击确认可连续删除多本书。
+- why: Escape 是改变主意时最自然的关闭手势；确认对话框的幂等性破坏可导致难以察觉的数据丢失（与 OPT-040/041/043 同类，均为数据安全边界）。
+- how: （1）`showConfirmDialog`（`app.js:2286-2297`）末尾追加 `els.confirmDialog.addEventListener("cancel", () => { /* { once: true } handlers已消耗完 */ }, { once: true })`；更彻底的方案：将两个 `{ once: true }` 改为具名函数并在 `cancel` 事件中同步调用 `els.confirmDialogConfirmBtn.removeEventListener(...)` 和 `els.confirmDialogCancelBtn.removeEventListener(...)`。（2）`deleteBook()`（`app.js:2120` 附近，`els.deleteBookDialog.showModal()` 之后）追加 `els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true })`。Touch: `app.js:2286-2297`（showConfirmDialog），`app.js:2070-2127`（deleteBook）。
+
+### OPT-063 — `compress_chat_history_if_needed()` API 失败时写入截断历史，永久丢失旧聊天记录 — 由 explore E102 提拔
+- status: new
+- area: backend
+- priority: P1
+- size: S
+- northstar: 中——聊天历史是「探讨历史」唯一载体，是 Theme 2「回顾有价值」的前提数据；DeepSeek 瞬断（429/超时）造成的静默丢失与 OPT-040/041 进口丢失同类（数据安全边界），修复 2 行，零副作用。
+- description: `compress_chat_history_if_needed()`（`app_server.py:2267-2292`）在 `call_deepseek()` 抛出异常时，`except` 分支将 `compressed` 设为 `recent`（最近 6 条，`_COMPRESS_KEEP_RECENT=6`），然后**无条件**执行 `save_state(conn, user_id, state)`（`app_server.py:2291`）将截断历史写入 SQLite。触发条件：历史超过 10 条（`_COMPRESS_THRESHOLD=10`，`app_server.py:2263`）时若压缩 API 失败，前 N-6 条历史永久不可恢复——下次请求从 DB 读回的已是截断版本。一次 DeepSeek 429 限速即可触发：用户连聊 6 轮后（~3 分钟），API 拥堵瞬间即销毁早期探讨内容。
+- why: 深度探讨（10 轮以上）是 app 差异化功能的核心使用场景；此类静默丢失对用户信任的破坏性高于任何 UI 摩擦；修复成本极低（2 行改动）。
+- how: 将 `save_state` 调用移入 `try` 块内（压缩成功才持久化），`except` 改为直接 `return history`（原样返回，下次请求在条件改善时重试压缩）。修改后：`app_server.py:2279-2292` 的 `try` 块末尾追加 `state.setdefault("chatHistories", {})[history_key] = compressed; save_state(conn, user_id, state); return compressed`；`except Exception: return history`。Touch: `app_server.py:2267-2292`（`compress_chat_history_if_needed` 函数体，约 4 行重排）。
