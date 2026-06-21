@@ -1633,3 +1633,103 @@ except Exception:
 
 ---
 
+## 2026-06-21
+
+### E103 — `reading_mcp_server.py:_save_state()` 跳过 `sanitize_state()` 验证，MCP 写路径无状态校验 (S)
+
+**What:** `reading_mcp_server.py:_save_state()`（第 70–75 行）直接执行 `UPDATE user_state SET state_json = ?, updated_at = ?` 并 `commit()`，没有调用 `sanitize_state()`。对比 `app_server.py:save_state()`（第 699–706 行）：它在写入前先执行 `sanitized = sanitize_state(state)` 并把 sanitized 结果写入 DB。MCP 的 `_load_state()`（第 61–67 行）读取后同样不调用 `sanitize_state()`。结果是：6 个 MCP 工具（`add_note`、`add_book`、`summary`、`question`、`tag`、`link_thought`）的写路径完全绕过 schema 验证。
+
+```python
+# reading_mcp_server.py:70-75 — 无 sanitize_state 调用
+def _save_state(conn, user_id, state):
+    conn.execute(
+        "UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?",
+        (json.dumps(state, ensure_ascii=False), _now_iso(), user_id),
+    )
+    conn.commit()
+
+# app_server.py:699-706 — 有 sanitize_state 保护
+def save_state(conn, user_id, state):
+    sanitized = sanitize_state(state)
+    conn.execute(
+        "UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?",
+        (json.dumps(sanitized, ensure_ascii=False), now_iso(), user_id),
+    )
+    conn.commit()
+```
+
+`sanitize_state()`（`app_server.py:633–667`）的职责：① 将 `chatHistories` 从 legacy 单键格式迁移到多键格式；② 规整 `chatContexts` 结构；③ 保证 `books/sessions/quotes/connections` 为 list；④ 只保留已知顶级键。MCP 工具写入的 state 绕过以上所有检查。注意这与 OPT-029（`BEGIN IMMEDIATE` 原子性）完全不同——OPT-029 解决并发读改写竞争，本项解决写入前缺少 schema 验证。
+
+**Why:** MCP 服务器是独立写路径（Claude Desktop / 第三方客户端直接调用），不经过 `app_server.py` 请求处理链。最危险场景：`chatHistories` 以 legacy 格式写入后未迁移，下次 HTTP GET 经 `sanitize_state()` 时自动清空对应聊天记录；或某 MCP 工具 bug 将 `books` 写成 dict 而非 list，后续读取崩溃。
+
+**Complexity:** S — 最简方案：在 `reading_mcp_server.py:_save_state()` 中 import 并调用 `sanitize_state`（需从 `app_server` 导入；若循环 import 有风险，可将 `sanitize_state` 提取到共享 `state_utils.py`，或在 MCP 侧内联最小版本）。
+
+**Files:** `reading_mcp_server.py:70-75`（`_save_state`）；`app_server.py:633-667`（`sanitize_state` 参照）
+
+**northstar:** 中——MCP 写路径是 Claude Desktop 的主要数据入口；绕过验证的状态写入可静默损坏 chatHistories，破坏 Theme 2「回顾有价值」的前提数据；数据安全边界，S 修复。
+
+---
+
+### E104 — "↓ 最新" 滚动按钮占独立行，挤压聊天区垂直空间 [signal-backed 2026-06-16] (S)
+
+**What:** `index.html:190-192`，`chat-scroll-btn-row` div 在 HTML 结构中位于 `.chat-messages`（消息列表）和 `.chat-composer`（输入区）之间，在 CSS 中为独立 flex 行（`styles.css:2069-2073`）；桌面端通过 Grid 设为 `grid-row: 3`（`styles.css:3597-3600`），同样是独立行。按钮可见时，布局重新分配高度，消息区被压缩。
+
+```html
+<!-- index.html:190-192 -->
+<div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>
+  <button id="chatScrollBtn" class="chat-scroll-btn" type="button" aria-label="回到最新">↓ 最新</button>
+</div>
+```
+
+```css
+/* styles.css:2069-2073 */
+.chat-scroll-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 4px 0;
+}
+/* styles.css:3597-3600 */
+.chat-scroll-btn-row { grid-column: 2; grid-row: 3; }
+```
+
+Signal（`signals.md:2026-06-16`）：「聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行」。
+
+**Why:** iPhone 12 纵向空间有限，消息区每多一个独立行高就少一条可见消息。标准做法是将"回到最新"按钮用 `position: absolute; bottom: 8px; right: 12px` 叠加在消息列表容器内，`hidden` 时 zero-height，不影响其他区域布局。
+
+**Complexity:** S — 给 `.chat-messages` 容器加 `position: relative`；将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 12px; z-index: 10`（移出 flex/grid 流）；删除桌面端 `grid-row: 3` 覆盖。HTML 结构移入 `.chat-messages` 内部，或保持位置不动（父容器 `position: relative` 仍可定位子元素）。
+
+**Files:** `styles.css:2069-2073`（`.chat-scroll-btn-row` 基础样式），`styles.css:3597-3600`（桌面 grid 覆盖）；`index.html:177-192`（HTML 结构参照）
+
+**northstar:** 中——Theme 1「采集顺滑」日常触点；信号明确（2026-06-16）；iPhone 12 小屏上减少垂直占用体感明显；S 修复，纯 CSS 改动。
+
+---
+
+### E105 — OCR 结果填入单块 `<textarea>` 无逐行快删 UI，整页全文需手动剪辑 [signal-backed 2026-06-16] (M)
+
+**What:** 快速 OCR 完成后（Moonshot Kimi 视觉识别），`app_server.py:1347-1362` 将识别文本写入 `quote["content"]` 或 `quote["ocrText"]`，前端 `app.js:1547-1553` 将其填入 `quoteContent` textarea：
+
+```js
+// app.js:1550
+const recognizedText = quote.content || quote.ocrText || "";
+// ...然后填入 els.quoteContent.value
+```
+
+`index.html:468` 的 textarea 是单块编辑区：
+
+```html
+<textarea name="content" id="quoteContent" rows="5"
+  placeholder="可手动输入，也可以先拍照上传再尝试 OCR。"></textarea>
+```
+
+OCR 返回整页全文（500-2000 字符），用户只想保留划线句，需在 textarea 内手动定位、选中、删除多余段落。没有结构化列表视图，没有单行删除。Signal（`signals.md:2026-06-16`）：「快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果」。
+
+**Why:** OCR 全页识别是当前架构的必然结果，用户期望"快速筛留有用行"。单块 textarea 对此使用场景严重不匹配：手机上滚动、选中、删除文本段落体验极差。逐行 chip 列表（识别结果按 `\n` 分割，每行右侧一个 ✕ 按钮）是移动端最符合拇指操作的模式；最终 ✕ 删光后合并剩余行到 textarea 值，后续保存流程不变。这是 signals.md 目前最末一条信号（2026-06-16），直接阻碍 Theme 1「采集顺滑」的验收体验。
+
+**Complexity:** M — 纯前端改动：OCR 回调处（`app.js` OCR 状态机 `ocrStatus===done` 分支）在填入 textarea 前先拆行并渲染行列表组件；行列表状态需与 textarea 值双向同步；dialog 关闭时清理行列表状态。无后端/DB schema 变化；不涉及 `sanitize_state`。M 级别主要来自 OCR 状态机（`ocrStatus` 字段转换）与新视图的正确对接，以及行列表→textarea 合并逻辑。
+
+**Files:** `app.js:1547-1553`（OCR 结果填入点）；`index.html:468`（quoteContent textarea）；`app_server.py:1347-1362`（OCR 文本来源，验证）；`styles.css`（行列表样式，新增）
+
+**northstar:** 强——signals.md 最新信号（2026-06-16）明确点名此痛点；Theme 1「采集顺滑」直接验收场景（OCR 快路径每次都触发）；快 OCR 的时间收益被后续手动清理抵消，本项修复后才能实现真正的「快路径」。
+
+---
+
