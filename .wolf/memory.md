@@ -1678,3 +1678,7 @@
 | 19:19 | Edited optimization/explore.md | modified fix() | ~1238 |
 | 19:20 | Edited optimization/backlog.md | expanded (+20 lines) | ~988 |
 | 03:00 | Agent3 Explore 2026-06-20: verified 3 new findings (E100 stale dialog listeners, E101 PromptBuilder UI-field token waste, E102 compress_chat_history silent data loss on API error); promoted OPT-062 and OPT-063 to backlog | optimization/explore.md, optimization/backlog.md | done | ~4200 |
+| 17:05 | Created optimization/triage.md | — | ~3424 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~27 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~30 |
+| 17:06 | triage: daily optimization triage 2026-06-21; OPT-062/063 promoted to triaged; budget exhausted (4/4 auto PRs); OPT-062 named next candidate | optimization/triage.md, optimization/backlog.md | triaged 2 new items, budget exhausted | ~8k |

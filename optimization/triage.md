@@ -2,15 +2,17 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-20
+Last triaged: 2026-06-21
 
 ## Next up
 
 **本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派**
 
-近 7 天（2026-06-13 → 2026-06-20）已开 4 个 `auto/` PR：#45 opt-047-all-books-summary-limit（2026-06-16）、#46 opt-055-ocr-line-delete-ui（2026-06-17）、#47 opt-054-float-scroll-btn（2026-06-18）、#48 opt-052-quote-card-image-thumb（2026-06-19）。4 个均处于 open 状态，预算已达上限，Agent2 本次跳过实现。
+近 7 天（2026-06-14 → 2026-06-21）已开 4 个 `auto/` PR：#45 opt-047-all-books-summary-limit（2026-06-16）、#46 opt-055-ocr-line-delete-ui（2026-06-17）、#47 opt-054-float-scroll-btn（2026-06-18）、#48 opt-052-quote-card-image-thumb（2026-06-19）。4 个均处于 open 状态，预算已达上限，Agent2 本次跳过实现。
 
-**预算复位后首选候选**：**OPT-058**（摘抄对话框 `showModal()` 后无 `focus()`，P1/S）或 **OPT-061**（Session 对话框同等修复，P1/S）——二者均为 Theme 1「采集顺滑」核心路径固定摩擦，S 复杂度（各 2 处 ×3 行），已知模式（OPT-049 先例），可在同一 PR 中合并实现。等 PRs #45–#48 合并后预算释放再指派。
+**预算复位后首选候选**：**OPT-062**（确认对话框 Escape 后 `{ once: true }` 监听器残留，可触发错误删除，P1/S）。
+
+理由：（1）**数据安全类** — Escape 关闭确认弹窗后，下次点击「确认」会同时触发旧闭包（含前次操作的 `onConfirm`），导致错误删除；`showConfirmDialog` 覆盖 deleteSession / deleteQuote / deleteAccount / 导入清空护栏 / 导入减少护栏 / deleteConnection 共 6+ 条路径，`deleteBook` 另有独立弹窗也存在同等缺口。（2）**修复成本极低** — 在 `showConfirmDialog`（`app.js:2286-2297`）追加 `els.confirmDialog.addEventListener("cancel", cleanup, { once: true })`；在 `deleteBook`（`app.js:2120` 附近）同样追加 `els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true })`，共约 4 行改动。（3）比 OPT-058/061（focus UX）更紧迫：Escape 误删是不可逆的数据丢失，Theme 1「零丢失」验收标准的直接威胁。等 PRs #45–#48 合并后预算释放再指派；若同 PR 中可顺带修 OPT-063，则一并处理。
 
 ## Prioritized backlog
 
@@ -20,8 +22,10 @@ Last triaged: 2026-06-20
 | OPT-055 | 快速 OCR 行级删除 UI | P1 | M | in-progress (PR #46) | Signal 2026-06-16：owner 真机「整页全文，只想留划线句，得逐行删」。northstar「强」，Theme 1 直接摩擦。`app.js:1548-1566` + `index.html:444-486` + `styles.css`（新 `.ocr-line-selector`）。PR #46 开放中，待合并。 |
 | OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | in-progress (PR #47) | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` `position:relative` + 桌面端删 `grid-row:3`。PR #47 开放中，待合并。 |
 | OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | in-progress (PR #48) | northstar「强」，Theme 1；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。`app.js:1449-1452`：有 `quote.imageUrl` 时条件渲染 `<img>`，否则保留 fallback；`styles.css` 无需改动（`.entry-card-cover img` 已有）。PR #48 开放中，待合并。 |
-| OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」核心路径固定摩擦。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`，共 2 处。无 signal 佐证，但 Theme 1 两周验收期直接触点。预算复位首选候选（可与 OPT-061 合并一 PR）。 |
-| OPT-061 | Session 对话框 showModal() 后无 focus()，移动端须额外点击才能开始输入 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」每日触点；OPT-058 的对称补丁。`app.js:2142`（editSession）和 `app.js:2262`（openNewSessionForBook）末尾各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。新增 2026-06-20。 |
+| OPT-062 | 确认对话框 Escape 关闭后监听器残留，可触发错误删除 | P1 | S | triaged | northstar「中」，Theme 1「零丢失」验收直接威胁；data safety 类。`showConfirmDialog`（`app.js:2286-2297`）缺 `cancel` 事件清理，6+ 删除路径受影响；`deleteBook` 弹窗（`app.js:2120`）另有独立缺口；各追加 1 行 `addEventListener("cancel", cleanup, { once: true })`。**预算复位首选**（见"Next up"详述）。 |
+| OPT-063 | compress_chat_history API 失败时写入截断历史，永久丢失旧聊天记录 | P1 | S | triaged | northstar「中」，Theme 2「回顾有价值」前提数据；data safety 类（与 OPT-040/041 同类）。`app_server.py:2288-2291`：`except Exception: compressed = recent` 后无条件 `save_state()`；修复为把 `save_state` 移入 `try` 块，`except` 直接 `return history`，约 4 行重排，零副作用。可与 OPT-062 同 PR 实现（若预算复位时一并做）。 |
+| OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」核心路径固定摩擦。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`，共 2 处。无 signal 佐证，但 Theme 1 两周验收期直接触点。预算复位次选（可与 OPT-061 合并一 PR）。 |
+| OPT-061 | Session 对话框 showModal() 后无 focus()，移动端须额外点击才能开始输入 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」每日触点；OPT-058 的对称补丁。`app.js:2142`（editSession）和 `app.js:2262`（openNewSessionForBook）末尾各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。 |
 | OPT-059 | Session 日期预填 UTC 日期，UTC+8 凌晨记录日期差一天 | P1 | S | triaged | northstar「中」，Theme 1 数据准确性；影响 roadmap §2「本周使用天数」指标统计。`app.js:2261`：`toISOString().split("T")[0]` → `new Intl.DateTimeFormat("sv").format(new Date())`（sv locale 返回本地时区 YYYY-MM-DD，无 polyfill）。无 signal 佐证，但 UTC+8 凌晨高频场景。 |
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补 1 行 `setAttribute("aria-selected", ...)`。Level A 最严合规，Tab 是 App 主骨架。northstar「中」。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。northstar「中」，roadmap §2 可观测代理指标。3 行改动，无 HTML/CSS/后端变动。 |
@@ -29,7 +33,7 @@ Last triaged: 2026-06-20
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332`：syncState() 前加 2 行 `delete state.chatHistories["quote:"+quoteId]; delete state.chatContexts["quote:"+quoteId];`，复用 deleteBook()（`app.js:2088-2101`）模式。northstar「弱」，无 signal 佐证。 |
 | OPT-056 | 摘抄搜索不包含「我的理解」reflection 字段 | P2 | S | triaged | `app.js:1411-1416` haystack 数组末尾追加 `item.reflection \|\| ""`；1 行改动，零后端变更，可选追加测试断言。northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；当前 Theme 1 期无 signal 佐证，P2 置于 P1 后。 |
 | OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | `app.js:1332` 底部加「查看更多」按钮，`slice(0, count+10)`，局部变量跟踪当前展示数。northstar「中」，Theme 2；当前 Theme 1 期无 signal 佐证，P2。 |
-| OPT-060 | 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 | P2 | S | triaged | `app.js:740-756` haystack 对 quote 类型 side 追加 `state.quotes.find()` 的 `.content`，约 6 行改动，零后端变更。northstar「中」，Theme 2；当前 Theme 1 期 P2 末位。新增 2026-06-20。 |
+| OPT-060 | 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 | P2 | S | triaged | `app.js:740-756` haystack 对 quote 类型 side 追加 `state.quotes.find()` 的 `.content`，约 6 行改动，零后端变更。northstar「中」，Theme 2；当前 Theme 1 期 P2 末位。 |
 | OPT-051 | 添加 Web App Manifest，支持 Android/Chrome PWA 安装 | P2 | S | triaged | 新建 `manifest.json`（根目录）+ `index.html <head>` 加 `<link rel="manifest">` + `app_server.py` 静态路由加条目。northstar「中」；roadmap §1 当前为 path A（owner 专用 iPhone），Android 暂无；无 signal 佐证，暂 P2 末位。 |
 | OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P3 | S | triaged | P3 parked（2026-06-16 仪式：定位 A「个人工具」唯一用户为 owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。`index.html:177` 加 `role="log"`。 |
 | OPT-036 | summarize_metrics() 全量历史扫描 → 90 天窗口 | P3 | S | triaged | P3 parked（2026-06-16 仪式：debug 看板是运营工具，不影响阅读主流程，对北极星无直接贡献）。`app_server.py:2875` `WHERE user_id = ?` 追加 `AND created_at > datetime('now', '-90 days')`。 |
