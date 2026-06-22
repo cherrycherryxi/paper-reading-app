@@ -519,7 +519,7 @@ Format per item:
 - how: 将 `save_state` 调用移入 `try` 块内（压缩成功才持久化），`except` 改为直接 `return history`（原样返回，下次请求在条件改善时重试压缩）。修改后：`app_server.py:2279-2292` 的 `try` 块末尾追加 `state.setdefault("chatHistories", {})[history_key] = compressed; save_state(conn, user_id, state); return compressed`；`except Exception: return history`。Touch: `app_server.py:2267-2292`（`compress_chat_history_if_needed` 函数体，约 4 行重排）。
 
 ### OPT-064 — `PromptBuilder.build_chat_prompt()` 向 LLM 发送摘抄完整对象含 `ocrText`，每次对话浪费数百至数万 token — 由 explore E101 提拔
-- status: new
+- status: triaged
 - area: backend
 - northstar: 中——与 OPT-020/OPT-047 同类，直接降低每次探讨的 API 成本；`ocrText` 字段是隐形成本炸弹（用户 OCR 越多、每次对话越贵），Theme 1 成本控制遗漏项。
 - description: `app_server.py:2319` 将摘抄列表以完整对象形式写入 LLM payload（`"quotes": quotes`）。每个对象包含 LLM 推理无用字段：`imageUrl`（~8 tokens）、`ocrStatus/ocrSource`（各 ~3 tokens）、`ocrError`（~5 tokens）、`ocrUpdatedAt/ocrRequestedAt`（各 ~8 tokens），以及最严重的 `ocrText`——快速 OCR 后若用户已手动编辑 content，原始全页文本以 `ocrText` 保留（`app_server.py:1347-1352`），每页 500-2000 字符（125-500 tokens）；20 张摘抄含 5 张 ocrText 即超 2500 tokens。同理 `focused_quote`（`app_server.py:2320`）也含 `imageUrl` 等字段。估算：正常场景 ~600 tokens 浪费，ocrText 全量存在时超 10,000 tokens。OPT-020（connections 字段裁剪）和 OPT-047（all_books_summary 截断）已修复同类问题，本项是漏网的同等优先级补丁。
@@ -527,7 +527,7 @@ Format per item:
 - how: 在 `build_chat_prompt()`（`app_server.py:2312-2345`）中对 `quotes` 列表做 dict comprehension 白名单过滤，保留 `id, bookId, content, kind, tags, page, createdAt, reflection`；对 `focused_quote` 同理；对 `book` 对象去掉 `coverImageUrl`。无 API/DB schema 变更，无前端变更。Touch: `app_server.py:2312-2345`（`build_chat_prompt` 方法）。
 
 ### OPT-065 — `reading_mcp_server.py:_save_state()` 跳过 `sanitize_state()` 验证，MCP 写路径无状态校验 — 由 explore E103 提拔
-- status: new
+- status: triaged
 - area: backend
 - northstar: 中——MCP 写路径是 Claude Desktop 的主要数据入口；绕过 `sanitize_state()` 可静默写入 chatHistories legacy 格式或 books 非 list，导致下次 HTTP 请求时自动清空对应数据；数据安全边界，S 修复。
 - description: `reading_mcp_server.py:_save_state()`（第 70–75 行）直接 `UPDATE user_state SET state_json = ?` 并 `commit()`，没有调用 `sanitize_state()`。对比 `app_server.py:save_state()`（第 699–706 行）：先 `sanitized = sanitize_state(state)` 再写入。`sanitize_state()`（`app_server.py:633–667`）职责：① chatHistories 旧格式迁移；② chatContexts 结构规整；③ books/sessions/quotes/connections 必须为 list；④ 只保留已知顶级键。6 个 MCP 工具（add_note、add_book、summary、question、tag、link_thought）均通过 `_save_state()` 写入，全部绕过验证。注意与 OPT-029 的区别：OPT-029 解决并发读改写竞争（BEGIN IMMEDIATE），本项解决写入前缺少 schema 验证。
