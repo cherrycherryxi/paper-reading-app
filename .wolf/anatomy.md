@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T07:23:28.457Z
-> Files: 160 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-17T08:32:40.804Z
+> Files: 162 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -57,7 +57,7 @@
 - `MEMORY.md` (~253 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
-- `reference_remote_access_setup.md` (~415 tok)
+- `reference_remote_access_setup.md` (~538 tok)
 - `reference_weekly_report_email.md` (~339 tok)
 
 ## ../../.claude/scripts/
@@ -67,6 +67,7 @@
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~642 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
+- `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
 - `weekly-report.sh` (~476 tok)
 
 ## ../../Library/LaunchAgents/
@@ -75,6 +76,7 @@
 - `com.huangnanqi.paper-backend.plist` (~291 tok)
 - `com.huangnanqi.paper-tunnel.plist` (~255 tok)
 - `com.huangnanqi.product-owner.plist` (~307 tok)
+- `com.huangnanqi.tunnel-watchdog.plist` (~247 tok)
 - `com.huangnanqi.weekly-report.plist` (~301 tok)
 
 ## ./
