@@ -428,7 +428,8 @@ Format per item:
 ### OPT-051 — 添加 Web App Manifest，使 Android/Chrome 用户可以「添加到主屏幕」安装 PWA
 - status: triaged
 - area: frontend
-- northstar: 中——降低非 iOS 用户的每日使用门槛；PWA 安装到主屏幕后体验接近原生，有助于「不假思索的默认工具」目标。若未来升级到路线图 §1 option B（小范围分享），manifest 是必要前置。
+- northstar: 无直接贡献（当前定位 A：唯一用户=owner 本人，每天用 iPhone，已有 Apple PWA meta；Android/Chrome 安装收益此刻为零，无 signal 佐证）。按 roadmap §5 北极星税 → **P3 parked（2026-W26 仪式）**；仅当定位升级到 §1 option B（10–100 人分享、Android 入场）时重启，届时 manifest 是必要前置。
+- park-reason (2026-06-22): 定位 A 下唯一用户不用 Android，PWA 安装属「为假想未来用户做」，违反 §0「为做而做」批判；15 行成本不急，升级到 B 当周再做即可。
 - description: `index.html:8-10` 仅有 Apple 专属 PWA meta 标签（`apple-mobile-web-app-capable` / `apple-mobile-web-app-title`），没有 `<link rel="manifest">`。仓库根目录无 `manifest.json` 文件。Android Chrome 的「添加到主屏幕」和 PWA 安装提示均依赖 manifest；缺失时用户只能手动将网址固定到浏览器书签，不会触发系统级安装提示。
 - why: owner 每天用 iPhone，manifest 收益目前为零；但 roadmap §1 把升级到 B（10-100 人分享）设为可能路径，Android 用户比例不低。manifest.json 是 15 行 JSON + 1 行 HTML，一次性低成本补全，此后无维护负担。
 - how: ① 新建 `manifest.json`（根目录，15 行）：name/short_name/start_url/display:standalone/background_color/theme_color/icons（复用现有 favicon 或添加 192×192 PNG）。② `index.html` `<head>` 加 `<link rel="manifest" href="/manifest.json">`。③ `app_server.py` 静态文件分发列表（`_STATIC` dict 或等价 if-chain）加入 `manifest.json` 条目。复杂度 S。
