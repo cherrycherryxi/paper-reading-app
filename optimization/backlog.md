@@ -370,7 +370,7 @@ Format per item:
 - how: `index.html:679` 加 `role="tablist"`；6 个 `<button>` 各加 `role="tab"` + `aria-selected` + `aria-controls="<panel-id>"`；6 个 `<section data-tab-section>` 各加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补一行 `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`。Touch: `index.html:72-160, 679-704`；`app.js:1628-1630`。
 
 ### OPT-047 — `PromptBuilder.all_books_summary` 无数量上限，500 本书用户每次对话多注入 ~7000 tokens — 由 explore E74 提拔
-- status: triaged
+- status: in-progress (PR #45, 2026-06-16)
 - area: agent
 - northstar: 强——直接降低 DeepSeek API 用量/成本，与 OPT-020（`existing_connections` 条件注入）同类，OPT-020 已证明 P1 可落地。Theme 1「采集顺滑」 + 成本控制。
 - description: `PromptBuilder.build_chat_prompt()` 的 `all_books_summary`（`app_server.py:2326-2329`）是用户全量书单，无 LIMIT。500 本书 × ~56 字符 ≈ 28,000 字符 ≈ 7,000 tokens，每次请求都注入，无条件。`all_books_summary` 仅在 `link_thought` 时用于 targetId 验证，而 OPT-020 已说明 link_thought 只在用户明确要求时才返回——即 80%+ 的请求里这 7,000 tokens 是无效注入。Plus 用户每日 240 请求 × 7,000 tokens = 168 万 tokens/天多余消耗。
@@ -410,7 +410,7 @@ Format per item:
 - how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
 
 ### OPT-052 — 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 — 由 explore E86 提拔
-- status: new
+- status: in-progress (PR #48, 2026-06-19)
 - area: frontend
 - northstar: 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认「照片已关联」；与北极星「不假思索的默认工具」一致（操作后立即得到正向反馈）。S 复杂度，P1 候选。
 - description: `app.js:1449-1452` 的摘抄卡模板中 `entry-card-cover` 始终只渲染 `entry-cover-fallback`（灰色占位块），无论 `quote.imageUrl` 是否存在均不显示图片。`openQuoteDetail()`（`app.js:2159-2160`）在详情弹窗中 **已**加载图片（`img.src = resolveImageUrl(quote.imageUrl)`），证明图片有效，只是卡面未渲染。对比书卡（`app.js:1133-1134`）会展示封面图片或 fallback 摘抄图片。
@@ -418,7 +418,7 @@ Format per item:
 - how: 在 `app.js:1449` 的 `entry-card-cover` 内条件渲染 `<img>`：有 `quote.imageUrl` 时显示缩略图，无则保留 `entry-cover-fallback`。CSS 样式可沿用书卡已有 `book-card-cover img` 规则（`.entry-card-cover img { width:100%; height:100%; object-fit:cover; }` 约 2 行）。无后端改动。Touch: `app.js:1449-1452`；`styles.css`（2 行 CSS 规则可选）。
 
 ### OPT-053 — Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 — 由 explore E85 提拔
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——直接佐证 Roadmap §2「可观测代理指标」（本周使用天数/新增摘抄数/回顾操作次数）；让阅读积累可见是「每天爱用」的正向循环基础；Theme 2「回顾有价值」预热。S 复杂度，3 行代码改动。
 - description: `app.js:1335-1342`：`if (searchRaw && sessions.length)` 使统计条（`#sessionStats`，`index.html:110`）仅在有搜索词时显示匹配集合的汇总数字。无搜索时始终 `is-hidden`，用户日常打开「记录」Tab 看不到「共 38 次阅读 · 2140 分钟 · 约 480 页」。对比书单 Tab 的 `renderHero()`（`app.js:934-940`）始终展示总书数/总分钟/总摘抄数。
@@ -432,3 +432,103 @@ Format per item:
 - description: `index.html:8-10` 仅有 Apple 专属 PWA meta 标签（`apple-mobile-web-app-capable` / `apple-mobile-web-app-title`），没有 `<link rel="manifest">`。仓库根目录无 `manifest.json` 文件。Android Chrome 的「添加到主屏幕」和 PWA 安装提示均依赖 manifest；缺失时用户只能手动将网址固定到浏览器书签，不会触发系统级安装提示。
 - why: owner 每天用 iPhone，manifest 收益目前为零；但 roadmap §1 把升级到 B（10-100 人分享）设为可能路径，Android 用户比例不低。manifest.json 是 15 行 JSON + 1 行 HTML，一次性低成本补全，此后无维护负担。
 - how: ① 新建 `manifest.json`（根目录，15 行）：name/short_name/start_url/display:standalone/background_color/theme_color/icons（复用现有 favicon 或添加 192×192 PNG）。② `index.html` `<head>` 加 `<link rel="manifest" href="/manifest.json">`。③ `app_server.py` 静态文件分发列表（`_STATIC` dict 或等价 if-chain）加入 `manifest.json` 条目。复杂度 S。
+
+### OPT-054 — 「↓ 最新」按钮独占布局行压缩聊天区——改为叠加在消息列表上的浮动按钮 — 由 explore E87 提拔
+- status: in-progress (PR #47, 2026-06-18)
+- area: frontend
+- northstar: 中——chat 是「探讨」核心入口，输入区舒适度影响写作流畅度；owner 真机 signal 2026-06-16 驱动，S 复杂度；Theme 1「不假思索的默认工具」辅助。
+- description: `index.html:190-192` 的 `<div class="chat-scroll-btn-row" id="chatScrollBtnRow">` 是聊天面板 flex 列的独立子元素（在 `#chatMessages` 与 `.chat-composer` 之间）。`styles.css:2069-2073` 定义为 `display: flex; padding: 4px 4px 0`，可见时占用 ~30px 垂直高度。桌面端（`styles.css:3597-3600`）亦占独立 `grid-row: 3`。聊天面板高度固定，该行出现时从消息区直接扣除 ~30px。Owner signal 2026-06-16："聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。
+- why: 「↓ 最新」按钮不需要占用布局空间——叠加在消息列表右下角是标准聊天应用模式（WhatsApp/Telegram），不影响 composer 可用高度。S 复杂度，零逻辑变更。
+- how: `styles.css`：给 `#chatMessages` 加 `position: relative`；将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 8px; z-index: 2; display: block` （移除 `display: flex; padding`）；同步移除桌面端 `grid-row: 3` override（按钮叠加后不占 grid 行）。`chat.js:273, 441, 894` 的 `hidden` 逻辑无需改动。Touch: `styles.css:2069-2073`（`.chat-scroll-btn-row`）、`styles.css:3597-3600`（桌面 override）。
+
+### OPT-055 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 — 由 explore E88 提拔
+- status: in-progress (PR #46, 2026-06-17)
+- area: frontend
+- northstar: 强——Theme 1「采集顺滑」直接障碍：快速 OCR 已「快」，但产生整页冗余文本使「顺」失效；owner 真机 signal 2026-06-16 明确指出。每次录入都需额外 20-60 秒手工删行，与北极星「不假思索的默认工具」直接冲突。M 复杂度，无后端改动。
+- description: `index.html:476` helper text 明确写"「快速识别」秒出整页全文"；`app.js:511-523` `normalizeOcrText()` 保留 `\n` 分隔多行；`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea（`contentEl.value = recognizedText`）。OCR 完成后 quote 对话框无任何行级操作 UI，用户须在 textarea 里手动选删不需要的行才能保留划线句。Owner 2026-06-16 signals："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
+- why: 是 Theme 1 两周验收观察期（roadmap §2 W25 焦点）中最直接的采集摩擦点：降低 OCR 录入的后处理成本，才能做到"拍照→成卡"零停顿。
+- how: 在 `syncOpenQuoteFormFromState()`（`app.js:1548-1566`）的 `ocrStatus === "done"` 分支：若识别文本行数 ≥ 3，隐藏 `#quoteContent` textarea，显示新增的「行选择列表」（每行一个 `<div>` + 删除 `✕` 按钮）；用户点删后，剩余行合并写回 textarea，并恢复正常编辑视图。约 40 行 JS + 20 行 CSS。行数 < 3 时跳过，直接填入 textarea（现有行为）。Touch: `app.js:1548-1566`；`index.html:444-486`（quote dialog，可加行列表 UI 占位）；`styles.css`（新增 `.ocr-line-selector` 组件样式）。
+
+### OPT-056 — 摘抄搜索不包含「我的理解」(reflection) 字段，用户按自己的思考笔记无法检索 — 由 explore E90 提拔
+- status: triaged
+- area: frontend
+- northstar: 中——使用户的个人洞察（reflection）变得可检索，直接支撑 Theme 2「回顾有价值」；累积 50+ 张摘抄后 reflection 检索是最自然的二次入口之一；与北极星「第三个数 > 0」（回顾/检索/关联操作次数）正相关。
+- description: `app.js:1411-1416`（`renderQuotes()` 搜索过滤器）构建 haystack 时未包含 `item.reflection`：`[book?.title, book?.author, item.content, (item.tags||[]).join(" ")].join(" ").toLowerCase()`。`index.html:479` 的「我的理解」textarea（`name="reflection"`）内容通过 `state.quotes[n].reflection` 持久化。若用户在「我的理解」里写了"这和笛卡尔二元论有关"，搜索"笛卡尔"什么都找不到。
+- why: `reflection` 是用户最个人化的思考记录，按自己写下的洞察检索是 Theme 2「回顾有价值」最低成本的实现方式；一行改动，零后端变更，可选追加测试断言。
+- how: `app.js:1411-1416`，在 haystack 数组末尾追加 `item.reflection || ""`。可同时在 `tests/frontend/` 追加一条断言覆盖 reflection 命中场景。Touch: `app.js:1411-1416`。
+
+### OPT-057 — 「动态」Tab 时间线硬限 10 条，积累大量摘抄后无法看到更多历史条目 — 由 explore E84 提拔
+- status: triaged
+- area: frontend
+- northstar: 中——「动态」Tab 是 Theme 2「回顾有价值」的主要入口之一；硬限 10 条使有价值的历史动态不可见，与「让积累的摘抄回流到阅读生活」直接冲突；积累 20+ 条目后用户无法看到自己的阅读轨迹全貌。
+- description: `app.js:1332`（`renderTimeline()` 内）：`const visible = allSorted.slice(0, 10);`——无论实际条目数量，始终只渲染最新 10 条，无「加载更多」入口。`allSorted` 由 books（added）、sessions、quotes 时间戳合并排序组成（`app.js:1295-1329`）。用户持续使用后条目快速超过 10 条，更早的阅读里程碑（某本书的第一张摘抄、某次长时阅读）永远不可见。
+- why: 10 条硬限在产品初期是合理保护，但阻碍 Theme 2；「加载更多」或提升至 20 条是最低代价的解法；S 复杂度，无后端改动。
+- how: 方案 A（最简）：将硬限从 10 改为 20，`app.js:1332` 单行改动；方案 B（推荐）：在时间线底部追加「查看更多」按钮，点击后 `slice(0, count + 10)`，通过 `state` 或局部变量跟踪当前展示数量。Touch: `app.js:1295-1345`（`renderTimeline`）；`index.html:119`（timeline 容器，可加「更多」按钮占位）。
+
+### OPT-058 — 摘抄对话框 `showModal()` 后未 `focus()` 文本区，移动端每次打开须额外点击才能输入 — 由 explore E93 提拔
+- status: triaged
+- area: frontend
+- northstar: 中——Theme 1「采集顺滑」触点：摘抄对话框是拍照→OCR→成卡的最终操作界面，每次打开须额外点击才能输入，直接给核心链路增加固定摩擦；CLAUDE.md 明确「mobile-first (iPhone 12)」；S 复杂度，2 行改动，零副作用。
+- description: `openNewQuoteForBook()`（`app.js:2248`）和 `editQuote()`（`app.js:2283`）均以 `els.quoteDialog.showModal()` 结束，之后无 `focus()` 调用。iPhone Safari 对 `<dialog>` 内 textarea 不自动聚焦——`#quoteContent`（`index.html:471`）在弹窗打开后不是焦点元素，用户需额外点击才能开始输入。桌面浏览器通常自动聚焦首个可交互元素，但 iPhone Safari 不支持此行为（dialog 规范差异）。
+- why: 「新建摘抄」是拍照→OCR 后的核心操作入口，每次打开弹窗必须额外点击一次，在高频使用场景下摩擦感累积显著。这是 Theme 1「采集顺滑」两周验收观察期中的具体触点。
+- how: 在两处 `showModal()` 后各追加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`（共 2 处，各 3 行）。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序，与 OPT-049 等先例中已用模式一致。Touch: `app.js:2248`（`openNewQuoteForBook` 末尾）；`app.js:2283`（`editQuote` 末尾）。
+
+### OPT-059 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨（00:00–08:00）读书记录日期差一天 — 由 explore E94 提拔
+- status: triaged
+- area: frontend
+- northstar: 中——Theme 1「采集顺滑」数据准确性：凌晨阅读记录日期自动填入昨天，owner 晚睡读书场景高频；记录日期错误直接损害「零丢失/零错数据」验收标准，且用户通常不会注意日期字段并手动修正。S 复杂度，1 行改动。
+- description: `app.js:2261`：`els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];`——`toISOString()` 返回 UTC 日期，UTC+8 凌晨 00:00–07:59 对应 UTC 前一天，导致「今晚」的阅读被记录为「昨天」。`index.html:430` 的日期 `<input>` 亦无 `max` 属性，用户可无限制选择未来日期。
+- why: owner 为 UTC+8 且有晚睡读书习惯——roadmap §2 三个可观测指标第一条是「本周使用天数」，日期填错会导致指标统计失真；用户在提交 session 表单时极少会核对日期字段。
+- how: `app.js:2261` 将 `new Date().toISOString().split("T")[0]` 改为 `new Intl.DateTimeFormat("sv").format(new Date())`（`"sv"` locale 返回 `YYYY-MM-DD` 本地时区格式，所有现代浏览器兼容，无 polyfill 需求）；可同步在 JS 初始化时动态给 `index.html:430` 的 `<input name="date">` 设置 `max` 属性（防未来日期）。Touch: `app.js:2261`（主改动点）；可选 `index.html:430` + JS 初始化段设置 `max`。
+
+### OPT-060 — 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 — 由 explore E95 提拔
+- status: triaged
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」的关键检索入口：关联是 app 的差异化功能，「按摘抄内容找关联」是回顾时最自然的方式；现在按摘抄原文搜索无法命中关联，等于让连接网络对用户半透明；积累 20+ 个关联后影响显著，是 Theme 2 北极星第三个数「回顾/检索/关联操作次数 > 0」的前提。
+- description: `app.js:740-756`（`renderConnections()` 搜索过滤块）的 haystack 仅含 `getBookTitle()`（`app.js:742-748`，对 quote 类型只返回书名）和 `c.thought`，不含摘抄原文（`quote.content`）。若用户建立了「笛卡尔」摘抄→「AI」摘抄的关联，搜索"笛卡尔"时若两书名均不含该词则返回零结果，即使 thought 字段也没有该词。注意：`resolveConnectionSide()`（`app.js:679-688`）在卡面**展示**时确实包含摘抄原文预览（`quote.content.slice(0,36)`），但搜索 haystack 的构建路径（`getBookTitle()`）与展示路径（`resolveConnectionSide()`）分离，搜索和展示不对齐。
+- why: 用户建立关联时脑中记住的往往是「那句话说了什么」，而不是「它属于哪本书」；按摘抄原文检索关联才能「想到就找到」；是 Theme 2 最低成本的检索改进之一（6 行改动，无后端变更）。
+- how: 在 `app.js:740-756` 的 haystack 构建中，对 `c.sourceType === "quote"` 和 `c.targetType === "quote"` 的 side，分别通过 `state.quotes.find()` 查找对应 quote 的 `.content`，加入 haystack 数组。额外查找仅在 `searchRaw` 非空时触发（`app.js:739` 已有 `if (!searchRaw) return true` 短路保护，连接数通常 <100，O(Q) 查找可忽略）。Touch: `app.js:740-756`（haystack 构建块，约 6 行改动）。
+
+### OPT-061 — Session 对话框 `showModal()` 后无 `focus()`，移动端须额外点击才能开始输入 — 由 explore E97 提拔
+- status: triaged
+- area: frontend
+- northstar: 中——Theme 1「采集顺滑」每日触点：Session 记录是阅读习惯追踪的核心动作，每次打开弹窗须额外点击 `startPage` 输入框才能填写；mobile-first 原则下此为固定摩擦；OPT-058 已为摘抄对话框做同等修复，本项为平行补丁，S 复杂度，实现风险接近零。
+- description: `editSession()`（`app.js:2142`）和 `openNewSessionForBook()`（`app.js:2262`）均以 `els.sessionDialog.showModal()` 结束，无后续 `focus()` 调用。Session 表单第一个必填手动输入字段是 `startPage`（`[name="startPage"]`，`index.html:431`，`type="number" required`）；`bookId` 和 `date` 均有预填值，`startPage` 才是用户首个须手动填写的字段。iPhone Safari 不对 `<dialog>` 内 input 自动聚焦，导致打开弹窗后须额外点击一次。
+- why: 「新增阅读记录」是 Theme 1 每日行为，固定摩擦在高频使用后体感明显；与 OPT-058 完全对称，是已知模式的平行应用，修改仅 2 处 × 3 行，零副作用。
+- how: 在 `editSession()` 末尾（`app.js:2142`）和 `openNewSessionForBook()` 末尾（`app.js:2262`）各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序（与 OPT-058/049 已用模式一致）。Touch: `app.js:2142`；`app.js:2262`。
+
+### OPT-062 — 确认对话框 Escape 关闭后 `{ once: true }` 监听器残留，可触发错误删除 — 由 explore E100 提拔
+- status: triaged
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 中——Theme 1「采集顺滑」零数据丢失验收：Escape 后残留 onConfirm 闭包在下次确认点击时触发错误删除；showConfirmDialog 覆盖全部 6 处删除入口（deleteSession/deleteQuote/deleteAccount/Excel 守卫），deleteBook 内联 handler 亦同理；S 修复成本远低于单次误删负影响。
+- description: 两处对话框实现均未处理 Escape 关闭事件，导致 `{ once: true }` 按钮监听器永久残留：（1）`showConfirmDialog()`（`app.js:2286-2297`）：在 `confirmDialogConfirmBtn`/`confirmDialogCancelBtn` 上注册 `{ once: true }` 处理器，但未在 `els.confirmDialog` 上注册 `cancel` 事件监听（Escape 触发 `<dialog>` `cancel` 事件，按钮处理器从不消费）；每次 Escape 关闭后，下次 `showConfirmDialog()` 再次堆叠新处理器，点击确认时旧闭包（含前次操作的 `onConfirm`）与新闭包同时触发。（2）`deleteBook()`（`app.js:2070-2127`）：`cleanup()` 仅在 `onConfirm`/`onCancel` 中调用，未在 `deleteBookDialog` 上注册 `cancel` 监听；多次 Escape 后可积累多个捕获不同 `bookId` 的闭包，下次点击确认可连续删除多本书。
+- why: Escape 是改变主意时最自然的关闭手势；确认对话框的幂等性破坏可导致难以察觉的数据丢失（与 OPT-040/041/043 同类，均为数据安全边界）。
+- how: （1）`showConfirmDialog`（`app.js:2286-2297`）末尾追加 `els.confirmDialog.addEventListener("cancel", () => { /* { once: true } handlers已消耗完 */ }, { once: true })`；更彻底的方案：将两个 `{ once: true }` 改为具名函数并在 `cancel` 事件中同步调用 `els.confirmDialogConfirmBtn.removeEventListener(...)` 和 `els.confirmDialogCancelBtn.removeEventListener(...)`。（2）`deleteBook()`（`app.js:2120` 附近，`els.deleteBookDialog.showModal()` 之后）追加 `els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true })`。Touch: `app.js:2286-2297`（showConfirmDialog），`app.js:2070-2127`（deleteBook）。
+
+### OPT-063 — `compress_chat_history_if_needed()` API 失败时写入截断历史，永久丢失旧聊天记录 — 由 explore E102 提拔
+- status: triaged
+- area: backend
+- priority: P1
+- size: S
+- northstar: 中——聊天历史是「探讨历史」唯一载体，是 Theme 2「回顾有价值」的前提数据；DeepSeek 瞬断（429/超时）造成的静默丢失与 OPT-040/041 进口丢失同类（数据安全边界），修复 2 行，零副作用。
+- description: `compress_chat_history_if_needed()`（`app_server.py:2267-2292`）在 `call_deepseek()` 抛出异常时，`except` 分支将 `compressed` 设为 `recent`（最近 6 条，`_COMPRESS_KEEP_RECENT=6`），然后**无条件**执行 `save_state(conn, user_id, state)`（`app_server.py:2291`）将截断历史写入 SQLite。触发条件：历史超过 10 条（`_COMPRESS_THRESHOLD=10`，`app_server.py:2263`）时若压缩 API 失败，前 N-6 条历史永久不可恢复——下次请求从 DB 读回的已是截断版本。一次 DeepSeek 429 限速即可触发：用户连聊 6 轮后（~3 分钟），API 拥堵瞬间即销毁早期探讨内容。
+- why: 深度探讨（10 轮以上）是 app 差异化功能的核心使用场景；此类静默丢失对用户信任的破坏性高于任何 UI 摩擦；修复成本极低（2 行改动）。
+- how: 将 `save_state` 调用移入 `try` 块内（压缩成功才持久化），`except` 改为直接 `return history`（原样返回，下次请求在条件改善时重试压缩）。修改后：`app_server.py:2279-2292` 的 `try` 块末尾追加 `state.setdefault("chatHistories", {})[history_key] = compressed; save_state(conn, user_id, state); return compressed`；`except Exception: return history`。Touch: `app_server.py:2267-2292`（`compress_chat_history_if_needed` 函数体，约 4 行重排）。
+
+### OPT-064 — `PromptBuilder.build_chat_prompt()` 向 LLM 发送摘抄完整对象含 `ocrText`，每次对话浪费数百至数万 token — 由 explore E101 提拔
+- status: new
+- area: backend
+- northstar: 中——与 OPT-020/OPT-047 同类，直接降低每次探讨的 API 成本；`ocrText` 字段是隐形成本炸弹（用户 OCR 越多、每次对话越贵），Theme 1 成本控制遗漏项。
+- description: `app_server.py:2319` 将摘抄列表以完整对象形式写入 LLM payload（`"quotes": quotes`）。每个对象包含 LLM 推理无用字段：`imageUrl`（~8 tokens）、`ocrStatus/ocrSource`（各 ~3 tokens）、`ocrError`（~5 tokens）、`ocrUpdatedAt/ocrRequestedAt`（各 ~8 tokens），以及最严重的 `ocrText`——快速 OCR 后若用户已手动编辑 content，原始全页文本以 `ocrText` 保留（`app_server.py:1347-1352`），每页 500-2000 字符（125-500 tokens）；20 张摘抄含 5 张 ocrText 即超 2500 tokens。同理 `focused_quote`（`app_server.py:2320`）也含 `imageUrl` 等字段。估算：正常场景 ~600 tokens 浪费，ocrText 全量存在时超 10,000 tokens。OPT-020（connections 字段裁剪）和 OPT-047（all_books_summary 截断）已修复同类问题，本项是漏网的同等优先级补丁。
+- why: DeepSeek 按 token 计费；prompt 字段每次对话都在消耗。`ocrText` 是 UI 层的临时中间状态，与 LLM 推理完全无关；`imageUrl`、`ocrStatus` 等字段同理。修复使每次探讨 prompt 精简，成本与 OPT-047 修复量级相当。
+- how: 在 `build_chat_prompt()`（`app_server.py:2312-2345`）中对 `quotes` 列表做 dict comprehension 白名单过滤，保留 `id, bookId, content, kind, tags, page, createdAt, reflection`；对 `focused_quote` 同理；对 `book` 对象去掉 `coverImageUrl`。无 API/DB schema 变更，无前端变更。Touch: `app_server.py:2312-2345`（`build_chat_prompt` 方法）。
+
+### OPT-065 — `reading_mcp_server.py:_save_state()` 跳过 `sanitize_state()` 验证，MCP 写路径无状态校验 — 由 explore E103 提拔
+- status: new
+- area: backend
+- northstar: 中——MCP 写路径是 Claude Desktop 的主要数据入口；绕过 `sanitize_state()` 可静默写入 chatHistories legacy 格式或 books 非 list，导致下次 HTTP 请求时自动清空对应数据；数据安全边界，S 修复。
+- description: `reading_mcp_server.py:_save_state()`（第 70–75 行）直接 `UPDATE user_state SET state_json = ?` 并 `commit()`，没有调用 `sanitize_state()`。对比 `app_server.py:save_state()`（第 699–706 行）：先 `sanitized = sanitize_state(state)` 再写入。`sanitize_state()`（`app_server.py:633–667`）职责：① chatHistories 旧格式迁移；② chatContexts 结构规整；③ books/sessions/quotes/connections 必须为 list；④ 只保留已知顶级键。6 个 MCP 工具（add_note、add_book、summary、question、tag、link_thought）均通过 `_save_state()` 写入，全部绕过验证。注意与 OPT-029 的区别：OPT-029 解决并发读改写竞争（BEGIN IMMEDIATE），本项解决写入前缺少 schema 验证。
+- why: MCP 服务器是独立写路径，不经过 app_server.py 请求处理链。最危险场景：chatHistories 以 legacy 格式写入未迁移，下次 HTTP GET 经 sanitize_state() 时自动清空对应聊天记录。修复成本极低，防止 MCP 客户端 bug 或异常调用将无效状态静默写入 SQLite。
+- how: 在 `reading_mcp_server.py:_save_state()` 中调用 `sanitize_state` 后再序列化写入。最简：从 `app_server` 导入 `sanitize_state`（需验证无循环 import 风险，两模块目前互不引用）；若有风险则将 `sanitize_state` 提取到共享 `state_utils.py`。Touch: `reading_mcp_server.py:70-75`（`_save_state` 函数）；可能需新增 `state_utils.py` 或修改 import。

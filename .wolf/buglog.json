@@ -5004,6 +5004,230 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-16T06:02:59.204Z"
+    },
+    {
+      "id": "bug-296",
+      "timestamp": "2026-06-16T17:06:15.418Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-16T17:06:16.700Z"
+    },
+    {
+      "id": "bug-297",
+      "timestamp": "2026-06-16T19:11:07.876Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-16T19:11:07.876Z"
+    },
+    {
+      "id": "bug-298",
+      "timestamp": "2026-06-17T17:05:23.607Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-17T17:05:27.345Z"
+    },
+    {
+      "id": "bug-299",
+      "timestamp": "2026-06-17T18:03:38.411Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"quoteImagePreview\"",
+      "fix": "Changed to \"ocrLineSelector\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-17T18:03:38.411Z"
+    },
+    {
+      "id": "bug-300",
+      "timestamp": "2026-06-17T18:03:55.882Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !sel",
+      "fix": "Added guard clause: if (!sel)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-17T18:03:55.882Z"
+    },
+    {
+      "id": "bug-301",
+      "timestamp": "2026-06-18T17:05:54.261Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-18T17:05:58.597Z"
+    },
+    {
+      "id": "bug-302",
+      "timestamp": "2026-06-18T18:05:58.376Z",
+      "error_message": "CSS fix: grid-template-rows",
+      "file": "styles.css",
+      "root_cause": "grid-template-rows: auto 1fr auto auto → auto 1fr auto",
+      "fix": "Changed grid-template-rows: auto 1fr auto auto → auto 1fr auto",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-18T18:06:03.417Z"
+    },
+    {
+      "id": "bug-303",
+      "timestamp": "2026-06-18T19:14:52.415Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T19:14:52.415Z"
+    },
+    {
+      "id": "bug-304",
+      "timestamp": "2026-06-18T19:15:34.424Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/backlog.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T19:15:34.424Z"
+    },
+    {
+      "id": "bug-305",
+      "timestamp": "2026-06-19T17:08:31.792Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-06-19T17:08:53.217Z"
+    },
+    {
+      "id": "bug-306",
+      "timestamp": "2026-06-19T19:14:23.090Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-19T19:14:23.090Z"
+    },
+    {
+      "id": "bug-307",
+      "timestamp": "2026-06-19T19:15:12.893Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/backlog.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-19T19:15:12.893Z"
+    },
+    {
+      "id": "bug-308",
+      "timestamp": "2026-06-20T17:03:46.199Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-20T17:03:54.726Z"
+    },
+    {
+      "id": "bug-309",
+      "timestamp": "2026-06-21T17:05:52.548Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-21T17:05:57.001Z"
     }
   ]
 }

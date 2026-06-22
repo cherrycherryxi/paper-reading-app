@@ -1606,3 +1606,92 @@
 | 16:32 | Created ../../Library/LaunchAgents/com.huangnanqi.tunnel-watchdog.plist | — | ~247 |
 | 16:32 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | 1→4 lines | ~134 |
 | 16:32 | Session end: 13 writes across 11 files (roadmap.md, backlog.md, product-owner-latest.md, product-owner-monday.sh, run_backend_service.sh) | 4 reads | ~15811 tok |
+| 17:06 | Created optimization/triage.md | — | ~2750 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~22 |
+| 17:06 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 18:02 | Edited app_server.py | 4→4 lines | ~74 |
+| 18:03 | Edited tests/agent/agent_backend_property_test.py | modified test_all_books_summary_capped_at_50_most_recent() | ~390 |
+| 18:05 | Edited optimization/triage.md | inline fix | ~61 |
+| 19:11 | Edited optimization/explore.md | added optional chaining | ~1394 |
+| 19:11 | Edited optimization/backlog.md | expanded (+16 lines) | ~806 |
+| 17:05 | Created optimization/triage.md | — | ~2941 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 18:03 | Edited index.html | 1→2 lines | ~51 |
+| 18:03 | Edited app.js | 3→4 lines | ~63 |
+| 18:03 | Edited app.js | added 8 condition(s) | ~586 |
+| 18:04 | Edited app.js | modified renderOcrLineSelector() | ~409 |
+| 18:04 | Edited app.js | modified if() | ~208 |
+| 18:04 | Edited styles.css | expanded (+58 lines) | ~383 |
+| 18:04 | Edited app.js | modified hideOcrLineSelector() | ~53 |
+| 18:06 | Created tests/frontend/ocr-line-selector.test.js | — | ~2922 |
+| 18:06 | Edited tests/frontend/ocr-line-selector.test.js | modified showModal() | ~39 |
+| 18:06 | Edited tests/frontend/ocr-line-selector.test.js | modified closest() | ~402 |
+| 18:09 | Edited optimization/triage.md | inline fix | ~73 |
+
+## Session: 2026-06-17 19:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:xx | Agent3 Explore 2026-06-17: appended E91/E92/E93 to explore.md, promoted E90→OPT-056 (reflection search) and E84→OPT-057 (timeline hardcap) to backlog.md, committed+pushed to feature/agent | optimization/explore.md, optimization/backlog.md | success | ~8k |
+| 17:05 | Edited optimization/triage.md | 13→13 lines | ~240 |
+| 17:05 | Edited optimization/triage.md | 2→4 lines | ~247 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~26 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~24 |
+| 18:05 | Edited index.html | 16→18 lines | ~257 |
+| 18:05 | Edited styles.css | CSS: position | ~92 |
+| 18:05 | Edited styles.css | 9→10 lines | ~40 |
+| 18:05 | Edited styles.css | 10→10 lines | ~70 |
+| 18:06 | Edited styles.css | reduced (-6 lines) | ~42 |
+| 18:08 | Edited optimization/triage.md | inline fix | ~104 |
+
+## Session: 2026-06-18 19:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:14 | Edited optimization/explore.md | added optional chaining | ~1047 |
+| 19:15 | Edited optimization/backlog.md | added optional chaining | ~702 |
+| 19:15 | Agent3 (Explore) 2026-06-18: appended E94/E95/E96 to explore.md, promoted E93→OPT-058 and E94→OPT-059 in backlog.md | optimization/explore.md, optimization/backlog.md | done | ~4200 |
+| 17:08 | Created optimization/triage.md | — | ~3083 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~39 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~30 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~30 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~28 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~28 |
+| 01:00 | Agent1 triage 2026-06-19: 指派 OPT-052（摘抄卡面图片缩略图，P1/S，northstar强，signal 2026-06-16）；新增 OPT-058/059 triaged；OPT-047/054/055 标 in-progress；预算 3/4 auto PRs | optimization/triage.md, optimization/backlog.md | done | ~4500 |
+| 18:02 | Edited app.js | 4→6 lines | ~99 |
+| 18:02 | Created tests/frontend/quote-card-image-thumb.test.js | — | ~1648 |
+| 18:03 | Edited tests/frontend/quote-card-image-thumb.test.js | inline fix | ~4 |
+| 18:07 | Edited optimization/triage.md | inline fix | ~80 |
+
+## Session: 2026-06-19 19:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:14 | Edited optimization/explore.md | added optional chaining | ~970 |
+| 19:15 | Edited optimization/backlog.md | added optional chaining | ~814 |
+| 03:00 | Agent3 Explore 2026-06-19: appended E97-E99 to explore.md, promoted E95→OPT-060 and E97→OPT-061 to backlog.md | optimization/explore.md, optimization/backlog.md | done | ~6000 |
+| 17:03 | Edited optimization/backlog.md | 2→2 lines | ~28 |
+| 17:03 | Edited optimization/backlog.md | 2→2 lines | ~23 |
+| 17:03 | Edited optimization/backlog.md | 2→2 lines | ~28 |
+| 17:06 | Created optimization/triage.md | — | ~3137 |
+| 17:06 | Agent1 triage: budget exhausted (4/4 auto PRs in 7d: #45-48 all open); triaged OPT-060/061 (new→triaged); backlog OPT-052 status synced (triaged→in-progress PR #48); triage.md Last triaged: 2026-06-20 | optimization/triage.md, optimization/backlog.md | committed 60aac5b, pushed | ~8k |
+
+## Session: 2026-06-20 19:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:19 | Edited optimization/explore.md | modified fix() | ~1238 |
+| 19:20 | Edited optimization/backlog.md | expanded (+20 lines) | ~988 |
+| 03:00 | Agent3 Explore 2026-06-20: verified 3 new findings (E100 stale dialog listeners, E101 PromptBuilder UI-field token waste, E102 compress_chat_history silent data loss on API error); promoted OPT-062 and OPT-063 to backlog | optimization/explore.md, optimization/backlog.md | done | ~4200 |
+| 17:05 | Created optimization/triage.md | — | ~3424 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~27 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~30 |
+| 17:06 | triage: daily optimization triage 2026-06-21; OPT-062/063 promoted to triaged; budget exhausted (4/4 auto PRs); OPT-062 named next candidate | optimization/triage.md, optimization/backlog.md | triaged 2 new items, budget exhausted | ~8k |
+
+## Session: 2026-06-21 19:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:14 | Edited optimization/explore.md | modified _save_state() | ~1352 |
+| 19:15 | Edited optimization/backlog.md | expanded (+16 lines) | ~988 |
