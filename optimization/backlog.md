@@ -533,3 +533,23 @@ Format per item:
 - description: `reading_mcp_server.py:_save_state()`（第 70–75 行）直接 `UPDATE user_state SET state_json = ?` 并 `commit()`，没有调用 `sanitize_state()`。对比 `app_server.py:save_state()`（第 699–706 行）：先 `sanitized = sanitize_state(state)` 再写入。`sanitize_state()`（`app_server.py:633–667`）职责：① chatHistories 旧格式迁移；② chatContexts 结构规整；③ books/sessions/quotes/connections 必须为 list；④ 只保留已知顶级键。6 个 MCP 工具（add_note、add_book、summary、question、tag、link_thought）均通过 `_save_state()` 写入，全部绕过验证。注意与 OPT-029 的区别：OPT-029 解决并发读改写竞争（BEGIN IMMEDIATE），本项解决写入前缺少 schema 验证。
 - why: MCP 服务器是独立写路径，不经过 app_server.py 请求处理链。最危险场景：chatHistories 以 legacy 格式写入未迁移，下次 HTTP GET 经 sanitize_state() 时自动清空对应聊天记录。修复成本极低，防止 MCP 客户端 bug 或异常调用将无效状态静默写入 SQLite。
 - how: 在 `reading_mcp_server.py:_save_state()` 中调用 `sanitize_state` 后再序列化写入。最简：从 `app_server` 导入 `sanitize_state`（需验证无循环 import 风险，两模块目前互不引用）；若有风险则将 `sanitize_state` 提取到共享 `state_utils.py`。Touch: `reading_mcp_server.py:70-75`（`_save_state` 函数）；可能需新增 `state_utils.py` 或修改 import。
+
+### OPT-066 — 编辑阅读会话未同步书籍进度字段（`currentPage` / `lastReadAt` / `updatedAt`） — 由 explore E107 提拔
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——书籍进度显示依赖 `book.currentPage` 和 `book.lastReadAt`；编辑会话后进度不更新是对 Theme 1「采集顺滑」数据准确性的无声破坏；S 修复，消除新建/编辑两路径的逻辑分叉。
+- description: `app.js:2029-2037`（session 编辑分支）仅更新 session 记录本体，未重算 `book.currentPage`、`book.lastReadAt`、`book.updatedAt`，也不触发 `finished` 状态判断。对比新建 session 分支（`app.js:2046-2055`）明确更新了这三个字段。结果：将某会话 endPage 从 150 改成 200，书单「读到第 150 页」不变；把最后一会话 endPage 改为等于 totalPages，书籍不会自动标记为 finished。
+- why: 编辑会话是常规笔误纠正操作；书单页和书籍详情依赖 `book.currentPage`/`lastReadAt` 驱动进度展示；编辑后不同步会造成显示与实际数据不一致，影响用户对进度的信任。
+- how: 在 `if (existingId)` 编辑分支末（`app.js:2037` 之后）补全 book 字段重算：`book.currentPage = Math.max(...state.sessions.filter(s=>s.bookId===bookId).map(s=>s.endPage||0)); book.lastReadAt = date; book.updatedAt = new Date().toISOString();`；并补 finished 判断（与新建分支对称）。Touch: `app.js:2029-2037`（session 编辑分支）。
+
+### OPT-067 — `contextFromHistoryKey()` 缺少 `quote:` 前缀处理，前后端逻辑不对称 — 由 explore E106 提拔
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱→中——`chatContexts` 脱同步时（import 边缘场景、状态迁移），摘抄级聊天历史因 context 解析错误不可寻回；1 行修复，消除前后端不对称，与 OPT-063/OPT-065 同属「历史数据可靠性」类。
+- description: `app.js:274-279`（`contextFromHistoryKey`）处理 `book:` 前缀但对 `quote:` 直接 fallthrough，将其解析为 `{type:"book", bookId:"<quoteId>"}` 而非 `{type:"quote", quoteId:"<quoteId>"}`. 后端 `app_server.py:617-625` 正确处理 `quote:` 前缀。触发路径：`parseChatState()`（`app.js:292-294`）在 `rawContexts[key]` 缺失时回退至此函数——`chatContexts` 与 `chatHistories` 脱同步（import 覆盖 chatContexts 但保留 chatHistories、或状态迁移）时即触发，已有的摘抄聊天历史在前端被映射到不存在的 bookId，对用户不可见。
+- why: 摘抄级聊天（「去聊」功能）的历史 key 形如 `quote:<quoteId>`，是 Theme 2「回顾有价值」的核心数据路径之一；S 修复（1 行）消除与后端对称性缺口。
+- how: 在 `app.js:277-278` 之间插入：`if (key.startsWith("quote:")) return normalizeChatContext({ type: "quote", quoteId: key.slice(6) });`。Touch: `app.js:274-279`（`contextFromHistoryKey` 函数）。
