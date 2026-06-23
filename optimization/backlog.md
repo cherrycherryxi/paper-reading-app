@@ -535,7 +535,7 @@ Format per item:
 - how: 在 `reading_mcp_server.py:_save_state()` 中调用 `sanitize_state` 后再序列化写入。最简：从 `app_server` 导入 `sanitize_state`（需验证无循环 import 风险，两模块目前互不引用）；若有风险则将 `sanitize_state` 提取到共享 `state_utils.py`。Touch: `reading_mcp_server.py:70-75`（`_save_state` 函数）；可能需新增 `state_utils.py` 或修改 import。
 
 ### OPT-066 — 编辑阅读会话未同步书籍进度字段（`currentPage` / `lastReadAt` / `updatedAt`） — 由 explore E107 提拔
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -545,7 +545,7 @@ Format per item:
 - how: 在 `if (existingId)` 编辑分支末（`app.js:2037` 之后）补全 book 字段重算：`book.currentPage = Math.max(...state.sessions.filter(s=>s.bookId===bookId).map(s=>s.endPage||0)); book.lastReadAt = date; book.updatedAt = new Date().toISOString();`；并补 finished 判断（与新建分支对称）。Touch: `app.js:2029-2037`（session 编辑分支）。
 
 ### OPT-067 — `contextFromHistoryKey()` 缺少 `quote:` 前缀处理，前后端逻辑不对称 — 由 explore E106 提拔
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S

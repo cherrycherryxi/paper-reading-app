@@ -2,13 +2,13 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-22
+Last triaged: 2026-06-23
 
 ## Next up
 
 **本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派**
 
-近 7 天（2026-06-16 → 2026-06-22）已开 4 个 `auto/` PR：#45 opt-047-all-books-summary-limit（2026-06-16）、#46 opt-055-ocr-line-delete-ui（2026-06-17）、#47 opt-054-float-scroll-btn（2026-06-18）、#48 opt-052-quote-card-image-thumb（2026-06-19）。4 个均处于 open 状态，预算已达上限，Agent2 本次跳过实现。
+近 7 天（2026-06-16 → 2026-06-23）已开 4 个 `auto/` PR：#45 opt-047-all-books-summary-limit（2026-06-16）、#46 opt-055-ocr-line-delete-ui（2026-06-17）、#47 opt-054-float-scroll-btn（2026-06-18）、#48 opt-052-quote-card-image-thumb（2026-06-19）。4 个均处于 open 状态，预算已达上限，Agent2 本次跳过实现。
 
 **预算复位后首选候选**：**OPT-062**（确认对话框 Escape 后 `{ once: true }` 监听器残留，可触发错误删除，P1/S）。
 
@@ -32,6 +32,8 @@ Last triaged: 2026-06-22
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补 1 行 `setAttribute("aria-selected", ...)`。Level A 最严合规，Tab 是 App 主骨架。northstar「中」。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。northstar「中」，roadmap §2 可观测代理指标。3 行改动，无 HTML/CSS/后端变动。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
+| OPT-066 | 编辑 Session 未同步书籍进度字段（currentPage/lastReadAt/updatedAt） | P2 | S | triaged | northstar「中」，Theme 1 数据准确性；编辑 session 的 if(existingId) 分支（`app.js:2029-2037`）只更新 session 本体，未重算 `book.currentPage/lastReadAt/updatedAt`，也不触发 finished 状态判断；对比新建分支（`app.js:2046-2055`）完整同步。约 5 行补全，S 复杂度。无 signal 佐证。 |
+| OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | P2 | S | triaged | northstar「弱→中」，摘抄级聊天历史可靠性；`app.js:274-279`（contextFromHistoryKey）处理 `book:` 但 `quote:` fallthrough 错误解析为 bookId；后端 `app_server.py:617-625` 正确处理。1 行修复，S 复杂度，无 signal 佐证。 |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332`：syncState() 前加 2 行 `delete state.chatHistories["quote:"+quoteId]; delete state.chatContexts["quote:"+quoteId];`，复用 deleteBook()（`app.js:2088-2101`）模式。northstar「弱」，无 signal 佐证。 |
 | OPT-056 | 摘抄搜索不包含「我的理解」reflection 字段 | P2 | S | triaged | `app.js:1411-1416` haystack 数组末尾追加 `item.reflection \|\| ""`；1 行改动，零后端变更，可选追加测试断言。northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；当前 Theme 1 期无 signal 佐证，P2 置于 P1 后。 |
 | OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | `app.js:1332` 底部加「查看更多」按钮，`slice(0, count+10)`，局部变量跟踪当前展示数。northstar「中」，Theme 2；当前 Theme 1 期无 signal 佐证，P2。 |
