@@ -1835,3 +1835,93 @@ const _losses = Object.entries(_categoryLabels).map(([key, label]) => {
 **northstar:** 中——Theme 2「回顾有价值」以聊天历史为核心数据；import 路径的静默覆盖与 OPT-063（compress 路径丢失）构成同类「历史数据丢失」风险；本项填补数据安全护栏的最后一个口。
 
 ---
+
+## 2026-06-23
+
+### E109 — `call_deepseek_stream()` 无重试逻辑：主聊天路径遇瞬断即崩 (S)
+
+**What:** `call_deepseek()` 有完整重试机制（`app_server.py:3178-3219`），但 `call_deepseek_stream()`（`app_server.py:3222-3265`）完全没有：
+
+```python
+# app_server.py:3178-3179 — 重试常量
+DEEPSEEK_MAX_ATTEMPTS = 3
+DEEPSEEK_RETRYABLE_CODES = {429, 500, 502, 503}
+
+# app_server.py:3188 — call_deepseek() 有重试循环
+for attempt in range(DEEPSEEK_MAX_ATTEMPTS):
+    ...
+
+# app_server.py:3261-3265 — call_deepseek_stream() 直接抛出，无任何重试
+except HTTPError as error:
+    payload = error.read().decode("utf-8", errors="ignore")
+    raise RuntimeError(payload or f"HTTP {error.code}") from error
+except URLError as error:
+    raise RuntimeError(str(error.reason)) from error
+```
+
+用户在聊天面板触发的 LLM 请求走的是 streaming 路径（`app_server.py:4834`: `stream = call_deepseek_stream(request_messages)`）。任何一次 429/502/503/超时都立刻报错，而非像非 streaming 路径那样静默重试 3 次。现有测试 `tests/agent/deepseek_retry_test.py` 全部针对 `call_deepseek()`，streaming 路径零测试覆盖。
+
+**Why:** 主聊天（explore/深度探讨）是 Theme 2「回顾有价值」的核心 UX；DeepSeek 429（rate limit）和 502/503（短暂不可用）在夜间/高峰期均属正常瞬断。streaming 路径无重试 = 用户看到错误弹框，而同等请求走非 streaming 路径早就静默恢复。实现对称重试技术上不复杂：streaming 的重试只需在 `urlopen()` 这一步循环，整个连接建立放入重试循环即可（不需要对 chunk 逐级重试）。
+
+**Complexity:** S — 在 `call_deepseek_stream()` 的 `urlopen()` 调用外套 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，异常处理逻辑镜像 `call_deepseek()` 的现有模式（retryable codes + exponential backoff via `time.sleep`）。同时补一个 `tests/agent/deepseek_retry_test.py` 中的 streaming 测试 class。
+
+**Files:** `app_server.py:3222-3265`（`call_deepseek_stream`）；`tests/agent/deepseek_retry_test.py`（新增 streaming 测试）
+
+**northstar:** 强——主聊天（Theme 2 核心入口）遇瞬断即崩是对用户信任的直接伤害；修复使 streaming 路径与非 streaming 路径同等可靠，S 改动消除两路径的一致性缺口。
+
+---
+
+### E110 — MCP `_get_conn()` 缺少三项 PRAGMA 优化：写路径 SQLite 性能与 app_server 不对称 (S)
+
+**What:** `app_server.py:339-344` 的 `get_conn()` 设置了四项 PRAGMA，而 `reading_mcp_server.py:43-47` 的 `_get_conn()` 只设置了 `busy_timeout`，缺少另外三项：
+
+```python
+# reading_mcp_server.py:43-47 — 仅有 busy_timeout
+def _get_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 5000")
+    return conn
+
+# app_server.py:339-344 — 完整四项 PRAGMA
+conn.execute("PRAGMA busy_timeout = 5000")
+conn.execute("PRAGMA synchronous = NORMAL")
+conn.execute("PRAGMA cache_size = -20000")  # 20 MB page cache
+conn.execute("PRAGMA temp_store = MEMORY")
+```
+
+缺少的三项：`synchronous=NORMAL`（将 WAL 模式下 fsync 次数从 FULL 降至 1/3）、`cache_size=-20000`（20 MB 页缓存，避免 MCP 写操作频繁触发磁盘 I/O）、`temp_store=MEMORY`（临时表/排序保持在内存，避免磁盘临时文件）。
+
+**Why:** MCP server 是 Claude Desktop 的写路径；批量 `add_note` / `add_book` 调用会产生多次短事务。缺少这三项在 WAL 模式下意味着每次提交都触发完整 fsync（synchronous=FULL 是 SQLite 默认值），同时无页缓存加速。修复为 3 行追加，无任何 schema/API 变更。
+
+**Complexity:** S — 在 `reading_mcp_server.py:_get_conn()` 中 `busy_timeout` 那行之后追加三行 `conn.execute()` 即可，无其他改动。
+
+**Files:** `reading_mcp_server.py:43-47`（`_get_conn` 函数）
+
+**northstar:** 弱——MCP 当前使用频率不高；修复是纯技术对称性修复，无直接用户可感知 impact；但低成本，有益无害，是 MCP 写路径可靠性的基础设施保障。
+
+---
+
+### E111 — `resolve_user_from_token()` 每次认证请求都无条件 UPDATE `last_seen_at`：高频写放大 (S)
+
+**What:** `app_server.py:1452-1475` 的 `resolve_user_from_token()` 在每次认证请求末尾无条件执行 UPDATE：
+
+```python
+# app_server.py:1473
+self.db.execute(
+    "UPDATE sessions SET last_seen_at = ? WHERE token = ?",
+    (now_iso(), token),
+)
+```
+
+这是一条写事务，触发于每次 HTTP 请求的认证阶段——包括 GET /api/state、SSE 轮询等只读请求。在 WAL 模式下每个 UPDATE 都产生一个独立写事务和对应的 WAL 记录。
+
+**Why:** 若 `last_seen_at` 精度需求为分钟级（会话管理/过期判断均以小时/天为粒度），可改为「上次记录时间距 now > 5 分钟才 UPDATE」，消除每个只读请求都带写事务的模式。这与 OPT-026（`quote_images` 频繁落盘）同属「读放写」类问题。注意：此项在 explore.md E23（2026-06-02）中已有记录，此处重提是因为它尚未进入 backlog。
+
+**Complexity:** S — 在 UPDATE 之前加一个时间差判断（取当前 `last_seen_at` 与 now 比较，差 > 5min 才执行）；或在认证缓存层记录上次写入时间。需注意并发正确性（两个并发请求可能同时判断为「需要 UPDATE」，是可接受的良性竞态）。
+
+**Files:** `app_server.py:1452-1475`（`resolve_user_from_token`）
+
+**northstar:** 弱——用户可感知 impact 为零；属于后端性能卫生修复；当前使用规模下收益极小，仅作记录，不建议优先执行。
+
+---

@@ -553,3 +553,23 @@ Format per item:
 - description: `app.js:274-279`（`contextFromHistoryKey`）处理 `book:` 前缀但对 `quote:` 直接 fallthrough，将其解析为 `{type:"book", bookId:"<quoteId>"}` 而非 `{type:"quote", quoteId:"<quoteId>"}`. 后端 `app_server.py:617-625` 正确处理 `quote:` 前缀。触发路径：`parseChatState()`（`app.js:292-294`）在 `rawContexts[key]` 缺失时回退至此函数——`chatContexts` 与 `chatHistories` 脱同步（import 覆盖 chatContexts 但保留 chatHistories、或状态迁移）时即触发，已有的摘抄聊天历史在前端被映射到不存在的 bookId，对用户不可见。
 - why: 摘抄级聊天（「去聊」功能）的历史 key 形如 `quote:<quoteId>`，是 Theme 2「回顾有价值」的核心数据路径之一；S 修复（1 行）消除与后端对称性缺口。
 - how: 在 `app.js:277-278` 之间插入：`if (key.startsWith("quote:")) return normalizeChatContext({ type: "quote", quoteId: key.slice(6) });`。Touch: `app.js:274-279`（`contextFromHistoryKey` 函数）。
+
+### OPT-068 — 导入减量守卫未覆盖 `chatHistories`：旧备份可静默清空聊天记录 — 由 explore E108 提拔
+- status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 中——Theme 2「回顾有价值」以聊天历史为核心数据；import 路径的静默覆盖与 OPT-063（compress 路径丢失）构成同类「历史数据丢失」风险；本项填补数据安全护栏的最后一个口。
+- description: `app.js:3077-3084` 的 decrease guard 仅检查 `books`、`quotes`、`sessions`、`connections` 四类，未涵盖 `chatHistories`。`resolveImportedState()`（`app.js:2994-3006`）确实将备份中的 `chatHistories` 写入 resolved 状态。场景：用户导入较旧备份，该备份中 books/quotes/sessions 数量相同但 chatHistories 为空（彼时未用聊天功能）——四类守卫不触发，直接调用 `applyImport()`，现有的全部聊天历史被静默覆盖为空。`stateContentCount()`（`app.js:3009-3016`）同样不计 chatHistories。
+- why: OPT-063 已将聊天历史定性为 P1 数据安全；chatHistories 是唯一既被 import 写入、又不在减量守卫内的「有价值」数据类型。修复仅 4 行，无后端变更。
+- how: 在 `_categoryLabels`（`app.js:3077`）中增加 chatHistories 条目（label="聊天记录"）；在 reduce/count 逻辑中对 chatHistories 使用 `Object.keys(state.chatHistories||{}).length` 而非 `Array.isArray` 路径；在 `stateContentCount()`（`app.js:3009-3016`）补同款计数。Touch: `app.js:3009-3016`（stateContentCount）；`app.js:3077-3084`（decrease guard）。
+
+### OPT-069 — `call_deepseek_stream()` 无重试：主聊天路径遇瞬断即报错 — 由 explore E109 提拔
+- status: new
+- area: backend
+- priority: P1
+- size: S
+- northstar: 强——主聊天（Theme 2「回顾有价值」核心入口）遇瞬断即崩是对用户信任的直接伤害；修复使 streaming 路径与非 streaming 路径同等可靠（同为 3 次重试 + 指数退避），S 改动消除两路径的一致性缺口。
+- description: `call_deepseek()`（`app_server.py:3182-3219`）有完整重试循环（`DEEPSEEK_MAX_ATTEMPTS=3`，`DEEPSEEK_RETRYABLE_CODES={429,500,502,503}`，指数退避）；`call_deepseek_stream()`（`app_server.py:3222-3265`）遇到 HTTPError/URLError 直接 `raise RuntimeError(...)` 无任何重试。主聊天路径走 streaming（`app_server.py:4834`），任何瞬断用户即见错误弹框。现有测试 `tests/agent/deepseek_retry_test.py` 只覆盖 `call_deepseek()`，streaming 路径零测试。
+- why: DeepSeek 429（rate limit）和 502/503 在高峰期属正常瞬断；非 streaming 路径早就静默恢复，streaming 路径却直接报错——两路径行为不一致是用户体验缺口。重试只需在 `urlopen()` 建立连接这一步循环，不需要对已建立的 streaming chunks 做重试。
+- how: 在 `call_deepseek_stream()`（`app_server.py:3222-3265`）中：将 `urlopen()` 调用放入 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，retryable codes 判断和 `time.sleep` 退避逻辑镜像 `call_deepseek()` 模式（`app_server.py:3195-3211`）。同时在 `tests/agent/deepseek_retry_test.py` 新增 `DeepseekStreamRetryTest` 类覆盖 streaming 路径的 429/503 重试及最大次数耗尽。Touch: `app_server.py:3222-3265`；`tests/agent/deepseek_retry_test.py`。
