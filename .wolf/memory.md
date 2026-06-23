@@ -1713,3 +1713,6 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 19:16 | Agent3 explore run 2026-06-22: verified E106 (contextFromHistoryKey quote: gap), E107 (session edit misses book state), E108 (import guard skips chatHistories); promoted OPT-066/OPT-067 to backlog; committed+pushed feature/agent | optimization/explore.md, optimization/backlog.md | success | ~18k |
+| 17:05 | Created optimization/triage.md | — | ~3741 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~30 |
+| 17:05 | Edited optimization/backlog.md | 2→2 lines | ~28 |
