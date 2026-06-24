@@ -370,7 +370,7 @@ Format per item:
 - how: `index.html:679` 加 `role="tablist"`；6 个 `<button>` 各加 `role="tab"` + `aria-selected` + `aria-controls="<panel-id>"`；6 个 `<section data-tab-section>` 各加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补一行 `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`。Touch: `index.html:72-160, 679-704`；`app.js:1628-1630`。
 
 ### OPT-047 — `PromptBuilder.all_books_summary` 无数量上限，500 本书用户每次对话多注入 ~7000 tokens — 由 explore E74 提拔
-- status: in-progress (PR #45, 2026-06-16)
+- status: done (PR #45, merged 2026-06-24 — all_books_summary 按 updatedAt 倒序取 [:50]；py 测试绿)
 - area: agent
 - northstar: 强——直接降低 DeepSeek API 用量/成本，与 OPT-020（`existing_connections` 条件注入）同类，OPT-020 已证明 P1 可落地。Theme 1「采集顺滑」 + 成本控制。
 - description: `PromptBuilder.build_chat_prompt()` 的 `all_books_summary`（`app_server.py:2326-2329`）是用户全量书单，无 LIMIT。500 本书 × ~56 字符 ≈ 28,000 字符 ≈ 7,000 tokens，每次请求都注入，无条件。`all_books_summary` 仅在 `link_thought` 时用于 targetId 验证，而 OPT-020 已说明 link_thought 只在用户明确要求时才返回——即 80%+ 的请求里这 7,000 tokens 是无效注入。Plus 用户每日 240 请求 × 7,000 tokens = 168 万 tokens/天多余消耗。
@@ -410,7 +410,7 @@ Format per item:
 - how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
 
 ### OPT-052 — 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 — 由 explore E86 提拔
-- status: in-progress (PR #48, 2026-06-19)
+- status: done (PR #48, merged 2026-06-24 — 摘抄卡有 imageUrl 时渲染缩略图 img；js 4/4)
 - area: frontend
 - northstar: 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认「照片已关联」；与北极星「不假思索的默认工具」一致（操作后立即得到正向反馈）。S 复杂度，P1 候选。
 - description: `app.js:1449-1452` 的摘抄卡模板中 `entry-card-cover` 始终只渲染 `entry-cover-fallback`（灰色占位块），无论 `quote.imageUrl` 是否存在均不显示图片。`openQuoteDetail()`（`app.js:2159-2160`）在详情弹窗中 **已**加载图片（`img.src = resolveImageUrl(quote.imageUrl)`），证明图片有效，只是卡面未渲染。对比书卡（`app.js:1133-1134`）会展示封面图片或 fallback 摘抄图片。
@@ -435,7 +435,7 @@ Format per item:
 - how: ① 新建 `manifest.json`（根目录，15 行）：name/short_name/start_url/display:standalone/background_color/theme_color/icons（复用现有 favicon 或添加 192×192 PNG）。② `index.html` `<head>` 加 `<link rel="manifest" href="/manifest.json">`。③ `app_server.py` 静态文件分发列表（`_STATIC` dict 或等价 if-chain）加入 `manifest.json` 条目。复杂度 S。
 
 ### OPT-054 — 「↓ 最新」按钮独占布局行压缩聊天区——改为叠加在消息列表上的浮动按钮 — 由 explore E87 提拔
-- status: in-progress (PR #47, 2026-06-18)
+- status: done (PR #47, merged 2026-06-24 — 「↓最新」按钮改 absolute 浮层，不占布局行；regression 58/58)
 - area: frontend
 - northstar: 中——chat 是「探讨」核心入口，输入区舒适度影响写作流畅度；owner 真机 signal 2026-06-16 驱动，S 复杂度；Theme 1「不假思索的默认工具」辅助。
 - description: `index.html:190-192` 的 `<div class="chat-scroll-btn-row" id="chatScrollBtnRow">` 是聊天面板 flex 列的独立子元素（在 `#chatMessages` 与 `.chat-composer` 之间）。`styles.css:2069-2073` 定义为 `display: flex; padding: 4px 4px 0`，可见时占用 ~30px 垂直高度。桌面端（`styles.css:3597-3600`）亦占独立 `grid-row: 3`。聊天面板高度固定，该行出现时从消息区直接扣除 ~30px。Owner signal 2026-06-16："聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。
@@ -443,7 +443,7 @@ Format per item:
 - how: `styles.css`：给 `#chatMessages` 加 `position: relative`；将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 8px; z-index: 2; display: block` （移除 `display: flex; padding`）；同步移除桌面端 `grid-row: 3` override（按钮叠加后不占 grid 行）。`chat.js:273, 441, 894` 的 `hidden` 逻辑无需改动。Touch: `styles.css:2069-2073`（`.chat-scroll-btn-row`）、`styles.css:3597-3600`（桌面 override）。
 
 ### OPT-055 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 — 由 explore E88 提拔
-- status: in-progress (PR #46, 2026-06-17)
+- status: done (PR #46, merged 2026-06-24 — 快速 OCR ≥3 行出行级删除面板，点 ✕ 删行并同步 textarea；js 10/10)
 - area: frontend
 - northstar: 强——Theme 1「采集顺滑」直接障碍：快速 OCR 已「快」，但产生整页冗余文本使「顺」失效；owner 真机 signal 2026-06-16 明确指出。每次录入都需额外 20-60 秒手工删行，与北极星「不假思索的默认工具」直接冲突。M 复杂度，无后端改动。
 - description: `index.html:476` helper text 明确写"「快速识别」秒出整页全文"；`app.js:511-523` `normalizeOcrText()` 保留 `\n` 分隔多行；`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea（`contentEl.value = recognizedText`）。OCR 完成后 quote 对话框无任何行级操作 UI，用户须在 textarea 里手动选删不需要的行才能保留划线句。Owner 2026-06-16 signals："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
