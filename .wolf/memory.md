@@ -1783,3 +1783,9 @@
 | 17:06 | Edited optimization/backlog.md | 2→2 lines | ~24 |
 | 17:06 | Edited optimization/backlog.md | 2→2 lines | ~25 |
 | 06:00 | triage: 2026-06-24 daily triage — budget 3/4 (PRs #46/#47/#48 in window; #45 slid out); OPT-068/069 triaged (P1/S); Next up: OPT-062 (Escape listener leak, roadmap §2 explicit pick) | optimization/triage.md, optimization/backlog.md | done | ~4000 |
+| 18:03 | Edited app.js | modified cleanup() | ~158 |
+| 18:03 | Edited app.js | modified showConfirmDialog() | ~255 |
+| 18:03 | Edited app_server.py | 14→14 lines | ~157 |
+| 18:04 | Created tests/frontend/dialog-escape-cleanup.test.js | — | ~2726 |
+| 18:07 | Edited optimization/triage.md | inline fix | ~95 |
+| 18:07 | Edited optimization/triage.md | inline fix | ~25 |

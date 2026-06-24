@@ -5612,6 +5612,38 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-24T17:06:48.788Z"
+    },
+    {
+      "id": "bug-332",
+      "timestamp": "2026-06-24T18:03:23.469Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→24 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T18:03:23.469Z"
+    },
+    {
+      "id": "bug-333",
+      "timestamp": "2026-06-24T18:07:21.103Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/triage.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T18:07:21.103Z"
     }
   ]
 }
