@@ -1266,18 +1266,22 @@ def call_cloud_ocr(image_data_url: str, trace_event=None) -> OcrExtractionResult
 
 def _resolve_fast_engine() -> list[tuple[str, str]]:
     """Ordered (engine_key, ocrSource_label) chain for the fast OCR path.
-    Cloud is tried first when available; Tesseract is the offline fallback."""
+
+    Note: we intentionally do NOT cross-fall-back from cloud to Tesseract when
+    cloud is configured. Tesseract's Chinese accuracy is poor enough that a
+    fallback on a transient cloud timeout yields garbage the user must hand-fix
+    — worse than a clear "失败，请重试" (cloud hiccups are usually transient).
+    Tesseract is only used when cloud isn't configured (its sole offline role).
+    """
     cloud_configured = CLOUD_OCR_PROVIDER == "baidu" and BAIDU_OCR_API_KEY and BAIDU_OCR_SECRET_KEY
     if FAST_OCR_ENGINE == "tesseract":
         return [("tesseract", "本地 OCR (Tesseract)")]
     if FAST_OCR_ENGINE == "cloud":
         return [("cloud", "云 OCR (百度)")]
-    # auto
-    chain: list[tuple[str, str]] = []
+    # auto: cloud-only when configured (no Tesseract garbage fallback); else local.
     if cloud_configured:
-        chain.append(("cloud", "云 OCR (百度)"))
-    chain.append(("tesseract", "本地 OCR (Tesseract)"))
-    return chain
+        return [("cloud", "云 OCR (百度)")]
+    return [("tesseract", "本地 OCR (Tesseract)")]
 
 
 def run_fast_ocr(image_data_url: str, trace_event=None) -> tuple[OcrExtractionResult, str]:
@@ -4716,7 +4720,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_json(
                         {"state": state, "stateVersion": version, "quoteId": quote_id, "status": "failed",
                          "recognizedText": "", "error": "fast_ocr_failed",
-                         "message": f"快速识别失败（{error}），请改用 AI 精识别。",
+                         "message": "快速识别失败（云服务可能繁忙），可稍后重试，或改用「AI 精识别」。",
                          "traceId": trace_id},
                         200,
                     )

@@ -158,8 +158,12 @@ class QuoteOcrEngineRoutingTests(unittest.TestCase):
         return next((q for q in state.get("quotes", []) if q.get("id") == quote_id), None)
 
     def test_fast_is_default_and_returns_sync_text(self):
+        # No cloud key → fast path is Tesseract-only (deterministic regardless of
+        # ambient env / a sourced .env).
         app_server.call_tesseract_ocr = lambda *a, **k: app_server.OcrExtractionResult("识别出的正文", [], False)
-        status, data = self._post_ocr({})  # no engine → default fast
+        with mock.patch.object(app_server, "BAIDU_OCR_API_KEY", ""), \
+             mock.patch.object(app_server, "BAIDU_OCR_SECRET_KEY", ""):
+            status, data = self._post_ocr({})  # no engine → default fast
         self.assertEqual(status, 200)
         self.assertEqual(data["status"], "done")
         self.assertEqual(data["recognizedText"], "识别出的正文")
@@ -170,7 +174,9 @@ class QuoteOcrEngineRoutingTests(unittest.TestCase):
 
     def test_explicit_fast_engine(self):
         app_server.call_tesseract_ocr = lambda *a, **k: app_server.OcrExtractionResult("文本", [], False)
-        status, data = self._post_ocr({"engine": "fast"})
+        with mock.patch.object(app_server, "BAIDU_OCR_API_KEY", ""), \
+             mock.patch.object(app_server, "BAIDU_OCR_SECRET_KEY", ""):
+            status, data = self._post_ocr({"engine": "fast"})
         self.assertEqual(status, 200)
         self.assertEqual(data["status"], "done")
 
@@ -300,29 +306,47 @@ class ResolveFastEngineTests(unittest.TestCase):
             chain = app_server._resolve_fast_engine()
         self.assertEqual([key for key, _ in chain], ["tesseract"])
 
-    def test_auto_with_key_tries_cloud_then_tesseract(self):
+    def test_auto_with_key_is_cloud_only_no_tesseract_fallback(self):
+        # 2026-06-24: when cloud is configured, auto mode is cloud-ONLY. We don't
+        # cross-fall-back to Tesseract — its Chinese accuracy is poor enough that
+        # falling back on a transient cloud timeout produces garbage; a clear
+        # "失败，请重试" is better (see _resolve_fast_engine docstring).
         with mock.patch.object(app_server, "FAST_OCR_ENGINE", "auto"), \
              mock.patch.object(app_server, "BAIDU_OCR_API_KEY", "k"), \
              mock.patch.object(app_server, "BAIDU_OCR_SECRET_KEY", "s"):
             chain = app_server._resolve_fast_engine()
-        self.assertEqual([key for key, _ in chain], ["cloud", "tesseract"])
+        self.assertEqual([key for key, _ in chain], ["cloud"])
 
     def test_forced_cloud_skips_tesseract(self):
         with mock.patch.object(app_server, "FAST_OCR_ENGINE", "cloud"):
             chain = app_server._resolve_fast_engine()
         self.assertEqual([key for key, _ in chain], ["cloud"])
 
-    def test_run_fast_ocr_falls_back_to_tesseract_when_cloud_unavailable(self):
+    def test_run_fast_ocr_raises_when_cloud_fails_and_configured(self):
+        # Cloud configured + auto → no Tesseract fallback → the cloud error
+        # propagates so the endpoint returns "failed" (no garbage), not silent
+        # local OCR. call_tesseract_ocr must NOT be invoked.
         def cloud_boom(*a, **k):
-            raise app_server.CloudOcrUnavailable("配额耗尽")
+            raise app_server.CloudOcrUnavailable("云识别超时")
+        tess = mock.Mock(return_value=app_server.OcrExtractionResult("回落文本", [], False))
         with mock.patch.object(app_server, "FAST_OCR_ENGINE", "auto"), \
              mock.patch.object(app_server, "BAIDU_OCR_API_KEY", "k"), \
              mock.patch.object(app_server, "BAIDU_OCR_SECRET_KEY", "s"), \
              mock.patch.object(app_server, "call_cloud_ocr", side_effect=cloud_boom), \
+             mock.patch.object(app_server, "call_tesseract_ocr", tess):
+            with self.assertRaises(app_server.CloudOcrUnavailable):
+                app_server.run_fast_ocr(TINY_DATA_URL)
+        tess.assert_not_called()
+
+    def test_run_fast_ocr_uses_tesseract_when_cloud_not_configured(self):
+        # No key → Tesseract remains the sole offline engine.
+        with mock.patch.object(app_server, "FAST_OCR_ENGINE", "auto"), \
+             mock.patch.object(app_server, "BAIDU_OCR_API_KEY", ""), \
+             mock.patch.object(app_server, "BAIDU_OCR_SECRET_KEY", ""), \
              mock.patch.object(app_server, "call_tesseract_ocr",
-                               return_value=app_server.OcrExtractionResult("回落文本", [], False)):
+                               return_value=app_server.OcrExtractionResult("本地文本", [], False)):
             result, label = app_server.run_fast_ocr(TINY_DATA_URL)
-        self.assertEqual(result.text, "回落文本")
+        self.assertEqual(result.text, "本地文本")
         self.assertEqual(label, "本地 OCR (Tesseract)")
 
 
