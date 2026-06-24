@@ -1447,7 +1447,9 @@ function renderQuotes() {
             <li class="menu-item-danger"><button type="button" data-quote-menu="delete">删除</button></li>
           </ul>
           <div class="entry-card-cover">
-            <div class="entry-cover-fallback"></div>
+            ${quote.imageUrl
+              ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄图片" />`
+              : '<div class="entry-cover-fallback"></div>'}
             <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">
