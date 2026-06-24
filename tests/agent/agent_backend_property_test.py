@@ -382,6 +382,31 @@ class AgentBackendPropertyTests(unittest.TestCase):
         payload_global = json.loads(user_data_json_global)
         self.assertEqual(len(payload_global["existing_connections"]), 20, "connections should be injected (capped at 20) in global context")
 
+    def test_all_books_summary_capped_at_50_most_recent(self):
+        """OPT-047: all_books_summary must include at most 50 books, sorted newest-first."""
+        builder = app_server.PromptBuilder()
+        books = [
+            {
+                "id": f"book-{i:03d}",
+                "title": f"Book {i}",
+                "author": "A",
+                "updatedAt": f"2026-01-{i:02d}T00:00:00.000Z",
+            }
+            for i in range(1, 76)
+        ]
+        state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
+
+        prompt = builder.build_chat_prompt(state, "", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        payload = json.loads(user_data_json)
+        summary = payload["all_books_summary"]
+
+        self.assertEqual(len(summary), 50, "all_books_summary must be capped at 50")
+        self.assertEqual(summary[0]["id"], "book-075", "first entry should be the most recently updated book")
+        self.assertEqual(summary[-1]["id"], "book-026", "last entry should be the 50th most recently updated book")
+        ids_in_summary = {b["id"] for b in summary}
+        self.assertNotIn("book-001", ids_in_summary, "oldest books must be excluded when over the 50-book cap")
+
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()
         state["quotes"] = [
