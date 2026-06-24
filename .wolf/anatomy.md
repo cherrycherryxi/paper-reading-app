@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-24T06:09:27.887Z
-> Files: 164 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-24T13:10:45.831Z
+> Files: 166 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -84,19 +84,19 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66392 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 6 more (~45420 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46541 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~10625 tok)
+- `index.html` — 🐛 又买了一本书 (~10644 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~21799 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~22295 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -243,7 +243,9 @@
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
-- `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级删除 UI (~2980 tok)
+- `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)
+- `ocr-fast-panel-integration.test.js` — Integration test for the FAST OCR path (runOcrFromImage("fast")): (~1873 tok)
+- `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4015 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-card-image-thumb.test.js` — OPT-052: quote card shows image thumbnail when quote.imageUrl is present, (~1647 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)

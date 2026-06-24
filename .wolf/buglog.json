@@ -5276,6 +5276,255 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-23T17:05:29.905Z"
+    },
+    {
+      "id": "bug-313",
+      "timestamp": "2026-06-24T06:30:52.090Z",
+      "error_message": "Function not marked async",
+      "file": "app.js",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T06:30:52.090Z"
+    },
+    {
+      "id": "bug-314",
+      "timestamp": "2026-06-24T00:00:00Z",
+      "error_message": "用户反馈：合并 OPT-055 后，快速识别(快速 OCR)看不到行级删除面板",
+      "file": "app.js",
+      "root_cause": "OPT-055 (PR #46) 只把 renderOcrLineSelector 接到 syncOpenQuoteFormFromState 的 ocrStatus==='done' 分支——那是 AI 精识别异步轮询回填的路径。快速识别是同步返回(data.status==='done' + data.recognizedText)，在 runOcrFromImage 的 fast 分支直接 els.quoteContent.value=recognized，没调用面板渲染，所以快速 OCR 永远看不到面板。PR 测试只单测了 renderOcrLineSelector 函数本身，没测与快速 OCR 流程的接线。",
+      "fix": "在 runOcrFromImage fast 分支设置 textarea 后追加 renderOcrLineSelector(recognized)；补回归测试断言 runOcrFromImage 函数体内调用了 renderOcrLineSelector(ocr-line-selector.test.js)。",
+      "tags": [
+        "ocr",
+        "opt-055",
+        "frontend",
+        "wiring",
+        "regression",
+        "test-gap"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T00:00:00Z"
+    },
+    {
+      "id": "bug-315",
+      "timestamp": "2026-06-24T00:00:00Z",
+      "error_message": "用户反馈：快速识别变慢(3-10s)且'内容完全不对'(乱码)",
+      "file": ".env (BAIDU_OCR_ENDPOINT / CLOUD_OCR_TIMEOUT_SECONDS)",
+      "root_cause": "百度高精度端点 accurate 今天间歇性慢/超时(>12s, CLOUD_OCR_TIMEOUT_SECONDS 默认12)。run_fast_ocr 链是 cloud→tesseract，百度读超时抛 CloudOcrUnavailable 后回退本地 Tesseract，而 Tesseract 中文精度极差→吐乱码，被当成识别结果填入。trace 显示 CLOUD_OCR_FAILED 'The read operation timed out'。非合并/隧道/额度问题。实测同图 accurate 4188ms vs general_basic 2112ms，输出逐字相同。",
+      "fix": ".env 设 BAIDU_OCR_ENDPOINT=general_basic(快约1倍、免费QPS/额度更高、质量同等)+ CLOUD_OCR_TIMEOUT_SECONDS=20(给百度偶发慢留余量，少掉进 Tesseract)。kickstart paper-backend 生效。注意：launchd 后端启动时只读一次 .env，改 .env 必须 kickstart，不会自动重载。",
+      "tags": [
+        "ocr",
+        "baidu",
+        "timeout",
+        "tesseract-fallback",
+        "garbage",
+        "config",
+        "env",
+        "launchd"
+      ],
+      "related_bugs": [
+        "bug-314"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T00:00:00Z"
+    },
+    {
+      "id": "bug-316",
+      "timestamp": "2026-06-24T07:18:36.175Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T07:18:36.175Z"
+    },
+    {
+      "id": "bug-317",
+      "timestamp": "2026-06-24T07:19:20.734Z",
+      "error_message": "Significant refactor of ",
+      "file": "styles.css",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 18→30 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T07:19:20.734Z"
+    },
+    {
+      "id": "bug-318",
+      "timestamp": "2026-06-24T07:49:36.125Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: // 摘抄对话框未保存就关闭时，丢弃 OCR 临时创建但未确认的卡片（issue: 拍照→识别→取消; // 后卡片仍残留）。state.quotes 的移除是同步的；syncState 异步落库后刷新视图。",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-24T07:50:53.494Z"
+    },
+    {
+      "id": "bug-319",
+      "timestamp": "2026-06-24T07:50:42.821Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 14→3 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T07:50:42.821Z"
+    },
+    {
+      "id": "bug-320",
+      "timestamp": "2026-06-24T07:55:27.924Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"./styles.css?v=20260601d\"",
+      "fix": "Changed to \"./styles.css?v=20260624a\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-24T07:55:36.313Z"
+    },
+    {
+      "id": "bug-321",
+      "timestamp": "2026-06-24T00:00:00Z",
+      "error_message": "用户反馈：拍照后点识别，再点取消，退出后卡片仍被保存（残留未确认的卡片）",
+      "file": "app.js",
+      "root_cause": "/api/quotes/ocr 在服务端立即创建并 save_state 落库一张 quote（AI 路径靠它做异步轮询回填），前端把表单 id 设成该 quoteId。保存走『更新已存在 quote』分支；而『取消』只 closeDialog、不删除 → OCR 临时创建的卡片残留。",
+      "fix": "新增 ocrProvisionalQuoteId：runOcrFromImage 中若识别前无 existingQuoteId（即为全新卡片新建）则记下该 quoteId；addQuote 保存时在 closeDialog 前清空它（保存即确认）；quoteDialog 的 close 事件调 discardProvisionalOcrQuote() 静默删除残留 quote 及其 connections（不弹确认，区别于 deleteQuote）。close 事件同步触发，故 addQuote 必须先清空再 closeDialog。",
+      "tags": [
+        "ocr",
+        "quote",
+        "cancel",
+        "orphan",
+        "lifecycle",
+        "frontend",
+        "dialog-close"
+      ],
+      "related_bugs": [
+        "bug-314",
+        "bug-315"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T00:00:00Z"
+    },
+    {
+      "id": "bug-322",
+      "timestamp": "2026-06-24T08:14:49.465Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 16→23 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T08:14:49.465Z"
+    },
+    {
+      "id": "bug-323",
+      "timestamp": "2026-06-24T13:07:12.786Z",
+      "error_message": "CSS fix: overflow-y",
+      "file": "styles.css",
+      "root_cause": "overflow-y: auto → auto 可滚动，面板按内容自然撑开即可。 */",
+      "fix": "Changed overflow-y: auto → auto 可滚动，面板按内容自然撑开即可。 */",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T13:07:12.786Z"
+    },
+    {
+      "id": "bug-324",
+      "timestamp": "2026-06-24T13:08:03.827Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 11→3 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T13:08:03.827Z"
+    },
+    {
+      "id": "bug-325",
+      "timestamp": "2026-06-24T13:10:45.854Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/ocr-line-selector.test.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T13:10:45.854Z"
+    },
+    {
+      "id": "bug-326",
+      "timestamp": "2026-06-24T00:00:00Z",
+      "error_message": "用户反馈：行删除面板一直不出现（多轮排查）",
+      "file": "styles.css (.ocr-line-selector)",
+      "root_cause": "诊断证实：面板在 DOM 中、hidden=false、12 行已渲染(行高55、框高35、scrollHeight=383)，但容器 offsetHeight 仅 14px(=自身 padding+border)。根因：.dialog-form 是 display:grid，本轮给 .ocr-line-selector 加的 max-height:40vh + overflow-y:auto 使其作为 grid 子项被网格行塌成 ~0 可见高(带 overflow 的 grid item 的 min-size/track 交互)，内容被裁成一条缝，看似消失。这也是『上一轮在、改完就没』的真因。排查曾被误导向缓存(实际 server-log 证明客户端已加载新版)。",
+      "fix": "移除 .ocr-line-selector 的 max-height/overflow-y/-webkit-overflow-scrolling(.dialog-form 自身可滚动，面板按内容撑开)。加 CSS 源码守卫测试断言该规则不含 overflow:/max-height:。移除临时诊断。bump app.js?v=20260624e + styles.css?v=20260624b。",
+      "tags": [
+        "css",
+        "grid",
+        "overflow",
+        "collapse",
+        "ocr",
+        "opt-055",
+        "ios",
+        "layout",
+        "false-cache-lead"
+      ],
+      "related_bugs": [
+        "bug-314"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T00:00:00Z"
     }
   ]
 }

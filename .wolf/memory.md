@@ -1729,3 +1729,45 @@
 | 14:09 | Edited optimization/backlog.md | inline fix | ~24 |
 | 14:09 | Edited optimization/backlog.md | inline fix | ~25 |
 | 14:10 | 审查并按序合并 4 个夜间 PR (#45 OPT-047 / #47 OPT-054 / #48 OPT-052 / #46 OPT-055)，各分支测试实跑通过，合后全量 py 313 + js 全绿；backlog+triage 标 done | optimization/backlog.md, optimization/triage.md | done | ~6000 |
+| 14:11 | Session end: 4 writes across 1 files (backlog.md) | 3 reads | ~19367 tok |
+| 14:30 | Edited app.js | 6→10 lines | ~166 |
+| 14:44 | Session end: 5 writes across 2 files (backlog.md, app.js) | 5 reads | ~131345 tok |
+| 15:03 | Session end: 5 writes across 2 files (backlog.md, app.js) | 5 reads | ~131345 tok |
+| 15:07 | OCR 排障:快速识别乱码=百度 accurate 超时回退 Tesseract;改 .env general_basic+20s 超时并 kickstart 后端;修 OPT-055 面板未接快速OCR路径(app.js:3398)+回归测试 | .env, app.js, tests/frontend/ocr-line-selector.test.js | done | ~5000 |
+| 15:07 | Session end: 5 writes across 2 files (backlog.md, app.js) | 6 reads | ~131345 tok |
+| 15:18 | Edited app.js | added optional chaining | ~631 |
+| 15:19 | Edited styles.css | CSS: max-height, overflow-y, -webkit-overflow-scrolling | ~77 |
+| 15:19 | Edited styles.css | expanded (+12 lines) | ~189 |
+| 15:21 | Created tests/frontend/ocr-line-selector.test.js | — | ~3689 |
+| 15:23 | OPT-055 增强(用户反馈):OCR 行面板每行改为可编辑输入框(行内截取)+ 删行;保留行拼成连续段落去物理换行;面板 0 行才隐藏+max-height防撑爆;输入框16px避iOS缩放;测试重写15条全绿 | app.js, styles.css, tests/frontend/ocr-line-selector.test.js | done | ~4000 |
+| 15:23 | Session end: 9 writes across 4 files (backlog.md, app.js, styles.css, ocr-line-selector.test.js) | 8 reads | ~160710 tok |
+| 15:48 | Edited app.js | 2→6 lines | ~72 |
+| 15:48 | Edited app.js | added 1 condition(s) | ~140 |
+| 15:49 | Edited app.js | 4→7 lines | ~110 |
+| 15:49 | Edited app.js | added optional chaining | ~230 |
+| 15:50 | Edited app.js | reduced (-11 lines) | ~53 |
+| 15:50 | Edited app.js | added 1 condition(s) | ~194 |
+| 15:51 | Created tests/frontend/ocr-cancel-cleanup.test.js | — | ~1806 |
+| 15:53 | Created tests/frontend/ocr-fast-panel-integration.test.js | — | ~1873 |
+| 15:55 | Edited index.html | inline fix | ~17 |
+| 15:55 | Edited index.html | "./app.js?v=20260521a" → "./app.js?v=20260624a" | ~13 |
+| 15:56 | OCR 二修(用户反馈):①面板改可编辑输入框行内截取+连续拼接去换行(app.js/styles.css/测试15条);②修取消后OCR临时卡残留=ocrProvisionalQuoteId+close静默删(app.js,测试5条);集成测试2条证面板真显示→「消失」实为旧缓存;bump app.js/styles.css?v=20260624a | app.js, styles.css, index.html, tests/frontend/ | done | ~9000 |
+| 15:58 | Session end: 19 writes across 7 files (backlog.md, app.js, styles.css, ocr-line-selector.test.js, ocr-cancel-cleanup.test.js) | 9 reads | ~176739 tok |
+| 16:07 | Session end: 19 writes across 7 files (backlog.md, app.js, styles.css, ocr-line-selector.test.js, ocr-cancel-cleanup.test.js) | 10 reads | ~176739 tok |
+| 16:14 | Edited app.js | modified if() | ~374 |
+| 16:15 | Session end: 20 writes across 7 files (backlog.md, app.js, styles.css, ocr-line-selector.test.js, ocr-cancel-cleanup.test.js) | 10 reads | ~177329 tok |
+| 16:18 | Session end: 20 writes across 7 files (backlog.md, app.js, styles.css, ocr-line-selector.test.js, ocr-cancel-cleanup.test.js) | 10 reads | ~177329 tok |
+| 16:25 | Edited app.js | modified v2() | ~191 |
+| 16:26 | Session end: 21 writes across 7 files (backlog.md, app.js, styles.css, ocr-line-selector.test.js, ocr-cancel-cleanup.test.js) | 11 reads | ~177520 tok |
+
+## Session: 2026-06-24 20:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:00 | Edited app.js | round() → tall() | ~220 |
+| 21:02 | Session end: 1 writes across 1 files (app.js) | 0 reads | ~220 tok |
+| 21:07 | Edited styles.css | 10→11 lines | ~119 |
+| 21:08 | Edited app.js | removed 11 lines | ~43 |
+| 21:10 | Edited tests/frontend/ocr-line-selector.test.js | 5→7 lines | ~146 |
+| 21:12 | 终于定位行面板「消失」真因:.ocr-line-selector 作为 .dialog-form(grid)子项加了 overflow+max-height→被塌成14px高(内容383px溢出裁成缝)。移除这几行修复+CSS守卫测试+移除临时诊断;bump app.js?v=e/styles.css?v=b | styles.css, app.js, index.html, tests/frontend/ocr-line-selector.test.js | done | ~7000 |
+| 21:13 | Session end: 4 writes across 3 files (app.js, styles.css, ocr-line-selector.test.js) | 0 reads | ~528 tok |
