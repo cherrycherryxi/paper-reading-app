@@ -1778,3 +1778,4 @@
 | 21:50 | Edited tests/agent/quote_ocr_engine_test.py | modified test_fast_is_default_and_returns_sync_text() | ~156 |
 | 21:50 | Edited tests/agent/quote_ocr_engine_test.py | modified test_explicit_fast_engine() | ~125 |
 | 21:53 | OCR 兜底改动(用户要求):云已配置时 fast OCR 改云only,百度超时不再回退 Tesseract 乱码,改报错让用户重试;超时20→30s;友好文案;后端测试同步(确定化) | app_server.py, tests/agent/quote_ocr_engine_test.py, .env | done | ~4000 |
+| 21:59 | Created ../../.claude/daily-logs/2026-06-24.md | — | ~555 |
