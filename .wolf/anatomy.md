@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-24T13:10:45.831Z
-> Files: 166 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-24T13:59:29.081Z
+> Files: 167 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -30,6 +30,7 @@
 - `2026-06-11.md` — 日报 2026-06-11 (~465 tok)
 - `2026-06-13.md` — 日报 2026-06-13 (~486 tok)
 - `2026-06-16.md` — 日报 2026-06-16 (~481 tok)
+- `2026-06-24.md` — 日报 2026-06-24 (~520 tok)
 
 ## ../../.claude/plans/
 
@@ -83,7 +84,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66392 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66487 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46541 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
@@ -229,7 +230,7 @@
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
-- `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~4542 tok)
+- `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
 - `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3253 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
