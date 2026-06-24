@@ -177,6 +177,10 @@ let lastQuoteBookId = "";
 // alone can't tell "new" from "edit" — track it explicitly so we still
 // remember the book for the next 新增 (see addQuote / lastQuoteBookId).
 let quoteDialogIsNew = false;
+// 快速/AI OCR 会在服务端立即创建并落库一张 quote（AI 路径靠它做异步轮询回填）。若用户
+// 识别后直接「取消」，这张卡片不应残留——记下「本次为新建卡片由 OCR 临时创建的 id」，
+// 对话框未保存就关闭时静默删除它（见 addQuote 清空 / quoteDialog close 监听）。
+let ocrProvisionalQuoteId = "";
 let selectedQuoteTags = [];
 const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
 let toastTimer = null;
@@ -1933,6 +1937,15 @@ async function uploadBookImageIfNeeded() {
   return uploadBookCoverImage(pendingBookImage);
 }
 
+// 把面板里保留的行拼回正文：去掉物理换行，拼成连续段落（中文句子无空格直接相连，
+// 句末标点自然断句）。空行（用户清空但未删除的行）自然被丢弃。
+function rebuildQuoteContentFromOcrPanel(sel) {
+  const parts = Array.from(sel.querySelectorAll(".ocr-line-selector__input"))
+    .map((el) => el.value.trim())
+    .filter(Boolean);
+  if (els.quoteContent) els.quoteContent.value = parts.join("");
+}
+
 function renderOcrLineSelector(text) {
   const sel = els.ocrLineSelector;
   if (!sel) return;
@@ -1941,34 +1954,56 @@ function renderOcrLineSelector(text) {
     sel.hidden = true;
     sel.innerHTML = "";
     sel.onclick = null;
+    sel.oninput = null;
     return;
   }
   sel.hidden = false;
-  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——点 ✕ 删去不需要的行：</p>`;
+  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接改行内文字，或点 ✕ 删去整行；保留的行会拼成连续段落：</p>`;
   const items = lines
     .map(
       (line, i) =>
-        `<div class="ocr-line-selector__row" data-line-idx="${i}"><span class="ocr-line-selector__text">${escapeHtml(line)}</span><button type="button" class="ocr-line-selector__del" aria-label="删除此行" data-line-idx="${i}">✕</button></div>`
+        `<div class="ocr-line-selector__row" data-line-idx="${i}"><input type="text" class="ocr-line-selector__input" value="${escapeHtml(line)}" aria-label="第 ${i + 1} 行内容" /><button type="button" class="ocr-line-selector__del" aria-label="删除此行">✕</button></div>`
     )
     .join("");
   sel.innerHTML = header + items;
+  // 初始就把正文拼成连续段落（去物理换行），不再让识别结果带满硬换行符。
+  rebuildQuoteContentFromOcrPanel(sel);
+  // 行内编辑：任意一行改动即实时同步正文。
+  sel.oninput = (e) => {
+    if (!e.target?.classList?.contains?.("ocr-line-selector__input")) return;
+    rebuildQuoteContentFromOcrPanel(sel);
+  };
   sel.onclick = (e) => {
     const btn = e.target.closest(".ocr-line-selector__del");
     if (!btn) return;
     const row = btn.closest(".ocr-line-selector__row");
     if (row) row.remove();
-    const remaining = Array.from(sel.querySelectorAll(".ocr-line-selector__row")).map(
-      (r) => r.querySelector(".ocr-line-selector__text").textContent
-    );
-    if (els.quoteContent) els.quoteContent.value = remaining.join("\n");
+    rebuildQuoteContentFromOcrPanel(sel);
+    const remaining = sel.querySelectorAll(".ocr-line-selector__row").length;
     const hint = sel.querySelector(".ocr-line-selector__hint");
-    if (hint) hint.textContent = `整页全文已识别——已保留 ${remaining.length} 行：`;
-    if (remaining.length < 3) {
+    if (hint) hint.textContent = `已保留 ${remaining} 行（拼成连续段落，可继续编辑或删除）：`;
+    if (remaining === 0) {
       sel.hidden = true;
       sel.innerHTML = "";
       sel.onclick = null;
+      sel.oninput = null;
     }
   };
+}
+
+// 摘抄对话框未保存就关闭时，丢弃 OCR 临时创建但未确认的卡片（issue: 拍照→识别→取消
+// 后卡片仍残留）。state.quotes 的移除是同步的；syncState 异步落库后刷新视图。
+function discardProvisionalOcrQuote() {
+  const orphan = ocrProvisionalQuoteId;
+  ocrProvisionalQuoteId = "";
+  if (!orphan || !state.quotes.some((q) => q.id === orphan)) return;
+  state.quotes = state.quotes.filter((q) => q.id !== orphan);
+  state.connections = (state.connections || []).filter(
+    (c) => c.sourceId !== orphan && c.targetId !== orphan
+  );
+  syncState()
+    .then(() => { renderHero(); renderSummary(); renderQuotes(); })
+    .catch(() => {});
 }
 
 function hideOcrLineSelector() {
@@ -1976,6 +2011,7 @@ function hideOcrLineSelector() {
   els.ocrLineSelector.hidden = true;
   els.ocrLineSelector.innerHTML = "";
   els.ocrLineSelector.onclick = null;
+  els.ocrLineSelector.oninput = null;
 }
 
 function resetQuoteDraft() {
@@ -2854,6 +2890,9 @@ async function addQuote(formData) {
   // Remember the book for the next 新增 whenever this was a new-quote session —
   // even if OCR gave the draft a real id (which would make existingId truthy).
   if (quoteDialogIsNew) lastQuoteBookId = bookId;
+  // 保存即确认：这张卡片不再是「未保存的 OCR 临时卡」，清空标记，避免随后 close 事件误删。
+  // 必须在 closeDialog 之前清，因为 dialog.close() 会同步触发 close 监听。
+  ocrProvisionalQuoteId = "";
   closeDialog(els.quoteDialog);
   resetQuoteDraft();
   renderHero();
@@ -3359,6 +3398,9 @@ async function runOcrFromImage(engine = "fast") {
       els.quoteForm.querySelector('[name="id"]').value = quoteId;
       els.quoteForm.dataset.ocrQuoteId = quoteId;
       els.quoteForm.dataset.ocrBaseContent = requestContent;
+      // 若这是 OCR 为一张全新卡片临时创建的 quote（识别前没有 existingQuoteId），记下它；
+      // 用户若直接取消，close 监听会静默删除，避免残留未确认的卡片。
+      if (!existingQuoteId) ocrProvisionalQuoteId = quoteId;
     }
     if (quote?.imageUrl) {
       // Keep the known-good local blob (objectUrl) as the preview — switching the
@@ -3392,8 +3434,13 @@ async function runOcrFromImage(engine = "fast") {
       // Fast path: text is already in the response — fill it in synchronously.
       const recognized = String(data.recognizedText || quote?.content || "");
       const currentVal = normalizeOcrText(els.quoteContent.value);
-      if (recognized && (!currentVal || currentVal === requestContent)) {
+      const guardPass = !!recognized && (!currentVal || currentVal === requestContent);
+      if (guardPass) {
         els.quoteContent.value = recognized;
+        // OPT-055: fast OCR returns text synchronously here (it does NOT go
+        // through syncOpenQuoteFormFromState, which only handles the async AI
+        // poll path), so wire the line-delete panel directly into this branch.
+        renderOcrLineSelector(recognized);
       }
       await loadRemoteLogs();
       if (data.status === "done" && recognized) {
@@ -4032,6 +4079,10 @@ function bindEvents() {
   document.querySelectorAll("[data-close-dialog]").forEach((button) => {
     button.addEventListener("click", () => closeDialog(document.getElementById(button.dataset.closeDialog)));
   });
+
+  // 取消（按钮 / Esc）关闭摘抄对话框且未保存时，删除 OCR 临时创建但未确认的卡片。
+  // 保存路径已在 addQuote 里先清空 ocrProvisionalQuoteId，故这里只命中真正的取消。
+  els.quoteDialog?.addEventListener("close", discardProvisionalOcrQuote);
 
   els.bookForm?.addEventListener("submit", (event) => {
     event.preventDefault();

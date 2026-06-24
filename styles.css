@@ -1550,6 +1550,10 @@ textarea {
   background: var(--color-surface);
   padding: 0.5rem 0.75rem 0.25rem;
   margin-top: 0.5rem;
+  /* 不要在这里加 max-height + overflow：本元素是 .dialog-form（CSS Grid）的
+     grid 子项，带 overflow 的 grid 子项会被网格行塌成 ~0 高（offsetHeight=14
+     而 scrollHeight=383，内容被裁成一条缝，面板看似消失）。.dialog-form 自身
+     已 overflow-y:auto 可滚动，面板按内容自然撑开即可。 */
 }
 
 .ocr-line-selector__hint {
@@ -1561,7 +1565,7 @@ textarea {
 
 .ocr-line-selector__row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0;
   border-bottom: 1px solid var(--color-border);
@@ -1571,11 +1575,23 @@ textarea {
   border-bottom: none;
 }
 
-.ocr-line-selector__text {
+/* font-size 16px：iPhone 上输入框 <16px 聚焦会触发缩放，这里保持 16px 避开。 */
+.ocr-line-selector__input {
   flex: 1;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  word-break: break-all;
+  min-width: 0;
+  width: auto;
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg, #fff);
+  color: var(--color-ink);
+}
+
+.ocr-line-selector__input:focus {
+  outline: none;
+  border-color: var(--color-danger, #c0392b);
 }
 
 .ocr-line-selector__del {

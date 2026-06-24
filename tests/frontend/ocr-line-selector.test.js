@@ -1,8 +1,9 @@
-// OPT-055: 快速 OCR 行级删除 UI
-// When OCR finishes with ≥3 non-empty lines, show a per-line delete panel so
-// the user can prune the full-page text before saving. Clicking ✕ on a row
-// removes it and updates the content textarea. When fewer than 3 rows remain,
-// the panel auto-hides.
+// OPT-055: 快速 OCR 行级编辑/删除面板
+// When OCR finishes with ≥3 non-empty lines, show a per-line panel. Each line is
+// an editable input (trim partial content within a line) with a ✕ to delete the
+// whole line. The recognized text is reflowed into the content textarea as a
+// CONTINUOUS paragraph (physical line breaks removed) — both on initial render
+// and after any edit/delete. The panel auto-hides only when every row is removed.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -10,6 +11,15 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "..", "app.js"), "utf8");
+
+function unescapeHtml(s) {
+  return String(s)
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
 
 // Minimal element stub used for most els entries.
 function elStub(tagName = "div") {
@@ -19,7 +29,7 @@ function elStub(tagName = "div") {
     className: "", textContent: "", value: "", disabled: false,
     hidden: false, dataset: {}, children: [], files: [],
     style: { display: "" },
-    onclick: null,
+    onclick: null, oninput: null,
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     get innerHTML() { return innerHTML; },
     set innerHTML(v) { innerHTML = String(v); this.children = []; },
@@ -33,22 +43,22 @@ function elStub(tagName = "div") {
   };
 }
 
-// A richer stub for #ocrLineSelector that supports the querySelectorAll interaction
-// inside renderOcrLineSelector and its click handler.
+// Richer stub for #ocrLineSelector modelling input-based, editable rows.
 function createOcrLineSelectorStub() {
-  const state = { hidden: true, onclick: null };
+  const state = { hidden: true, onclick: null, oninput: null };
   let _innerHTML = "";
-  // Rows stored as { text, removed }
-  const _rows = [];
+  const _rows = []; // { value, removed }
 
   const hintStub = { textContent: "" };
 
+  const makeInputStub = (entry) => ({
+    classList: { contains: (c) => c === "ocr-line-selector__input" },
+    get value() { return entry.value; },
+    set value(v) { entry.value = String(v); },
+  });
   const makeRowStub = (entry) => ({
     remove() { entry.removed = true; },
-    querySelector(sel) {
-      if (sel === ".ocr-line-selector__text") return { get textContent() { return entry.text; } };
-      return null;
-    },
+    querySelector() { return null; },
   });
 
   const stub = {
@@ -59,32 +69,47 @@ function createOcrLineSelectorStub() {
       _innerHTML = String(v);
       _rows.length = 0;
       if (v) {
-        // Extract lines from rendered HTML by matching text spans (un-escaped simple text)
-        const re = /<span class="ocr-line-selector__text">(.*?)<\/span>/g;
+        const re = /class="ocr-line-selector__input" value="(.*?)"/g;
         let m;
         while ((m = re.exec(v)) !== null) {
-          _rows.push({ text: m[1], removed: false });
+          _rows.push({ value: unescapeHtml(m[1]), removed: false });
         }
       }
     },
     get onclick() { return state.onclick; },
     set onclick(v) { state.onclick = v; },
+    get oninput() { return state.oninput; },
+    set oninput(v) { state.oninput = v; },
     querySelector(sel) {
       if (sel === ".ocr-line-selector__hint") return hintStub;
       return null;
     },
     querySelectorAll(sel) {
-      if (sel === ".ocr-line-selector__row") {
-        return _rows.filter((r) => !r.removed).map((r) => makeRowStub(r));
-      }
+      const live = _rows.filter((r) => !r.removed);
+      if (sel === ".ocr-line-selector__row") return live.map((r) => makeRowStub(r));
+      if (sel === ".ocr-line-selector__input") return live.map((r) => makeInputStub(r));
       return [];
     },
-    // Test helpers
     _rows,
     _hint: hintStub,
   };
   return stub;
 }
+
+// Build a delete-click event whose target resolves the Nth live row.
+function deleteClickEvent(sel, idx) {
+  const rowEls = sel.querySelectorAll(".ocr-line-selector__row");
+  const fakeBtn = {
+    closest(s) {
+      if (s === ".ocr-line-selector__del") return fakeBtn;
+      if (s === ".ocr-line-selector__row") return rowEls[idx];
+      return null;
+    },
+  };
+  return { target: { closest: (s) => (s === ".ocr-line-selector__del" ? fakeBtn : null) } };
+}
+
+const inputEvent = { target: { classList: { contains: (c) => c === "ocr-line-selector__input" } } };
 
 function createHarness() {
   const elements = new Map();
@@ -156,14 +181,12 @@ test("renderOcrLineSelector: hidden for empty string", () => {
   assert.equal(ocrLineSelectorEl.hidden, true);
 });
 
-test("renderOcrLineSelector: shown and populated for 3+ lines", () => {
+test("renderOcrLineSelector: shown with editable input rows for 3+ lines", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
-  const text = "行一\n行二\n行三\n行四";
-  hooks.renderOcrLineSelector(text);
+  hooks.renderOcrLineSelector("行一\n行二\n行三\n行四");
   assert.equal(ocrLineSelectorEl.hidden, false, "selector visible for 4-line text");
-  assert.ok(ocrLineSelectorEl._rows.length === 4, `expected 4 rows, got ${ocrLineSelectorEl._rows.length}`);
-  assert.ok(ocrLineSelectorEl._rows.every((r) => !r.removed), "all rows initially present");
-  // hint text mentions line count
+  assert.equal(ocrLineSelectorEl._rows.length, 4, "4 editable rows");
+  assert.ok(ocrLineSelectorEl.innerHTML.includes("ocr-line-selector__input"), "rows are inputs (editable)");
   assert.ok(ocrLineSelectorEl.innerHTML.includes("4 行"), "hint shows line count");
 });
 
@@ -173,88 +196,82 @@ test("renderOcrLineSelector: empty lines are filtered out", () => {
   assert.equal(ocrLineSelectorEl._rows.length, 3, "blank lines not counted");
 });
 
-test("renderOcrLineSelector: onclick handler set", () => {
+test("renderOcrLineSelector: click and input handlers set", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
   hooks.renderOcrLineSelector("行一\n行二\n行三");
   assert.ok(typeof ocrLineSelectorEl.onclick === "function", "onclick is a function");
+  assert.ok(typeof ocrLineSelectorEl.oninput === "function", "oninput is a function");
 });
 
-test("click ✕ removes a row and updates textarea", () => {
-  const { hooks, ocrLineSelectorEl, quoteContentEl } = createHarness();
-  // Use 4 lines so that removing 1 leaves 3, which does NOT trigger auto-hide.
-  // This lets us inspect the row state after the click.
-  quoteContentEl.value = "行一\n行二\n行三\n行四";
-  hooks.renderOcrLineSelector("行一\n行二\n行三\n行四");
-  assert.equal(ocrLineSelectorEl._rows.length, 4);
-
-  // Simulate clicking the ✕ button on the first row.
-  // The handler uses e.target.closest(".ocr-line-selector__del"), then
-  // btn.closest(".ocr-line-selector__row") to get the row element.
-  const rowEls = ocrLineSelectorEl.querySelectorAll(".ocr-line-selector__row");
-  const fakeBtn = {
-    closest(sel) {
-      if (sel === ".ocr-line-selector__del") return fakeBtn;
-      if (sel === ".ocr-line-selector__row") return rowEls[0];
-      return null;
-    },
-  };
-  const fakeEvent = {
-    target: {
-      closest(sel) {
-        if (sel === ".ocr-line-selector__del") return fakeBtn;
-        return null;
-      },
-    },
-  };
-  ocrLineSelectorEl.onclick(fakeEvent);
-
-  assert.ok(ocrLineSelectorEl._rows[0].removed, "first row marked removed");
-  // textarea should now have only rows 1-3 (行二, 行三, 行四)
-  const lines = quoteContentEl.value.split("\n");
-  assert.equal(lines.length, 3, "textarea has 3 remaining lines");
-  assert.ok(!lines.includes("行一"), "deleted line not in textarea");
-});
-
-test("panel auto-hides when remaining rows drop below 3", () => {
-  const { hooks, ocrLineSelectorEl, quoteContentEl } = createHarness();
-  quoteContentEl.value = "行一\n行二\n行三";
+test("initial render reflows to a CONTINUOUS paragraph (no newlines) in the textarea", () => {
+  const { hooks, quoteContentEl } = createHarness();
   hooks.renderOcrLineSelector("行一\n行二\n行三");
-  // selector is visible
-  assert.equal(ocrLineSelectorEl.hidden, false);
-
-  // Remove one row (leaves 2 → should auto-hide)
-  const rowEls = ocrLineSelectorEl.querySelectorAll(".ocr-line-selector__row");
-  const fakeBtn = {
-    closest(sel) {
-      if (sel === ".ocr-line-selector__del") return fakeBtn;
-      if (sel === ".ocr-line-selector__row") return rowEls[0];
-      return null;
-    },
-  };
-  ocrLineSelectorEl.onclick({ target: { closest(sel) { return sel === ".ocr-line-selector__del" ? fakeBtn : null; } } });
-
-  assert.equal(ocrLineSelectorEl.hidden, true, "auto-hidden when < 3 rows remain");
-  assert.equal(ocrLineSelectorEl.onclick, null, "onclick cleared after hide");
+  assert.equal(quoteContentEl.value, "行一行二行三", "lines joined with no separator");
+  assert.ok(!quoteContentEl.value.includes("\n"), "no physical line breaks remain");
 });
 
-test("hideOcrLineSelector resets state", () => {
+test("editing a line input updates the textarea (continuous join)", () => {
+  const { hooks, ocrLineSelectorEl, quoteContentEl } = createHarness();
+  hooks.renderOcrLineSelector("行一\n行二\n行三");
+  // Simulate the user trimming the middle line to partial content.
+  const inputs = ocrLineSelectorEl.querySelectorAll(".ocr-line-selector__input");
+  inputs[1].value = "二";
+  ocrLineSelectorEl.oninput(inputEvent);
+  assert.equal(quoteContentEl.value, "行一二行三", "edited line reflected, still continuous");
+});
+
+test("oninput ignores events not from a line input", () => {
+  const { hooks, ocrLineSelectorEl, quoteContentEl } = createHarness();
+  hooks.renderOcrLineSelector("行一\n行二\n行三");
+  quoteContentEl.value = "SENTINEL";
+  ocrLineSelectorEl.oninput({ target: { classList: { contains: () => false } } });
+  assert.equal(quoteContentEl.value, "SENTINEL", "non-input event must not rebuild content");
+});
+
+test("click ✕ removes a row and rebuilds textarea continuously", () => {
+  const { hooks, ocrLineSelectorEl, quoteContentEl } = createHarness();
+  hooks.renderOcrLineSelector("行一\n行二\n行三\n行四");
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0));
+  assert.ok(ocrLineSelectorEl._rows[0].removed, "first row removed");
+  assert.equal(quoteContentEl.value, "行二行三行四", "remaining lines joined continuously");
+  assert.ok(!quoteContentEl.value.includes("\n"), "no newline after delete");
+});
+
+test("panel stays visible while ≥1 row remains (delete to 1)", () => {
+  const { hooks, ocrLineSelectorEl } = createHarness();
+  hooks.renderOcrLineSelector("行一\n行二\n行三");
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0)); // 3 → 2
+  assert.equal(ocrLineSelectorEl.hidden, false, "still visible at 2 rows");
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0)); // 2 → 1
+  assert.equal(ocrLineSelectorEl.hidden, false, "still visible at 1 row (so it stays editable)");
+});
+
+test("panel auto-hides only when the last row is removed", () => {
+  const { hooks, ocrLineSelectorEl } = createHarness();
+  hooks.renderOcrLineSelector("行一\n行二\n行三");
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0));
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0));
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0)); // last one
+  assert.equal(ocrLineSelectorEl.hidden, true, "hidden when 0 rows remain");
+  assert.equal(ocrLineSelectorEl.onclick, null, "onclick cleared");
+  assert.equal(ocrLineSelectorEl.oninput, null, "oninput cleared");
+});
+
+test("hideOcrLineSelector resets state including oninput", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
   hooks.renderOcrLineSelector("行一\n行二\n行三\n行四");
   assert.equal(ocrLineSelectorEl.hidden, false);
-
   hooks.hideOcrLineSelector();
   assert.equal(ocrLineSelectorEl.hidden, true);
   assert.equal(ocrLineSelectorEl.innerHTML, "");
   assert.equal(ocrLineSelectorEl.onclick, null);
+  assert.equal(ocrLineSelectorEl.oninput, null);
 });
 
 test("resetQuoteDraft hides the line selector", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
-  // populate selector
   hooks.renderOcrLineSelector("行一\n行二\n行三");
   assert.equal(ocrLineSelectorEl.hidden, false);
-
-  // resetQuoteDraft calls hideOcrLineSelector
   hooks.resetQuoteDraft();
   assert.equal(ocrLineSelectorEl.hidden, true, "selector hidden after resetQuoteDraft");
 });
@@ -262,12 +279,43 @@ test("resetQuoteDraft hides the line selector", () => {
 test("repeated renderOcrLineSelector calls overwrite (no handler accumulation)", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
   hooks.renderOcrLineSelector("行一\n行二\n行三");
-  const handler1 = ocrLineSelectorEl.onclick;
   hooks.renderOcrLineSelector("甲\n乙\n丙\n丁");
-  const handler2 = ocrLineSelectorEl.onclick;
-  // Both are functions but they are different closures — the important thing is
-  // that there's only ONE handler assigned, not accumulated via addEventListener.
-  assert.ok(typeof handler2 === "function");
-  // New innerHTML reflects the new text
+  assert.equal(ocrLineSelectorEl._rows.length, 4, "rows reflect the latest text");
   assert.ok(ocrLineSelectorEl.innerHTML.includes("4 行"));
+});
+
+// Regression guard (bug found 2026-06-24): the panel never showed after 快速识别
+// because renderOcrLineSelector was only wired into syncOpenQuoteFormFromState
+// (the async AI poll path). The fast OCR path fills the textarea synchronously
+// inside runOcrFromImage and must trigger the panel there too.
+test("renderOcrLineSelector is wired into the fast OCR path (runOcrFromImage), not only the AI sync path", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "app.js"), "utf8");
+  const fnStart = src.indexOf("async function runOcrFromImage");
+  assert.ok(fnStart !== -1, "runOcrFromImage must exist");
+  const fnEnd = src.indexOf("\nasync function ", fnStart + 1);
+  const body = src.slice(fnStart, fnEnd === -1 ? undefined : fnEnd);
+  assert.ok(
+    body.includes("renderOcrLineSelector("),
+    "runOcrFromImage (fast OCR path) must call renderOcrLineSelector so the panel shows after 快速识别"
+  );
+  const occurrences = (src.match(/renderOcrLineSelector\(/g) || []).length;
+  assert.ok(occurrences >= 3, `expected renderOcrLineSelector called in both paths (>=3 total incl. def), got ${occurrences}`);
+});
+
+// CSS regression guard (bug 2026-06-24): .ocr-line-selector is a grid item of
+// .dialog-form (display:grid). Giving it `overflow` + `max-height` collapsed it
+// to ~0 visible height (offsetHeight 14 while scrollHeight 383) — the panel
+// looked like it "disappeared". The dialog-form scrolls itself, so the panel
+// must NOT carry its own overflow/max-height.
+test("[CSS] .ocr-line-selector has no overflow/max-height (it is a grid child of .dialog-form)", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const css = fs.readFileSync(path.join(__dirname, "..", "..", "styles.css"), "utf8");
+  const m = css.match(/\.ocr-line-selector\s*\{([^}]*)\}/);
+  assert.ok(m, ".ocr-line-selector rule must exist");
+  // Strip /* ... */ comments so the explanatory note (which names these props)
+  // doesn't trip the guard — we only care about actual declarations.
+  const body = m[1].replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.ok(!/overflow\s*:/i.test(body), "must not set overflow (collapses as a grid item)");
+  assert.ok(!/max-height\s*:/i.test(body), "must not set max-height (collapses as a grid item)");
 });
