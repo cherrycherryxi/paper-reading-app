@@ -1771,3 +1771,10 @@
 | 21:10 | Edited tests/frontend/ocr-line-selector.test.js | 5→7 lines | ~146 |
 | 21:12 | 终于定位行面板「消失」真因:.ocr-line-selector 作为 .dialog-form(grid)子项加了 overflow+max-height→被塌成14px高(内容383px溢出裁成缝)。移除这几行修复+CSS守卫测试+移除临时诊断;bump app.js?v=e/styles.css?v=b | styles.css, app.js, index.html, tests/frontend/ocr-line-selector.test.js | done | ~7000 |
 | 21:13 | Session end: 4 writes across 3 files (app.js, styles.css, ocr-line-selector.test.js) | 0 reads | ~528 tok |
+| 21:31 | Session end: 4 writes across 3 files (app.js, styles.css, ocr-line-selector.test.js) | 0 reads | ~528 tok |
+| 21:35 | Edited app_server.py | append() → configured() | ~283 |
+| 21:36 | Edited app_server.py | 2→2 lines | ~43 |
+| 21:39 | Edited tests/agent/quote_ocr_engine_test.py | modified test_auto_with_key_is_cloud_only_no_tesseract_fallback() | ~755 |
+| 21:50 | Edited tests/agent/quote_ocr_engine_test.py | modified test_fast_is_default_and_returns_sync_text() | ~156 |
+| 21:50 | Edited tests/agent/quote_ocr_engine_test.py | modified test_explicit_fast_engine() | ~125 |
+| 21:53 | OCR 兜底改动(用户要求):云已配置时 fast OCR 改云only,百度超时不再回退 Tesseract 乱码,改报错让用户重试;超时20→30s;友好文案;后端测试同步(确定化) | app_server.py, tests/agent/quote_ocr_engine_test.py, .env | done | ~4000 |

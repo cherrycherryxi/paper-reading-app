@@ -5525,6 +5525,77 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-24T00:00:00Z"
+    },
+    {
+      "id": "bug-327",
+      "timestamp": "2026-06-24T13:35:58.987Z",
+      "error_message": "Significant refactor of ",
+      "file": "app_server.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 14→18 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T13:35:58.987Z"
+    },
+    {
+      "id": "bug-328",
+      "timestamp": "2026-06-24T13:36:10.188Z",
+      "error_message": "Incorrect value in code",
+      "file": "app_server.py",
+      "root_cause": "Had \": f\"",
+      "fix": "Changed to \": \"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T13:36:10.188Z"
+    },
+    {
+      "id": "bug-329",
+      "timestamp": "2026-06-24T13:39:34.979Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/agent/quote_ocr_engine_test.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 24→42 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T13:39:34.979Z"
+    },
+    {
+      "id": "bug-330",
+      "timestamp": "2026-06-24T00:00:00Z",
+      "error_message": "用户反馈：快速识别偶发超时→走离线 Tesseract→中文乱码，效果很差",
+      "file": "app_server.py (_resolve_fast_engine)",
+      "root_cause": "auto 模式在云已配置时链为 [cloud, tesseract]，百度偶发超时→CloudOcrUnavailable→回退本地 Tesseract，中文精度极差→乱码。与 bug-315 同源（百度 general_basic 通常 ~2s，但偶有 >timeout 抖动）。注意：此超时是后端→百度，与 cloudflare 隧道无关。",
+      "fix": "auto 模式云已配置时改为『云 only』：失败/超时直接抛错，端点返回 status=failed + 友好文案『快速识别失败（云服务可能繁忙），可稍后重试，或改用 AI 精识别』，不再填 Tesseract 乱码。Tesseract 仅在未配置云时作离线兜底。超时 .env 20→30s。测试同步：cloud-only 不回退 + 未配置仍用 tesseract；并把两条 Tesseract 路径测试显式 patch 空 key 以确定化。",
+      "tags": [
+        "ocr",
+        "baidu",
+        "tesseract",
+        "fallback",
+        "timeout",
+        "garbage",
+        "config"
+      ],
+      "related_bugs": [
+        "bug-315",
+        "bug-326"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T00:00:00Z"
     }
   ]
 }
