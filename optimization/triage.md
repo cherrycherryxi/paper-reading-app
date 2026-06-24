@@ -2,28 +2,24 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-23
+Last triaged: 2026-06-24
 
 ## Next up
 
-**本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派**
+**OPT-062 — 确认对话框 Escape 关闭后监听器残留，可触发错误删除（P1/S）**
 
-近 7 天（2026-06-16 → 2026-06-23）已开 4 个 `auto/` PR：#45 opt-047-all-books-summary-limit（2026-06-16）、#46 opt-055-ocr-line-delete-ui（2026-06-17）、#47 opt-054-float-scroll-btn（2026-06-18）、#48 opt-052-quote-card-image-thumb（2026-06-19）。4 个均处于 open 状态，预算已达上限，Agent2 本次跳过实现。
+理由：（1）**预算复位** — 今日 7 天窗口（2026-06-17→2026-06-24）内仅 3 个 `auto/` PR（#46 opt-055/2026-06-17、#47 opt-054/2026-06-18、#48 opt-052/2026-06-19），#45 创建于 2026-06-16 已滑出窗口；预算余 1 槽。（2）**roadmap §2 短期节明确点名** — "预算复位后夜间轨首推 OPT-062"，PRs #45–#48 均已合并即为复位触发条件。（3）**数据安全类** — Escape 关闭确认弹窗后，下次「确认」同时触发旧闭包（含前次 `onConfirm` 操作），可错误删除 Book/Session/Quote/Account/连接，不可恢复；与 OPT-040/041/043 同属「数据安全边界」。
 
-**预算复位后首选候选**：**OPT-062**（确认对话框 Escape 后 `{ once: true }` 监听器残留，可触发错误删除，P1/S）。
-
-理由：（1）**数据安全类** — Escape 关闭确认弹窗后，下次点击「确认」会同时触发旧闭包（含前次操作的 `onConfirm`），导致错误删除；`showConfirmDialog` 覆盖 deleteSession / deleteQuote / deleteAccount / 导入清空护栏 / 导入减少护栏 / deleteConnection 共 6+ 条路径，`deleteBook` 另有独立弹窗也存在同等缺口。（2）**修复成本极低** — 在 `showConfirmDialog`（`app.js:2286-2297`）追加 `els.confirmDialog.addEventListener("cancel", cleanup, { once: true })`；在 `deleteBook`（`app.js:2120` 附近）同样追加 `els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true })`，共约 4 行改动。（3）比 OPT-058/061（focus UX）更紧迫：Escape 误删是不可逆的数据丢失，Theme 1「零丢失」验收标准的直接威胁。（4）roadmap §2 短期节明确点名本项为预算复位首推。等 PRs #45–#48 合并后预算释放再指派；若同 PR 中可顺带修 OPT-063，则一并处理。
+关键文件：`app.js:2286-2297`（`showConfirmDialog` — 追加 `els.confirmDialog.addEventListener("cancel", cleanup, { once: true })`）；`app.js:2070-2127`（`deleteBook` — 追加 `els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true })`）。共 ~4 行改动。可顺带修 OPT-063（roadmap §2 建议同 PR 合并，4 行代码移位）。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | done (PR #45 merged 2026-06-24) | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；roadmap §2 明确首推，northstar「强」，Theme 1 成本控制。PR #45 已合并。 |
-| OPT-055 | 快速 OCR 行级删除 UI | P1 | M | done (PR #46 merged 2026-06-24) | Signal 2026-06-16：owner 真机「整页全文，只想留划线句，得逐行删」。northstar「强」，Theme 1 直接摩擦。`app.js:1548-1566` + `index.html:444-486` + `styles.css`（新 `.ocr-line-selector`）。PR #46 已合并。 |
-| OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | done (PR #47 merged 2026-06-24) | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` `position:relative` + 桌面端删 `grid-row:3`。PR #47 已合并。 |
-| OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | done (PR #48 merged 2026-06-24) | northstar「强」，Theme 1；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。`app.js:1449-1452`：有 `quote.imageUrl` 时条件渲染 `<img>`，否则保留 fallback；`styles.css` 无需改动（`.entry-card-cover img` 已有）。PR #48 已合并。 |
-| OPT-062 | 确认对话框 Escape 关闭后监听器残留，可触发错误删除 | P1 | S | triaged | northstar「中」，Theme 1「零丢失」验收直接威胁；data safety 类。`showConfirmDialog`（`app.js:2286-2297`）缺 `cancel` 事件清理，6+ 删除路径受影响；`deleteBook` 弹窗（`app.js:2120`）另有独立缺口；各追加 1 行 `addEventListener("cancel", cleanup, { once: true })`。**预算复位首选**（roadmap §2 短期节明确点名）。 |
-| OPT-063 | compress_chat_history API 失败时写入截断历史，永久丢失旧聊天记录 | P1 | S | triaged | northstar「中」，Theme 2「回顾有价值」前提数据；data safety 类（与 OPT-040/041 同类）。`app_server.py:2288-2291`：`except Exception: compressed = recent` 后无条件 `save_state()`；修复为把 `save_state` 移入 `try` 块，`except` 直接 `return history`，约 4 行重排，零副作用。可与 OPT-062 同 PR 实现（若预算复位时一并做）。 |
+| OPT-062 | 确认对话框 Escape 关闭后监听器残留，可触发错误删除 | P1 | S | triaged | northstar「中」，Theme 1「零丢失」验收直接威胁；data safety 类。`showConfirmDialog`（`app.js:2286-2297`）缺 `cancel` 事件清理，6+ 删除路径受影响；`deleteBook` 弹窗（`app.js:2120`）另有独立缺口；各追加 1 行 `addEventListener("cancel", cleanup, { once: true })`。**roadmap §2 预算复位首选**。 |
+| OPT-069 | call_deepseek_stream() 无重试：主聊天路径遇瞬断即报错 | P1 | S | triaged | northstar「强」——主聊天（Theme 2 核心入口）遇 429/502 报错是对用户信任的直接伤害；`call_deepseek()` 已有 3 次重试，streaming 路径零重试，两路径不一致。`app_server.py:3247-3270`：将 `urlopen()` 调用放入 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，镜像 `call_deepseek()` 模式（lines 3192-3220）；`tests/agent/deepseek_retry_test.py` 新增 `DeepseekStreamRetryTest` 类。S 复杂度，零逻辑变更。 |
+| OPT-068 | 导入减量守卫未覆盖 chatHistories，旧备份可静默清空聊天记录 | P1 | S | triaged | northstar「中」，Theme 2 核心数据；与 OPT-063 同类（历史记录静默丢失）；填补 import 护栏最后一口。`app.js:3098-3105`（`stateContentCount`）补 `Object.keys(s.chatHistories||{}).length`；`app.js:3166`（`_categoryLabels`）加 `chatHistories:"聊天记录"` + `cur/inc` 用 `Object.keys` 而非 `Array.isArray`；共 4 行，零后端变更。 |
+| OPT-063 | compress_chat_history API 失败时写入截断历史，永久丢失旧聊天记录 | P1 | S | triaged | northstar「中」，Theme 2「回顾有价值」前提数据；data safety 类（与 OPT-040/041 同类）。`app_server.py:2279-2292`：`save_state` 移入 `try` 块（压缩成功才持久化），`except` 改直接 `return history`；约 4 行重排，零副作用。可与 OPT-062 同 PR 实现（roadmap §2 建议）。 |
 | OPT-064 | PromptBuilder 发送摘抄完整对象含 ocrText，每次对话浪费数百至数万 token | P1 | S | triaged | northstar「中」，OPT-020/047 同类（token 裁剪），`ocrText` 是最大漏网炸弹（每页 500-2000 字符）；`app_server.py:2312-2345`（`build_chat_prompt`）加白名单 dict comprehension 过滤 `ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt`；零 API/DB 变更，S 复杂度。 |
 | OPT-065 | reading_mcp_server._save_state() 跳过 sanitize_state()，MCP 写路径无状态校验 | P1 | S | triaged | northstar「中」，data safety；`app_server.py` 有 `__main__` 守卫，直接 `from app_server import sanitize_state` 无循环 import 风险；`reading_mcp_server.py:70-75`（`_save_state` 函数）调用前加 `state = sanitize_state(state)`。6 个 MCP 工具全部走此路径，S 复杂度。 |
 | OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」核心路径固定摩擦。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`，共 2 处。无 signal 佐证，但 Theme 1 两周验收期直接触点。预算复位次选（可与 OPT-061 合并一 PR）。 |
@@ -44,6 +40,10 @@ Last triaged: 2026-06-23
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5244` 前追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`；`gc_thread_test.py` 加 1 条断言。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2676, 2695, 2702`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
 | OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1876, 1852, 1890, 1915, 1935`。 |
+| OPT-047 | PromptBuilder all_books_summary 无数量上限 | P1 | S | done (PR #45 merged 2026-06-24) | `app_server.py:2326-2329`：全量书单无 LIMIT → 按 `updatedAt` 倒序取 `[:50]`；roadmap §2 明确首推，northstar「强」，Theme 1 成本控制。PR #45 已合并。 |
+| OPT-055 | 快速 OCR 行级删除 UI | P1 | M | done (PR #46 merged 2026-06-24) | Signal 2026-06-16：owner 真机「整页全文，只想留划线句，得逐行删」。northstar「强」，Theme 1 直接摩擦。`app.js:1548-1566` + `index.html:444-486` + `styles.css`（新 `.ocr-line-selector`）。PR #46 已合并。 |
+| OPT-054 | 「↓ 最新」按钮改浮动叠加，不占布局行 | P1 | S | done (PR #47 merged 2026-06-24) | Signal 2026-06-16：owner 真机「最新独占一行，挤压聊天空间」。northstar「中」，Theme 1 辅助。`styles.css:2069-2073`（`.chat-scroll-btn-row` → `position:absolute; bottom:8px; right:8px; z-index:2`）+ `#chatMessages` `position:relative` + 桌面端删 `grid-row:3`。PR #47 已合并。 |
+| OPT-052 | 摘抄卡面缺少图片缩略图——拍照 OCR 成卡后无视觉区分度 | P1 | S | done (PR #48 merged 2026-06-24) | northstar「强」，Theme 1；signal 2026-06-16（OCR 全文录入，图片视觉反馈关键）。`app.js:1449-1452`：有 `quote.imageUrl` 时条件渲染 `<img>`，否则保留 fallback；`styles.css` 无需改动（`.entry-card-cover img` 已有）。PR #48 已合并。 |
 | OPT-049 | 书详情弹窗 UX 三连修（滚动复位/锁横滑/摘抄·笔记区分） | P1 | S | done (PR #44, 2026-06-14) | signal 2026-06-13 (×3)：owner 真机反馈详情页滚动停中段/可左右滑/「相关摘抄」含笔记不区分。`app.js`（openBookDetailDialog 滚动复位 + 文案）、`styles.css`（overflow-x）、`index.html`（标题）。4 条新测试；163/163 绿。 |
 | OPT-045 | Session/Connection CRUD 前端测试覆盖 | P2 | M | done (PR #43, 2026-06-13) | 新增 `tests/frontend/session-crud.test.js` + `tests/frontend/connection-crud.test.js`，17 条测试；159/159 全绿，未改 app.js。 |
 | OPT-043 | 导入前 N→M 对比 + 减少时高危确认 | P1 | S | done (PR #39, 2026-06-12) | signal 2026-06-11：owner 误导入旧备份致 3 张卡丢失。`importData()` 应用前先计 current vs resolved 各类数量；任一类 M<N 时弹强确认。11/11 测试绿。 |

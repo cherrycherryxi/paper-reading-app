@@ -555,7 +555,7 @@ Format per item:
 - how: 在 `app.js:277-278` 之间插入：`if (key.startsWith("quote:")) return normalizeChatContext({ type: "quote", quoteId: key.slice(6) });`。Touch: `app.js:274-279`（`contextFromHistoryKey` 函数）。
 
 ### OPT-068 — 导入减量守卫未覆盖 `chatHistories`：旧备份可静默清空聊天记录 — 由 explore E108 提拔
-- status: new
+- status: triaged
 - area: frontend
 - priority: P1
 - size: S
@@ -565,7 +565,7 @@ Format per item:
 - how: 在 `_categoryLabels`（`app.js:3077`）中增加 chatHistories 条目（label="聊天记录"）；在 reduce/count 逻辑中对 chatHistories 使用 `Object.keys(state.chatHistories||{}).length` 而非 `Array.isArray` 路径；在 `stateContentCount()`（`app.js:3009-3016`）补同款计数。Touch: `app.js:3009-3016`（stateContentCount）；`app.js:3077-3084`（decrease guard）。
 
 ### OPT-069 — `call_deepseek_stream()` 无重试：主聊天路径遇瞬断即报错 — 由 explore E109 提拔
-- status: new
+- status: triaged
 - area: backend
 - priority: P1
 - size: S
