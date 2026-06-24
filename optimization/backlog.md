@@ -573,3 +573,23 @@ Format per item:
 - description: `call_deepseek()`（`app_server.py:3182-3219`）有完整重试循环（`DEEPSEEK_MAX_ATTEMPTS=3`，`DEEPSEEK_RETRYABLE_CODES={429,500,502,503}`，指数退避）；`call_deepseek_stream()`（`app_server.py:3222-3265`）遇到 HTTPError/URLError 直接 `raise RuntimeError(...)` 无任何重试。主聊天路径走 streaming（`app_server.py:4834`），任何瞬断用户即见错误弹框。现有测试 `tests/agent/deepseek_retry_test.py` 只覆盖 `call_deepseek()`，streaming 路径零测试。
 - why: DeepSeek 429（rate limit）和 502/503 在高峰期属正常瞬断；非 streaming 路径早就静默恢复，streaming 路径却直接报错——两路径行为不一致是用户体验缺口。重试只需在 `urlopen()` 建立连接这一步循环，不需要对已建立的 streaming chunks 做重试。
 - how: 在 `call_deepseek_stream()`（`app_server.py:3222-3265`）中：将 `urlopen()` 调用放入 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，retryable codes 判断和 `time.sleep` 退避逻辑镜像 `call_deepseek()` 模式（`app_server.py:3195-3211`）。同时在 `tests/agent/deepseek_retry_test.py` 新增 `DeepseekStreamRetryTest` 类覆盖 streaming 路径的 429/503 重试及最大次数耗尽。Touch: `app_server.py:3222-3265`；`tests/agent/deepseek_retry_test.py`。
+
+### OPT-070 — `buildQuoteSearchCard()` OPT-052 后未同步：全局搜索摘抄结果永远显示灰色占位图 — 由 explore E113 提拔
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——全局搜索是「回顾」链路的关键入口；OCR 摘抄（有 `imageUrl`）在摘抄标签页显示缩略图、在搜索结果里显示灰色方块，视觉不一致削弱对工具的信任感；OPT-052 引入的缩略图概念需在全部渲染路径中对齐。
+- description: OPT-052 在 `renderQuotes()`（`app.js:1447-1467`）摘抄卡片模板中加入了条件缩略图渲染（`app.js:1455`：当 `quote.imageUrl` 存在时显示 `<img>`），但全局搜索摘抄卡片函数 `buildQuoteSearchCard()`（`app.js:1193-1215`）未同步更新——封面区域在 `app.js:1199-1201` 硬编码为 `<div class="entry-cover-fallback"></div>`，永远显示灰色占位图，即使摘抄有 `imageUrl`。
+- why: 同一条摘抄数据在两个渲染路径中视觉表现不一致；随着用户积累更多 OCR 摘抄，全局搜索结果里「该有图却没图」的卡片将越来越多，造成「全局搜索功能比摘抄标签差」的印象。
+- how: 将 `buildQuoteSearchCard`（`app.js:1199-1201`）的封面区域改为条件渲染，逻辑与 `renderQuotes` 中的 `app.js:1454-1457` 相同；同时在图片加载后绑定 `onerror` 回退（可与 OPT-071 合并为单 PR）。Touch: `app.js:1193-1215`。
+
+### OPT-071 — 摘抄卡片与详情弹窗图片缺少 `onerror` 回退：URL 失效时显示浏览器破图图标 — 由 explore E112/E114 提拔
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」视觉可靠性分支；OPT-052 添加了缩略图功能但遗漏了错误处理；书籍卡片（`app.js:1162` 调用 `bindBookCoverImageFallback`）有完整 `onerror` 回退，摘抄卡片和详情弹窗无此保护，图片 URL 失效时破图图标破坏「不假思索信任工具」的体感。
+- description: 两处遗漏：① `renderQuotes()` 中的摘抄卡片模板（`app.js:1455`）渲染 `<img>` 时无 `onerror`；书籍卡片在 `app.js:1162` 调用 `bindBookCoverImageFallback(card)`（`app.js:229-250`），监听 `error` 事件并回退到灰色占位图，摘抄卡片无此调用。② `openQuoteDetail()`（`app.js:2244-2251`）设置详情弹窗图片 src 后无 `onerror`；URL 失效时 `imgWrap` 已 `remove("is-hidden")` 但图片加载失败，弹窗顶部整块区域显示破图图标。
+- why: 图片 URL 失效是真实场景（磁盘清理、服务器迁移、上传中断后的半成品记录）；处理缺失会在用户最常用的两个界面（摘抄列表 + 详情弹窗）留下视觉噪声；与 OPT-070 可合并为「OPT-052 视觉可靠性闭环」PR。
+- how: ① 在 `renderQuotes()` 渲染完成后，对新渲染的摘抄卡片图片调用类似 `bindBookCoverImageFallback` 的函数，或直接在模板 `<img>` 后附加委托式 `error` 监听（避免 inline onerror CSP 风险）。② 在 `openQuoteDetail()`（`app.js:2247`）的 `img.src = ...` 后加 `img.onerror = () => imgWrap.classList.add("is-hidden")`。Touch: `app.js:1454-1457`（摘抄卡片模板区域）；`app.js:2244-2251`（`openQuoteDetail`）；参考模式 `app.js:229-250`。

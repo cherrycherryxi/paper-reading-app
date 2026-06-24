@@ -1925,3 +1925,78 @@ self.db.execute(
 **northstar:** 弱——用户可感知 impact 为零；属于后端性能卫生修复；当前使用规模下收益极小，仅作记录，不建议优先执行。
 
 ---
+
+## 2026-06-24
+
+### E112 — 摘抄卡片缩略图（OPT-052 新增）缺少 `onerror` 回退，图片 URL 失效时显示浏览器破图图标 (S)
+
+**What:** `renderQuotes()` 在 `app.js:1455-1457` 中为有 `imageUrl` 的摘抄卡片渲染 `<img>` 标签，但无 `onerror` 处理：
+
+```js
+// app.js:1455
+${quote.imageUrl
+  ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄图片" />`
+  : '<div class="entry-cover-fallback"></div>'}
+```
+
+相比之下，书籍卡片在 `app.js:1162` 渲染后调用 `bindBookCoverImageFallback(card)`（`app.js:229-250`），为每张图片绑定 `error` 事件监听器，失效时优雅回退到 `DEFAULT_BOOK_COVER_URL` 并添加 `has-default-cover` class。摘抄卡片缺少同等保护：图片 URL 失效（文件被删除、上传错误、服务器迁移）时显示浏览器原生破图图标而非灰色占位图。
+
+**Why:** OPT-052 添加了缩略图功能，但遗漏了错误处理。书籍卡片和摘抄卡片应对图片错误有一致行为。Theme 1「采集顺滑」的可靠性目标包括视觉层面的可靠性：旧摘抄图片失效后不应在列表里留下破图图标。
+
+**Complexity:** S — 在 `renderQuotes()` 完成后对新渲染的摘抄卡片图片调用类似 `bindBookCoverImageFallback` 的函数，或在模板 `<img>` 标签上加 `onerror` 内联属性（但 CSP 友好的做法是后者的事件委托形式）。
+
+**Files:** `app.js:1454-1457`（fix 点）、`app.js:229-250`（`bindBookCoverImageFallback` 参考模式）、`app.js:1162`（书籍卡片调用点）
+
+**northstar:** 中——Theme 1「采集顺滑」视觉可靠性分支；图片 URL 失效是真实场景（数据迁移、磁盘清理），破图图标破坏「不假思索信任工具」的体感。
+
+---
+
+### E113 — `buildQuoteSearchCard()` OPT-052 后未同步：全局搜索摘抄结果永远显示灰色占位图 (S)
+
+**What:** OPT-052 在 `renderQuotes()` 的摘抄卡片模板（`app.js:1447-1467`）中加入了条件缩略图渲染，但全局搜索中的摘抄卡片函数 `buildQuoteSearchCard()`（`app.js:1193-1215`）未同步更新——封面区域硬编码为永远显示灰色占位图，即使摘抄有 `imageUrl`：
+
+```js
+// app.js:1199-1201 — always fallback, no conditional
+<div class="entry-card-cover">
+  <div class="entry-cover-fallback"></div>
+</div>
+```
+
+而 `renderQuotes()` 的摘抄卡片（`app.js:1455`）在 `quote.imageUrl` 存在时正确显示 `<img>`。用户在「摘抄」标签页看到带照片缩略图的 OCR 摘抄卡片，切到全局搜索结果里同一张摘抄却变成灰色方块——同一条数据、两种截然不同的视觉呈现。
+
+**Why:** OPT-052 引入了摘抄缩略图概念，但只更新了一条渲染路径，`buildQuoteSearchCard` 是被遗漏的渲染路径。这会造成视觉不一致（「为什么搜索结果里看不到我拍的照片？」），以及 OCR 卡片在全局搜索中缺少可视化标记，影响识别效率。
+
+**Complexity:** S — 将 `buildQuoteSearchCard`（`app.js:1199-1201`）的封面区域改为与 `renderQuotes` 相同的条件渲染逻辑；同时在渲染后绑定 `onerror` 处理（与 E112 可合并为同一 PR）。
+
+**Files:** `app.js:1193-1215`（`buildQuoteSearchCard` 函数，封面模板区域）
+
+**northstar:** 中——Theme 1 完整性；全局搜索是「回顾」链路的关键入口，视觉一致性直接影响对工具的信任感；OPT-052 产生的代码不一致在此处对用户可见。
+
+---
+
+### E114 — 摘抄详情弹窗顶部图片同样无 `onerror`，URL 失效时弹窗顶部显示破图图标 (S)
+
+**What:** `openQuoteDetail()` 在 `app.js:2244-2251` 设置详情弹窗的 `<img>` src，无任何错误处理：
+
+```js
+// app.js:2247
+const img = document.getElementById("quoteDetailImg");
+if (quote.imageUrl) {
+  img.src = resolveImageUrl(quote.imageUrl);
+  imgWrap.classList.remove("is-hidden");
+} else {
+  imgWrap.classList.add("is-hidden");
+}
+```
+
+若图片 URL 失效，`imgWrap` 已 `remove("is-hidden")`，弹窗顶部整个图片区域会显示浏览器破图图标并占据大量视觉空间。理想行为：`onerror` 时将 `imgWrap` 重新 `add("is-hidden")`，等效于「无图片」状态。
+
+**Why:** 与 E112 同属「OPT-052 系列视觉可靠性补全」；详情弹窗是查看摘抄的主要交互路径，破图图标在此处的视觉冲击比列表卡片更强（占弹窗上方 30%+ 的区域）。三处（列表卡片 / 搜索卡片 / 详情弹窗）统一处理能彻底关闭此类问题。
+
+**Complexity:** S — 在 `app.js:2247` 的 `img.src = ...` 后加一行 `img.onerror = () => imgWrap.classList.add("is-hidden")`；可与 E112/E113 合并为单个 PR。
+
+**Files:** `app.js:2244-2251`（`openQuoteDetail` 中的图片赋值区域）
+
+**northstar:** 中——与 E112 共同构成 OPT-052 视觉可靠性闭环；三处统一修复方能避免遗漏渲染路径再次出现同类问题。
+
+---
