@@ -575,7 +575,7 @@ Format per item:
 - how: 在 `call_deepseek_stream()`（`app_server.py:3222-3265`）中：将 `urlopen()` 调用放入 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，retryable codes 判断和 `time.sleep` 退避逻辑镜像 `call_deepseek()` 模式（`app_server.py:3195-3211`）。同时在 `tests/agent/deepseek_retry_test.py` 新增 `DeepseekStreamRetryTest` 类覆盖 streaming 路径的 429/503 重试及最大次数耗尽。Touch: `app_server.py:3222-3265`；`tests/agent/deepseek_retry_test.py`。
 
 ### OPT-070 — `buildQuoteSearchCard()` OPT-052 后未同步：全局搜索摘抄结果永远显示灰色占位图 — 由 explore E113 提拔
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -585,7 +585,7 @@ Format per item:
 - how: 将 `buildQuoteSearchCard`（`app.js:1199-1201`）的封面区域改为条件渲染，逻辑与 `renderQuotes` 中的 `app.js:1454-1457` 相同；同时在图片加载后绑定 `onerror` 回退（可与 OPT-071 合并为单 PR）。Touch: `app.js:1193-1215`。
 
 ### OPT-071 — 摘抄卡片与详情弹窗图片缺少 `onerror` 回退：URL 失效时显示浏览器破图图标 — 由 explore E112/E114 提拔
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
