@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-25T17:06:56.014Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-25T18:05:05.516Z
 > Files: 168 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -84,7 +84,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66489 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66708 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46702 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
@@ -193,7 +193,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~1126 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~249 tok)
-- `triage.md` — Triage (~3558 tok)
+- `triage.md` — Triage (~3561 tok)
 
 ## scripts/
 
@@ -224,7 +224,7 @@
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
-- `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_retries_on_429, side_effect, test_retries_on_503 + 14 (~2133 tok)
+- `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_retries_on_429, side_effect, test_retries_on_503 + 24 (~4466 tok)
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
 - `media_cors_test.py` — Regression test for OPT-023: /media/ route must NOT emit Access-Control-Allow-Origin. (~819 tok)
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
