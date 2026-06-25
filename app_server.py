@@ -3228,45 +3228,61 @@ def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", m
     if not DEEPSEEK_API_KEY:
         raise RuntimeError("DEEPSEEK_API_KEY is not configured")
 
-    request = Request(
-        "https://api.deepseek.com/v1/chat/completions",
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-        },
-        data=json.dumps(
-            {
-                "model": model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "stream": True,
-            }
-        ).encode("utf-8"),
-    )
-    try:
-        finish_reason = ""
-        with urlopen(request, timeout=120) as response:
-            for raw_line in response:
-                line = raw_line.decode("utf-8").strip()
-                if not line or line == "data: [DONE]":
-                    continue
-                if line.startswith("data: "):
-                    try:
-                        chunk = json.loads(line[6:])
-                        choice = chunk.get("choices", [{}])[0]
-                        finish_reason = choice.get("finish_reason") or finish_reason
-                        content = choice.get("delta", {}).get("content") or ""
-                        if content:
-                            yield content
-                    except (json.JSONDecodeError, IndexError, KeyError):
-                        pass
-        return finish_reason
-    except HTTPError as error:
-        payload = error.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(payload or f"HTTP {error.code}") from error
-    except URLError as error:
-        raise RuntimeError(str(error.reason)) from error
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+    ).encode("utf-8")
+
+    finish_reason = ""
+    for attempt in range(DEEPSEEK_MAX_ATTEMPTS):
+        request = Request(
+            "https://api.deepseek.com/v1/chat/completions",
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            },
+            data=payload,
+        )
+        try:
+            with urlopen(request, timeout=120) as response:
+                for raw_line in response:
+                    line = raw_line.decode("utf-8").strip()
+                    if not line or line == "data: [DONE]":
+                        continue
+                    if line.startswith("data: "):
+                        try:
+                            chunk = json.loads(line[6:])
+                            choice = chunk.get("choices", [{}])[0]
+                            finish_reason = choice.get("finish_reason") or finish_reason
+                            content = choice.get("delta", {}).get("content") or ""
+                            if content:
+                                yield content
+                        except (json.JSONDecodeError, IndexError, KeyError):
+                            pass
+            return finish_reason
+        except HTTPError as error:
+            error_body = error.read().decode("utf-8", errors="ignore")
+            if error.code in DEEPSEEK_RETRYABLE_CODES and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            raise RuntimeError(error_body or f"HTTP {error.code}") from error
+        except (TimeoutError, socket.timeout) as error:
+            if attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            raise RuntimeError("DeepSeek API 读取超时，请稍后重试") from error
+        except URLError as error:
+            if isinstance(error.reason, (TimeoutError, socket.timeout)) and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+                time.sleep(1)
+                continue
+            raise RuntimeError(str(error.reason)) from error
+
+    raise RuntimeError("DeepSeek API 暂时不可用，请稍后重试")
 
 
 def call_kimi_vision(messages: list[dict], max_tokens: int = KIMI_VISION_MAX_TOKENS) -> KimiVisionResult:
