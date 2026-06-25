@@ -593,3 +593,23 @@ Format per item:
 - description: 两处遗漏：① `renderQuotes()` 中的摘抄卡片模板（`app.js:1455`）渲染 `<img>` 时无 `onerror`；书籍卡片在 `app.js:1162` 调用 `bindBookCoverImageFallback(card)`（`app.js:229-250`），监听 `error` 事件并回退到灰色占位图，摘抄卡片无此调用。② `openQuoteDetail()`（`app.js:2244-2251`）设置详情弹窗图片 src 后无 `onerror`；URL 失效时 `imgWrap` 已 `remove("is-hidden")` 但图片加载失败，弹窗顶部整块区域显示破图图标。
 - why: 图片 URL 失效是真实场景（磁盘清理、服务器迁移、上传中断后的半成品记录）；处理缺失会在用户最常用的两个界面（摘抄列表 + 详情弹窗）留下视觉噪声；与 OPT-070 可合并为「OPT-052 视觉可靠性闭环」PR。
 - how: ① 在 `renderQuotes()` 渲染完成后，对新渲染的摘抄卡片图片调用类似 `bindBookCoverImageFallback` 的函数，或直接在模板 `<img>` 后附加委托式 `error` 监听（避免 inline onerror CSP 风险）。② 在 `openQuoteDetail()`（`app.js:2247`）的 `img.src = ...` 后加 `img.onerror = () => imgWrap.classList.add("is-hidden")`。Touch: `app.js:1454-1457`（摘抄卡片模板区域）；`app.js:2244-2251`（`openQuoteDetail`）；参考模式 `app.js:229-250`。
+
+### OPT-072 — 搜索输入框无防抖，每次按键触发全量 DOM 重建 — 由 explore E115 提拔
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——搜索是「回顾」链路入口；摘抄积累 100+ 条后按键卡顿 200ms+ 是「等太久放弃」的典型场景，直接违背 Theme 1 验收条件；S 改动消除随积累量增长的体验悬崖。
+- description: `app.js:4175-4176` 和 `app.js:3956` 三个搜索输入框以原始渲染函数直接作为 `input` 事件处理器，无防抖。`renderQuotes()`（`app.js:1401-1469`）在 `app.js:1433` 执行同步 `innerHTML` 全量重建，对比 `renderBooks()`（`app.js:1269-1317`）有 `requestAnimationFrame` 批量渲染保护。每次按键 → 立即触发全量 DOM 重建，移动端大量摘抄卡片时造成主线程阻塞卡顿。此问题在 explore E5（2026-05-30）和 E30（2026-06-02）均有记录，从未被提拔。
+- why: Theme 1 验收需要「零等太久放弃」；随 OCR 积累量增长，搜索体验会出现悬崖式劣化，提前修复成本极低（5 行）；防抖是移动端输入框的基本卫生。
+- how: 在 `app.js:4175-4176`（`quoteSearch`/`sessionSearch`）和 `app.js:3956`（`connectionSearch`）的 `addEventListener("input", fn)` 外加 `debounce(fn, 250)` 包裹（内联 `setTimeout/clearTimeout` 模式，无需引入依赖）；`renderQuotes`/`renderTimeline`/`renderConnections` 可各接收可选 filter 字符串参数以支持内部过滤。Touch: `app.js:3956, 4175-4176`（事件绑定）；`app.js:1401-1469`（`renderQuotes`，如需接受 filter 参数）。
+
+### OPT-073 — 非超时类聊天流式错误无内联重试按钮，用户无一键恢复路径 — 由 explore E117 提拔
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——聊天是 Theme 2「回顾有价值」的核心动作；OPT-069（后端重试）之后若重试耗尽，前端依然无 UI 级恢复；S 改动把错误状态从「死胡同」变为「可自愈节点」，消除移动网络中断场景下的摩擦。
+- description: `chat.js:702-719` 错误处理仅 `AbortError`（30s 空闲超时）路径调用 `renderStreamTimeout()` 显示重试按钮（`chat.js:724-744`）；`rate_limited`（429）路径仅附加限流样式消息，无重试按钮；通用 `else`（502/503/网络中断）路径同样仅 `appendMessage("出错了：${message}")`，无重试按钮。`retryFn` 在 `catch` 作用域内已可访问，`renderStreamTimeout` 的按钮逻辑已实现，复用成本极低。
+- why: 移动网络中断属常见场景；出错后用户需手动重输问题，直接阻断探讨流；OPT-069 处理了后端瞬断，本项处理前端持久失败后的 UI 恢复，两者互补。
+- how: 将 `renderStreamTimeout()`（`chat.js:724-744`）中的重试按钮创建逻辑提取为 `appendRetryButton(container, retryFn, label)` 函数；在 `rate_limited` 和通用 `else` 分支的 `appendMessage` 之后各调用一次 `appendRetryButton(msgDiv, retryFn, "重试")`。`retryFn` 可直接复用 `AbortError` 分支传入的 `retryFn`（同作用域）。Touch: `chat.js:702-719`（错误处理分支）；`chat.js:724-744`（`renderStreamTimeout`，提取重试按钮逻辑）。

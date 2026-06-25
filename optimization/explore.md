@@ -2000,3 +2000,113 @@ if (quote.imageUrl) {
 **northstar:** 中——与 E112 共同构成 OPT-052 视觉可靠性闭环；三处统一修复方能避免遗漏渲染路径再次出现同类问题。
 
 ---
+
+## 2026-06-25
+
+### E115 — 搜索输入框每次按键触发全量 DOM 重建，无防抖处理 (S)
+
+**What:** `app.js:4175-4176` 和 `app.js:3956` 中三个搜索输入框直接以原始渲染函数作为事件处理：
+
+```js
+// app.js:4175
+els.sessionSearch?.addEventListener("input", renderTimeline);
+// app.js:4176
+els.quoteSearch?.addEventListener("input", renderQuotes);
+// app.js:3956
+els.connectionSearch?.addEventListener("input", renderConnections);
+```
+
+`renderQuotes()`（`app.js:1401-1469`）在 `app.js:1433` 执行同步 `innerHTML` 全量重建：
+`els.quotesList.innerHTML = quotes.map(...).join("")`。
+对比 `renderBooks()`（`app.js:1269-1317`）使用了 `BATCH=8` + `requestAnimationFrame` 批量渲染（`app.js:1301-1317`），`renderQuotes` 无类似保护。
+每一次按键 → 立即触发全量 DOM 重建，移动端大量 OCR 摘抄卡片场景下每次按键约 200–500ms 同步卡顿（JS 主线程阻塞）。
+此问题在 explore.md 2026-05-30 E5 和 2026-06-02 E30 均有记录，但从未被提拔为 backlog 条目。
+
+**Why it matters:** Theme 1 验收「零『等太久放弃』」不仅针对 OCR 采集，也针对事后使用体验。积累 100 张以上 OCR 摘抄卡片后，在摘抄标签搜索时每次按键都卡 200ms+ 是典型「低头看手机 → 放弃使用」的场景。防抖 250ms + `renderQuotes` 接受 filter 参数两处改动即可解决。
+
+**Complexity:** S — 在三处 `addEventListener` 外加 `debounce()` 包裹（若无工具函数则内联 `setTimeout/clearTimeout` 模式，约 5 行）；`renderQuotes`/`renderTimeline`/`renderConnections` 各接收一个可选 filter 字符串参数，内部做过滤后再走现有渲染逻辑。
+
+**Files:** `app.js:4175-4176`（`quoteSearch`/`sessionSearch`）；`app.js:3956`（`connectionSearch`）；`app.js:1401-1469`（`renderQuotes`）
+
+**northstar:** 中——搜索是「回顾」链路的入口动作；按键卡顿是 Theme 1「不假思索默认工具」的直接障碍；S 改动消除积累量增长后的体验悬崖。
+
+---
+
+### E116 — `_run_gc()` 不清理可观测性表：`model_logs`/`agent_traces` 随使用无限增长 (S)
+
+**What:** `app_server.py:5451-5469` 的 `_run_gc()`（每 6 小时执行一次）只调用 4 个 GC 函数：
+
+```python
+# app_server.py:5458-5461
+gc_expired_sessions(conn)
+gc_expired_password_reset_tokens(conn)
+gc_old_server_errors(conn)
+gc_old_rate_limit_rows(conn)
+```
+
+以下可观测性表无任何自动清理：
+- `model_logs`（`app_server.py:390-402`）：每次 LLM 调用写入完整 prompt + response，行体积 2–5KB
+- `agent_traces`（404-420）、`agent_trace_events`（438-445）、`agent_actions`（422-436）、`agent_metrics`（447-457）
+
+唯一清理路径是账户删除（`app_server.py:5410-5417`）。以每日 2-3 次聊天 + 1-2 次 OCR 估算：每日约 10 行 × 平均 3KB = 30KB/day；半年约 5MB、一年超 10MB——体积本身不严重，但 `model_logs` 存全量 prompt（含书单 + 摘抄列表 JSON），随书籍积累单行可超 10KB，一年后总量可达数十 MB。
+
+**Why:** 用户感知 impact 为零（SQLite 文件膨胀不影响请求速度），属后端存储卫生。在阶段 A（个人工具）下优先级极低，但若未来向多用户开放（阶段 B/C），每位用户的可观测性数据都无 GC，将成为磁盘压力。
+
+**Complexity:** S — 新增两个 GC 函数（`gc_old_model_logs(conn, days=90)` 和 `gc_old_agent_data(conn, days=30)`），在 `_run_gc()` 末尾调用；90 天和 30 天门槛满足调试回溯需求。
+
+**Files:** `app_server.py:5451-5469`（`_run_gc`）；`app_server.py:390-457`（表 schema 参考）
+
+**northstar:** 弱——当前规模下用户不可感知；仅存储卫生修复，P3 parked 候选。
+
+---
+
+### E117 — 非超时类聊天流式错误缺少内联重试按钮，错误后无恢复路径 (S)
+
+**What:** `chat.js:702-719` 的错误处理区分了三种路径：
+
+```js
+// chat.js:702-719
+if (err.name === "AbortError") {
+    renderStreamTimeout(msgDiv, retryFn, "超时");  // → 有重试按钮
+} else if (data.error_type === "rate_limited") {
+    appendMessage("assistant", /* 限流样式消息 */);  // → 无重试按钮
+} else {
+    appendMessage("assistant", `出错了：${message}`);  // → 无重试按钮
+}
+```
+
+`renderStreamTimeout()`（`chat.js:724-744`）创建重试按钮，仅由 `AbortError`（30s 空闲超时）路径触发。
+限流（429）和其他运行时错误（502/503/网络中断）在 UI 层无重试入口；用户只能手动重新输入刚才的问题。
+OPT-069（PR #50）正在为后端 `call_deepseek_stream()` 添加自动重试；但若重试耗尽后仍失败，前端依然无 UI 级重试。
+
+**Why:** 移动网络环境下短暂中断属常见场景；出错后用户需手动重输问题——这正是「走走停停」体验（roadmap §2 北极星反面）。`renderStreamTimeout` 的按钮逻辑已存在，复用到 `rate_limited` 和通用错误路径只需约 10 行改动，将一条死胡同变为一键恢复。
+
+**Complexity:** S — 将 `renderStreamTimeout()` 中的重试按钮逻辑提取为通用 `appendRetryButton(container, retryFn, label)` 函数，在 `rate_limited` 和通用 `else` 分支复用。`retryFn` 已在 `catch` 作用域内可访问。
+
+**Files:** `chat.js:702-719`（错误处理分支）；`chat.js:724-744`（`renderStreamTimeout`，重试按钮参考实现）
+
+**northstar:** 中——聊天是 Theme 2「回顾有价值」的核心动作；出错无法一键重试直接阻断探讨流；S 改动把错误状态从「死胡同」变为「可自愈节点」。
+
+---
+
+### E118 — `connectionDialog` `showModal()` 后无 `focus()`：移动端需点两次才能输入 (S)
+
+**What:** `openConnectionDialog()`（`app.js:3761-3785`）和 `openConnectionForEdit()`（`app.js:3863-3889`）均以 `els.connectionDialog.showModal()` 结束，无后续 `focus()` 调用：
+
+```js
+// app.js:3784
+els.connectionDialog.showModal();
+// （无后续 focus 调用）
+```
+
+对比已知问题 OPT-058（摘抄新增对话框）和 OPT-061（阅读记录对话框）—— 这两个 dialog 也有相同的 `showModal()` 无 `focus()` 问题，均已 triaged。`connectionDialog` 是第三个相同模式的对话框，但尚未进入 backlog。`thought` 字段（核心文本输入）是 `connectionDialog` 的主要交互目标。
+
+**Why:** iOS Safari 下 `<dialog>.showModal()` 不自动聚焦第一个可输入元素，用户必须手动点击输入框才能激活键盘。对于 `connectionDialog` 这类低频功能（添加联系 / 编辑联系），额外的点击步骤在移动端是明显的摩擦，但鉴于使用频率低于 OCR 摘抄路径，影响优先级低于 OPT-058/061。
+
+**Complexity:** S — 在两处 `showModal()` 之后分别添加 `setTimeout(() => els.thoughtInput?.focus(), 50)` 或直接 `els.thoughtInput.focus()`（同 OPT-058/061 修复模式）。可与 OPT-058/061 同 PR 批量修复三个对话框。
+
+**Files:** `app.js:3784`（`openConnectionDialog`）；`app.js:3889`（`openConnectionForEdit`）
+
+**northstar:** 弱——连接功能使用频率低，不在 Theme 1/2 核心路径上；建议与 OPT-058/061 合并修复，避免单独开 PR 占预算。
+
+---
