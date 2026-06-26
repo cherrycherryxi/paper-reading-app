@@ -1,3 +1,4 @@
+import json
 import socket
 import sys
 import time
@@ -260,6 +261,224 @@ class DeepseekRetryTest(unittest.TestCase):
 
         self.assertEqual(result, "ok")
         self.assertEqual(call_count, 2)
+
+
+class DeepseekStreamRetryTest(unittest.TestCase):
+    """Tests for call_deepseek_stream() retry logic (OPT-069)."""
+
+    def _make_http_error(self, code: int, body: bytes = b"") -> HTTPError:
+        fp = MagicMock()
+        fp.read.return_value = body
+        return HTTPError(url="https://api.deepseek.com", code=code, msg="", hdrs={}, fp=fp)
+
+    def _make_url_error_timeout(self) -> URLError:
+        return URLError(reason=TimeoutError("timed out"))
+
+    def _make_stream_response(self, chunks=("hello", " world")):
+        """Build a mock streaming response that yields SSE lines."""
+        lines = []
+        for chunk in chunks:
+            payload = json.dumps({"choices": [{"delta": {"content": chunk}, "finish_reason": None}]})
+            lines.append(f"data: {payload}\n".encode("utf-8"))
+        lines.append(b"data: [DONE]\n")
+
+        resp = MagicMock()
+        resp.__enter__ = lambda s: s
+        resp.__exit__ = MagicMock(return_value=False)
+        resp.__iter__ = lambda s: iter(lines)
+        return resp
+
+    def _collect(self, gen):
+        return list(gen)
+
+    # --- success on first attempt ---
+
+    def test_stream_success_no_retry(self):
+        resp = self._make_stream_response(("hello",))
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", return_value=resp
+        ) as mock_open:
+            result = self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+        self.assertEqual(result, ["hello"])
+        self.assertEqual(mock_open.call_count, 1)
+
+    # --- retryable HTTP codes ---
+
+    def test_stream_retries_on_429(self):
+        err = self._make_http_error(429)
+        resp = self._make_stream_response(("ok",))
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise err
+            return resp
+
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep"):
+            result = self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+        self.assertEqual(result, ["ok"])
+        self.assertEqual(call_count, 2)
+
+    def test_stream_retries_on_503(self):
+        err = self._make_http_error(503)
+        resp = self._make_stream_response(("recovered",))
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise err
+            return resp
+
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep"):
+            result = self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+        self.assertEqual(result, ["recovered"])
+        self.assertEqual(call_count, 3)
+
+    # --- exhausted retries raise ---
+
+    def test_stream_raises_after_max_attempts_429(self):
+        err = self._make_http_error(429, b"rate limited")
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=err
+        ), patch("app_server.time.sleep"):
+            with self.assertRaises(RuntimeError) as ctx:
+                self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+        self.assertIn("rate limited", str(ctx.exception))
+
+    def test_stream_raises_after_max_attempts_503(self):
+        err = self._make_http_error(503)
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=err
+        ), patch("app_server.time.sleep"):
+            with self.assertRaises(RuntimeError):
+                self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+    # --- non-retryable codes raise immediately ---
+
+    def test_stream_no_retry_on_401(self):
+        err = self._make_http_error(401, b"unauthorized")
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            raise err
+
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep"):
+            with self.assertRaises(RuntimeError):
+                self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+        self.assertEqual(call_count, 1)
+
+    # --- URLError timeout retries ---
+
+    def test_stream_retries_on_url_error_timeout(self):
+        err = self._make_url_error_timeout()
+        resp = self._make_stream_response(("after timeout",))
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise err
+            return resp
+
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep"):
+            result = self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+        self.assertEqual(result, ["after timeout"])
+        self.assertEqual(call_count, 2)
+
+    # --- sleep is called between retries ---
+
+    def test_stream_sleep_called_between_retries(self):
+        err = self._make_http_error(503)
+        resp = self._make_stream_response(("ok",))
+        call_count = 0
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise err
+            return resp
+
+        sleep_calls = []
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", side_effect=side_effect
+        ), patch("app_server.time.sleep", side_effect=lambda s: sleep_calls.append(s)):
+            self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+        self.assertEqual(len(sleep_calls), 1)
+        self.assertGreaterEqual(sleep_calls[0], 1)
+
+    # --- mid-stream failures must NOT retry (would duplicate already-sent deltas) ---
+
+    def _make_stream_response_then_raise(self, chunks, error):
+        """Mock response that yields a few SSE lines, then raises mid-iteration."""
+        lines = []
+        for chunk in chunks:
+            payload = json.dumps({"choices": [{"delta": {"content": chunk}, "finish_reason": None}]})
+            lines.append(f"data: {payload}\n".encode("utf-8"))
+
+        def _iter(_self):
+            for line in lines:
+                yield line
+            raise error
+
+        resp = MagicMock()
+        resp.__enter__ = lambda s: s
+        resp.__exit__ = MagicMock(return_value=False)
+        resp.__iter__ = _iter
+        return resp
+
+    def test_stream_no_retry_after_first_chunk_timeout(self):
+        # First chunk is delivered, then the read times out mid-stream. Because
+        # "hello" has already been flushed to the client, retrying would re-emit
+        # the whole stream -> we must raise instead, with no second urlopen.
+        resp = self._make_stream_response_then_raise(("hello",), socket.timeout("read timed out"))
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", return_value=resp
+        ) as mock_open, patch("app_server.time.sleep") as mock_sleep:
+            collected = []
+            with self.assertRaises(RuntimeError):
+                for delta in app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]):
+                    collected.append(delta)
+
+        self.assertEqual(collected, ["hello"], "the delta must be emitted exactly once, not duplicated")
+        self.assertEqual(mock_open.call_count, 1, "must not retry after content was already streamed")
+        mock_sleep.assert_not_called()
+
+    def test_stream_no_retry_after_first_chunk_url_error_timeout(self):
+        resp = self._make_stream_response_then_raise(
+            ("partial",), URLError(reason=TimeoutError("timed out"))
+        )
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.urlopen", return_value=resp
+        ) as mock_open, patch("app_server.time.sleep") as mock_sleep:
+            collected = []
+            with self.assertRaises(RuntimeError):
+                for delta in app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]):
+                    collected.append(delta)
+
+        self.assertEqual(collected, ["partial"])
+        self.assertEqual(mock_open.call_count, 1)
+        mock_sleep.assert_not_called()
 
 
 if __name__ == "__main__":
