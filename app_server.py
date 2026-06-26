@@ -3248,6 +3248,10 @@ def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", m
             },
             data=payload,
         )
+        # Once any delta has been yielded, the consumer has already flushed it to
+        # the client; retrying would re-emit the whole stream and duplicate output.
+        # So only retry failures that happen before the first yield.
+        started = False
         try:
             with urlopen(request, timeout=120) as response:
                 for raw_line in response:
@@ -3261,23 +3265,28 @@ def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", m
                             finish_reason = choice.get("finish_reason") or finish_reason
                             content = choice.get("delta", {}).get("content") or ""
                             if content:
+                                started = True
                                 yield content
                         except (json.JSONDecodeError, IndexError, KeyError):
                             pass
             return finish_reason
         except HTTPError as error:
             error_body = error.read().decode("utf-8", errors="ignore")
-            if error.code in DEEPSEEK_RETRYABLE_CODES and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+            if not started and error.code in DEEPSEEK_RETRYABLE_CODES and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
                 time.sleep(1)
                 continue
             raise RuntimeError(error_body or f"HTTP {error.code}") from error
         except (TimeoutError, socket.timeout) as error:
-            if attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+            if not started and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
                 time.sleep(1)
                 continue
             raise RuntimeError("DeepSeek API 读取超时，请稍后重试") from error
         except URLError as error:
-            if isinstance(error.reason, (TimeoutError, socket.timeout)) and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS:
+            if (
+                not started
+                and isinstance(error.reason, (TimeoutError, socket.timeout))
+                and attempt + 1 < DEEPSEEK_MAX_ATTEMPTS
+            ):
                 time.sleep(1)
                 continue
             raise RuntimeError(str(error.reason)) from error
