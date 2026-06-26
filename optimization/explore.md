@@ -2110,3 +2110,114 @@ els.connectionDialog.showModal();
 **northstar:** 弱——连接功能使用频率低，不在 Theme 1/2 核心路径上；建议与 OPT-058/061 合并修复，避免单独开 PR 占预算。
 
 ---
+
+## 2026-06-26
+
+### E119 — 书籍 `startedAt`/`finishedAt` 字段数据已自动填充但从未在 UI 展示，与 2026-06-26 信号直接对应 (S) [signal-backed]
+
+**What:** `addBook()`（`app.js:2070-2072`）将 `startedAt`、`finishedAt`、`lastReadAt` 初始化为 `null`；`saveSession()` 新建路径（`app.js:2135-2138`）会自动更新这三个字段：
+
+```js
+// app.js:2135-2138
+book.lastReadAt = date;
+if (!book.startedAt) book.startedAt = date;
+if (book.totalPages && endPage >= book.totalPages) {
+  book.status = "finished";
+  if (!book.finishedAt) book.finishedAt = date;
+}
+```
+
+然而 `openBookDetailDialog()`（`app.js:2551-2557`）展示书籍详情时完全不读这些字段——`bookDetailMeta`（`app.js:2556`）仅显示：
+
+```js
+els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
+```
+
+`buildBookSearchCard()` 进度文案（`app.js:1123-1126`）也不含 `startedAt`/`finishedAt`；书籍新增/编辑 dialog（`index.html:386-419`）无任何日期输入字段。`formatDate()` 辅助函数（`app.js:444-451`）已就位，可直接用于格式化展示。
+
+Signal（`signals.md:2026-06-26`）：「读完《激情耗尽》想记下开始/读完日期，但现在只能手动加「记录」，经常忘 → 希望每本书有「开始阅读 / 读完」日期字段，能自动或一键标记，不依赖手动加记录」——Owner 不知道数据已通过 `saveSession()` 自动填充，只是从未被展示出来。
+
+**Why it matters:** 「开始：2026-05-01 · 读完：2026-06-26」是书单页最直观的阅读历程记录，也是 Theme 2「回顾有价值」最基础的入口。数据已在 DB 里，展示修复成本极低（2-3 行 DOM 修改）。Owner 的 signal 明确说「经常忘记手动加记录」——展示自动填充的日期可立即消除这个摩擦，无需任何新的数据采集路径。
+
+**Complexity:** S（纯展示，约 3 行改动）或 M（同时在书籍 dialog 加 date 输入字段支持手动设置，约 20-30 行）
+
+**Files:** `app.js:2551-2560`（`openBookDetailDialog`，主要展示点）；`app.js:444-451`（`formatDate`，可直接调用）；`app.js:1123-1126`（`buildBookSearchCard` 进度文案，可选）；`index.html:386-419`（书籍 dialog，可选加 date 字段）
+
+**northstar:** 强——2026-06-26 owner 最新信号直接点名；数据已存在只需展示；完成后书单页真正成为阅读历程视图，直接支撑「不假思索的默认工具」核心体感。→ **promoted to OPT-074**
+
+---
+
+### E120 — 自定义摘抄标签仅存 `localStorage`，跨设备不同步，备份导出中不存在 (M)
+
+**What:** `getCustomQuoteTags()` 和 `saveCustomQuoteTags()`（`app.js:460-464`）将用户自定义摘抄标签完全存储在浏览器 localStorage 中：
+
+```js
+// app.js:460-464
+function getCustomQuoteTags() {
+  try { return JSON.parse(localStorage.getItem("quote-custom-tags") || "[]"); } catch { return []; }
+}
+function saveCustomQuoteTags(tags) {
+  localStorage.setItem("quote-custom-tags", JSON.stringify(tags));
+}
+```
+
+`sanitize_state()`（`app_server.py:633-667`）维护的 server-side state schema（`books/sessions/quotes/connections/chatHistories/chatContexts`）完全不包含 `customQuoteTags` 字段。用户在 iPhone 上建立的标签体系在 `/api/account/export` 导出包中不存在，换设备或清浏览器缓存后标签选项丢失（摘抄 `tags` 字段中已打的字符串保留，但新增摘抄时不再出现这些选项，体验混乱）。E7（2026-05-30）已记录此问题，至今未提拔为 backlog。
+
+**Why it matters:** 自定义标签是用户对摘抄进行主题分类的工具，是 Theme 2「回顾有价值」里「按主题检索」路径的基础。标签体系越积累越难补救——一旦清缓存或换设备，历史摘抄的标签过滤入口消失，造成数据孤岛。
+
+**Complexity:** M — 将 `customQuoteTags` 添加到 `sanitize_state()` schema；`saveCustomQuoteTags()` 改为同时写 localStorage（快速 UI 响应）+ 调用 `save_state()`（持久化）；`getCustomQuoteTags()` 优先从 server state 读，回退 localStorage；需要更新相关测试。
+
+**Files:** `app.js:460-464`（`getCustomQuoteTags`/`saveCustomQuoteTags`）；`app_server.py:633-667`（`sanitize_state` schema）
+
+**northstar:** 中——Theme 2「回顾有价值」以标签一致性为前提；Owner 目前单设备使用不可感知，但标签越积累越难补救，Theme 2 开始前修复最合适。
+
+---
+
+### E121 — 静态文件每次请求从磁盘重读，`_STATIC` 字典在 `do_GET()` 内重建，无内存缓存 (S)
+
+**What:** `do_GET()` 内（`app_server.py:3616`）的 `_STATIC` 字典是局部变量，每次 HTTP 请求都重新创建；匹配到静态路径后，文件内容通过 `(BASE_DIR / filename).read_bytes()`（`app_server.py:3630`）从磁盘读取；`Cache-Control` 设为 `no-store, no-cache, must-revalidate`，浏览器不缓存，每次刷新都重新下载：
+
+```python
+# app_server.py:3616 — dict 在函数内，每次重建
+_STATIC = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    ...
+}
+# app_server.py:3630 — 每次请求读磁盘
+content = (BASE_DIR / filename).read_bytes()
+```
+
+此问题已在 explore.md E3（2026-05-30）和 E13（2026-05-31）两次记录，均未提拔为 backlog 条目。
+
+**Why it matters:** 对于阶段 A 个人工具，SSD 随机读 <1ms，性能改善完全不可感知。阶段 B/C 下静态文件内存缓存是标准优化，但依然属于后端性能卫生——长期正确解法是 nginx 反代，而非改 Python 代码。
+
+**Complexity:** S — 将 `_STATIC` 提至模块级常量，首次访问时缓存字节；但 northstar 贡献极弱，建议继续 park，不提拔为 backlog。
+
+**Files:** `app_server.py:3616-3638`（`do_GET` 静态文件分支）
+
+**northstar:** 弱——当前单用户规模下用户完全不可感知；E3/E13 多次记录均未提拔有其道理，建议继续 park，不占预算。
+
+---
+
+### E122 — `renderTimeline()` 不含书籍里程碑事件（startedAt/finishedAt），阅读历程在时间线 Tab 不可见 (M)
+
+**What:** `renderTimeline()`（`app.js:1321-1399`）仅从 `state.sessions` 构建时间线，书籍的 `startedAt`/`finishedAt` 里程碑完全不出现：
+
+```js
+// app.js:1321-1333 — allSorted 只包含 sessions
+const allSorted = (state.sessions || []).slice().sort(
+  (a, b) => (b.date || "").localeCompare(a.date || "")
+);
+```
+
+`book.startedAt` 和 `book.finishedAt` 已由 `saveSession()` 自动填充（`app.js:2135-2138`），但时间线的 `allSorted` 数组从不包含它们。用户读完一本书，时间线只有若干 session 卡片，没有「📖 开始阅读《XXX》」和「✅ 读完《XXX》」里程碑事件，无法一眼看出某本书的读书区间。与 E119 共享同一数据来源，是「书籍日期数据」的另一个展示维度。
+
+**Why it matters:** Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」——「我什么时候读完这本书」是最自然的回顾问题。里程碑事件让时间线从「session 日志」升级为「阅读历程图」，是 Theme 2 开始前的价值感基础设施。
+
+**Complexity:** M — 从 `state.books` 提取所有有 `startedAt`/`finishedAt` 的书，构建里程碑事件对象列表，与 `sessions` 合并排序后渲染；为里程碑设计专属卡片模板；`searchRaw` 过滤对里程碑事件按书名过滤；无后端/DB schema 改动。
+
+**Files:** `app.js:1321-1399`（`renderTimeline`）；`app.js:2135-2138`（`startedAt`/`finishedAt` 数据来源参考）
+
+**northstar:** 中——直接支撑 Theme 2「回顾有价值」；时间线升级为阅读历程图是北极星「从拍照摘抄到事后回顾」闭环的关键一环；依赖 E119 的数据（已存在，无需新采集路径）。
+
+---
