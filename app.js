@@ -2206,10 +2206,12 @@ function deleteBook(bookId) {
   function cleanup() {
     els.deleteBookConfirmBtn.removeEventListener("click", onConfirm);
     els.deleteBookCancelBtn.removeEventListener("click", onCancel);
+    els.deleteBookDialog.removeEventListener("cancel", cleanup);
   }
 
   els.deleteBookConfirmBtn.addEventListener("click", onConfirm, { once: true });
   els.deleteBookCancelBtn.addEventListener("click", onCancel, { once: true });
+  els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true });
 }
 
 function editSession(sessionId) {
@@ -2373,13 +2375,25 @@ function showConfirmDialog({ message, confirmLabel = "确认删除", onConfirm }
   els.confirmDialogMessage.textContent = message;
   els.confirmDialogConfirmBtn.textContent = confirmLabel;
   els.confirmDialog.showModal();
-  els.confirmDialogConfirmBtn.addEventListener("click", () => {
+
+  const handleConfirm = () => {
+    cleanup();
     els.confirmDialog.close();
     onConfirm();
-  }, { once: true });
-  els.confirmDialogCancelBtn.addEventListener("click", () => {
+  };
+  const handleCancel = () => {
+    cleanup();
     els.confirmDialog.close();
-  }, { once: true });
+  };
+  function cleanup() {
+    els.confirmDialogConfirmBtn.removeEventListener("click", handleConfirm);
+    els.confirmDialogCancelBtn.removeEventListener("click", handleCancel);
+    els.confirmDialog.removeEventListener("cancel", cleanup);
+  }
+
+  els.confirmDialogConfirmBtn.addEventListener("click", handleConfirm, { once: true });
+  els.confirmDialogCancelBtn.addEventListener("click", handleCancel, { once: true });
+  els.confirmDialog.addEventListener("cancel", cleanup, { once: true });
 }
 
 async function deleteSession(sessionId) {

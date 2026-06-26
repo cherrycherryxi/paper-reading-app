@@ -2289,11 +2289,11 @@ def compress_chat_history_if_needed(
             max_tokens=300,
         )
         compressed = [{"role": "assistant", "content": f"[对话历史摘要]\n{summary.strip()}"}] + recent
+        state.setdefault("chatHistories", {})[history_key] = compressed
+        save_state(conn, user_id, state)
+        return compressed
     except Exception:
-        compressed = recent
-    state.setdefault("chatHistories", {})[history_key] = compressed
-    save_state(conn, user_id, state)
-    return compressed
+        return history
 
 
 def resolve_quote_book_id(user_state: dict, quote_id: str, fallback_book_id: str = "") -> str:
