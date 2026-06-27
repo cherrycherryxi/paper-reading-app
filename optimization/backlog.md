@@ -623,3 +623,23 @@ Format per item:
 - description: `chat.js:702-719` 错误处理仅 `AbortError`（30s 空闲超时）路径调用 `renderStreamTimeout()` 显示重试按钮（`chat.js:724-744`）；`rate_limited`（429）路径仅附加限流样式消息，无重试按钮；通用 `else`（502/503/网络中断）路径同样仅 `appendMessage("出错了：${message}")`，无重试按钮。`retryFn` 在 `catch` 作用域内已可访问，`renderStreamTimeout` 的按钮逻辑已实现，复用成本极低。
 - why: 移动网络中断属常见场景；出错后用户需手动重输问题，直接阻断探讨流；OPT-069 处理了后端瞬断，本项处理前端持久失败后的 UI 恢复，两者互补。
 - how: 将 `renderStreamTimeout()`（`chat.js:724-744`）中的重试按钮创建逻辑提取为 `appendRetryButton(container, retryFn, label)` 函数；在 `rate_limited` 和通用 `else` 分支的 `appendMessage` 之后各调用一次 `appendRetryButton(msgDiv, retryFn, "重试")`。`retryFn` 可直接复用 `AbortError` 分支传入的 `retryFn`（同作用域）。Touch: `chat.js:702-719`（错误处理分支）；`chat.js:724-744`（`renderStreamTimeout`，提取重试按钮逻辑）。
+
+### OPT-075 — `saveBookEdit()` 手动设置「已读完」状态时不写入 `finishedAt`，OPT-074 上线后日期展示出现空洞 — 由 explore E123 提拔 [2026-06-27]
+- status: new
+- area: frontend
+- northstar: 强——是 OPT-074（书籍日期展示）的数据完整性前提；「读完日期」是北极星「不假思索的默认工具」最直观成就感触点；S 级单行修复可避免 OPT-074 上线后立即出现「已读完但读完日期=未记录」的矛盾展示。
+- priority: P1
+- size: S
+- description: `saveBookEdit()`（`app.js:2486-2501`）在用户通过 dropdown 选择「已读完」时，`finishedAt` 的写入被 `if (book.totalPages && currentPage >= book.totalPages)` 条件块守卫（`app.js:2496`）。当用户未填写 `totalPages` 而直接将状态改为「已读完」时，`startedAt` 和 `lastReadAt` 均被正确写入（`app.js:2490-2494`），但 `finishedAt` 永远为 `null`。OPT-074（PR #53 in-progress）上线后，`openBookDetailDialog()` 将展示 `finishedAt`，手动标记「已读完」的书将显示「读完：未记录」，数据状态与展示状态不一致。
+- why: 修复仅 1 行代码，在 OPT-074 合并前或同 PR 修复最合适；延迟修复将导致 owner 打开 OPT-074 新功能时立刻看到数据空洞，破坏新功能的第一印象。
+- how: 在 `app.js:2494`（`startedAt` 写入块结束处）追加：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。可选在 `tests/frontend/book-detail-ux.test.js` 或新增测试文件加回归用例：模拟无 `totalPages` 的书被 `saveBookEdit()` 标为 "finished"，断言 `book.finishedAt` 不为 null。Touch: `app.js:2490-2501`。
+
+### OPT-076 — `renderTimeline()` 硬上限 10 条且无任何告知，阅读历史超 10 次后早期记录不可见 — 由 explore E124 提拔 [2026-06-27]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」依赖能翻到早期阅读记录；当前 10 条上限在真实使用 2-3 个月后触发，是 Theme 2 验收期前需修复的前置缺陷。
+- priority: P2
+- size: M
+- description: `renderTimeline()`（`app.js:1337`）无搜索词时静默截断：`allSorted.slice(0, 10)`。无数量提示、无分页按钮、无「查看更多」入口。用户有 20+ 条阅读记录时，只能通过搜索书名才能看到早期记录，无法按时间顺序浏览完整阅读历史。对比摘抄（`renderQuotes()`）和书单（`renderBooks()`）均无数量上限，「记录」是唯一有硬截断的标签页。
+- why: 「什么时候读完这本书」「上个月读了哪些书」是 Theme 2「回顾有价值」的核心场景；如果只能看到最近 10 条，时间线实质上无法作为阅读历程工具使用。
+- how: 方案 B（推荐，M 复杂度）：在截断处改为 `allSorted.slice(0, displayLimit)`（初始值 10），渲染后若 `allSorted.length > displayLimit` 则追加「加载更多（共 N 条）」按钮；点击递增 `displayLimit` 并重渲。添加 `let sessionDisplayLimit = 10` 为模块级变量，`renderTimeline()` 使用并在「加载更多」click 后重调。Touch: `app.js:1337`（截断逻辑）；`app.js:1351-1399`（DOM 渲染，加载更多按钮插入点）。
