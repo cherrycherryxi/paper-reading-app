@@ -2553,7 +2553,10 @@ function openBookDetailDialog(bookId) {
   if (!book) return;
 
   els.bookDetailTitle.textContent = book.title || "书籍详情";
-  els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
+  const bookDateInfo = book.finishedAt
+    ? ` · ${book.startedAt ? formatDate(book.startedAt) + " — " : ""}${formatDate(book.finishedAt)}`
+    : book.startedAt ? ` · 开始于 ${formatDate(book.startedAt)}` : "";
+  els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}${bookDateInfo}`;
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
   const bookQuestion = state.quotes
