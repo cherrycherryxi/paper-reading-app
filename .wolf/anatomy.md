@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-27T17:05:50.691Z
-> Files: 169 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-27T18:06:44.596Z
+> Files: 170 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -86,7 +86,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66708 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46743 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -194,7 +194,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~1126 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~275 tok)
-- `triage.md` — Triage (~3693 tok)
+- `triage.md` — Triage (~3694 tok)
 
 ## scripts/
 
@@ -239,6 +239,7 @@
 ## tests/frontend/
 
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
+- `book-dates-display.test.js` — OPT-074: startedAt / finishedAt are written to the book object via saveSession() (~1526 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)

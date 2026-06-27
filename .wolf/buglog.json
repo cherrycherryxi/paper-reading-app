@@ -5708,6 +5708,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-27T17:02:53.043Z"
+    },
+    {
+      "id": "bug-338",
+      "timestamp": "2026-06-27T18:04:14.165Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/frontend/book-dates-display.test.js",
+      "root_cause": "Had \"无 startedAt 时不应出现\"",
+      "fix": "Changed to \"无 startedAt 时不应出现[开始于]\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-27T18:04:14.165Z"
     }
   ]
 }
