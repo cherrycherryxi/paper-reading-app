@@ -3115,7 +3115,8 @@ function stateContentCount(s) {
     (Array.isArray(s.books) ? s.books.length : 0) +
     (Array.isArray(s.sessions) ? s.sessions.length : 0) +
     (Array.isArray(s.quotes) ? s.quotes.length : 0) +
-    (Array.isArray(s.connections) ? s.connections.length : 0)
+    (Array.isArray(s.connections) ? s.connections.length : 0) +
+    Object.keys(s.chatHistories || {}).length
   );
 }
 
@@ -3177,11 +3178,11 @@ function importData(file) {
     // Decrease guard (OPT-043): importing an older backup silently shrinks
     // counts in one or more categories — the most common real data-loss
     // scenario (bug-274). Require explicit confirmation listing what will be lost.
-    const _categoryLabels = { books: "书籍", quotes: "摘抄", sessions: "记录", connections: "关联" };
+    const _categoryLabels = { books: "书籍", quotes: "摘抄", sessions: "记录", connections: "关联", chatHistories: "聊天记录" };
     const _losses = Object.entries(_categoryLabels)
       .map(([key, label]) => {
-        const cur = Array.isArray(state[key]) ? state[key].length : 0;
-        const inc = Array.isArray(resolved[key]) ? resolved[key].length : 0;
+        const cur = Array.isArray(state[key]) ? state[key].length : Object.keys(state[key] || {}).length;
+        const inc = Array.isArray(resolved[key]) ? resolved[key].length : Object.keys(resolved[key] || {}).length;
         return inc < cur ? `${label} ${cur - inc} 条` : null;
       })
       .filter(Boolean);
