@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T15:17:29.736Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T19:12:04.012Z
 > Files: 169 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -86,7 +86,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66708 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46702 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46743 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1248 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -187,14 +187,14 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~16294 tok)
+- `backlog.md` — Optimization Backlog (~17158 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~42453 tok)
+- `explore.md` — Exploration — new optimization directions (~44849 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1126 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~275 tok)
-- `triage.md` — Triage (~3561 tok)
+- `triage.md` — Triage (~3656 tok)
 
 ## scripts/
 
@@ -238,7 +238,7 @@
 
 ## tests/frontend/
 
-- `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~3366 tok)
+- `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)

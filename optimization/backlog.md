@@ -499,7 +499,7 @@ Format per item:
 - how: 在 `editSession()` 末尾（`app.js:2142`）和 `openNewSessionForBook()` 末尾（`app.js:2262`）各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序（与 OPT-058/049 已用模式一致）。Touch: `app.js:2142`；`app.js:2262`。
 
 ### OPT-062 — 确认对话框 Escape 关闭后 `{ once: true }` 监听器残留，可触发错误删除 — 由 explore E100 提拔
-- status: triaged
+- status: done (PR #49 merged 2026-06-24)
 - area: frontend
 - priority: P1
 - size: S
@@ -509,7 +509,7 @@ Format per item:
 - how: （1）`showConfirmDialog`（`app.js:2286-2297`）末尾追加 `els.confirmDialog.addEventListener("cancel", () => { /* { once: true } handlers已消耗完 */ }, { once: true })`；更彻底的方案：将两个 `{ once: true }` 改为具名函数并在 `cancel` 事件中同步调用 `els.confirmDialogConfirmBtn.removeEventListener(...)` 和 `els.confirmDialogCancelBtn.removeEventListener(...)`。（2）`deleteBook()`（`app.js:2120` 附近，`els.deleteBookDialog.showModal()` 之后）追加 `els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true })`。Touch: `app.js:2286-2297`（showConfirmDialog），`app.js:2070-2127`（deleteBook）。
 
 ### OPT-063 — `compress_chat_history_if_needed()` API 失败时写入截断历史，永久丢失旧聊天记录 — 由 explore E102 提拔
-- status: triaged
+- status: done (PR #49 merged 2026-06-24)
 - area: backend
 - priority: P1
 - size: S
@@ -565,7 +565,7 @@ Format per item:
 - how: 在 `_categoryLabels`（`app.js:3077`）中增加 chatHistories 条目（label="聊天记录"）；在 reduce/count 逻辑中对 chatHistories 使用 `Object.keys(state.chatHistories||{}).length` 而非 `Array.isArray` 路径；在 `stateContentCount()`（`app.js:3009-3016`）补同款计数。Touch: `app.js:3009-3016`（stateContentCount）；`app.js:3077-3084`（decrease guard）。
 
 ### OPT-069 — `call_deepseek_stream()` 无重试：主聊天路径遇瞬断即报错 — 由 explore E109 提拔
-- status: triaged
+- status: done (PR #50 merged 2026-06-25)
 - area: backend
 - priority: P1
 - size: S
@@ -595,7 +595,7 @@ Format per item:
 - how: ① 在 `renderQuotes()` 渲染完成后，对新渲染的摘抄卡片图片调用类似 `bindBookCoverImageFallback` 的函数，或直接在模板 `<img>` 后附加委托式 `error` 监听（避免 inline onerror CSP 风险）。② 在 `openQuoteDetail()`（`app.js:2247`）的 `img.src = ...` 后加 `img.onerror = () => imgWrap.classList.add("is-hidden")`。Touch: `app.js:1454-1457`（摘抄卡片模板区域）；`app.js:2244-2251`（`openQuoteDetail`）；参考模式 `app.js:229-250`。
 
 ### OPT-072 — 搜索输入框无防抖，每次按键触发全量 DOM 重建 — 由 explore E115 提拔
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -604,8 +604,18 @@ Format per item:
 - why: Theme 1 验收需要「零等太久放弃」；随 OCR 积累量增长，搜索体验会出现悬崖式劣化，提前修复成本极低（5 行）；防抖是移动端输入框的基本卫生。
 - how: 在 `app.js:4175-4176`（`quoteSearch`/`sessionSearch`）和 `app.js:3956`（`connectionSearch`）的 `addEventListener("input", fn)` 外加 `debounce(fn, 250)` 包裹（内联 `setTimeout/clearTimeout` 模式，无需引入依赖）；`renderQuotes`/`renderTimeline`/`renderConnections` 可各接收可选 filter 字符串参数以支持内部过滤。Touch: `app.js:3956, 4175-4176`（事件绑定）；`app.js:1401-1469`（`renderQuotes`，如需接受 filter 参数）。
 
-### OPT-073 — 非超时类聊天流式错误无内联重试按钮，用户无一键恢复路径 — 由 explore E117 提拔
+### OPT-074 — 书籍 `startedAt`/`finishedAt` 数据已自动填充但从未在 UI 展示 — 由 explore E119 提拔 [signal-backed 2026-06-26]
 - status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——2026-06-26 owner 最新使用信号直接点名（「希望每本书有「开始阅读 / 读完」日期字段」）；`startedAt`/`finishedAt` 已通过 `saveSession()` 自动填充（`app.js:2135-2138`），仅缺少 UI 展示；完成后书单从「进度追踪器」升格为「阅读历程视图」，是 Theme 1（数据完整性可见）与 Theme 2（回顾有价值）的交汇点。
+- description: `addBook()`（`app.js:2070-2072`）将 `startedAt`/`finishedAt`/`lastReadAt` 初始化为 `null`；`saveSession()` 新建路径（`app.js:2135-2138`）自动写入这三个字段（含 `book.status="finished"` 联动）。然而 `openBookDetailDialog()`（`app.js:2551-2557`）的 `bookDetailMeta`（`app.js:2556`）仅显示 `"${book.author} · ${statusMap[book.status]}"`，无任何日期展示；`buildBookSearchCard()` 进度文案（`app.js:1123-1126`）同样不含日期；`index.html:386-419` 书籍 dialog 无日期输入字段。`formatDate()` 辅助函数（`app.js:444-451`）已就位可直接调用。Owner 误以为「只能手动加记录才能标记日期」，实际数据早已自动写入，只是从未被展示。
+- why: S 级展示修复可立即消除 2026-06-26 最新信号摩擦，无需新增数据采集路径；「读完日期」是书单页最直观的成就感触点，修复后 owner 可立刻看到《激情耗尽》的读书区间，直接验证北极星「不假思索的默认工具」体感。
+- how: 最小修复（S）：在 `app.js:2556` 的 `bookDetailMeta` 末尾追加 `startedAt`/`finishedAt` 显示（调用 `formatDate()`，形如「开始：2026-05-01 · 读完：2026-06-26」）；可选在 `buildBookSearchCard()` 进度文案（`app.js:1123-1126`）追加 `lastReadAt`。可选升级（M）：在书籍 dialog（`index.html:386-419`）增加两个 `type="date"` 输入字段，支持手动设置/修正日期（处理「读完但没记 session」场景）。Touch: `app.js:2551-2560`（`openBookDetailDialog`）；可选 `app.js:1123-1126`（`buildBookSearchCard`）；可选 `index.html:386-419`（书籍 dialog）。
+
+### OPT-073 — 非超时类聊天流式错误无内联重试按钮，用户无一键恢复路径 — 由 explore E117 提拔
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S

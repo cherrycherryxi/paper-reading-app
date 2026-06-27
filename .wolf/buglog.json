@@ -5660,6 +5660,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-25T18:02:36.383Z"
+    },
+    {
+      "id": "bug-335",
+      "timestamp": "2026-06-26T17:06:23.578Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-06-26T17:06:42.348Z"
+    },
+    {
+      "id": "bug-336",
+      "timestamp": "2026-06-26T19:11:41.296Z",
+      "error_message": "Missing error handling in getCustomQuoteTags",
+      "file": "optimization/explore.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-26T19:11:41.296Z"
     }
   ]
 }
