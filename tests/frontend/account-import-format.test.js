@@ -278,3 +278,58 @@ test("OPT-043: importing same or more items in all categories skips the guard", 
   assert.equal(h.els.confirmDialog.open, false, "no prompt when all categories are same or larger");
   assert.equal(h.getState().books.length, 2, "import applied directly");
 });
+
+// --- OPT-068: chatHistories coverage in the import guards ---
+
+test("OPT-068: stateContentCount counts chatHistories entries", () => {
+  const h = createHarness();
+  const s = { books: [{ id: "b1" }], sessions: [], quotes: [], connections: [], chatHistories: { "book:b1": [{ role: "user", content: "hi" }] } };
+  assert.equal(h.stateContentCount(s), 2, "1 book + 1 chatHistories key = 2");
+});
+
+test("OPT-068: stateContentCount treats missing chatHistories as zero", () => {
+  const h = createHarness();
+  const s = { books: [{ id: "b1" }], sessions: [], quotes: [], connections: [] };
+  assert.equal(h.stateContentCount(s), 1, "no chatHistories key → 0 contribution");
+});
+
+test("OPT-068: importing an old backup with empty chatHistories into an account that has chats triggers the decrease guard", async () => {
+  const h = createHarness();
+  // Current account: 1 book + 2 chat threads.
+  h.setState({
+    ...emptyState(),
+    books: [{ id: "b1" }],
+    chatHistories: { "book:b1": [{ role: "user", content: "hi" }], "book:b2": [{ role: "user", content: "hey" }] },
+  });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  // Old backup: same book, no chatHistories (pre-chat era backup).
+  const backup = { books: [{ id: "b1" }], sessions: [], quotes: [] };
+  h.importData({ __text: JSON.stringify(backup) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, true, "must warn when chatHistories would be lost");
+  assert.match(h.els.confirmDialogMessage.textContent, /聊天记录/, "message must mention 聊天记录");
+  assert.deepEqual(Object.keys(h.getState().chatHistories), ["book:b1", "book:b2"], "histories untouched until confirmed");
+});
+
+test("OPT-068: confirming the chatHistories decrease guard applies the import", async () => {
+  const h = createHarness();
+  h.setState({
+    ...emptyState(),
+    books: [{ id: "b1" }],
+    chatHistories: { "book:b1": [{ role: "user", content: "hi" }] },
+  });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  const backup = { books: [{ id: "b1" }], sessions: [], quotes: [] };
+  h.importData({ __text: JSON.stringify(backup) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, true);
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+  await flush();
+  assert.equal(Object.keys(h.getState().chatHistories).length, 0, "after confirm, chatHistories from old backup (empty) applied");
+  assert.equal(h.els.importResultDialog.open, true);
+});
