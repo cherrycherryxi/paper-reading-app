@@ -1848,3 +1848,9 @@
 |------|--------|---------|---------|--------|
 | 17:02 | Edited optimization/backlog.md | 2→2 lines | ~65 |
 | 17:05 | Created optimization/triage.md | — | ~3939 |
+| 18:03 | Edited app.js | 2→5 lines | ~114 |
+| 18:04 | Created tests/frontend/book-dates-display.test.js | — | ~1460 |
+| 18:04 | Edited tests/frontend/book-dates-display.test.js | 2→2 lines | ~35 |
+| 18:04 | Created tests/frontend/book-dates-display.test.js | — | ~1526 |
+| 18:06 | Edited optimization/triage.md | inline fix | ~60 |
+| 02:00 | Agent2: implement OPT-074 — display startedAt/finishedAt in book detail dialog | app.js:2555-2558, tests/frontend/book-dates-display.test.js | PR #53 opened, triage updated to in-progress | ~3200 |
