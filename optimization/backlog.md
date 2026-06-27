@@ -555,7 +555,7 @@ Format per item:
 - how: 在 `app.js:277-278` 之间插入：`if (key.startsWith("quote:")) return normalizeChatContext({ type: "quote", quoteId: key.slice(6) });`。Touch: `app.js:274-279`（`contextFromHistoryKey` 函数）。
 
 ### OPT-068 — 导入减量守卫未覆盖 `chatHistories`：旧备份可静默清空聊天记录 — 由 explore E108 提拔
-- status: triaged
+- status: done (PR #51, 2026-06-27 merged — stateContentCount 补 Object.keys chatHistories 计数；_categoryLabels 加 chatHistories 条目；decrease guard 统一走 Object.keys；4 行，零后端变更)
 - area: frontend
 - priority: P1
 - size: S
