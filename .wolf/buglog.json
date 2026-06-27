@@ -5692,6 +5692,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-26T19:11:41.296Z"
+    },
+    {
+      "id": "bug-337",
+      "timestamp": "2026-06-27T17:02:53.043Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-27T17:02:53.043Z"
     }
   ]
 }
