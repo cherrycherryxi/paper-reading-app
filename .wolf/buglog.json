@@ -5790,6 +5790,95 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-28T09:00:00.000Z"
+    },
+    {
+      "id": "bug-343",
+      "timestamp": "2026-06-28T09:05:11.324Z",
+      "error_message": "书详情弹窗打开时滚动停在中间（OPT-049① 回归，iOS 真机复现）",
+      "file": "app.js",
+      "root_cause": "openBookDetailDialog 用同步 detailBody.scrollTop=0 复位，但 iOS Safari 的 <dialog> autofocus（落在中部第一个摘抄按钮）会在 showModal 之后『异步』scroll-into-view，盖掉同步复位。OPT-049① 的同步复位在桌面有效、iOS 失效。",
+      "fix": "showModal 后：给 .dialog-form 设 tabindex=-1 并 focus({preventScroll:true})，把焦点移到顶部容器（不再触发对中部按钮的滚动）；scrollTop=0 同步复位 + requestAnimationFrame 再复位一次兜底异步滚动。",
+      "tags": [
+        "OPT-049",
+        "ios-safari",
+        "dialog",
+        "scroll",
+        "regression",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T09:05:11.324Z"
+    },
+    {
+      "id": "bug-344",
+      "timestamp": "2026-06-28T09:05:22.711Z",
+      "error_message": "书详情弹窗内容右侧被裁、显示不全（OPT-049② 回归，如《月亮虎》）",
+      "file": "styles.css",
+      "root_cause": ".dialog-form / .book-detail-quotes 是 CSS grid，grid 子项默认 min-width:auto 不会收缩到内容以下。某条长摘抄/关联行的 min-content 把弹窗 body 撑得比弹窗宽，再被 .dialog-form 的 overflow-x:hidden 裁掉——OPT-049② 加的 overflow-x:hidden 只是把『能横滑』变成了『被裁』，没解决子项不收缩的根因。",
+      "fix": "给 dialog 内 grid 子项加 min-width:0（.dialog-form>*、.book-detail-quotes>*、.book-detail-quote、.book-detail-dialog-body），让其收缩、文字在弹窗宽度内换行；并对正文/摘抄/关联文本加 overflow-wrap:anywhere 处理超长无空格 token。",
+      "tags": [
+        "OPT-049",
+        "css-grid",
+        "min-width-auto",
+        "dialog",
+        "overflow",
+        "regression",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T09:05:22.711Z"
+    },
+    {
+      "id": "bug-345",
+      "timestamp": "2026-06-28T09:08:49.795Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/book-detail-ux.test.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→18 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T09:08:49.795Z"
+    },
+    {
+      "id": "bug-346",
+      "timestamp": "2026-06-28T09:24:25.612Z",
+      "error_message": "书籍开始日期晚于结束日期（如《月亮虎》：Excel 导入 finishedAt=2025-09-02，开始日期却显示 2026-05-19）",
+      "file": "app.js",
+      "root_cause": "startedAt 只在 addSession / saveBookEdit 里自动填充，且都只判 `if (!book.startedAt)` 就填成『今天/session 日期』，没看 finishedAt。对一本 Excel 导入为已读完、有较早 finishedAt、startedAt 为空的书，之后任何一次编辑或记录都会把开始日期填成今天 → 开始 > 结束。OPT-074 把日期展示出来后暴露。",
+      "fix": "两处自动填充加守卫：`if (!book.startedAt && !(book.finishedAt && 候选日期 > book.finishedAt)) book.startedAt = 候选日期`，即已有更早的 finishedAt 时不再臆造晚于它的开始日期（宁可留空）。并在 repairBookReadingDates(normalizeStateShape) 修复存量数据：startedAt > finishedAt 时清空 startedAt（startedAt 是自动派生字段，更可能是错的）。",
+      "tags": [
+        "OPT-074",
+        "date-logic",
+        "excel-import",
+        "data-repair",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T09:24:25.612Z"
+    },
+    {
+      "id": "bug-347",
+      "timestamp": "2026-06-28T09:25:55.878Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/book-reading-dates.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T09:25:55.878Z"
     }
   ]
 }
