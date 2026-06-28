@@ -5692,6 +5692,104 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-26T19:11:41.296Z"
+    },
+    {
+      "id": "bug-337",
+      "timestamp": "2026-06-27T15:12:46.565Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"bookDetailIntro\"",
+      "fix": "Changed to \"bookDetailDates\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-27T15:12:46.565Z"
+    },
+    {
+      "id": "bug-338",
+      "timestamp": "2026-06-27T15:32:35.705Z",
+      "error_message": "CSS fix: color",
+      "file": "styles.css",
+      "root_cause": "color: var(--color-text-muted) → var(--color-ink-muted)",
+      "fix": "Changed color: var(--color-text-muted) → var(--color-ink-muted)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-27T15:32:35.705Z"
+    },
+    {
+      "id": "bug-339",
+      "timestamp": "2026-06-27T15:33:16.880Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `books`",
+      "fix": "Changed to `app.js`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-27T15:33:16.880Z"
+    },
+    {
+      "id": "bug-340",
+      "timestamp": "2026-06-27T15:45:29.653Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/book-reading-dates.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-27T15:45:29.653Z"
+    },
+    {
+      "id": "bug-341",
+      "timestamp": "2026-06-28T08:48:30.637Z",
+      "error_message": "Wrong reference: NNN should be 341",
+      "file": "app.js",
+      "root_cause": "Used \"NNN\" instead of \"341\"",
+      "fix": "Changed NNN → 341",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-28T08:49:02.516Z"
+    },
+    {
+      "id": "bug-342",
+      "timestamp": "2026-06-28T09:00:00.000Z",
+      "error_message": "部分书籍开始日期显示为 460xx 年 1 月 1 日（OPT-074 把开始/读完日期展示出来后才暴露）",
+      "file": "app.js",
+      "root_cause": "parseExcelDateToIso() 对 Excel 单元格做 new Date(text)。Excel 把日期存成序列号（2026 年前后正好 46000 多），new Date(\"46055\") 被 JS 当成『年份 46055』解析，得到合法但错误的 +046055 年日期且非 NaN，于是照存进 startedAt/finishedAt。OPT-074 之前这些字段从不展示，坏数据一直隐藏。",
+      "fix": "① 重写 parseExcelDateToIso：纯数字且在 [20000,80000) 视为 Excel 序列号，走新 helper excelSerialToIso（25569 偏移 + 本地正午锚定）转换；对仍能解析但年份 >9999 的结果返回 null。② 新增 repairBogusExcelDate/repairBookReadingDates：坏值的本地 getFullYear() 恰是原序列号，反推回真实日期。③ 在 normalizeStateShape 对 books 应用修复，每次加载自动修正（幂等），下次保存即落库。",
+      "tags": [
+        "excel-import",
+        "date-parsing",
+        "data-corruption",
+        "OPT-074",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T09:00:00.000Z"
     }
   ]
 }

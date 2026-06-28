@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T19:12:04.012Z
-> Files: 169 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T08:49:02.484Z
+> Files: 171 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -86,19 +86,19 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66708 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46743 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~47996 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
-- `CLAUDE.md` — OpenWolf (~1248 tok)
+- `CLAUDE.md` — OpenWolf (~1301 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~10644 tok)
+- `index.html` — 🐛 又买了一本书 (~10720 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~22295 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~22341 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -187,7 +187,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~17158 tok)
+- `backlog.md` — Optimization Backlog (~17204 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~44849 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
@@ -243,6 +243,8 @@
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
+- `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~4992 tok)
+- `book-reading-dates.test.js` — OPT-074: book startedAt/finishedAt display in detail dialog + editable date inputs in edit dialog (~2600 tok)
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
