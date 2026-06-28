@@ -1929,3 +1929,6 @@
 | 19:14 | Edited ../../.claude/hooks/stop-bark.sh | 7→12 lines | ~122 |
 | 19:22 | Session end: 14 writes across 8 files (permission-notify.sh, settings.json, bark-key.txt, stop-bark.sh, reference_claude_code_hooks.md) | 4 reads | ~2879 tok |
 | 19:25 | Created ../../.claude/daily-logs/2026-06-28.md | — | ~573 |
+| 17:07 | Edited optimization/backlog.md | added 1 condition(s) | ~74 |
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~32 |
+| 17:11 | Created optimization/triage.md | — | ~3907 |
