@@ -2360,6 +2360,28 @@ dialog::backdrop {
      causing the body to overflow horizontally (swipeable left/right). Let it
      follow the dialog width instead. */
   width: 100%;
+  min-width: 0;
+}
+
+/* OPT-049 ② follow-up (bug-344): .dialog-form / .book-detail-quotes are CSS grids;
+   grid items default to `min-width: auto` and refuse to shrink below their content,
+   so a long quote/connection line pushed the body wider than the dialog. Combined
+   with `overflow-x: hidden` that no longer swiped — it just clipped ("显示不全").
+   Letting every grid child shrink makes the text wrap within the dialog width. */
+.dialog-form > *,
+.book-detail-quotes > *,
+.book-detail-quote {
+  min-width: 0;
+}
+
+.book-detail-intro,
+.book-detail-question,
+.book-detail-quote-content,
+.book-detail-quote-meta,
+.book-detail-quote-reflection,
+.conn-mini-text,
+.connection-side-sub {
+  overflow-wrap: anywhere;
 }
 
 .book-detail-intro {

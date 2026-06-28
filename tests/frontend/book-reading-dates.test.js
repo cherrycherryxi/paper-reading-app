@@ -64,6 +64,7 @@ function createElementStub(tagName = "div") {
     querySelectorAll() { return []; },
     showModal() { this.open = true; },
     close() { this.open = false; },
+    focus() {},
     reset() {},
     setAttribute() {},
     getAttribute() { return null; },
@@ -113,6 +114,7 @@ function createHarness() {
     FileReader: function FileReader() {},
     Date, Math, JSON, Array, Object, String, Number, Boolean, RegExp,
     Promise, setTimeout, clearTimeout,
+    requestAnimationFrame: (fn) => { fn(); return 0; },
   };
 
   const sourceWithoutBoot = appSource.replace(/\nbindEvents\(\);\nrender\(\);[\s\S]*$/, "\n");
@@ -135,6 +137,7 @@ globalThis.__hooks = {
   openBookDetailDialog,
   openBookEditDialog,
   saveBookEdit,
+  addSession,
   els,
   setState(v) { state = v; },
   getState() { return state; },
@@ -444,4 +447,72 @@ test("OPT-074: saveBookEdit rejects finishedAt earlier than startedAt", async ()
   assert.equal(book.startedAt, origStarted, "book unchanged after rejected save");
   assert.equal(book.finishedAt, null);
   assert.match(h.getLastToast() || "", /读完日期不能早于开始/);
+});
+
+// ---------------------------------------------------------------------------
+// bug-346: never auto-derive a start date later than a known finish date
+// (e.g. a book imported as 已读完 with an earlier finishedAt and no start date)
+// ---------------------------------------------------------------------------
+
+test("bug-346: editing a finished book (earlier finishedAt, blank start) does NOT fabricate a later start date", async () => {
+  const h = createHarness();
+  authed(h);
+  const finished = new Date("2025-09-02T12:00:00").toISOString(); // from Excel
+  h.setState({
+    books: [{ id: "b1", title: "月亮虎", totalPages: 0, currentPage: 0, status: "finished", startedAt: null, finishedAt: finished }],
+    sessions: [], quotes: [], connections: [],
+  });
+  // User edits the book (e.g. tweaks notes) without entering a start date.
+  await h.saveBookEdit(h.makeFormData({
+    bookId: "b1", currentPage: "0", status: "finished", notes: "改了备注",
+    startedAt: "", finishedAt: "2025-09-02",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(book.startedAt, null, "must NOT auto-fill a start date after the finish date");
+  assert.equal(h.isoToDateInput(book.finishedAt), "2025-09-02", "finish date preserved");
+});
+
+test("bug-346: recording a session on a finished book does NOT set a start date after finishedAt", async () => {
+  const h = createHarness();
+  authed(h);
+  const finished = new Date("2025-09-02T12:00:00").toISOString();
+  h.setState({
+    books: [{ id: "b1", title: "月亮虎", totalPages: 0, currentPage: 0, status: "finished", startedAt: null, finishedAt: finished }],
+    sessions: [], quotes: [], connections: [],
+  });
+  await h.addSession(h.makeFormData({
+    bookId: "b1", startPage: "1", endPage: "10", minutes: "30", date: "2026-05-19", note: "",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(book.startedAt, null, "session date after finishedAt must not become the start date");
+});
+
+test("bug-346: a normal in-progress session still sets the start date", async () => {
+  const h = createHarness();
+  authed(h);
+  h.setState({
+    books: [{ id: "b1", title: "在读", totalPages: 0, currentPage: 0, status: "reading", startedAt: null, finishedAt: null }],
+    sessions: [], quotes: [], connections: [],
+  });
+  await h.addSession(h.makeFormData({
+    bookId: "b1", startPage: "1", endPage: "10", minutes: "30", date: "2026-05-19", note: "",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(h.isoToDateInput(book.startedAt), "2026-05-19", "no finishedAt → start date set normally");
+});
+
+test("bug-346: normalizeStateShape clears a start date that is later than the finish date", () => {
+  const h = createHarness();
+  const normalized = h.normalizeStateShape({
+    books: [
+      { id: "b1", title: "月亮虎", startedAt: new Date("2026-05-19T12:00:00").toISOString(), finishedAt: new Date("2025-09-02T12:00:00").toISOString() },
+      { id: "b2", title: "正常", startedAt: new Date("2026-05-01T12:00:00").toISOString(), finishedAt: new Date("2026-06-26T12:00:00").toISOString() },
+    ],
+    sessions: [], quotes: [], connections: [],
+  });
+  const b1 = normalized.books.find((b) => b.id === "b1");
+  const b2 = normalized.books.find((b) => b.id === "b2");
+  assert.equal(b1.startedAt, null, "impossible start>finish start date cleared");
+  assert.equal(h.isoToDateInput(b1.finishedAt), "2025-09-02", "finish date kept");
+  assert.equal(h.isoToDateInput(b2.startedAt), "2026-05-01", "valid ordering untouched");
 });

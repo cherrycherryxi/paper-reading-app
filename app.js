@@ -558,6 +558,14 @@ function repairBookReadingDates(book) {
       repaired[field] = fixed;
     }
   }
+  // bug-346: a start date later than the finish date is impossible. startedAt is
+  // the auto-derived field (saveSession/saveBookEdit fill it from "now"/session
+  // date), so when it lands after a known finishedAt it was fabricated wrongly —
+  // clear it rather than show 开始 > 读完.
+  if (repaired.startedAt && repaired.finishedAt && repaired.startedAt > repaired.finishedAt) {
+    if (repaired === book) repaired = { ...book };
+    repaired.startedAt = null;
+  }
   return repaired;
 }
 
@@ -2200,7 +2208,9 @@ async function addSession(formData) {
     book.currentPage = Math.max(book.currentPage || 0, endPage);
     book.lastReadAt = date;
     book.updatedAt = new Date().toISOString();
-    if (!book.startedAt) book.startedAt = date;
+    // bug-346: never auto-derive a start date that lands after a known finish date
+    // (e.g. a session/edit on a book imported as 已读完 with an earlier finishedAt).
+    if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;
     if (book.totalPages && endPage >= book.totalPages) {
       book.status = "finished";
       if (!book.finishedAt) book.finishedAt = date;
@@ -2570,7 +2580,9 @@ async function saveBookEdit(formData) {
   book.finishedAt = finishedAtIso;
   if (book.status === "reading" || book.status === "finished") {
     book.lastReadAt = new Date().toISOString();
-    if (!book.startedAt) {
+    // bug-346: don't fabricate a start date after a known finish date (e.g. a book
+    // imported as 已读完 with an earlier finishedAt and no start date) — leave it blank.
+    if (!book.startedAt && !(book.finishedAt && book.lastReadAt > book.finishedAt)) {
       book.startedAt = book.lastReadAt;
     }
   }
@@ -2714,9 +2726,19 @@ function openBookDetailDialog(bookId) {
   els.bookDetailDialog.showModal();
   // OPT-049 ①: showModal() autofocuses the first focusable element — a 摘抄 card
   // button mid-content — and scrolls it into view, leaving the dialog opened
-  // mid-card. Reset the scroll container to the top so the user reads top-down.
+  // mid-card. A synchronous scrollTop reset alone is not enough: iOS Safari runs
+  // the autofocus scroll-into-view *asynchronously* after showModal and overrides
+  // it (bug-343). So also move focus to the top container (preventScroll, so it
+  // never scrolls to a mid-content button) and re-assert scrollTop on next frames.
   const detailBody = els.bookDetailDialog.querySelector(".dialog-form");
-  if (detailBody) detailBody.scrollTop = 0;
+  if (detailBody) {
+    detailBody.setAttribute("tabindex", "-1");
+    try { detailBody.focus({ preventScroll: true }); } catch (_) { /* older browsers */ }
+    detailBody.scrollTop = 0;
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => { detailBody.scrollTop = 0; });
+    }
+  }
 }
 
 function goToBookQuotes() {

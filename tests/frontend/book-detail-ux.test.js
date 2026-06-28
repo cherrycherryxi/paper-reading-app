@@ -32,7 +32,8 @@ function createElementStub(tagName = "div") {
     querySelector() { return createElementStub("button"); },
     querySelectorAll() { return []; },
     showModal() { this.open = true; }, close() { this.open = false; },
-    reset() {}, setAttribute() {}, closest() { return null; },
+    focus() { this._focused = true; },
+    reset() {}, setAttribute(k, v) { (this._attrs || (this._attrs = {}))[k] = v; }, closest() { return null; },
   };
 }
 
@@ -88,6 +89,10 @@ test("OPT-049 ①: opening the book detail dialog resets the scroll container to
   h.openBookDetailDialog("b1");
   assert.equal(h.els.bookDetailDialog.open, true, "dialog should open");
   assert.equal(scrollEl.scrollTop, 0, "scroll container must be reset to top on open");
+  // bug-343: also move focus to the top container so iOS Safari does not async-scroll
+  // to the autofocused mid-content button after showModal.
+  assert.equal(scrollEl._focused, true, "focus must move to the scroll container (preventScroll)");
+  assert.equal(scrollEl._attrs && scrollEl._attrs.tabindex, "-1", "container made focusable via tabindex=-1");
 });
 
 // --- ③ notes appear in the 相关摘抄/笔记 section (behavioral) ---
@@ -109,13 +114,23 @@ test("OPT-049 ③: a note (kind=note) is listed in the related section with a �
 
 // --- ② / ③ source guards ---
 
-test("OPT-049 ②: .dialog-form hides horizontal overflow and book-detail body is not over-wide", () => {
+test("OPT-049 ②: .dialog-form hides horizontal overflow", () => {
   const dialogForm = styles.match(/\.dialog-form\s*\{([\s\S]*?)\}/);
   assert.ok(dialogForm, ".dialog-form rule must exist");
   assert.match(dialogForm[1], /overflow-x:\s*hidden/, ".dialog-form must hide horizontal scroll");
-  const body = styles.match(/\.book-detail-dialog-body\s*\{([\s\S]*?)\}/);
-  assert.ok(body, ".book-detail-dialog-body rule must exist");
-  assert.doesNotMatch(body[1], /min-width/, "book-detail body must not force a width wider than the dialog");
+});
+
+test("OPT-049 ② (bug-344): dialog grid children get min-width:0 so long lines wrap instead of clipping", () => {
+  // The dedicated body rule (not the shared margin-top group) must allow shrinking.
+  const bodyRule = styles.match(/\.book-detail-dialog-body\s*\{[^}]*width:\s*100%[^}]*\}/);
+  assert.ok(bodyRule, "the sizing .book-detail-dialog-body rule must exist");
+  assert.match(bodyRule[0], /min-width:\s*0/, "book-detail body must allow shrinking (min-width:0)");
+  // Grid items default to min-width:auto and refuse to shrink — the fix sets 0 on them.
+  assert.match(
+    styles,
+    /\.dialog-form\s*>\s*\*[\s\S]{0,120}\{[\s\S]*?min-width:\s*0/,
+    "dialog-form grid children must have min-width:0"
+  );
 });
 
 test("OPT-049 ③: related-section labels say 摘抄 / 笔记, not just 摘抄", () => {
