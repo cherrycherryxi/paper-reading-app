@@ -1878,3 +1878,24 @@
 | 17:25 | Edited tests/frontend/book-reading-dates.test.js | 4→5 lines | ~24 |
 | 17:25 | Edited tests/frontend/book-reading-dates.test.js | expanded (+68 lines) | ~1018 |
 | 17:46 | Session end: 31 writes across 7 files (index.html, app.js, styles.css, CLAUDE.md, book-reading-dates.test.js) | 10 reads | ~119457 tok |
+
+## Session: 2026-06-27 15:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:02 | Edited optimization/backlog.md | 2→2 lines | ~65 |
+| 17:05 | Created optimization/triage.md | — | ~3939 |
+| 18:03 | Edited app.js | 2→5 lines | ~114 |
+| 18:04 | Created tests/frontend/book-dates-display.test.js | — | ~1460 |
+| 18:04 | Edited tests/frontend/book-dates-display.test.js | 2→2 lines | ~35 |
+| 18:04 | Created tests/frontend/book-dates-display.test.js | — | ~1526 |
+| 18:06 | Edited optimization/triage.md | inline fix | ~60 |
+| 02:00 | Agent2: implement OPT-074 — display startedAt/finishedAt in book detail dialog | app.js:2555-2558, tests/frontend/book-dates-display.test.js | PR #53 opened, triage updated to in-progress | ~3200 |
+| 19:13 | Edited optimization/explore.md | added 5 condition(s) | ~1536 |
+| 19:14 | Edited optimization/backlog.md | added 2 condition(s) | ~612 |
+
+## Session: 2026-06-27 19:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:16 | Agent3 (Explore) 2026-06-27 run: found finishedAt bug in saveBookEdit() and timeline 10-cap, added E123-E126 to explore.md, promoted OPT-075 (P1/S) + OPT-076 (P2/M) to backlog.md, pushed to feature/agent | optimization/explore.md, optimization/backlog.md | committed 535c93d | ~12k |

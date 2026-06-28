@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-06-28T09:25:55.853Z
 > Files: 171 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-27T19:14:14.127Z
+> Files: 170 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -87,6 +89,7 @@
 - `.gitignore` — Git ignore rules (~192 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66708 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~48405 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — els: normalizePreferredBookValue, activeBookId, activeQuoteId + 19 more (~9710 tok)
 - `CLAUDE.md` — OpenWolf (~1301 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
@@ -188,13 +191,14 @@
 ## optimization/
 
 - `backlog.md` — Optimization Backlog (~17204 tok)
+- `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~44849 tok)
+- `explore.md` — Exploration — new optimization directions (~46263 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1126 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~275 tok)
-- `triage.md` — Triage (~3656 tok)
+- `triage.md` — Triage (~3694 tok)
 
 ## scripts/
 
@@ -240,6 +244,8 @@
 
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)
+- `book-dates-display.test.js` — OPT-074: startedAt / finishedAt are written to the book object via saveSession() (~1526 tok)
+- `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)

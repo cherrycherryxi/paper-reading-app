@@ -2221,3 +2221,117 @@ const allSorted = (state.sessions || []).slice().sort(
 **northstar:** 中——直接支撑 Theme 2「回顾有价值」；时间线升级为阅读历程图是北极星「从拍照摘抄到事后回顾」闭环的关键一环；依赖 E119 的数据（已存在，无需新采集路径）。
 
 ---
+
+## 2026-06-27
+
+### E123 — `saveBookEdit()` 手动将状态设为「已读完」时不自动写入 `finishedAt`，OPT-074 上线后将出现日期展示空洞 (S)
+
+**What:** `saveBookEdit()`（`app.js:2486-2501`）在用户通过下拉框选择「已读完」时，`finishedAt` 的写入被一个 `totalPages` 条件块守卫：
+
+```js
+// app.js:2490-2501
+if (book.status === "reading" || book.status === "finished") {
+    book.lastReadAt = new Date().toISOString();
+    if (!book.startedAt) {
+      book.startedAt = book.lastReadAt;   // startedAt 正确写入 ✓
+    }
+}
+if (book.totalPages && currentPage >= book.totalPages) {   // ← 只有 totalPages 存在时
+    book.status = "finished";
+    if (!book.finishedAt) {
+      book.finishedAt = new Date().toISOString();            // ← 此块才写 finishedAt
+    }
+}
+```
+
+当用户手动选「已读完」但未填写 `totalPages` 时：`startedAt` 和 `lastReadAt` 均被正确写入，但 `finishedAt` 永远是 `null`。这与通过 `saveSession()` 路径（`app.js:2137-2138`）触发的 `finishedAt` 写入行为不一致——后者同样依赖 `totalPages && endPage >= totalPages`，因此「直接在下拉框选完」的路径完全没有 `finishedAt` 的写入时机。
+
+**Why it matters:** OPT-074（PR #53, in-progress）正在给书籍详情页增加 `startedAt`/`finishedAt` 展示。OPT-074 上线后，手动标记「已读完」的书将显示「开始：YYYY-MM-DD · 读完：未记录」——数据状态（finished）与展示状态（无 finishedAt）不一致，直接让 OPT-074 的产品价值打折。修复只需在 `saveBookEdit()` 补一行：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。
+
+**Complexity:** S — `app.js` 单处改动，约 1 行，无后端/DB 变更，无测试基础设施变更（现有 `book-detail-ux.test.js` 可加回归用例）。
+
+**Files:** `app.js:2490-2501`（`saveBookEdit` 状态写入块）；`app.js:2135-2138`（`saveSession` 路径对比参考）
+
+**northstar:** 强——E123 是 OPT-074（书籍日期展示）的数据完整性前提；「读完日期」是北极星「不假思索的默认工具」最直观的成就感触点，显示「未记录」直接伤害体感。→ **promoted to OPT-075**
+
+---
+
+### E124 — `renderTimeline()` 硬上限 10 条，无分页/「加载更多」，阅读历史超 10 次后全部不可见 (M)
+
+**What:** `renderTimeline()`（`app.js:1321-1399`）在无搜索词时将结果截断为 10 条：
+
+```js
+// app.js:1337
+const sessions = searchRaw
+  ? allSorted.filter(...)   // 搜索时：无限制，全量返回
+  : allSorted.slice(0, 10); // 无搜索时：仅显示最近 10 条
+```
+
+截断是静默的——没有文案提示用户还有更多数据。对比「摘抄」标签页（`renderQuotes()`，`app.js:1401-1469`）显示全部摘抄（无数量上限）、「书单」标签页（`renderBooks()`，`app.js:1269-1317`）同样显示全量，「记录」是唯一有硬上限的标签页。用户即使搜索书名可以看到超 10 条的结果，但无法按时间顺序浏览完整阅读历史。
+
+**Why it matters:** 「记录」标签页是 Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」的核心落地界面。如果用户有 20+ 次阅读记录（正常积累 2-3 个月），10 条上限意味着超过一半的历史对他们不可见，「今年我读了多少书」「《XX》我什么时候开始读的」等自然回顾问题无从用时间线回答——和没有时间线一样，与 Theme 2 验收条件直接冲突。
+
+**Complexity:** M — 方案 A（最简）：移除 `slice(0, 10)`，一次性渲染全量（需评估 DOM 性能，50+ 条时可结合 OPT-072 的防抖 + requestAnimationFrame batching）；方案 B：在截断处添加「加载更多」按钮（`loadMore` state 变量，click 解除 `slice(0, 10)` 重渲）；方案 C：虚拟滚动（复杂度高，当前不必要）。建议方案 B（不破坏首屏渲染速度，并明确告知「还有 N 条更早的记录」）。
+
+**Files:** `app.js:1329-1337`（sessions 计算与截断）；`app.js:1351-1399`（DOM 渲染循环）
+
+**northstar:** 中——Theme 2「回顾有价值」要求完整历史可访问；当前上限在 2-3 个月真实使用后触发，属 Theme 2 验收前的前置修复。
+
+---
+
+### E125 — 书籍编辑对话框无 `startedAt`/`finishedAt` 日期输入字段，用户无法手动修正自动填充的日期 (S/M)
+
+**What:** `index.html:332-358` 的书籍编辑 dialog（`bookEditDialog`）包含 `currentPage`（number）、`status`（select）、`notes`（textarea）三个字段，无任何日期输入：
+
+```html
+<!-- index.html:344-352 — 完整字段列表 -->
+<label><span>当前页码</span><input name="currentPage" type="number" min="0" required /></label>
+<label><span>状态</span>
+  <select name="status" class="compact-status-select">
+    <option value="reading">阅读中</option>
+    <option value="wishlist">想读</option>
+    <option value="finished">已读完</option>
+  </select>
+</label>
+<label><span>内容简介 / 备注</span><textarea name="notes" ...></textarea></label>
+```
+
+`saveBookEdit()`（`app.js:2455-2501`）不读取任何日期字段。`startedAt`/`finishedAt` 由 `saveSession()` 和 `saveBookEdit()` 自动填充（不完整，见 E123），但用户无法覆盖自动值——例如「书是去年买的，今年 3 月开始读」「上周读完但忘了记 session」等常见场景下，日期只能是 `null` 或自动填充时的错误时间。
+
+**Why it matters:** OPT-074 上线后日期将在书籍详情页显示。自动填充路径覆盖约 60% 的场景（有 session 记录时），但「读了书但忘记记录 session」「用 Excel 批量导入的历史书单」等场景下日期均为 `null`，用户期望的「输入框里手动填」的交互不存在。OPT-074 设计中已提到「可选升级（M）」，本条将其显式化为独立 backlog 候选。
+
+**Complexity:** S（仅展示不可编辑的日期，在 `bookDetailMeta` 同时显示，OPT-074 范围内）；M（`bookEditDialog` 增加两个 `type="date"` 输入 + `saveBookEdit()` 读取并写入）。S 版已由 OPT-074 覆盖；**独立价值**在 M 版（编辑 dialog 的输入字段），需在 OPT-074 合并后评估是否跟进。
+
+**Files:** `index.html:332-358`（`bookEditDialog` 字段列表）；`app.js:2455-2501`（`saveBookEdit` 字段读取与写入）
+
+**northstar:** 中——「想记一下开始/读完日期，但无法手动输入」与 2026-06-26 信号直接对应；是 OPT-074 日期展示功能的交互闭环（展示 ≠ 可编辑）；Theme 2「回顾有价值」以准确的阅读历程数据为前提。
+
+---
+
+### E126 — `renderQuotes()` 在每张摘抄卡中调用 `getConnectionCount()`（O(m) 全量扫描），无缓存导致 O(n×m) 渲染开销，与 `renderBooks()` 已有 `buildRenderCache()` 模式不一致 (S)
+
+**What:** `renderQuotes()`（`app.js:1401-1469`）在每张摘抄卡的 `.map()` 中直接调用 `getConnectionCount(quote.id)`：
+
+```js
+// app.js:1464 — 每张卡调用一次
+${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}
+```
+
+`getConnectionCount()` 定义（`app.js:675-677`）：
+```js
+function getConnectionCount(itemId) {
+  return (state.connections || []).filter(c => c.sourceId === itemId || c.targetId === itemId).length;
+}
+```
+
+每次调用均对 `state.connections` 做完整遍历（O(m)）。N 张摘抄卡 × M 条 connections = O(N×M) 扫描，每次 `renderQuotes()` 调用均重复。
+
+对比 `renderBooks()`（`app.js:1269-1317`）：在渲染前调用 `buildRenderCache()`（`app.js:630-651`），其中用 O(M) 时间预构建 `connCountMap`（`Map<id, count>`），每张书卡使用 O(1) 查询。`renderQuotes()` 完全缺少同等缓存机制。
+
+**Why it matters:** 单次非搜索渲染时性能损失可忽略（100 摘抄 × 50 connections = 5000 次比较 ≈ <1ms）。但与 OPT-072（无防抖，每次按键触发全量 renderQuotes）叠加后，每次按键触发 5000+ 次字符串比较，在摘抄和关联数双高的用户处产生可感知卡顿。修复与 OPT-072 同 PR 是最自然的时机。
+
+**Complexity:** S — 在 `renderQuotes()` 的 `.map()` 前插入 3 行缓存构建（复用 `buildRenderCache()` 或内联建 `connCountMap`），将 `getConnectionCount(quote.id)` 替换为 `connCountMap.get(quote.id) || 0`；同样适用于两次 `getQuoteChatCount(quote.id)` 调用。与 OPT-072 合并实现「renderQuotes 性能闭环」最合适。
+
+**Files:** `app.js:675-677`（`getConnectionCount` 线性扫描实现）；`app.js:1464`（`renderQuotes` 中的调用点）；`app.js:630-651`（`buildRenderCache` 参考模式）
+
+**northstar:** 弱——当前单用户规模不可感知；仅 OPT-072 实现时的搭车修复候选，否则独立开 PR 性价比低。

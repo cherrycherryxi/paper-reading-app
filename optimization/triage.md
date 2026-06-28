@@ -2,23 +2,23 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-26
+Last triaged: 2026-06-27
 
 ## Next up
 
-**OPT-068 — 导入减量守卫未覆盖 chatHistories，旧备份可静默清空聊天记录（P1/S）**
+**OPT-074 — 书籍 `startedAt`/`finishedAt` 已自动填充但从未在 UI 展示（P1/S）**
 
-理由：（1）**预算余 1 槽** — 近 7 天（2026-06-19→2026-06-26）共 3 个 `auto/` PR（#50 opt-069 2026-06-25、#49 opt-062 2026-06-24、#48 opt-052 2026-06-19），上限 4，余 1。（2）**OPT-062/063/069 已在 PR #49/#50 合并**，下一候选按优先级落到 OPT-068。（3）**northstar「中」，Theme 1「零丢失」验收直接必要条件** — import 护栏系列（OPT-040/041/043）的最后一个缺口：`_categoryLabels` 只检查 books/quotes/sessions/connections，chatHistories 导入旧备份（彼时未用聊天功能，`chatHistories` 为空）不触发守卫，静默清空所有聊天历史；与 OPT-063（compress 路径）同类，Theme 2「回顾有价值」前提数据保护。（4）S 复杂度，纯前端，4 行改动，零后端变更，零逻辑变更。
+理由：（1）**预算余 1 槽** — 近 7 天（2026-06-20→2026-06-27）共 3 个 `auto/` PR（#51 opt-068 2026-06-27、#50 opt-069 2026-06-25、#49 opt-062 2026-06-24），上限 4，余 1。（2）**OPT-068 已在 PR #51 于今日 2026-06-27 合并**，状态更新为 done，下一候选为 OPT-074。（3）**northstar「强」，信号最新** — 2026-06-26 signals.md 直接点名（owner「希望每本书有开始/读完日期字段」），是本周最鲜活的使用痛点。`startedAt`/`finishedAt` 已通过 `saveSession()` 自动写入 DB，S 级纯 UI 展示修复即可消除误解（owner 以为数据不存在，实为从未显示）。（4）**Theme 1+2 交汇** — 书单是首屏，读书区间可见是「不假思索的默认工具」的体感节点（Theme 1 数据完整性可见）+ 「回顾有价值」的成就感触点（Theme 2），无需新建后端路径。
 
-关键文件：`app.js:3009-3016`（`stateContentCount` — 补 `Object.keys(s.chatHistories||{}).length`）；`app.js:3077-3084`（`_categoryLabels` + decrease guard — 加 `chatHistories:"聊天记录"` 条目，count 改用 `Object.keys`）。
+关键文件：`app.js:2551-2560`（`openBookDetailDialog` → `bookDetailMeta` 追加 `startedAt`/`finishedAt` 展示，调用现有 `formatDate()`）；可选 `app.js:1123-1126`（`buildBookSearchCard` 进度文案追加 `lastReadAt`）；初始化相关 `app.js:2070-2072`（`addBook`，勿改）。零后端变更、零 DB schema 变更。
 
-northstar/signal：northstar「中」，无直接 signals.md 条目；2026-06-26 新增 signal（记阅读）证实 owner 持续录入习惯，聊天历史随使用积累，保护其不被旧备份清空是 Theme 1「零丢失」验收先决。
+northstar/signal：northstar「强」，signal 2026-06-26（owner 记阅读后直接提出「希望每本书有开始/读完日期字段」）佐证，与 roadmap §2 可观测代理指标、Theme 1+2 均对齐。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-068 | 导入减量守卫未覆盖 chatHistories，旧备份可静默清空聊天记录 | P1 | S | in-progress (PR #51) | northstar「中」，Theme 1「零丢失」+ Theme 2「回顾有价值」前提数据；import 护栏系列最后一个缺口（OPT-040/041/043 同类）。`app.js:3009-3016`（stateContentCount）补 `Object.keys(s.chatHistories||{}).length`；`app.js:3077-3084`（_categoryLabels）加 `chatHistories:"聊天记录"` + `cur/inc` 用 `Object.keys` 而非 `Array.isArray`；共 4 行，零后端变更。 |
+| OPT-074 | 书籍 startedAt/finishedAt 已自动填充但从未 UI 展示 | P1 | S | in-progress (PR #53) | northstar「强」；signal 2026-06-26 直接点名；data 已自 saveSession() 自动写入，S 级展示修复；`app.js:2551-2560`（bookDetailMeta 追加 formatDate 显示）；Theme 1+2 交汇。 |
 | OPT-064 | PromptBuilder 发送摘抄完整对象含 ocrText，每次对话浪费数百至数万 token | P1 | S | triaged | northstar「中」，OPT-020/047 同类（token 裁剪），`ocrText` 是最大漏网炸弹（每页 500-2000 字符）；OPT-052 合并后 OCR 摘抄积累加速此成本。`app_server.py:2312-2345`（`build_chat_prompt`）加白名单 dict comprehension 过滤 `ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt`；零 API/DB 变更，S 复杂度。 |
 | OPT-065 | reading_mcp_server._save_state() 跳过 sanitize_state()，MCP 写路径无状态校验 | P1 | S | triaged | northstar「中」，data safety；`app_server.py` 有 `__main__` 守卫，直接 `from app_server import sanitize_state` 无循环 import 风险；`reading_mcp_server.py:70-75`（`_save_state` 函数）调用前加 `state = sanitize_state(state)`。6 个 MCP 工具全部走此路径，S 复杂度。 |
 | OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | northstar「中」，Theme 1「采集顺滑」核心路径固定摩擦。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`，共 2 处。Theme 1 两周验收期直接触点。 |
@@ -27,7 +27,7 @@ northstar/signal：northstar「中」，无直接 signals.md 条目；2026-06-26
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P1 | S | triaged | `index.html:679` 加 `role="tablist"`；6 个 `<button>` 加 `role="tab"` + `aria-selected` + `aria-controls`；6 个 `<section>` 加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补 1 行 `setAttribute("aria-selected", ...)`。Level A 最严合规，Tab 是 App 主骨架。northstar「中」。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | `app.js:1335-1342`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集（现有逻辑）。northstar「中」，roadmap §2 可观测代理指标；signal 2026-06-26（记阅读活跃）佐证可观测性价值。3 行改动，无 HTML/CSS/后端变动。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at + user_state INSERT）→ 各换 `utc_now_iso()`。4 处替换，污染 OPT-030 乐观锁版本字段（stateVersion 首条为 naive），OPT-014 UTC 系列最后一块。northstar「中」。 |
-| OPT-066 | 编辑 Session 未同步书籍进度字段（currentPage/lastReadAt/updatedAt） | P2 | S | triaged | northstar「中」，Theme 1 数据准确性；signal 2026-06-26（记阅读活跃）佐证；编辑 session 的 if(existingId) 分支（`app.js:2029-2037`）只更新 session 本体，未重算 `book.currentPage/lastReadAt/updatedAt`，也不触发 finished 状态判断；对比新建分支（`app.js:2046-2055`）完整同步。约 5 行补全，S 复杂度。注：2026-06-26 新 signal（「希望每本书有开始/读完日期字段」）与此相关但超出本项范围，需 Agent3 新建 OPT。 |
+| OPT-066 | 编辑 Session 未同步书籍进度字段（currentPage/lastReadAt/updatedAt） | P2 | S | triaged | northstar「中」，Theme 1 数据准确性；signal 2026-06-26（记阅读活跃）佐证；编辑 session 的 if(existingId) 分支（`app.js:2029-2037`）只更新 session 本体，未重算 `book.currentPage/lastReadAt/updatedAt`，也不触发 finished 状态判断；对比新建分支（`app.js:2046-2055`）完整同步。约 5 行补全，S 复杂度。 |
 | OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | P2 | S | triaged | northstar「弱→中」，摘抄级聊天历史可靠性；`app.js:274-279`（contextFromHistoryKey）处理 `book:` 但 `quote:` fallthrough 错误解析为 bookId；后端 `app_server.py:617-625` 正确处理。1 行修复，S 复杂度。 |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | P2 | S | triaged | `app.js:2316-2332`：syncState() 前加 2 行 `delete state.chatHistories["quote:"+quoteId]; delete state.chatContexts["quote:"+quoteId];`，复用 deleteBook()（`app.js:2088-2101`）模式。northstar「弱」。 |
 | OPT-056 | 摘抄搜索不包含「我的理解」reflection 字段 | P2 | S | triaged | `app.js:1411-1416` haystack 数组末尾追加 `item.reflection \|\| ""`；1 行改动，零后端变更。northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；当前 Theme 1 期 P2。 |
@@ -43,6 +43,7 @@ northstar/signal：northstar「中」，无直接 signals.md 条目；2026-06-26
 | OPT-032 | _run_gc() 缺少 WAL checkpoint，WAL 文件持续膨胀 | P3 | S | triaged | P3 parked（磁盘卫生，无直接北极星贡献；预算富余周再做）。`app_server.py:5244` 前追加 `conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")`；`gc_thread_test.py` 加 1 条断言。 |
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。`app_server.py:2676, 2695, 2702`（create_trace / log_event / update_trace）3 处替换，零逻辑变更。 |
 | OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至定位升级到 C）。`app_server.py:1876, 1852, 1890, 1915, 1935`。 |
+| OPT-068 | 导入减量守卫未覆盖 chatHistories，旧备份可静默清空聊天记录 | P1 | S | done (PR #51 merged 2026-06-27) | northstar「中」，Theme 1「零丢失」+ Theme 2「回顾有价值」前提数据；import 护栏系列最后一个缺口（OPT-040/041/043 同类）。stateContentCount 补 Object.keys(chatHistories) 计数；_categoryLabels 加 chatHistories 条目；decrease guard 统一走 Object.keys；4 行，零后端变更。 |
 | OPT-069 | call_deepseek_stream() 无重试：主聊天路径遇瞬断即报错 | P1 | S | done (PR #50 merged 2026-06-25) | northstar「强」；`app_server.py:3222-3265`：urlopen() 放入 for attempt in range(DEEPSEEK_MAX_ATTEMPTS) 循环，镜像 call_deepseek()；tests/agent/deepseek_retry_test.py 新增 DeepseekStreamRetryTest。 |
 | OPT-062 | 确认对话框 Escape 关闭后监听器残留，可触发错误删除 | P1 | S | done (PR #49 merged 2026-06-24) | northstar「中」，Theme 1「零丢失」；showConfirmDialog 加 cancel 事件清理；deleteBook 弹窗补同款清理。与 OPT-063 同 PR。 |
 | OPT-063 | compress_chat_history API 失败时写入截断历史，永久丢失旧聊天记录 | P1 | S | done (PR #49 merged 2026-06-24) | northstar「中」，data safety；save_state 移入 try 块（压缩成功才持久化），except 改 return history；约 4 行重排。与 OPT-062 同 PR。 |
