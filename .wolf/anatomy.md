@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T09:25:55.853Z
-> Files: 171 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-27T19:14:14.127Z
-> Files: 170 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T11:25:32.867Z
+> Files: 182 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -15,9 +13,10 @@
 
 ## ../../.claude/
 
+- `bark-key.txt` (~6 tok)
 - `CLAUDE.md` — 全局工作约定（跨项目） (~421 tok)
 - `product-owner-latest.md` — 产品负责人周一焦点 — 2026-W26（2026-06-22） (~183 tok)
-- `settings.json` (~1052 tok)
+- `settings.json` (~1484 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
 ## ../../.claude/daily-logs/
@@ -34,6 +33,13 @@
 - `2026-06-16.md` — 日报 2026-06-16 (~481 tok)
 - `2026-06-24.md` — 日报 2026-06-24 (~520 tok)
 - `2026-06-26.md` — 日报 2026-06-26 (~397 tok)
+- `2026-06-28.md` — 日报 2026-06-28 (~537 tok)
+
+## ../../.claude/hooks/
+
+- `compact-summary.sh` — PostCompact hook — 上下文压缩后，把 Claude Code 刚生成的压缩摘要存成一张「工作日记卡片」 (~494 tok)
+- `permission-notify.sh` — PermissionRequest hook — Claude Code 需要授权时弹 macOS 通知 (~199 tok)
+- `stop-bark.sh` — Stop hook — Claude Code 完成一轮任务时，若你已切走终端窗口，推送到 iPhone/Apple Watch (Bark) (~383 tok)
 
 ## ../../.claude/plans/
 
@@ -58,7 +64,9 @@
 
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~253 tok)
+- `MEMORY.md` (~302 tok)
+- `project_optimization_pipeline.md` (~549 tok)
+- `reference_claude_code_hooks.md` (~351 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_remote_access_setup.md` (~538 tok)
@@ -243,8 +251,8 @@
 ## tests/frontend/
 
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
-- `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)
 - `book-dates-display.test.js` — OPT-074: startedAt / finishedAt are written to the book object via saveSession() (~1526 tok)
+- `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)
