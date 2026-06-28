@@ -2335,3 +2335,62 @@ function getConnectionCount(itemId) {
 **Files:** `app.js:675-677`（`getConnectionCount` 线性扫描实现）；`app.js:1464`（`renderQuotes` 中的调用点）；`app.js:630-651`（`buildRenderCache` 参考模式）
 
 **northstar:** 弱——当前单用户规模不可感知；仅 OPT-072 实现时的搭车修复候选，否则独立开 PR 性价比低。
+
+---
+
+## 2026-06-28
+
+### E127 — `addBook()` 和 `importExcel()` 绕过书架上限，`ActionExecutor` 以外的写路径无配额校验 (S)
+
+**What:** 配额校验仅位于 `ActionExecutor.execute_action()`（`app_server.py:3069-3078`）：
+
+```python
+# app_server.py:3069-3078
+book_cap = PLAN_LIMITS[plan]["book_cap"]
+if book_cap and len(state["books"]) >= book_cap:
+    return ExecutionResult(False, ACTION_STATUS_FAILED, ...)
+```
+
+前端直接写路径完全绕过此校验：
+- `addBook()`（`app.js:2115-2158`）：直接将新书 push 到 `state.books` 并调用 `syncState()`，无任何 `book_cap` 检查
+- `importExcel()`（`app.js:3341-3417`）：在循环中直接向 `state.books` 追加书籍，同样无配额检查
+
+后端 `save_state()`（`app_server.py:699-708`）和 `do_PUT()` 的 `/api/state` handler（`app_server.py:5348-5387`）均直接 sanitize 并写入，不做配额拦截。测试文件 `tests/agent/plan_tier_test.py:138-162` 仅覆盖 ActionExecutor 路径，未覆盖直接 state save 路径。
+
+**Why it matters:** 免费用户通过 UI 的「加书」按钮或 Excel 批量导入可绕过 10 本上限，积累任意数量的书籍。由于 billing 当前冻结（roadmap §1 决策：`billing 代码冻结`），此问题在阶段 A 无实际危害；但 roadmap §1 写明「升级到 B 才激活 billing」，届时此旁路是一个现成的逃费路径。
+
+**Complexity:** S — 在 `addBook()`（`app.js:2115`）调用 `syncState()` 前插入配额检查（读 user plan 或直接前端软限制）；`importExcel()` 在循环体内做同等检查。可选后端收口：在 `do_PUT /api/state` handler 中对 books 数量做拦截，确保无论哪条写路径都不能突破上限。
+
+**Files:** `app.js:2115-2158`（`addBook`）；`app.js:3341-3417`（`importExcel`）；`app_server.py:5348-5387`（`do_PUT /api/state`）；`app_server.py:3069-3078`（现有校验参考）；`tests/agent/plan_tier_test.py:138-162`（需补直接 state save 路径测试）
+
+**northstar:** 弱/none — billing 冻结，P3 候选；阶段 A 下无实际用户影响；记录以备升级阶段 B 时知道漏洞位置。
+
+---
+
+### E128 — `buildQuoteSearchCard()` 定义但从无调用者，是 OPT-070 待修复的死代码目标 (S)
+
+**What:** `app.js:1269-1291` 定义了 `buildQuoteSearchCard()` 函数。对全文件 grep `buildQuoteSearchCard` 的结果：该名称仅在定义行（1269）出现，**无任何调用点**。函数体本身在 1269-1291 行：
+
+```js
+// app.js:1269 — 仅此一处，无调用者
+function buildQuoteSearchCard(quote, book) {
+  ...
+  return card;
+}
+```
+
+OPT-070（`status: triaged`）的 description 明确写道：「全局搜索摘抄卡片函数 `buildQuoteSearchCard()`（`app.js:1193-1215`）未同步更新……封面区域硬编码为灰色占位图」——但如果该函数根本没有调用者，那么 OPT-070 所描述的「全局搜索结果显示灰色方块」实际上不可能通过此函数触发。OPT-070 的修复对象（全局搜索摘抄视觉）若确实存在，其真实代码路径不在 `buildQuoteSearchCard()`。
+
+注：`E113`（2026-06-24）和 OPT-070（`status: triaged`）均基于此函数，但两者均未确认调用者。如果全局搜索路径实际走了另一个函数，则 OPT-070 的实现需要先找到正确的调用路径再修复。
+
+**Why it matters:** 死代码（~23 行）是小的代码卫生问题，但它影响 OPT-070 的实现正确性：Agent2 若按 OPT-070 的 how 修复 `buildQuoteSearchCard` 而调用者不存在，修改不会对用户产生任何效果。建议实施 OPT-070 前先确认全局搜索摘抄的真实渲染路径，再决定是修复 `buildQuoteSearchCard` 还是删除它。
+
+**Complexity:** S — 若确认无调用者：删除函数体（app.js 减少 ~23 行），同时更新 OPT-070 的 how 指向正确渲染路径；若找到调用者：修复说明文档，按 OPT-070 修复图片渲染。
+
+**Files:** `app.js:1269-1291`（`buildQuoteSearchCard` 函数定义）；`app.js`（全文搜索调用者，预期 0 处）；`optimization/backlog.md`（OPT-070 需补充调用路径注释）
+
+**northstar:** 弱/none — 纯代码卫生；对用户不可感知；价值在于防止 OPT-070 修复错误目标。建议在 OPT-070 实施前由 Agent2 确认调用路径后再处理。
+
+---
+
+> 本次 run 同时将 E120（customQuoteTags localStorage-only，2026-06-26）和 E122（renderTimeline 不含书籍里程碑，2026-06-26）提拔为 OPT-077/OPT-078 — 两条已有充分代码证据但在此前各轮 run 中仅记录未提拔。
