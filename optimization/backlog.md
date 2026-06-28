@@ -625,7 +625,7 @@ Format per item:
 - how: 将 `renderStreamTimeout()`（`chat.js:724-744`）中的重试按钮创建逻辑提取为 `appendRetryButton(container, retryFn, label)` 函数；在 `rate_limited` 和通用 `else` 分支的 `appendMessage` 之后各调用一次 `appendRetryButton(msgDiv, retryFn, "重试")`。`retryFn` 可直接复用 `AbortError` 分支传入的 `retryFn`（同作用域）。Touch: `chat.js:702-719`（错误处理分支）；`chat.js:724-744`（`renderStreamTimeout`，提取重试按钮逻辑）。
 
 ### OPT-075 — `saveBookEdit()` 手动设置「已读完」状态时不写入 `finishedAt`，OPT-074 上线后日期展示出现空洞 — 由 explore E123 提拔 [2026-06-27]
-- status: new
+- status: done (2026-06-28, addressed by OPT-074 implementation — app.js:2592-2600 中 `if (book.status === "finished" && !book.finishedAt)` 已自动填充 finishedAt，无需单独实现)
 - area: frontend
 - northstar: 强——是 OPT-074（书籍日期展示）的数据完整性前提；「读完日期」是北极星「不假思索的默认工具」最直观成就感触点；S 级单行修复可避免 OPT-074 上线后立即出现「已读完但读完日期=未记录」的矛盾展示。
 - priority: P1
@@ -635,7 +635,7 @@ Format per item:
 - how: 在 `app.js:2494`（`startedAt` 写入块结束处）追加：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。可选在 `tests/frontend/book-detail-ux.test.js` 或新增测试文件加回归用例：模拟无 `totalPages` 的书被 `saveBookEdit()` 标为 "finished"，断言 `book.finishedAt` 不为 null。Touch: `app.js:2490-2501`。
 
 ### OPT-076 — `renderTimeline()` 硬上限 10 条且无任何告知，阅读历史超 10 次后早期记录不可见 — 由 explore E124 提拔 [2026-06-27]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」依赖能翻到早期阅读记录；当前 10 条上限在真实使用 2-3 个月后触发，是 Theme 2 验收期前需修复的前置缺陷。
 - priority: P2
