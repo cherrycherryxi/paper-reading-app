@@ -2371,6 +2371,13 @@ dialog::backdrop {
   white-space: pre-wrap;
 }
 
+/* OPT-074: reading dates line under the book detail meta */
+.book-detail-dates {
+  margin: -4px 0 2px;
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+}
+
 .book-detail-question {
   padding: 14px;
   border-radius: var(--radius-md);

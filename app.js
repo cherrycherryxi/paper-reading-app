@@ -317,7 +317,7 @@ function normalizeStateShape(rawState) {
   const chat = normalizeChatState(base);
   return {
     ...base,
-    books: Array.isArray(base.books) ? base.books : [],
+    books: Array.isArray(base.books) ? base.books.map(repairBookReadingDates) : [],
     sessions: Array.isArray(base.sessions) ? base.sessions : [],
     quotes: Array.isArray(base.quotes) ? base.quotes : [],
     connections: Array.isArray(base.connections) ? base.connections : [],
@@ -450,6 +450,26 @@ function formatDate(dateString) {
   });
 }
 
+// OPT-074: book startedAt/finishedAt are stored as ISO strings; <input type="date">
+// works with "YYYY-MM-DD". These two helpers convert between the two, using local
+// date components so the day the user picked is preserved across time zones.
+function isoToDateInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function dateInputToIso(value) {
+  const v = String(value || "").trim();
+  if (!v) return null;
+  const d = new Date(`${v}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 function normalizeTags(raw) {
   return String(raw || "")
     .split(",")
@@ -484,13 +504,61 @@ function renderQuoteTagPicker(initialTags) {
   ].join("");
 }
 
+// Excel serial 25569 == 1970-01-01 (1900 date system, including the 1900 leap-year
+// bug). A serial like 46055 is 2026-02-02. We re-anchor at local noon so the shown
+// calendar day is stable across time zones (matches dateInputToIso).
+function excelSerialToIso(serial) {
+  const n = Number(serial);
+  if (!Number.isFinite(n) || n <= 0 || n >= 100000) return null;
+  const utc = new Date(Math.round((n - 25569) * 86400000));
+  if (Number.isNaN(utc.getTime())) return null;
+  const y = utc.getUTCFullYear();
+  const m = String(utc.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(utc.getUTCDate()).padStart(2, "0");
+  const anchored = new Date(`${y}-${m}-${day}T12:00:00`);
+  return Number.isNaN(anchored.getTime()) ? null : anchored.toISOString();
+}
+
 function parseExcelDateToIso(raw) {
   if (raw === null || raw === undefined) return null;
   const text = String(raw).trim();
   if (!text) return null;
+  // Excel often stores dates as serial day-numbers. These MUST be converted
+  // explicitly — `new Date("46055")` would mis-read the serial as the YEAR 46055
+  // and silently store a date ~44000 years in the future (bug-342).
+  if (/^\d+(\.\d+)?$/.test(text)) {
+    const serial = Number(text);
+    if (serial >= 20000 && serial < 80000) return excelSerialToIso(serial);
+  }
   const date = new Date(text);
   if (Number.isNaN(date.getTime())) return null;
+  if (date.getFullYear() > 9999) return null; // guard the year-only mis-parse
   return date.toISOString();
+}
+
+// Repair dates already corrupted by the old parseExcelDateToIso: an Excel serial
+// mis-parsed as `new Date("46055")` became the literal (local) year 46055. The
+// impossible year IS the original serial, so convert it back to the real date.
+function repairBogusExcelDate(val) {
+  if (!val) return val;
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return val;
+  const localYear = d.getFullYear();
+  if (localYear <= 9999) return val;
+  return excelSerialToIso(localYear) || val;
+}
+
+function repairBookReadingDates(book) {
+  if (!book || typeof book !== "object") return book;
+  let repaired = book;
+  for (const field of ["startedAt", "finishedAt", "lastReadAt"]) {
+    const fixed = repairBogusExcelDate(book[field]);
+    if (fixed !== book[field]) {
+      if (repaired === book) repaired = { ...book };
+      repaired[field] = fixed;
+    }
+  }
+  return repaired;
 }
 
 function getRowField(row, keys) {
@@ -2460,6 +2528,8 @@ function openBookEditDialog(bookId) {
   els.bookEditForm.elements.bookId.value = book.id;
   els.bookEditForm.elements.currentPage.value = book.currentPage || 0;
   els.bookEditForm.elements.status.value = book.status || "wishlist";
+  els.bookEditForm.elements.startedAt.value = isoToDateInput(book.startedAt); // OPT-074
+  els.bookEditForm.elements.finishedAt.value = isoToDateInput(book.finishedAt); // OPT-074
   els.bookEditForm.elements.notes.value = book.notes || "";
   els.bookEditDialogTitle.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
   if (book.coverImageUrl) {
@@ -2481,17 +2551,35 @@ async function saveBookEdit(formData) {
     return;
   }
 
+  // OPT-074: the edit form's date fields are the source of truth for reading dates;
+  // the status-based fallback below only fills a date left blank here.
+  const startedAtIso = dateInputToIso(formData.get("startedAt"));
+  const finishedAtIso = dateInputToIso(formData.get("finishedAt"));
+  if (startedAtIso && finishedAtIso && finishedAtIso < startedAtIso) {
+    showToast("读完日期不能早于开始阅读日期");
+    return;
+  }
+
   // Update in-memory state immediately
   book.currentPage = currentPage;
   book.status = String(formData.get("status"));
   book.notes = String(formData.get("notes")).trim();
   book.tags = Array.isArray(book.tags) ? book.tags : [];
   book.updatedAt = new Date().toISOString();
+  book.startedAt = startedAtIso;
+  book.finishedAt = finishedAtIso;
   if (book.status === "reading" || book.status === "finished") {
     book.lastReadAt = new Date().toISOString();
     if (!book.startedAt) {
       book.startedAt = book.lastReadAt;
     }
+  }
+  // OPT-074: marking a book 已读完 auto-fills the finish date if left blank,
+  // mirroring how 阅读中/已读完 auto-fills the start date above. Don't let the
+  // auto-filled date land before the start date.
+  if (book.status === "finished" && !book.finishedAt) {
+    const now = new Date().toISOString();
+    book.finishedAt = book.startedAt && now < book.startedAt ? book.startedAt : now;
   }
   if (book.totalPages && currentPage >= book.totalPages) {
     book.status = "finished";
@@ -2554,6 +2642,17 @@ function openBookDetailDialog(bookId) {
 
   els.bookDetailTitle.textContent = book.title || "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
+
+  // OPT-074: show reading dates (auto-filled by saveSession, or set in edit dialog).
+  const detailDatesEl = document.getElementById("bookDetailDates");
+  if (detailDatesEl) {
+    const parts = [];
+    if (book.startedAt) parts.push(`开始 ${formatDate(book.startedAt)}`);
+    if (book.finishedAt) parts.push(`读完 ${formatDate(book.finishedAt)}`);
+    detailDatesEl.textContent = parts.join(" · ");
+    detailDatesEl.classList.toggle("is-hidden", parts.length === 0);
+  }
+
   els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
 
   const bookQuestion = state.quotes

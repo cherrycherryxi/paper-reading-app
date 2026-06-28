@@ -605,7 +605,7 @@ Format per item:
 - how: 在 `app.js:4175-4176`（`quoteSearch`/`sessionSearch`）和 `app.js:3956`（`connectionSearch`）的 `addEventListener("input", fn)` 外加 `debounce(fn, 250)` 包裹（内联 `setTimeout/clearTimeout` 模式，无需引入依赖）；`renderQuotes`/`renderTimeline`/`renderConnections` 可各接收可选 filter 字符串参数以支持内部过滤。Touch: `app.js:3956, 4175-4176`（事件绑定）；`app.js:1401-1469`（`renderQuotes`，如需接受 filter 参数）。
 
 ### OPT-074 — 书籍 `startedAt`/`finishedAt` 数据已自动填充但从未在 UI 展示 — 由 explore E119 提拔 [signal-backed 2026-06-26]
-- status: new
+- status: done (2026-06-27) — 书籍详情弹窗展示「开始/读完」日期行；编辑弹窗加两个 `type="date"` 输入可手动补/改日期（含「读完不早于开始」校验）；helper `isoToDateInput`/`dateInputToIso`；测试 `tests/frontend/book-reading-dates.test.js`（12 passed）。
 - area: frontend
 - priority: P1
 - size: S

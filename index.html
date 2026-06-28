@@ -349,6 +349,10 @@
             <option value="finished">已读完</option>
           </select>
         </label>
+        <div class="input-grid">
+          <label><span>开始阅读</span><input name="startedAt" type="date" /></label>
+          <label><span>读完日期</span><input name="finishedAt" type="date" /></label>
+        </div>
         <label><span>内容简介 / 备注</span><textarea name="notes" rows="4" placeholder="记录这本书的简介、感受或关键背景。"></textarea></label>
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="bookEditDialog">取消</button>
@@ -360,6 +364,7 @@
     <dialog id="bookDetailDialog" aria-labelledby="bookDetailTitle">
       <div class="dialog-form book-detail-dialog-body">
         <div class="section-head"><h2 id="bookDetailTitle">书籍详情</h2><p id="bookDetailMeta"></p></div>
+        <p id="bookDetailDates" class="book-detail-dates is-hidden"></p>
         <div id="bookDetailIntro" class="book-detail-intro"></div>
         <div id="bookDetailQuestionWrap" class="is-hidden">
           <div class="section-head"><h3>核心问题</h3></div>

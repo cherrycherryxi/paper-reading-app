@@ -82,7 +82,7 @@ Python tests use a temp directory for the DB — they never touch `app_state.db`
 
 ## Key Conventions
 
-- **State shape** is enforced by `sanitize_state()` in `app_server.py`: `{books, sessions, quotes, chatHistories, chatContexts, connections}`. Any save/load goes through this sanitizer. The four user *content* categories (counted by `stateContentCount()` and shown in the import-result dialog) are `books` / `quotes` / `sessions` / `connections`.
+- **State shape** is enforced by `sanitize_state()` in `app_server.py`: `{books, sessions, quotes, chatHistories, chatContexts, connections}`. Any save/load goes through this sanitizer. `stateContentCount()` (in `app.js`) sums `books` / `quotes` / `sessions` / `connections` (array lengths) **plus** `chatHistories` (object key count, added in OPT-068); it is used only by the import zero-content footgun guard. The import-*result* dialog (`showImportResult()`) separately renders a hardcoded 4-row summary of `books` / `quotes` / `sessions` / `connections`.
 - **Auth** uses `X-Auth-Token` header (token stored in `localStorage` under key `paper-reading-auth-token-v1`). The backend resolves the user via `resolve_user_from_token()`.
 - **Cross-module events**: `app.js` fires `paper-reading-data-changed` and `paper-reading-user-changed` custom events on `window`; `chat.js` listens to these to stay in sync without direct coupling.
 - **Agent action approval flow**: the chat UI shows a confirm button before executing any agent action. The JS in `chat.js` calls `POST /api/agent/actions/:id/approve` then `POST /api/agent/actions/:id/execute`.
