@@ -1,6 +1,8 @@
 # Local data
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 app_state.db
 app_state.db-journal
 uploads/
