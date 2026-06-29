@@ -6146,6 +6146,22 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-29T11:09:03.120Z"
+    },
+    {
+      "id": "bug-364",
+      "timestamp": "2026-06-29T17:07:37.481Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-29T17:07:40.011Z"
     }
   ]
 }
