@@ -364,7 +364,7 @@ Format per item:
 ### OPT-046 — Tab 导航缺少 ARIA role/aria-selected 属性，屏幕阅读器无法感知 Tab 切换（WCAG 4.1.2 Level A） — 由 explore E70 提拔
 - status: triaged
 - area: frontend
-- northstar: 中——无障碍合规是商业化基线，Level A 违规比 Level AA 更严重；Tab 是 App 主骨架，修不好其他 ARIA 修复意义减半。P1 候选，S 复杂度。
+- northstar: 无直接贡献——商业化（定位 C）已冻结，当前 8 周按定位 A「个人工具」执行，唯一用户=owner 本人，屏幕阅读器 a11y 对单人无价值。→ **P3 parked（2026-W27 仪式）**：与已 parked 的 OPT-048（chat `role="log"`）同一逻辑，a11y 系列统一留待定位升级到 B/C 再批量重启。原写「商业化基线」属把未选定的定位 C 当现实，与 roadmap §1「未来 8 周按 A 执行」不符。
 - description: `<nav class="mobile-tabs">` 的 6 个 `<button>` 无 `role="tablist"`/`role="tab"`/`aria-selected`/`aria-controls`，`activateTab()` 只切换 CSS class，不更新任何 ARIA 状态。屏幕阅读器用户听到的是 6 个匿名按钮，无选中/未选中提示，无法用箭头键按 ARIA tab 模式导航。
 - why: WCAG 2.1 SC 4.1.2（Name, Role, Value — Level A）要求 Tab 组件声明正确的 role 并在切换时同步 `aria-selected`。Level A 是商业化最严格的合规等级；这 6 个 Tab 是 App 的主导航骨架，修复后所有后续 ARIA 修复才有完整语义上下文。修复是纯加法（HTML 属性 + 1 行 JS），零逻辑变更，零风险。
 - how: `index.html:679` 加 `role="tablist"`；6 个 `<button>` 各加 `role="tab"` + `aria-selected` + `aria-controls="<panel-id>"`；6 个 `<section data-tab-section>` 各加 `id` + `role="tabpanel"` + `aria-labelledby`；`app.js:1629` 补一行 `button.setAttribute("aria-selected", String(button.dataset.tab === tabName))`。Touch: `index.html:72-160, 679-704`；`app.js:1628-1630`。
@@ -625,7 +625,7 @@ Format per item:
 - how: 将 `renderStreamTimeout()`（`chat.js:724-744`）中的重试按钮创建逻辑提取为 `appendRetryButton(container, retryFn, label)` 函数；在 `rate_limited` 和通用 `else` 分支的 `appendMessage` 之后各调用一次 `appendRetryButton(msgDiv, retryFn, "重试")`。`retryFn` 可直接复用 `AbortError` 分支传入的 `retryFn`（同作用域）。Touch: `chat.js:702-719`（错误处理分支）；`chat.js:724-744`（`renderStreamTimeout`，提取重试按钮逻辑）。
 
 ### OPT-075 — `saveBookEdit()` 手动设置「已读完」状态时不写入 `finishedAt`，OPT-074 上线后日期展示出现空洞 — 由 explore E123 提拔 [2026-06-27]
-- status: new
+- status: done (2026-06-28, addressed by OPT-074 implementation — app.js:2592-2600 中 `if (book.status === "finished" && !book.finishedAt)` 已自动填充 finishedAt，无需单独实现)
 - area: frontend
 - northstar: 强——是 OPT-074（书籍日期展示）的数据完整性前提；「读完日期」是北极星「不假思索的默认工具」最直观成就感触点；S 级单行修复可避免 OPT-074 上线后立即出现「已读完但读完日期=未记录」的矛盾展示。
 - priority: P1
@@ -635,7 +635,7 @@ Format per item:
 - how: 在 `app.js:2494`（`startedAt` 写入块结束处）追加：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。可选在 `tests/frontend/book-detail-ux.test.js` 或新增测试文件加回归用例：模拟无 `totalPages` 的书被 `saveBookEdit()` 标为 "finished"，断言 `book.finishedAt` 不为 null。Touch: `app.js:2490-2501`。
 
 ### OPT-076 — `renderTimeline()` 硬上限 10 条且无任何告知，阅读历史超 10 次后早期记录不可见 — 由 explore E124 提拔 [2026-06-27]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」依赖能翻到早期阅读记录；当前 10 条上限在真实使用 2-3 个月后触发，是 Theme 2 验收期前需修复的前置缺陷。
 - priority: P2
@@ -643,3 +643,23 @@ Format per item:
 - description: `renderTimeline()`（`app.js:1337`）无搜索词时静默截断：`allSorted.slice(0, 10)`。无数量提示、无分页按钮、无「查看更多」入口。用户有 20+ 条阅读记录时，只能通过搜索书名才能看到早期记录，无法按时间顺序浏览完整阅读历史。对比摘抄（`renderQuotes()`）和书单（`renderBooks()`）均无数量上限，「记录」是唯一有硬截断的标签页。
 - why: 「什么时候读完这本书」「上个月读了哪些书」是 Theme 2「回顾有价值」的核心场景；如果只能看到最近 10 条，时间线实质上无法作为阅读历程工具使用。
 - how: 方案 B（推荐，M 复杂度）：在截断处改为 `allSorted.slice(0, displayLimit)`（初始值 10），渲染后若 `allSorted.length > displayLimit` 则追加「加载更多（共 N 条）」按钮；点击递增 `displayLimit` 并重渲。添加 `let sessionDisplayLimit = 10` 为模块级变量，`renderTimeline()` 使用并在「加载更多」click 后重调。Touch: `app.js:1337`（截断逻辑）；`app.js:1351-1399`（DOM 渲染，加载更多按钮插入点）。
+
+### OPT-077 — `renderTimeline()` 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 — 由 explore E122 提拔 [2026-06-28]
+- status: new
+- area: frontend
+- northstar: 中——OPT-074 已使 startedAt/finishedAt 可靠落盘且在详情页可见；将这两个里程碑纳入时间线，让「记录」Tab 从「session 日志」升级为「阅读历程图」，是 Theme 2「回顾有价值」的核心基础设施；北极星代理指标「本周回顾操作次数」依赖时间线能反映完整阅读历程。
+- priority: P2
+- size: M
+- description: `renderTimeline()`（`app.js:1321-1399`）的 `allSorted` 数组仅由 `state.sessions` 构成（`app.js:1321-1333`）：`const allSorted = (state.sessions || []).slice().sort(...)` — 书籍的 `startedAt`/`finishedAt` 里程碑从未出现在时间线中。OPT-074 上线（PR #53, 2026-06-27）后，书籍「开始阅读」和「读完」日期已可靠自动填充并在详情弹窗展示，但时间线依然看不到这些里程碑。用户读完一本书，时间线只有若干 session 卡片，没有「📖 开始阅读《XXX》」和「✅ 读完《XXX》」里程碑节点，无法一眼把握某本书的完整读书区间。
+- why: Theme 2 的核心场景是「什么时候读完这本书」「某段时间我读了什么」——当前时间线只回答了「某段时间我读了多少分钟」，不回答「书籍维度的阅读历程」。里程碑事件是时间线产品价值的质变点：它将阅读体验从「打卡日志」升级为「阅读历程回顾」，直接支撑北极星「不假思索的默认工具」。OPT-074 的数据已到位，现在是展示层的闭环。
+- how: 在 `renderTimeline()` 开头从 `state.books` 提取所有有 `startedAt`/`finishedAt` 的书，构建里程碑事件列表（`{type:"milestone", kind:"started"|"finished", bookId, date: startedAt/finishedAt, book}`），与 `sessions` 数组合并后统一按 `date` 排序；为里程碑设计专属卡片 HTML 模板（视觉上与 session 卡片区分，如「📖 开始阅读《书名》」「✅ 读完《书名》」）；`searchRaw` 过滤时对里程碑按书名过滤，与现有 session 过滤逻辑并列。无后端/DB schema 改动。Touch: `app.js:1321-1399`（`renderTimeline`）；`styles.css`（里程碑卡片样式，少量新增）。
+
+### OPT-078 — 自定义摘抄标签仅存 localStorage，跨设备不同步，导出包中不存在 — 由 explore E120 提拔 [2026-06-28]
+- status: new
+- area: frontend
+- northstar: 中——自定义标签是 Theme 2「回顾有价值」里「按主题检索」路径的基础；标签体系越积累越难补救——换设备或清缓存后选项消失，历史摘抄的主题过滤入口失效；Theme 2 验收前修复成本最低。
+- priority: P2
+- size: M
+- description: `getCustomQuoteTags()`（`app.js:480-481`）和 `saveCustomQuoteTags()`（`app.js:483-484`）将用户自定义摘抄标签完全存储在浏览器 localStorage 中（`localStorage.getItem("quote-custom-tags")`）。`sanitize_state()`（`app_server.py:633-667`）维护的 server-side state schema（`books/sessions/quotes/connections/chatHistories/chatContexts`）完全不包含 `customQuoteTags` 字段，确认无任何服务端持久化路径。用户在 iPhone 上建立的标签体系不存在于 `/api/account/export` 导出包中；换设备、清浏览器缓存、或通过另一台设备访问后，标签选项全部消失——摘抄本身的 `tags` 字符串保留，但新增摘抄时不再提示已有标签，旧标签选项无法从已有摘抄自动重建（除非手动逐条查看）。
+- why: 标签是 Theme 2「按主题检索」的核心工具；摘抄标签数据库越积累，补救成本越高；标签在 export 中不存在意味着备份不完整，与 OPT-068（chatHistories 减量守卫）、OPT-063（compress 失败丢失）同属「数据孤岛」类问题；M 级修复在 Theme 2 启动前最合适。
+- how: ① 在 `sanitize_state()`（`app_server.py:633-667`）的返回 dict 中增加 `customQuoteTags` 字段（默认值 `[]`）；② `saveCustomQuoteTags()`（`app.js:483-484`）改为双写：先 `localStorage.setItem(...)` 保持 UI 即时响应，再将 `state.customQuoteTags` 更新并调用 `syncState()` 持久化到服务端；③ `getCustomQuoteTags()`（`app.js:480-481`）改为优先读 `state.customQuoteTags`（若存在且非空），回退 localStorage（迁移过渡期）；④ 更新 `tests/agent/state_sanitization_test.py` 中的 schema 快照测试（如有）。Touch: `app.js:480-484`；`app_server.py:633-667`（`sanitize_state`）。

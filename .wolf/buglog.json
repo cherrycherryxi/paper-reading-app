@@ -5847,6 +5847,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-28T11:30:54.854Z"
+    },
+    {
+      "id": "bug-347",
+      "timestamp": "2026-06-28T17:07:01.700Z",
+      "error_message": "Wrong reference: new should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"done\"",
+      "fix": "Changed new → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-28T17:07:04.991Z"
+    },
+    {
+      "id": "bug-347",
+      "timestamp": "2026-06-29T01:04:29.694Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/roadmap.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 10→12 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T01:04:29.694Z"
     }
   ]
 }

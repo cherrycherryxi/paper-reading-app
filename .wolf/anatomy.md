@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T14:48:57.495Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-29T01:05:08.168Z
 > Files: 183 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -15,7 +15,7 @@
 
 - `bark-key.txt` (~6 tok)
 - `CLAUDE.md` — 全局工作约定（跨项目） (~421 tok)
-- `product-owner-latest.md` — 产品负责人周一焦点 — 2026-W26（2026-06-22） (~183 tok)
+- `product-owner-latest.md` — 产品负责人周报 · 2026-W27（6/29 定） (~142 tok)
 - `settings.json` (~1484 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
@@ -202,15 +202,15 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~17204 tok)
+- `backlog.md` — Optimization Backlog (~18469 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~46263 tok)
+- `explore.md` — Exploration — new optimization directions (~46973 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~1126 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~1310 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~275 tok)
-- `triage.md` — Triage (~3694 tok)
+- `triage.md` — Triage (~3663 tok)
 
 ## scripts/
 
