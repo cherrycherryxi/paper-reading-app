@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T11:25:32.867Z
-> Files: 182 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T14:48:57.495Z
+> Files: 183 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -38,7 +38,7 @@
 ## ../../.claude/hooks/
 
 - `compact-summary.sh` — PostCompact hook — 上下文压缩后，把 Claude Code 刚生成的压缩摘要存成一张「工作日记卡片」 (~494 tok)
-- `permission-notify.sh` — PermissionRequest hook — Claude Code 需要授权时弹 macOS 通知 (~199 tok)
+- `permission-notify.sh` — PermissionRequest hook — Claude Code 需要授权时弹 macOS 通知 (~515 tok)
 - `stop-bark.sh` — Stop hook — Claude Code 完成一轮任务时，若你已切走终端窗口，推送到 iPhone/Apple Watch (Bark) (~383 tok)
 
 ## ../../.claude/plans/
@@ -66,7 +66,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~302 tok)
 - `project_optimization_pipeline.md` (~549 tok)
-- `reference_claude_code_hooks.md` (~351 tok)
+- `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_remote_access_setup.md` (~538 tok)
@@ -81,6 +81,10 @@
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
 - `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
 - `weekly-report.sh` (~476 tok)
+
+## ../../.claude/skills/organize-downloads/
+
+- `SKILL.md` — Organize Downloads（下载文件夹整理） (~534 tok)
 
 ## ../../Library/LaunchAgents/
 

@@ -5831,6 +5831,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-28T11:14:25.265Z"
+    },
+    {
+      "id": "bug-345",
+      "timestamp": "2026-06-28T11:30:54.854Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/hooks/permission-notify.sh",
+      "root_cause": "Had '/HIDIdleTime/ {print int($NF/1000000000); exit}'",
+      "fix": "Changed to '/HIDIdleTime/ {v=int($NF/1000000000)} END{print v",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T11:30:54.854Z"
     }
   ]
 }
