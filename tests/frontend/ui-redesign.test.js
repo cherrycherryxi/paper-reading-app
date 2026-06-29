@@ -122,6 +122,8 @@ test("regression: quote OCR completion syncs generated tags into the open form",
 
 test("regression: AI quote tags stay selected without being added to default picker tags", () => {
   assert.match(appSource, /const pickerTags = \[\.\.\.new Set\(\[\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.getCustomQuoteTags\(\)\]\)\];/);
+  // picker 不得再从 state.quotes 反推「书用过的标签」（会拖进笔记/AI 自动标签，杂乱）。
+  assert.doesNotMatch(appSource, /getUsedQuoteTags/, "getUsedQuoteTags must be fully removed");
   assert.match(appSource, /const selectedOnlyTags = selectedQuoteTags\.filter\(\(tag\) => !pickerTags\.includes\(tag\)\);/);
   assert.match(appSource, /data-selected-only-tag="true"/);
   assert.doesNotMatch(appSource, /\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.getCustomQuoteTags\(\), \.\.\.selectedQuoteTags/);

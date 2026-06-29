@@ -477,6 +477,9 @@ function normalizeTags(raw) {
     .filter(Boolean);
 }
 
+// picker 的自定义标签来源**只用这一个**：localStorage 里用户经标签输入框亲手敲过的标签。
+// 不要从 state.quotes 里反推「这本书用过的标签」——那会把笔记(note)卡片的标签、以及 AI OCR
+// 自动生成的标签全拖进来，几十个堆在一起特别杂乱（用户明确：只要默认 + 自己手动加的摘抄标签）。
 function getCustomQuoteTags() {
   try { return JSON.parse(localStorage.getItem("quote-custom-tags") || "[]"); } catch { return []; }
 }
