@@ -5879,6 +5879,273 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-29T01:04:29.694Z"
+    },
+    {
+      "id": "bug-348",
+      "timestamp": "2026-06-29T08:52:33.054Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !el",
+      "fix": "Added guard clause: if (!el)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T08:52:33.054Z"
+    },
+    {
+      "id": "bug-349",
+      "timestamp": "2026-06-29T08:52:38.585Z",
+      "error_message": "CSS fix: align-items",
+      "file": "styles.css",
+      "root_cause": "align-items: center → flex-start",
+      "fix": "Changed align-items: center → flex-start",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T08:52:38.585Z"
+    },
+    {
+      "id": "bug-350",
+      "timestamp": "2026-06-29T08:53:25.520Z",
+      "error_message": "Wrong reference: value should be textarea",
+      "file": "tests/frontend/ocr-fast-panel-integration.test.js",
+      "root_cause": "Used \"value\" instead of \"textarea\"",
+      "fix": "Changed value → textarea",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T08:53:25.520Z"
+    },
+    {
+      "id": "bug-351",
+      "timestamp": "2026-06-29T08:53:30.085Z",
+      "error_message": "Wrong return value",
+      "file": "tests/frontend/ocr-fast-panel-integration.test.js",
+      "root_cause": "Was returning: rows.map((r) => ({ value: r.value }));",
+      "fix": "Now returns: rows.map((r) => ({ value: r.value, style: {}, scro",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T08:53:30.085Z"
+    },
+    {
+      "id": "bug-352",
+      "timestamp": "2026-06-29T00:00:00+08:00",
+      "error_message": "快速 OCR 识别面板每行内容过长时显示不全（单行 input 被水平裁掉，只能看到开头）",
+      "file": "app.js, styles.css",
+      "root_cause": "renderOcrLineSelector 把每行渲染成单行 <input type=text>，固定宽度下长文本水平溢出被裁剪",
+      "fix": "改用 <textarea rows=1>，加 autoGrowOcrInput() 按 scrollHeight 自适应高度（初始渲染+oninput 各调一次）；CSS 加 white-space:pre-wrap/word-break:break-word/resize:none/overflow:hidden，行容器 align-items:flex-start。同步更新两处测试 stub（regex 改取 textarea 标签内容 + 补 style/scrollHeight）",
+      "tags": [
+        "ocr",
+        "ui",
+        "textarea",
+        "overflow",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T00:00:00+08:00"
+    },
+    {
+      "id": "bug-353",
+      "timestamp": "2026-06-29T09:08:02.025Z",
+      "error_message": "Wrong reference: getCustomQuoteTags should be getUsedQuoteTags",
+      "file": "app.js",
+      "root_cause": "Used \"getCustomQuoteTags\" instead of \"getUsedQuoteTags\"",
+      "fix": "Changed getCustomQuoteTags → getUsedQuoteTags | 修正(2026-06-29 二次反馈): getUsedQuoteTags 一开始扫全部书的 quotes,书多时 picker 标签爆炸。改为按当前书过滤——getUsedQuoteTags(bookId) 只取该书、无 bookId 返回空;picker 从 els.quoteForm 的 [name=bookId] 读当前书。最终 picker = 默认标签 ∪ 当前书用过的标签 ∪ localStorage自定义 | 三次修正(2026-06-29 终): getUsedQuoteTags 方向错误,彻底删除。state.quotes 混装 quote/note/question 三类卡片+AI OCR 自动标签,反推『书用过的标签』会拖进笔记标签和AI标签(月亮虎仅quote类就17个,含note共34个),非常杂乱。用户最终要的=默认+localStorage手敲自定义。picker 改回 [DEFAULT ∪ getCustomQuoteTags()],与当前书无关,三入口一致。代价:手敲自定义仍是localStorage(换origin可能丢),用户当前优先干净一致",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-29T19:00:00+08:00"
+    },
+    {
+      "id": "bug-354",
+      "timestamp": "2026-06-29T09:08:11.261Z",
+      "error_message": "Wrong reference: getCustomQuoteTags should be getUsedQuoteTags",
+      "file": "tests/frontend/ui-redesign.test.js",
+      "root_cause": "Used \"getCustomQuoteTags\" instead of \"getUsedQuoteTags\"",
+      "fix": "Changed getCustomQuoteTags → getUsedQuoteTags",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T09:08:11.261Z"
+    },
+    {
+      "id": "bug-353",
+      "timestamp": "2026-06-29T00:00:00+08:00",
+      "error_message": "自定义新增的摘抄标签总会莫名消失（可复用的自定义标签 chip 丢失）",
+      "file": "app.js, tests/frontend/ui-redesign.test.js",
+      "root_cause": "可复用自定义标签只存 localStorage 的 quote-custom-tags，按 origin 隔离——换设备/远程隧道URL一变就清空；而 books/quotes 走账号 state 同步。标签其实没丢（仍在每条 quote 的 tags 里随账号同步），丢的是 picker 里的可复用 chip 选项",
+      "fix": "新增 getUsedQuoteTags() 扫描 state.quotes 收集所有用过的标签（随账号同步、跨设备/URL 稳定），并入 renderQuoteTagPicker 的 pickerTags 来源：DEFAULT ∪ getUsedQuoteTags() ∪ localStorage。只取已保存 quotes 的 tag，新建/未存 quote 的 AI 建议仍走 selected-only，不违反 regression-123 意图。更新 ui-redesign.test.js:124 断言，新增 quote-tag-picker-persist.test.js（vm 跑真实源码） | 修正(2026-06-29 二次反馈): getUsedQuoteTags 一开始扫全部书的 quotes,书多时 picker 标签爆炸。改为按当前书过滤——getUsedQuoteTags(bookId) 只取该书、无 bookId 返回空;picker 从 els.quoteForm 的 [name=bookId] 读当前书。最终 picker = 默认标签 ∪ 当前书用过的标签 ∪ localStorage自定义 | 三次修正(2026-06-29 终): getUsedQuoteTags 方向错误,彻底删除。state.quotes 混装 quote/note/question 三类卡片+AI OCR 自动标签,反推『书用过的标签』会拖进笔记标签和AI标签(月亮虎仅quote类就17个,含note共34个),非常杂乱。用户最终要的=默认+localStorage手敲自定义。picker 改回 [DEFAULT ∪ getCustomQuoteTags()],与当前书无关,三入口一致。代价:手敲自定义仍是localStorage(换origin可能丢),用户当前优先干净一致",
+      "tags": [
+        "tags",
+        "localStorage",
+        "sync",
+        "quote",
+        "picker",
+        "origin"
+      ],
+      "related_bugs": [
+        "bug-336"
+      ],
+      "occurrences": 3,
+      "last_seen": "2026-06-29T19:00:00+08:00"
+    },
+    {
+      "id": "bug-356",
+      "timestamp": "2026-06-29T10:21:24.183Z",
+      "error_message": "Significant refactor of ",
+      "file": "chat.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 10→18 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T10:21:24.183Z"
+    },
+    {
+      "id": "bug-357",
+      "timestamp": "2026-06-29T10:23:24.196Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/regression-fixed-bugs.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T10:23:24.196Z"
+    },
+    {
+      "id": "bug-354",
+      "timestamp": "2026-06-29T18:00:00+08:00",
+      "error_message": "探讨回复里的有序列表序号全显示成「1.」（用户：序号明显不对）",
+      "file": "chat.js",
+      "root_cause": "renderMiniMarkdown 的有序列表收集器只把『连续』的 N. 行收进同一个 <ol> 并丢弃原始数字让 <ol> 自动编号。LLM 列表项之间几乎总有空行，于是每项被拆进独立 <ol>，每个 <ol> 默认从 1 重新计数 → 1.1.1.。模型原始输出编号其实正确（DB 验证 17:38:50 那条 raw output 是 1.2.3.4.）",
+      "fix": "渲染有序列表时解析行首数字，每项输出 <li value=\"N\"> 锚定原始序号，<ol start=\"N\"> 兜底，使跨空行/跨段的列表也保持连续正确编号。新增 regression 测试",
+      "tags": [
+        "chat",
+        "markdown",
+        "ordered-list",
+        "rendering",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T18:00:00+08:00"
+    },
+    {
+      "id": "bug-355",
+      "timestamp": "2026-06-29T18:00:00+08:00",
+      "error_message": "探讨『从书单查找我读过的书』时返回了还没开始读(wishlist)的书",
+      "file": "app_server.py",
+      "root_cause": "PromptBuilder.build_chat_prompt 的 all_books_summary 只发 {id,title,author}，不带阅读状态，且系统提示没要求按状态区分。模型在整个书单(含 wishlist)上做召回",
+      "fix": "all_books_summary 每本书加 status(finished/reading/wishlist)；common_rules 新增第5条：用户提到『我读过的』时只从 finished/reading 取，不得把 wishlist 算作读过的，若顺带提及需显式标注『还没开始读』。三个 scenario_rules 编号从5顺延到6。新增后端测试",
+      "tags": [
+        "chat",
+        "prompt",
+        "book-status",
+        "wishlist",
+        "recall"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T18:00:00+08:00"
+    },
+    {
+      "id": "bug-360",
+      "timestamp": "2026-06-29T10:49:30.472Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !bookId",
+      "fix": "Added guard clause: if (!bookId)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T10:49:30.472Z"
+    },
+    {
+      "id": "bug-361",
+      "timestamp": "2026-06-29T10:49:39.515Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T10:49:39.515Z"
+    },
+    {
+      "id": "bug-362",
+      "timestamp": "2026-06-29T10:49:45.689Z",
+      "error_message": "Wrong reference: getCustomQuoteTags should be currentBookId",
+      "file": "tests/frontend/ui-redesign.test.js",
+      "root_cause": "Used \"getCustomQuoteTags\" instead of \"currentBookId\"",
+      "fix": "Changed getCustomQuoteTags → currentBookId",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T10:49:45.689Z"
+    },
+    {
+      "id": "bug-363",
+      "timestamp": "2026-06-29T11:08:57.006Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 19→7 lines (12 removed) | Also: // 当前书 id 取自正在编辑的摘抄表单（各调用点都在调本函数前已设好 bookId）。; const currentBookId = String(els.quoteForm?.queryS",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-29T11:09:03.120Z"
     }
   ]
 }

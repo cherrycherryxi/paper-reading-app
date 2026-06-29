@@ -17,6 +17,16 @@
 
 - **[2026-05-12] 静态文件由后端统一托管。** `log_server.py` 的 `do_GET` 顶部增加了静态文件路由，serve `index.html`、`app.js`、`chat.js`、`styles.css`。前端不再需要单独的 `python3 -m http.server 4173` 进程，只开 8787 一个端口即可。
 
+- **[2026-06-29] 诊断「探讨/chat 失败或质量差」先查 `app_state.db` 的 `model_logs`（只读）。** 每次 chat 都写一行：`latency_ms`、`output_tokens`、`parse_status`、`error`、完整 `output`。区分失败原因的判据：① 有 `error` 行或 `agent_trace_events` 里有 `MODEL_ERROR` → 服务端异常；② `finish_reason!=stop` 会留 `STREAM_RETRY` 事件（content_filter 内容限制走这条）；③ 都没有、但 `latency` 很大 + `output_tokens` 极小 + `parse=DEGRADED` + output 截断在半句 JSON → 网络/上游流式卡死（客户端 30s idle abort，E24），**不是内容限制**。别凭主题敏感就臆断是审查。
+
+- **[2026-06-29] `chat.js` 的 `renderMiniMarkdown` 有序列表坑：** 收集器只把『连续』的 `N. ` 行收进同一个 `<ol>`。LLM 列表项间几乎总有空行 → 每项被拆进独立 `<ol>`，而 `<ol>` 默认每段从 1 重数 → 显示成「1.1.1.」。修法是 `<li value="N">` 保留模型原始序号。改这个迷你 markdown 渲染器时，任何「按运行收集连续行」的块级元素都要想到空行会打断收集。
+
+- **[2026-06-29] `state.quotes` 是混合集合：摘抄(kind=quote)、笔记(kind=note)、提问(kind=question) 全塞在一个数组里，靠 `kind` 字段区分。** 任何「遍历 state.quotes 取标签/统计」的逻辑都要先按 `kind` 过滤，否则会把笔记/提问的内容混进摘抄场景。另外 quote 的 `tags` 里既有用户手敲的，也有 AI OCR 自动生成的，无法从数据区分来源。教训：摘抄标签 picker 三次返工，根因就是从 state.quotes 反推「书用过的标签」——把 note 标签 + AI 自动标签全拖进来了。**「用户手动加的标签」= localStorage 的 `quote-custom-tags`（只在标签输入框按 Enter 写入），这是唯一可靠的「手敲」来源；不要用 used-tags 近似它。**
+
+- **[2026-06-29] 摘抄标签 picker 最终形态：`[...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags()])]`**，与当前选了哪本书无关。曾试图加 getUsedQuoteTags（先全局、后按书）均被用户否决（太多/太杂）。注意 `renderQuoteTagPicker` 在 `resetQuoteDraft`（form.reset 后 bookId 为空）和 Enter 重渲染（bookId 已定）两个时机被调，若 picker 依赖 bookId 会忽多忽少——所以 picker 内容必须与 bookId 无关。
+
+- **[2026-06-29] 探讨发给模型的书单是后端从 state 组装的，不是前端传的。** `PromptBuilder.build_chat_prompt` 的 `all_books_summary`（≤50本，按 updatedAt 倒序）。book.status 取值：`finished`/`reading`/`wishlist`。要让模型按阅读状态筛选，必须把 status 放进 summary 且在 system instruction 里给规则——否则它在整个书单(含没读的 wishlist)上召回。
+
 - **[2026-05-12] `backendBaseUrl` 改为空字符串。** 前端与后端同源后，所有 API 请求改用相对路径。`index.html` 里 `window.PAPER_READING_APP_CONFIG.backendBaseUrl` 设为 `""`。不需要再硬编码局域网 IP。
 
 - **[2026-05-12] `guess_base_url()` 支持 HTTPS。** 增加读取 `X-Forwarded-Proto` header，确保通过 ngrok/Cloudflare Tunnel 等反向代理时媒体文件 URL 能正确生成 `https://` 前缀。
