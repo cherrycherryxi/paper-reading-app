@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-29T14:15:07.690Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-29T14:28:33.061Z
 > Files: 185 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -99,7 +99,7 @@
 ## ./
 
 - `.DS_Store` (~2186 tok)
-- `.gitignore` — Git ignore rules (~192 tok)
+- `.gitignore` — Git ignore rules (~196 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66954 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~48553 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
