@@ -2022,6 +2022,13 @@ function rebuildQuoteContentFromOcrPanel(sel) {
   if (els.quoteContent) els.quoteContent.value = parts.join("");
 }
 
+// 让 OCR 行的 textarea 随内容高度自适应：先归零再按 scrollHeight 撑开。
+function autoGrowOcrInput(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 function renderOcrLineSelector(text) {
   const sel = els.ocrLineSelector;
   if (!sel) return;
@@ -2038,15 +2045,18 @@ function renderOcrLineSelector(text) {
   const items = lines
     .map(
       (line, i) =>
-        `<div class="ocr-line-selector__row" data-line-idx="${i}"><input type="text" class="ocr-line-selector__input" value="${escapeHtml(line)}" aria-label="第 ${i + 1} 行内容" /><button type="button" class="ocr-line-selector__del" aria-label="删除此行">✕</button></div>`
+        `<div class="ocr-line-selector__row" data-line-idx="${i}"><textarea class="ocr-line-selector__input" rows="1" aria-label="第 ${i + 1} 行内容">${escapeHtml(line)}</textarea><button type="button" class="ocr-line-selector__del" aria-label="删除此行">✕</button></div>`
     )
     .join("");
   sel.innerHTML = header + items;
+  // textarea 单行起步，按内容撑高——长行不再被裁，整句可见可编辑。
+  sel.querySelectorAll(".ocr-line-selector__input").forEach(autoGrowOcrInput);
   // 初始就把正文拼成连续段落（去物理换行），不再让识别结果带满硬换行符。
   rebuildQuoteContentFromOcrPanel(sel);
-  // 行内编辑：任意一行改动即实时同步正文。
+  // 行内编辑：任意一行改动即实时同步正文，并随内容增减重新撑高。
   sel.oninput = (e) => {
     if (!e.target?.classList?.contains?.("ocr-line-selector__input")) return;
+    autoGrowOcrInput(e.target);
     rebuildQuoteContentFromOcrPanel(sel);
   };
   sel.onclick = (e) => {

@@ -28,7 +28,7 @@ function createOcrSelectorStub() {
     set innerHTML(v) {
       html = String(v);
       rows.length = 0;
-      const re = /class="ocr-line-selector__input" value="(.*?)"/g;
+      const re = /class="ocr-line-selector__input"[^>]*>(.*?)<\/textarea>/g;
       let m;
       while ((m = re.exec(v)) !== null) rows.push({ value: m[1] });
     },
@@ -38,7 +38,7 @@ function createOcrSelectorStub() {
     set oninput(v) { state.oninput = v; },
     querySelector() { return null; },
     querySelectorAll(sel) {
-      if (sel === ".ocr-line-selector__input") return rows.map((r) => ({ value: r.value }));
+      if (sel === ".ocr-line-selector__input") return rows.map((r) => ({ value: r.value, style: {}, scrollHeight: 24 }));
       if (sel === ".ocr-line-selector__row") return rows.map(() => ({}));
       return [];
     },

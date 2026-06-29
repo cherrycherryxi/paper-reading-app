@@ -53,6 +53,8 @@ function createOcrLineSelectorStub() {
 
   const makeInputStub = (entry) => ({
     classList: { contains: (c) => c === "ocr-line-selector__input" },
+    style: {},
+    scrollHeight: 24,
     get value() { return entry.value; },
     set value(v) { entry.value = String(v); },
   });
@@ -69,7 +71,7 @@ function createOcrLineSelectorStub() {
       _innerHTML = String(v);
       _rows.length = 0;
       if (v) {
-        const re = /class="ocr-line-selector__input" value="(.*?)"/g;
+        const re = /class="ocr-line-selector__input"[^>]*>(.*?)<\/textarea>/g;
         let m;
         while ((m = re.exec(v)) !== null) {
           _rows.push({ value: unescapeHtml(m[1]), removed: false });
@@ -109,7 +111,7 @@ function deleteClickEvent(sel, idx) {
   return { target: { closest: (s) => (s === ".ocr-line-selector__del" ? fakeBtn : null) } };
 }
 
-const inputEvent = { target: { classList: { contains: (c) => c === "ocr-line-selector__input" } } };
+const inputEvent = { target: { classList: { contains: (c) => c === "ocr-line-selector__input" }, style: {}, scrollHeight: 24 } };
 
 function createHarness() {
   const elements = new Map();

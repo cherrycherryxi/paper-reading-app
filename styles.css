@@ -1565,7 +1565,7 @@ textarea {
 
 .ocr-line-selector__row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   padding: 0.3rem 0;
   border-bottom: 1px solid var(--color-border);
@@ -1575,7 +1575,8 @@ textarea {
   border-bottom: none;
 }
 
-/* font-size 16px：iPhone 上输入框 <16px 聚焦会触发缩放，这里保持 16px 避开。 */
+/* font-size 16px：iPhone 上输入框 <16px 聚焦会触发缩放，这里保持 16px 避开。
+   改用 textarea：长行自动换行并按内容撑高，整句可见，不再被水平裁掉。 */
 .ocr-line-selector__input {
   flex: 1;
   min-width: 0;
@@ -1587,6 +1588,12 @@ textarea {
   border-radius: var(--radius-sm, 4px);
   background: var(--color-bg, #fff);
   color: var(--color-ink);
+  font-family: inherit;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
 }
 
 .ocr-line-selector__input:focus {
