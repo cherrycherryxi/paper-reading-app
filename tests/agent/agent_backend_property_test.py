@@ -407,6 +407,31 @@ class AgentBackendPropertyTests(unittest.TestCase):
         ids_in_summary = {b["id"] for b in summary}
         self.assertNotIn("book-001", ids_in_summary, "oldest books must be excluded when over the 50-book cap")
 
+    def test_all_books_summary_includes_reading_status_and_prompt_warns_against_wishlist(self):
+        """Bug (2026-06-29): 探讨从书单查找时把没开始读的 wishlist 书也当读过的一并返回。
+        修复：all_books_summary 带上每本书的 status，且系统提示明确「我读过的」只取
+        finished/reading、不得把 wishlist 算作读过的。"""
+        builder = app_server.PromptBuilder()
+        books = [
+            {"id": "b-fin", "title": "读完的", "author": "A", "status": "finished", "updatedAt": "2026-01-03T00:00:00Z"},
+            {"id": "b-read", "title": "在读的", "author": "B", "status": "reading", "updatedAt": "2026-01-02T00:00:00Z"},
+            {"id": "b-wish", "title": "想读的", "author": "C", "status": "wishlist", "updatedAt": "2026-01-01T00:00:00Z"},
+        ]
+        state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
+
+        prompt = builder.build_chat_prompt(state, "", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        summary = json.loads(user_data_json)["all_books_summary"]
+
+        by_id = {b["id"]: b for b in summary}
+        self.assertEqual(by_id["b-fin"]["status"], "finished")
+        self.assertEqual(by_id["b-read"]["status"], "reading")
+        self.assertEqual(by_id["b-wish"]["status"], "wishlist")
+        # 系统提示必须告诉模型如何区分阅读状态（关键词够稳，不锁死整句措辞）。
+        self.assertIn("wishlist", prompt)
+        self.assertIn("status", prompt)
+        self.assertIn("读过", prompt)
+
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()
         state["quotes"] = [

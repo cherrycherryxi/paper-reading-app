@@ -2327,8 +2327,11 @@ class PromptBuilder:
                 "bookId": book_id,
                 "quoteId": quote_id if focused_quote else "",
             },
+            # status: finished(已读完) / reading(在读) / wishlist(想读，尚未开始)。
+            # 带上状态，模型才能区分用户「读过的书」与「书架上还没开始的书」——否则会把
+            # wishlist 的书也当作读过的一并召回（用户反馈：返回了还没开始读的书）。
             "all_books_summary": [
-                {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")}
+                {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""), "status": b.get("status", "")}
                 for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:50]
             ],
             "existing_connections": [] if book_id else user_state.get("connections", [])[:20],
@@ -2356,18 +2359,19 @@ class PromptBuilder:
 1. reply 必须存在且是自然语言。
 2. actions 通常为 0 或 1 个。例外：add_book 可在一次回复中给出多本，最多 4 条；其他类型 action 仍最多 1 个。
 3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前上下文本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
-4. 只输出 JSON，不要输出任何额外说明；不要在 JSON 前后添加自然语言，也不要使用 Markdown 代码块。"""
+4. 只输出 JSON，不要输出任何额外说明；不要在 JSON 前后添加自然语言，也不要使用 Markdown 代码块。
+5. all_books_summary 里每本书带 status：finished=已读完、reading=在读、wishlist=想读但尚未开始。当用户提到"我读过的/看过的/读过哪些"书时，只能从 status 为 finished 或 reading 的书里找，绝不能把 wishlist 的书算作读过的一并列出；若你认为某本 wishlist 的书也相关想顺带提及，必须显式标注"（这本你还没开始读）"，不得与读过的书混在同一份清单里不加区分。"""
         if has_focused_quote:
-            scenario_rules = """5. 当前上下文包含 focused_quote 时，优先围绕这条摘抄解释、追问或整理；不要泛泛总结整本书。
-6. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
-7. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前摘抄时不要主动关联其他书。sourceId 必须是 focused_quote.id 或 book.id，targetId 必须是 all_books_summary 中已有书籍的 id 或 quotes 中已有摘抄的 id。"""
+            scenario_rules = """6. 当前上下文包含 focused_quote 时，优先围绕这条摘抄解释、追问或整理；不要泛泛总结整本书。
+7. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
+8. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前摘抄时不要主动关联其他书。sourceId 必须是 focused_quote.id 或 book.id，targetId 必须是 all_books_summary 中已有书籍的 id 或 quotes 中已有摘抄的 id。"""
             header = "你是阅读助手。当前讨论对象是一条摘抄，结合 focused_quote、book、quotes 和 conversation_history，直接回答，中文输出。"
         elif book_id:
-            scenario_rules = """5. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
-6. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前书时不要主动关联其他书。sourceId 必须是 book.id，targetId 必须是 all_books_summary 中已有书籍的 id。"""
+            scenario_rules = """6. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。
+7. 只有当用户明确要求"建立关联/关联其他书/对比其他书/联系我读过的书"时，才可以返回 link_thought action。提炼问题、总结、解释当前书时不要主动关联其他书。sourceId 必须是 book.id，targetId 必须是 all_books_summary 中已有书籍的 id。"""
             header = "你是阅读助手。结合 user_data 和 conversation_history，直接回答，不要复述背景，中文输出。"
         else:
-            scenario_rules = "5. 只有在建议明确且可执行时才返回 action；闲聊或纯解释时返回 []。"
+            scenario_rules = "6. 只有在建议明确且可执行时才返回 action；闲聊或纯解释时返回 []。"
             header = "你是阅读助手，帮助用户理解书籍内容、发散思考、建立联系，中文输出。"
 
         return f"""{header}
