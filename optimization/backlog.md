@@ -645,7 +645,7 @@ Format per item:
 - how: 方案 B（推荐，M 复杂度）：在截断处改为 `allSorted.slice(0, displayLimit)`（初始值 10），渲染后若 `allSorted.length > displayLimit` 则追加「加载更多（共 N 条）」按钮；点击递增 `displayLimit` 并重渲。添加 `let sessionDisplayLimit = 10` 为模块级变量，`renderTimeline()` 使用并在「加载更多」click 后重调。Touch: `app.js:1337`（截断逻辑）；`app.js:1351-1399`（DOM 渲染，加载更多按钮插入点）。
 
 ### OPT-077 — `renderTimeline()` 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 — 由 explore E122 提拔 [2026-06-28]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——OPT-074 已使 startedAt/finishedAt 可靠落盘且在详情页可见；将这两个里程碑纳入时间线，让「记录」Tab 从「session 日志」升级为「阅读历程图」，是 Theme 2「回顾有价值」的核心基础设施；北极星代理指标「本周回顾操作次数」依赖时间线能反映完整阅读历程。
 - priority: P2
@@ -655,7 +655,7 @@ Format per item:
 - how: 在 `renderTimeline()` 开头从 `state.books` 提取所有有 `startedAt`/`finishedAt` 的书，构建里程碑事件列表（`{type:"milestone", kind:"started"|"finished", bookId, date: startedAt/finishedAt, book}`），与 `sessions` 数组合并后统一按 `date` 排序；为里程碑设计专属卡片 HTML 模板（视觉上与 session 卡片区分，如「📖 开始阅读《书名》」「✅ 读完《书名》」）；`searchRaw` 过滤时对里程碑按书名过滤，与现有 session 过滤逻辑并列。无后端/DB schema 改动。Touch: `app.js:1321-1399`（`renderTimeline`）；`styles.css`（里程碑卡片样式，少量新增）。
 
 ### OPT-078 — 自定义摘抄标签仅存 localStorage，跨设备不同步，导出包中不存在 — 由 explore E120 提拔 [2026-06-28]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——自定义标签是 Theme 2「回顾有价值」里「按主题检索」路径的基础；标签体系越积累越难补救——换设备或清缓存后选项消失，历史摘抄的主题过滤入口失效；Theme 2 验收前修复成本最低。
 - priority: P2
