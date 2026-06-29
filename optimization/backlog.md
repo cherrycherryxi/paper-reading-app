@@ -663,3 +663,23 @@ Format per item:
 - description: `getCustomQuoteTags()`（`app.js:480-481`）和 `saveCustomQuoteTags()`（`app.js:483-484`）将用户自定义摘抄标签完全存储在浏览器 localStorage 中（`localStorage.getItem("quote-custom-tags")`）。`sanitize_state()`（`app_server.py:633-667`）维护的 server-side state schema（`books/sessions/quotes/connections/chatHistories/chatContexts`）完全不包含 `customQuoteTags` 字段，确认无任何服务端持久化路径。用户在 iPhone 上建立的标签体系不存在于 `/api/account/export` 导出包中；换设备、清浏览器缓存、或通过另一台设备访问后，标签选项全部消失——摘抄本身的 `tags` 字符串保留，但新增摘抄时不再提示已有标签，旧标签选项无法从已有摘抄自动重建（除非手动逐条查看）。
 - why: 标签是 Theme 2「按主题检索」的核心工具；摘抄标签数据库越积累，补救成本越高；标签在 export 中不存在意味着备份不完整，与 OPT-068（chatHistories 减量守卫）、OPT-063（compress 失败丢失）同属「数据孤岛」类问题；M 级修复在 Theme 2 启动前最合适。
 - how: ① 在 `sanitize_state()`（`app_server.py:633-667`）的返回 dict 中增加 `customQuoteTags` 字段（默认值 `[]`）；② `saveCustomQuoteTags()`（`app.js:483-484`）改为双写：先 `localStorage.setItem(...)` 保持 UI 即时响应，再将 `state.customQuoteTags` 更新并调用 `syncState()` 持久化到服务端；③ `getCustomQuoteTags()`（`app.js:480-481`）改为优先读 `state.customQuoteTags`（若存在且非空），回退 localStorage（迁移过渡期）；④ 更新 `tests/agent/state_sanitization_test.py` 中的 schema 快照测试（如有）。Touch: `app.js:480-484`；`app_server.py:633-667`（`sanitize_state`）。
+
+### OPT-079 — 摘抄卡 ⋯ 菜单增加「建立关联」直达入口 — 由 explore E129 提拔 [2026-06-29]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」；从摘抄卡直接触发关联消除 2 步固定摩擦，降低建立关联的放弃率；signal 2026-06-29 佐证
+- priority: P2
+- size: S
+- description: `app.js:1528-1531` — 摘抄卡 ⋯ 右键菜单仅含「去聊」「编辑」「删除」三项，无「建立关联」。当前唯一触发路径：点卡 → 打开详情弹窗 → 点「建立关联」按钮（3 步）。⋯ 菜单加「建立关联」选项可减为 1 步；`quoteMenuHandler` 已有分发机制，加 `case "connect"` 无结构改动。
+- why: 「建立关联」是 app 差异化功能；owner 2026-06-29 signal 明确指出从摘抄触发关联有摩擦（来源未自动填入）；减少触发步骤 + OPT-080 修复目标可辨识度，合并 PR 可系统性解决该摩擦点。
+- how: ① `app.js:1528-1531` 菜单模板加 `<li><button type="button" data-quote-menu="connect">建立关联</button></li>`；② `quoteMenuHandler`（`app.js:~1535`）加 `case "connect"` 分支，调用 `openConnectionDialog({ sourceType: "quote", sourceId: quote.id })`。同 PR 可顺带修复 E131（`app.js:3914` 目标类型默认值）和 E132（`app.js:3820` slice 30 → 50），形成「建立关联」体验修复包。Touch: `app.js:1528-1535`。
+
+### OPT-080 — 关联对话框目标摘抄标签截断至 32 字 + CSS 双重省略导致同书摘抄无法辨识 — 由 explore E130 提拔 [2026-06-29]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「建立关联」核心路径；目标摘抄可辨识度直接决定关联建立质量；signal 2026-06-29 明确佐证「目标显示不完整、看不清内容、找不到想关联的那一条」
+- priority: P2
+- size: S
+- description: `quoteLabel()`（`app.js:3812-3817`）将摘抄内容截断至 32 字，且 `<li>` 样式（`app.js:3849`）设 `white-space:nowrap;text-overflow:ellipsis`，双重截断。同一本书有多段摘抄时，候选列表每条标签仅剩「书名 · 前32字…」，内容高度重叠，无法准确定位目标摘抄。
+- why: 关联目标无法辨识直接导致关联功能可用性降为零；这是 Theme 2 最高密度痛点；最小改动代价（一行 slice 值）即可显著改善；与 OPT-079 合并为单一 PR 成本最低。
+- how: ① `app.js:3815` 将 `slice(0, 32)` 改为 `slice(0, 60)`（下拉候选列表 60 字仍可单行或允许折行）；② 可选：`app.js:3849` 的 `<li>` 样式改为双行布局（书名一行、内容一行，去掉 `nowrap`），彻底解决截断问题；③ 建议同一 PR 合并 OPT-079 + OPT-080 + E131（目标类型默认值 `app.js:3914`）+ E132（slice 30 → 50），将「建立关联」体验作为整体修复包。Touch: `app.js:3815`；可选 `app.js:3849`。
