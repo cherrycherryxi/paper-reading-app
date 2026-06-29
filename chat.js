@@ -348,14 +348,22 @@
         continue;
       }
 
-      // Ordered list (collect run)
+      // Ordered list (collect run).
+      // LLM 的有序列表项之间几乎总有空行/续行，于是相邻项不连续，每一项会被拆进
+      // 独立的 <ol>。而 <ol> 默认每段都从 1 重新计数 → 渲染成「1. 1. 1.」，序号全错
+      // （模型原始文本其实编号正确）。这里保留模型给的原始数字：每个 <li value="N">
+      // 锚定该项序号，<ol start="N"> 兜底，使跨段渲染也保持连续正确的编号。
       if (/^\d+\. /.test(trimmed)) {
         const items = [];
+        let startNum = null;
         while (i < lines.length && /^\d+\. /.test(lines[i].trim())) {
-          items.push(`<li>${applyMdInline(lines[i].trim().replace(/^\d+\. /, ""))}</li>`);
+          const lt = lines[i].trim();
+          const num = parseInt(lt, 10);
+          if (startNum === null) startNum = num;
+          items.push(`<li value="${num}">${applyMdInline(lt.replace(/^\d+\. /, ""))}</li>`);
           i++;
         }
-        out.push(`<ol>${items.join("")}</ol>`);
+        out.push(`<ol start="${startNum == null ? 1 : startNum}">${items.join("")}</ol>`);
         continue;
       }
 

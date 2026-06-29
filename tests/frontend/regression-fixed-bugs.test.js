@@ -1376,6 +1376,37 @@ test("feat: assistant bubble after streaming has .chat-bubble-content and action
   assert.ok(retryBtn, "actions bar should contain a retry button with title '重试'");
 });
 
+// Bug (2026-06-29): 探讨回复里的有序列表序号全显示成「1.」。LLM 的列表项之间几乎总有
+// 空行，renderMiniMarkdown 只把连续 `N. ` 行收进同一个 <ol>，于是每项被拆进独立 <ol>，
+// 每个 <ol> 默认从 1 重新计数 → 1.1.1.。模型原始文本编号其实是对的。修复：保留原始序号。
+test("regression: ordered list keeps model's original numbering across blank-line-separated items", async () => {
+  const md = "1. **第一本**——介绍一\n\n2. **第二本**——介绍二\n\n3. **第三本**——介绍三";
+  const harness = createChatHarness({
+    fetch: async () => makeSseResponse([{
+      done: true,
+      reply: md,
+      history: [
+        { role: "user", content: "列一下" },
+        { role: "assistant", content: md },
+      ],
+      actions: [],
+      context: { type: "book", bookId: "book-1" },
+    }]),
+  });
+  harness.bookSel.value = "book-1";
+  harness.input.value = "列一下";
+  await harness.sendBtn.dispatch("click");
+
+  const assistantBubble = harness.messages.children.find(
+    (c) => (c.className || "").includes("chat-bubble-assistant")
+  );
+  const html = assistantBubble.querySelector(".chat-bubble-content").innerHTML;
+  // 每个 <li> 锚定模型给的原始序号，渲染层不再把跨段列表重置成全「1」。
+  assert.match(html, /<li value="1">/, "first item keeps number 1");
+  assert.match(html, /<li value="2">/, "second item keeps number 2 (was wrongly 1 before fix)");
+  assert.match(html, /<li value="3">/, "third item keeps number 3");
+});
+
 test("feat: appendBubble with existing assistant text (history restore) also uses markdown", async () => {
   const mdContent = "## 章节标题\n- 要点一\n- 要点二";
   const harness = createChatHarness({
