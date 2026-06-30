@@ -665,7 +665,7 @@ Format per item:
 - how: ① 在 `sanitize_state()`（`app_server.py:633-667`）的返回 dict 中增加 `customQuoteTags` 字段（默认值 `[]`）；② `saveCustomQuoteTags()`（`app.js:483-484`）改为双写：先 `localStorage.setItem(...)` 保持 UI 即时响应，再将 `state.customQuoteTags` 更新并调用 `syncState()` 持久化到服务端；③ `getCustomQuoteTags()`（`app.js:480-481`）改为优先读 `state.customQuoteTags`（若存在且非空），回退 localStorage（迁移过渡期）；④ 更新 `tests/agent/state_sanitization_test.py` 中的 schema 快照测试（如有）。Touch: `app.js:480-484`；`app_server.py:633-667`（`sanitize_state`）。
 
 ### OPT-079 — 摘抄卡 ⋯ 菜单增加「建立关联」直达入口 — 由 explore E129 提拔 [2026-06-29]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」；从摘抄卡直接触发关联消除 2 步固定摩擦，降低建立关联的放弃率；signal 2026-06-29 佐证
 - priority: P2
@@ -675,7 +675,7 @@ Format per item:
 - how: ① `app.js:1528-1531` 菜单模板加 `<li><button type="button" data-quote-menu="connect">建立关联</button></li>`；② `quoteMenuHandler`（`app.js:~1535`）加 `case "connect"` 分支，调用 `openConnectionDialog({ sourceType: "quote", sourceId: quote.id })`。同 PR 可顺带修复 E131（`app.js:3914` 目标类型默认值）和 E132（`app.js:3820` slice 30 → 50），形成「建立关联」体验修复包。Touch: `app.js:1528-1535`。
 
 ### OPT-080 — 关联对话框目标摘抄标签截断至 32 字 + CSS 双重省略导致同书摘抄无法辨识 — 由 explore E130 提拔 [2026-06-29]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「建立关联」核心路径；目标摘抄可辨识度直接决定关联建立质量；signal 2026-06-29 明确佐证「目标显示不完整、看不清内容、找不到想关联的那一条」
 - priority: P2

@@ -2,13 +2,13 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-06-29
+Last triaged: 2026-06-30
 
 ## Next up
 
 本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派
 
-（近 7 天 auto/ PR：#49 opt-062 2026-06-24、#50 opt-069 2026-06-25、#51 opt-068 2026-06-26、#53 opt-074 2026-06-27。预算复位后首推候选：**OPT-059**——Session 新建表单日期预填仍用 UTC `toISOString()`，凌晨（UTC+8 00:00–08:00）记录日期差一天是 correctness bug；P1/S，roadmap W27 明确点名「最高优先」，signal 2026-06-26 佐证（owner 最高频录入路径）。其次 OPT-061 + OPT-058（Session/摘抄对话框 focus 消除每次录入多一次点击的固定摩擦，roadmap W27 同批次）。新信号 2026-06-29 暴露 **OPT-078**（自定义标签仅存 localStorage，换设备/网址即丢，P1/M）——可作预算复位后第二批 PR 候选，但 Theme 1 三条 OPT-059/061/058 优先级更高。）
+（近 7 天 auto/ PR：#49 opt-062 2026-06-24、#50 opt-069 2026-06-25、#51 opt-068 2026-06-26、#53 opt-074 2026-06-27。预算最早于 2026-07-02 复位（届时 #49 满 7 天滑出窗口，在线计数降至 3）。复位后首推候选：**OPT-059**——Session 新建表单日期预填仍用 UTC `toISOString()`，凌晨（UTC+8 00:00–08:00）记录日期差一天是 correctness bug；P1/S，roadmap W27 明确点名「最高优先」，signal 2026-06-26 佐证（owner 最高频录入路径）。其次 OPT-061 + OPT-058（Session/摘抄对话框 focus 消除每次录入多一次点击的固定摩擦，roadmap W27 同批次）。新信号 2026-06-29 暴露 **OPT-080**（关联对话框目标摘抄截断至 32 字，同书摘抄无法辨识，直接阻塞关联建立，P1/S）和 **OPT-079**（摘抄卡 ⋯ 菜单缺「建立关联」来源预填，P1/S）——两者建议合并一 PR 作系统性修复；**OPT-078**（自定义标签仅存 localStorage，换设备即丢，P1/M）同为 2026-06-29 信号，但 M 复杂度需等 roadmap 产品负责人仪式定优先级后再排期。OPT-059 系列（roadmap W27 焦点）优先于 OPT-079/080（新鲜信号但不在当前 roadmap 焦点窗口）。）
 
 ## Prioritized backlog
 
@@ -19,6 +19,8 @@ Last triaged: 2026-06-29
 | OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | roadmap W27 OPT-061 对称补丁；Theme 1「采集顺滑」核心录入路径。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`。 |
 | OPT-066 | 编辑 Session 未同步书籍进度字段（currentPage/lastReadAt/updatedAt） | P1 | S | triaged | roadmap W27 #3；signal 2026-06-26 佐证；`app.js:2029-2037` 的 `if(existingId)` 分支只更新 session 本体，未重算 `book.currentPage/lastReadAt/updatedAt`+finished 判断；对比新建分支（`app.js:2046-2055`）完整同步。约 5 行补全。 |
 | OPT-064 | PromptBuilder 发送摘抄完整对象含 ocrText，每次对话浪费数百至数万 token | P1 | S | triaged | roadmap §2 明确点名「余力首推」；northstar「中」；OPT-020/047 同类 token 裁剪；`ocrText` 每页 500-2000 字符是最大漏网炸弹。`app_server.py:2312-2345`（`build_chat_prompt`）加白名单 dict comprehension 过滤 `ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt`；零 API/DB 变更。 |
+| OPT-080 | 关联对话框目标摘抄标签截断至 32 字 + CSS 双重省略导致同书摘抄无法辨识 | P1 | S | triaged | **signal 2026-06-29（今日！）** 直接佐证「目标显示不完整、看不清内容、找不到想关联的那一条」；Theme 2「建立关联」核心路径；`app.js:3815` slice(0,32)→slice(0,60) + 去掉 `nowrap`，S 级修复；建议与 OPT-079 合并一 PR。 |
+| OPT-079 | 摘抄卡 ⋯ 菜单增加「建立关联」直达入口；来源自动预填当前摘抄 | P1 | S | triaged | **signal 2026-06-29（今日！）** 佐证「来源没自动填入当前摘抄（还得手动选）」；Theme 2；`app.js:1528-1535` 菜单加 `connect` 选项 + `quoteMenuHandler` 新增分支调用 `openConnectionDialog({sourceType:"quote",sourceId:quote.id})`；建议与 OPT-080 合并一 PR 作关联体验系统修复。 |
 | OPT-078 | 自定义摘抄标签仅存 localStorage，跨设备/跨网址不同步，导出包中不存在 | P1 | M | triaged | **signal 2026-06-29（今日！）** owner 换网址后标签丢失直接痛点；northstar「中」；Theme 2「按主题检索」基础，也与 OPT-068/063「数据孤岛」同类（Theme 1「零丢失」邻域）。`app.js:480-484`（getCustomQuoteTags/saveCustomQuoteTags）改双写 state；`app_server.py:633-667`（sanitize_state）加 `customQuoteTags` 字段。M 复杂度（前后端双改）。 |
 | OPT-065 | reading_mcp_server._save_state() 跳过 sanitize_state()，MCP 写路径无状态校验 | P1 | S | triaged | northstar「中」；data safety；MCP 写路径是 Claude Desktop 主入口；`reading_mcp_server.py:70-75`（`_save_state` 函数）调用前加 `state = sanitize_state(state)`，直接 `from app_server import sanitize_state`（`__main__` 守卫无循环 import 风险）。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；signal 2026-06-26 佐证可观测性价值。`app.js:1415-1425`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集。3 行改动，无 HTML/CSS/后端变动。 |
