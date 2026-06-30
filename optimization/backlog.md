@@ -683,3 +683,23 @@ Format per item:
 - description: `quoteLabel()`（`app.js:3812-3817`）将摘抄内容截断至 32 字，且 `<li>` 样式（`app.js:3849`）设 `white-space:nowrap;text-overflow:ellipsis`，双重截断。同一本书有多段摘抄时，候选列表每条标签仅剩「书名 · 前32字…」，内容高度重叠，无法准确定位目标摘抄。
 - why: 关联目标无法辨识直接导致关联功能可用性降为零；这是 Theme 2 最高密度痛点；最小改动代价（一行 slice 值）即可显著改善；与 OPT-079 合并为单一 PR 成本最低。
 - how: ① `app.js:3815` 将 `slice(0, 32)` 改为 `slice(0, 60)`（下拉候选列表 60 字仍可单行或允许折行）；② 可选：`app.js:3849` 的 `<li>` 样式改为双行布局（书名一行、内容一行，去掉 `nowrap`），彻底解决截断问题；③ 建议同一 PR 合并 OPT-079 + OPT-080 + E131（目标类型默认值 `app.js:3914`）+ E132（slice 30 → 50），将「建立关联」体验作为整体修复包。Touch: `app.js:3815`；可选 `app.js:3849`。
+
+### OPT-081 — Organize/Candidates 批量采集功能全链路失活：前端完整实现但 HTML Dialog 不存在、无调用者、后端无 `/api/organize/parse` 端点 — 由 explore E133 提拔 [2026-06-30]
+- status: new
+- area: frontend, backend
+- priority: P2
+- size: M
+- northstar: 中/强（如激活）——批量从粘贴文字中提取摘抄候选、AI 拆分 + 审批入库，直接支撑 Theme 1「采集顺滑」；现有 OCR 路径仅支持逐图识别，文字粘贴批量路径覆盖「书中已有电子文字」「读书笔记 App 导出」等场景，是一条沉睡的高价值采集通道。
+- description: `app.js:114-127` 共 11 个 `els.*` 引用（`els.organizeDialog`/`els.candidatesDialog` 等）全部指向**不存在于 `index.html` 的 DOM 元素**，运行时返回 `null`。`index.html` 全文无 `id="organizeDialog"` 或 `id="candidatesDialog"` 定义。`openOrganizeDialog()`（`app.js:2808`）在整个代码库无任何调用者。前端 `submitOrganizePaste()` 调用 `/api/organize/parse`（`app.js:2862`），但 `app_server.py` 无此端点。功能实现代码约 150 行（`app.js:2808-2914`：`openOrganizeDialog`、`switchOrganizeTab`、`handleOrganizeImageSelect`、`submitOrganizePaste`、`openCandidatesDialog`、`approveCandidateItem`、`ignoreCandidateItem`），三层均失活。
+- why: 这是一笔已完成的前端投资：用户可粘贴书中文字或读书笔记，AI 识别并拆分为多条摘抄候选，用户逐条审批保存——整个 UX 流程已在 JS 中实现，只差激活。与逐图 OCR 互补，覆盖电子文字场景。激活代价（补 HTML + 后端端点 + 一个触发按钮）远低于重写，且产出价值对 Theme 1 是正向的。
+- how: ① `index.html`：补写 `<dialog id="organizeDialog">` 粘贴/拍照双 Tab 界面（`organizeRawText` textarea + `organizeSubmitBtn`）和 `<dialog id="candidatesDialog">` 候选审批列表；② `app.js`：在 `openBookDetailDialog()` 的 `dialog-actions` 区域或 OCR 入口旁增加「整理文字摘抄」按钮，点击调用 `openOrganizeDialog(bookId)`；③ `app_server.py`：新增 `POST /api/organize/parse`，接收 `{bookId, rawText}`，调用 `PromptBuilder` + `call_deepseek()` + `ActionExecutor` 链路，返回 `{candidates: [{id, type, confidence, data:{content,tags}}]}`。
+
+### OPT-082 — `renderTimeline()` 阅读统计摘要（sessionStats）仅在搜索时显示，默认视图无累计阅读数据 — 由 explore E134 提拔 [2026-06-30]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——roadmap §2 将「本周使用天数」列为北极星代理指标；「记录」Tab 默认视图展示全量聚合摘要（总次数 / 总分钟 / 估算总页数）让积累可感知，符合北极星「不假思索的默认工具」体感（app 主动告知阅读量，不靠用户手算）。
+- description: `renderTimeline()`（`app.js:1418-1428`）的 `sessionStats` 控制块：`if (searchRaw && sessions.length)` 守卫使聚合数据仅在用户主动搜索时显示；无搜索的默认视图（最近 10 条）永远 `is-hidden`。用户有 30 条 session 时，「记录」Tab 默认不显示「共 30 次 · 累计 1 800 分钟 · 约 2 500 页」——owner 无法一眼感知阅读量积累。
+- why: 聚合摘要（总次数 / 总分钟）是「阅读量可感知」的最低成本实现；roadmap §2 指定了三个需每周记录的代理指标，其中「本周使用天数」依赖 session 记录——默认视图展示聚合数据可帮助 owner 在不搜索的情况下自然验证指标；S 复杂度，单处条件改动。
+- how: `app.js:1419` 将 `if (searchRaw && sessions.length)` 改为 `if (allSorted.length)`（含搜索词时展示匹配计，无搜索时展示全量统计）；对应 `textContent` 区分两种文案：有搜索时保持「N 次记录 · 共 T 分钟 · 约 P 页」；无搜索时改为「共 N 次 · 累计 T 分钟 · 约 P 页」（含 10 条截断时在 OPT-076 修复后可进一步完善）。Touch: `app.js:1418-1428`。

@@ -2491,3 +2491,91 @@ if (!query) return allQuotes.slice(0, 30);
 ---
 
 > 本次 run 将 E129（摘抄卡 ⋯ 菜单无建立关联入口）和 E130（关联目标摘抄标签双重截断）提拔为 OPT-079/OPT-080 — 两条均有 2026-06-29 signal 直接佐证且经 `app.js` 代码核实充分。E131/E132 作为配套项登记，建议与 OPT-079/OPT-080 合并为单一 PR「建立关联体验修复包」。
+
+## 2026-06-30
+
+### E133 — Organize/Candidates 批量采集功能全链路失活：前端完整实现但无 HTML Dialog、无调用者、后端无对应端点 (M)
+
+**What:** `app.js:114-127` 共 11 处 `els.*` 引用——`els.organizeDialog`、`els.candidatesDialog`、`els.organizeRawText`、`els.organizeSubmitBtn`、`els.organizeTabPaste`、`els.organizeTabPhoto`、`els.organizePastePane`、`els.organizePhotoPane`、`els.organizePhotoPreview`、`els.organizePhotoImg`、`els.organizePickPhotoBtn`——均通过 `document.querySelector()` 查询**不存在于 `index.html` 的 DOM 元素**，运行时全部返回 `null`。
+
+`index.html` 全文中无任何 `id="organizeDialog"` 或 `id="candidatesDialog"` 定义（grep 0 匹配）。函数 `openOrganizeDialog()`（`app.js:2808-2822`）是该功能的唯一入口，但**在整个代码库中无任何调用者**（grep `openOrganizeDialog` 仅定义行一处）。
+
+前端在 `submitOrganizePaste()`（`app.js:2862`）调用：
+```js
+const data = await apiFetch("/api/organize/parse", { method: "POST", ... });
+```
+但 `app_server.py` 中**无任何 `/api/organize/parse` 端点**（全文 grep 0 匹配）。
+
+即：该功能在三个层次均失活——① HTML Dialog 不存在（11 个 null ref）；② 前端 trigger 无 caller；③ 后端 API 未实现。
+
+**Why it matters:** 该功能实现了一个完整的「粘贴文字 → AI 识别拆分摘抄候选 → 逐条审批保存」批量采集流程（`submitOrganizePaste`→`openCandidatesDialog`→`approveCandidateItem`，共约 150 行 JS + AI 调用链），代码已就绪但完全沉默。若激活：可将用户读书笔记/划线截图中的文字批量转化为摘抄卡片，是 Theme 1「采集顺滑」的强力补充路径——不依赖逐张 OCR，而是文字粘贴批量入库。当前代码是完整的投资，唯一缺失是激活它的「门把手」。
+
+**Complexity:** M — 需补齐三层：① 在 `index.html` 中添加 `<dialog id="organizeDialog">` 和 `<dialog id="candidatesDialog">` 的 HTML（参考 connectionDialog 模式）；② 在书籍详情弹窗（`bookDetailDialog`）或 OCR 入口旁增加一个「整理文字摘抄」触发按钮，调用 `openOrganizeDialog(bookId)`；③ 在 `app_server.py` 新增 `POST /api/organize/parse` 端点（复用现有 `PromptBuilder`/`call_deepseek()`/`ActionExecutor` 链路）。
+
+**Files:** `app.js:114-127`（null refs）；`app.js:2808-2914`（完整前端实现）；`index.html`（缺 Dialog HTML）；`app_server.py`（缺 `/api/organize/parse` 端点）
+
+**northstar:** 中/强（如激活）——批量从文字中提取摘抄，直接支撑 Theme 1「采集顺滑」；现有 OCR 路径仅支持逐图识别，文字粘贴路径覆盖「书中已有电子文字」「读书笔记 App 导出」等场景，是一条尚未开放的高价值采集通道。→ **promoted to OPT-081**
+
+---
+
+### E134 — `renderTimeline()` 阅读统计摘要（sessionStats）仅在搜索时显示，默认无搜索的「记录」Tab 完全不展示累计阅读数据 (S)
+
+**What:** `renderTimeline()`（`app.js:1418-1428`）对 `els.sessionStats` 的控制逻辑：
+
+```js
+// app.js:1419-1428
+if (els.sessionStats) {
+    if (searchRaw && sessions.length) {
+        const totalMin = sessions.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
+        const totalPages = sessions.reduce((sum, s) => sum + Math.max(0, ...), 0);
+        els.sessionStats.textContent = `${sessions.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
+        els.sessionStats.classList.remove("is-hidden");
+    } else {
+        els.sessionStats.classList.add("is-hidden");  // ← 无搜索时恒隐
+    }
+}
+```
+
+`sessionStats` 仅在 `searchRaw` 为真（用户主动输入搜索词）时显示。默认状态（无搜索、最近 10 条）：聚合数据面板完全隐藏。用户有 30 条历史 session 时，「记录」Tab 的默认视图无任何统计摘要——不显示「共 30 次」「累计 1 800 分钟」「约 2 500 页」。
+
+**Why it matters:** roadmap §2 明确将「本周使用天数」和「本周新增摘抄数」列为北极星代理指标，owner 每周需手动计算。「记录」Tab 默认视图展示全量聚合摘要（总次数 / 总分钟 / 估算总页数）是零成本的数据可见性提升：让 owner 打开「记录」Tab 时立刻感知积累量，不必搜索也不必手算。这也是「不假思索的默认工具」的一个具体表现：app 主动告知阅读量，而非等用户问。
+
+修复极简：将 `if (searchRaw && sessions.length)` 改为 `if (sessions.length)`，同时将统计行文案从「N 次记录」调整为「最近 10 条 · 共 M 次记录 · 累计 T 分钟」（默认视图）。
+
+**Complexity:** S — 仅 `app.js:1419-1428` 的条件判断改动，约 3-5 行；需同步考虑搜索时的文案（当前「N 次记录 · 共 T 分钟 · 约 P 页」适合搜索结果语境，默认视图可用稍不同文案区分）。
+
+**Files:** `app.js:1418-1428`（`renderTimeline` sessionStats 控制块）；`app.js:1408-1416`（`sessions` slice 与 `searchRaw` 变量，修改时参考）
+
+**northstar:** 中——roadmap §2 代理指标「本周使用天数」依赖 session 数据可见；聚合统计让积累量可感知，符合北极星「不假思索的默认工具」体感（app 应该告诉我读了多少，而非让我翻记录）；S 改动，无风险。→ **promoted to OPT-082**
+
+---
+
+### E135 — 关联搜索（`renderConnections` searchRaw 过滤）不匹配 `connection.tags`，按标签词找关联无效 (S)
+
+**What:** `renderConnections()`（`app.js:824-840`）的搜索 haystack：
+
+```js
+// app.js:833-839
+const haystack = [
+    getBookTitle(c.sourceType, c.sourceId),
+    getBookTitle(c.targetType, c.targetId),
+    c.thought || "",
+].join(" ").toLowerCase();
+return haystack.includes(searchRaw);
+```
+
+`c.tags` 字段（由 `connectionDialog` 的 `tags` 输入项写入，如「哲学, 叙事, 人性」）完全不包含在 haystack 中。用户在连接对话框输入的 `tags` 字段，是对关联主题的标注——日后通过这些主题词检索时，搜索框找不到。
+
+对比：`renderTimeline()` 的 haystack 包含 `book.title + book.author + session.note`（`app.js:1411-1414`）；`renderQuotes()` 搜索包含 `content + tags + book.title`（`app.js:1430-1440`）——两处均包含 tags；唯独 `renderConnections()` 缺失。
+
+**Why it matters:** 关联的 tags（如「哲学」「叙事」）是用户对思想碰撞主题的显式标注，是「按主题浏览关联」的自然路径。搜索「哲学」在关联 Tab 无效（仅搜 thought 和书名），与 `renderQuotes` 的搜索行为不一致，违反最小惊讶原则。Theme 2「回顾有价值」的一个核心场景是「列出所有我标记过『哲学』的思想关联」——当前 tags 不可搜，该场景完全无法实现。
+
+**Complexity:** S — 在 `app.js:835-837` 的 haystack 数组末尾追加 `(c.tags || []).join(" ")` 一行，无其他改动。
+
+**Files:** `app.js:833-839`（`renderConnections` haystack 构建；对比 `app.js:1430-1440`（`renderQuotes` haystack，已含 tags，作为参考模式）
+
+**northstar:** 中——Theme 2「回顾有价值」以「按主题检索」为前提；关联 tags 是用户主动标注的主题信号，不可搜等于标注了却找不回来；S 级单行修复，与 OPT-079/OPT-080（建立关联体验）搭车成本最低。
+
+---
+
+> 本次 run 将 E133（Organize/Candidates 功能全链路失活）提拔为 OPT-081，将 E134（sessionStats 默认视图恒隐）提拔为 OPT-082。E135（关联 tags 不可搜）作为候选登记，建议与 OPT-079/OPT-080「建立关联体验修复包」合并实施。
