@@ -685,7 +685,7 @@ Format per item:
 - how: ① `app.js:3815` 将 `slice(0, 32)` 改为 `slice(0, 60)`（下拉候选列表 60 字仍可单行或允许折行）；② 可选：`app.js:3849` 的 `<li>` 样式改为双行布局（书名一行、内容一行，去掉 `nowrap`），彻底解决截断问题；③ 建议同一 PR 合并 OPT-079 + OPT-080 + E131（目标类型默认值 `app.js:3914`）+ E132（slice 30 → 50），将「建立关联」体验作为整体修复包。Touch: `app.js:3815`；可选 `app.js:3849`。
 
 ### OPT-081 — Organize/Candidates 批量采集功能全链路失活：前端完整实现但 HTML Dialog 不存在、无调用者、后端无 `/api/organize/parse` 端点 — 由 explore E133 提拔 [2026-06-30]
-- status: new
+- status: triaged
 - area: frontend, backend
 - priority: P2
 - size: M
@@ -695,7 +695,7 @@ Format per item:
 - how: ① `index.html`：补写 `<dialog id="organizeDialog">` 粘贴/拍照双 Tab 界面（`organizeRawText` textarea + `organizeSubmitBtn`）和 `<dialog id="candidatesDialog">` 候选审批列表；② `app.js`：在 `openBookDetailDialog()` 的 `dialog-actions` 区域或 OCR 入口旁增加「整理文字摘抄」按钮，点击调用 `openOrganizeDialog(bookId)`；③ `app_server.py`：新增 `POST /api/organize/parse`，接收 `{bookId, rawText}`，调用 `PromptBuilder` + `call_deepseek()` + `ActionExecutor` 链路，返回 `{candidates: [{id, type, confidence, data:{content,tags}}]}`。
 
 ### OPT-082 — `renderTimeline()` 阅读统计摘要（sessionStats）仅在搜索时显示，默认视图无累计阅读数据 — 由 explore E134 提拔 [2026-06-30]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
