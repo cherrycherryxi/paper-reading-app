@@ -703,3 +703,23 @@ Format per item:
 - description: `renderTimeline()`（`app.js:1418-1428`）的 `sessionStats` 控制块：`if (searchRaw && sessions.length)` 守卫使聚合数据仅在用户主动搜索时显示；无搜索的默认视图（最近 10 条）永远 `is-hidden`。用户有 30 条 session 时，「记录」Tab 默认不显示「共 30 次 · 累计 1 800 分钟 · 约 2 500 页」——owner 无法一眼感知阅读量积累。
 - why: 聚合摘要（总次数 / 总分钟）是「阅读量可感知」的最低成本实现；roadmap §2 指定了三个需每周记录的代理指标，其中「本周使用天数」依赖 session 记录——默认视图展示聚合数据可帮助 owner 在不搜索的情况下自然验证指标；S 复杂度，单处条件改动。
 - how: `app.js:1419` 将 `if (searchRaw && sessions.length)` 改为 `if (allSorted.length)`（含搜索词时展示匹配计，无搜索时展示全量统计）；对应 `textContent` 区分两种文案：有搜索时保持「N 次记录 · 共 T 分钟 · 约 P 页」；无搜索时改为「共 N 次 · 累计 T 分钟 · 约 P 页」（含 10 条截断时在 OPT-076 修复后可进一步完善）。Touch: `app.js:1418-1428`。
+
+### OPT-083 — `renderQuotes()` 搜索 haystack 不含 `ocrText`：AI-OCR 直存摘抄完全不可搜 — 由 explore E136 提拔 [2026-07-01]
+- status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——Theme 2「回顾有价值」的前提是摘抄可被搜到；快速 OCR 未编辑直接保存的摘抄（content=""，ocrText=识别全文）在「摘抄」Tab 搜索中完全不可见，OCR 路径积累越多回顾越失准；S 复杂度单行热修，性价比极高。
+- description: `renderQuotes()`（`app.js:1495-1503`）haystack 数组包含 `item.content || ""`（`app.js:1498`），但**不含 `item.ocrText`**。同函数第 1519 行显示逻辑使用 `quote.content || quote.ocrText`——两者不一致。快速 OCR 识别成功后若用户未手动编辑即保存，数据结构为 `{content: "", ocrText: "<识别全文>"}` ；这类摘抄可显示但搜索完全命中不了。`matchQuotes()`（`app.js:1143`）同样只校验 `quote.content || ""`，影响 Chat 摘抄上下文召回。
+- why: 快速 OCR 是最高频的「采集顺滑」输出路径，用户积累的 OCR 摘抄越多，「摘抄」Tab 搜索越失准；存进去找不回来是对北极星「不假思索的默认工具」的直接否定。
+- how: ① `app.js:1498`：将 `item.content || ""` 改为 `item.content || item.ocrText || ""`（或在 haystack 数组追加 `item.ocrText || ""`）；② `app.js:1143`：将 `fuzzyMatch(quote.content || "", query)` 改为 `fuzzyMatch(quote.content || quote.ocrText || "", query)`。两处改动，无副作用，建议同 PR。Touch: `app.js:1498`、`app.js:1143`。
+
+### OPT-084 — `openNewSessionForBook()` 从不预填 `startPage`，每次录入需手动输入已知起始页 — 由 explore E137 提拔 [2026-07-01]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」每日触点；session 录入是 roadmap W27 焦点路径（OPT-059/058/061/066 同路径），startPage 预填减少每次录入 1–2 次交互，积少成多；S 复杂度，建议与同路径修复包搭车。
+- description: `openNewSessionForBook()`（`app.js:2436`）每次打开对话框时将 `startPage` 强制清空（`value = ""`）。`addSession()`（`app.js:2221-2225`）每次提交都更新 `book.currentPage = Math.max(book.currentPage || 0, endPage)`——该值等于该书所有 session 中最大的 endPage。对顺序阅读用户，下次 session 的 startPage = book.currentPage + 1，值已知但每次须手动输入。
+- why: 「记阅读 session」是 owner 最活跃的录入路径（6/26 signal 佐证，W27 焦点）；startPage 手动输入是已知可消除的重复摩擦；预填值以「建议值」呈现（用户仍可改），不存在强制覆盖风险。同时修复 E138（deleteSession 不回写 book.currentPage）可确保预填基准正确。
+- how: `app.js:2436`：将 `value = ""` 改为 `value = (book && book.currentPage > 0 ? book.currentPage + 1 : "")`；需在该行前确保 `book = state.books.find(b => b.id === bookId)`（openNewSessionForBook 入参已有 bookId）。建议同 PR 修复 E138（deleteSession 回写逻辑），消除数据不对称。Touch: `app.js:2430-2441`；参照 `app.js:2221-2232`（addSession currentPage 维护逻辑）。

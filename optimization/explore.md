@@ -2579,3 +2579,120 @@ return haystack.includes(searchRaw);
 ---
 
 > 本次 run 将 E133（Organize/Candidates 功能全链路失活）提拔为 OPT-081，将 E134（sessionStats 默认视图恒隐）提拔为 OPT-082。E135（关联 tags 不可搜）作为候选登记，建议与 OPT-079/OPT-080「建立关联体验修复包」合并实施。
+
+---
+
+## 2026-07-01
+
+### E136 — `renderQuotes()` 搜索 haystack 不含 `ocrText`：AI-OCR 直存摘抄完全不可搜 (S)
+
+**What:** `renderQuotes()`（`app.js:1495-1503`）haystack 构建：
+
+```js
+// app.js:1495-1503
+const haystack = [
+  book?.title || "",
+  book?.author || "",
+  item.content || "",    // ← 只含 content，不含 ocrText
+  (item.tags || []).join(" "),
+].join(" ").toLowerCase();
+```
+
+而同函数第 1519 行的**显示**逻辑：
+
+```js
+// app.js:1519
+quote.content || quote.ocrText
+```
+
+明确以 `ocrText` 作为 content 为空时的 fallback。快速 OCR 识别成功后，若用户**未手动编辑即直接保存**，保存的数据结构为 `{content: "", ocrText: "<识别全文>"}` ——`content` 永远为空串。这些摘抄可以正常显示，但搜索任何关键词都命中不了。`matchQuotes()`（`app.js:1142`）同样只校验 `quote.content || ""`，已知设计上不接入 globalSearch，但也会影响 Chat 上下文注入的摘抄召回。
+
+**Why it matters:** 快速 OCR 是「采集顺滑」路径中最高频的保存方式：识别完毕→直接点保存，不经编辑。用户积累的 OCR 摘抄越多，「摘抄」Tab 搜索越失准。这是对 Theme 2「回顾有价值」的直接打击：摘抄存进去、却找不回来，积累越多越沮丧。修复极简（haystack 多加一个字段），性价比极高。
+
+**Complexity:** S — `app.js:1498` 将 `item.content || ""` 改为 `item.content || item.ocrText || ""`（或在 haystack 数组末尾追加 `item.ocrText || ""`）；可同步修复 `app.js:1143` 的 `matchQuotes`（`fuzzyMatch(quote.content || "", ...)` → `fuzzyMatch(quote.content || quote.ocrText || "", ...)`）。两处改动，无副作用。
+
+**Files:** `app.js:1498`（renderQuotes haystack）；`app.js:1143`（matchQuotes）
+
+**northstar:** 强——Theme 2「回顾有价值」的前提是「能搜到」；快速 OCR 摘抄是最高频的采集输出物，它不可搜等于整个 OCR 路径的回顾价值归零；S 复杂度，一行修复，应作为 P1/S 热修。
+
+---
+
+### E137 — `openNewSessionForBook()` 从不预填 `startPage`，用户每次需手动输入已知的起始页 (S)
+
+**What:** `openNewSessionForBook()`（`app.js:2430-2441`）每次打开对话框时：
+
+```js
+// app.js:2436
+els.sessionForm.querySelector('[name="startPage"]').value = "";  // 永远清空
+```
+
+而 `addSession()`（`app.js:2221-2232`）在提交时会维护：
+
+```js
+// app.js:2221-2225
+book.currentPage = Math.max(book.currentPage || 0, endPage);
+book.lastReadAt = date;
+book.updatedAt = now;
+```
+
+`book.currentPage` 始终等于该书所有 session 中最大的 `endPage`。对于**顺序阅读**的用户，下一次 session 的 `startPage` = `book.currentPage + 1`。这个值应用已知、每次却要用户手动输入。
+
+**Why it matters:** 「记阅读 session」是 W27 本周唯一焦点的核心路径（roadmap §2 短期节），owner 6/26 信号显示该路径有多处录入摩擦（OPT-059/058/061/066）。`startPage` 每次手动输入是重复摩擦：读者在书中天然知道"我从哪页接着读"，但 app 明明记录着 currentPage 却不利用。一键预填能减少每次录入 1–2 次交互，积少成多。注意：仅适合顺序阅读场景，因此实现时应以「建议值」呈现（字段可改），不强制覆盖。
+
+**Complexity:** S — `app.js:2436` 将 `value = ""` 改为 `value = (book.currentPage > 0 ? book.currentPage + 1 : "")` ；需在该行前先取到 `book = state.books.find(b => b.id === bookId)`（查看上下文，`openNewSessionForBook(bookId)` 入参已有 bookId）。2–4 行改动，无其他依赖。
+
+**Files:** `app.js:2430-2441`（`openNewSessionForBook`）；参照 `app.js:2221-2232`（`addSession`，维护 `book.currentPage`）
+
+**northstar:** 中——Theme 1「采集顺滑」每日触点；session 录入是 roadmap W27 焦点路径，减少摩擦直接支撑「每天真实记一次阅读 session」的验收目标；S 复杂度，且与 OPT-059/061/066（同路径修复包）搭车成本最低。
+
+---
+
+### E138 — `deleteSession()` 删除记录后不回写 `book.currentPage`，导致进度数据残留 (S)
+
+**What:** `deleteSession()`（`app.js:2490-2505`）仅从 sessions 数组过滤掉目标项，不触碰 book 字段：
+
+```js
+// app.js:2490-2505
+state.sessions = state.sessions.filter((item) => item.id !== sessionId);
+// 没有任何 book.currentPage / book.lastReadAt / book.status / book.startedAt 更新
+try { await syncState(); renderTimeline(); showToast("阅读记录已删除"); }
+```
+
+相比之下，`addSession()`（`app.js:2221-2232`）每次提交都更新 `book.currentPage`、`book.lastReadAt`、`book.updatedAt`，并检查 `finished` 状态。若用户误加了一条 session（比如 endPage 填错），删除后 `book.currentPage` 仍保留那次错误的最大值，E137 的预填功能也会基于错误基准推算 `startPage`。
+
+**Why it matters:** 正确性问题（数据写入和删除路径逻辑不对称），影响范围是 book 进度显示和 E137 预填的准确性。删除边界 session 后需手动修正书籍当前页，体验差。修复逻辑：删除后重新扫描该书所有剩余 sessions，取最大 endPage 回写 `book.currentPage`（若无 session 则清零）。
+
+**Complexity:** S-M — 需要在删除后的回调里找到关联 book，遍历其余 sessions 计算新 currentPage/lastReadAt，并判断 finished 状态。约 10–15 行，测试覆盖建议补充。
+
+**Files:** `app.js:2490-2505`（`deleteSession`）；参照 `app.js:2221-2232`（`addSession` 的回写逻辑）
+
+**northstar:** 弱-中——数据正确性背景项，不直接对应北极星代理指标，但若 E137 预填依赖 `book.currentPage` 则两者耦合；建议与 E137（OPT-084）同 PR 修复，消除逻辑不对称。
+
+---
+
+### E139 — `renderConnections()` 无关联数量显示，「关联」Tab 无法感知积累 (S)
+
+**What:** `renderConnections()`（`app.js:812-848`）渲染关联列表，但整个函数没有写入任何计数元素。`index.html` 第 152 行：
+
+```html
+<div id="connectionsList" class="connections-list empty-state">
+```
+
+`connectionsList` div 内无 count span，函数内也无对应赋值逻辑。对比：
+- 书单 Tab：`<span id="bookCount">共 N 本</span>`（`index.html`），`renderBooks()` 更新它
+- 摘抄 Tab：`<span id="quoteCount">N 条摘抄</span>`（`index.html`），`renderQuotes()` 更新它
+- 关联 Tab：无计数元素
+
+用户有 20 条关联时，「关联」Tab 标题/列表顶端无任何「共 20 条」提示。
+
+**Why it matters:** 积累感知是 Theme 2「回顾有价值」的基础体感——其他 Tab 均有计数反馈，关联 Tab 缺席。关联功能是较新的功能（OPT-079/OPT-080 正在修复建立关联体验），用户开始积累关联后，计数是最低成本的「看见积累」机制。修复为纯前端、零后端，与 OPT-079/OPT-080 搭车合并代价极低。
+
+**Complexity:** S — `index.html`：在 `connectionsList` 上方插入 `<div class="list-count" id="connectionCount"></div>`；`app.js:renderConnections`：在渲染末尾加一行 `document.getElementById("connectionCount").textContent = filteredConnections.length > 0 ? \`共 ${filteredConnections.length} 条\` : ""`。两文件各 1–2 行，纯 UI 改动。
+
+**Files:** `app.js:812-848`（`renderConnections`）；`index.html`（`connectionsList` 容器区域）
+
+**northstar:** 弱-中——孤立看贡献有限；但与 OPT-079/OPT-080「建立关联体验」搭车时，这条改动将计数反馈补全，让关联 Tab 与书单/摘抄 Tab 体验对齐，符合最小惊讶原则。S 级改动，建议搭车。
+
+---
+
+> 本次 run 将 E136（ocrText 不在搜索 haystack）提拔为 OPT-083，将 E137（session startPage 预填）提拔为 OPT-084。E138（deleteSession 不回写 book 进度）和 E139（关联 Tab 无计数）作为候选登记，建议分别与 OPT-084 和 OPT-079/OPT-080 搭车合并实施。
