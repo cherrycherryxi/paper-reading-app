@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-02T14:10:28.885Z
-> Files: 198 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-02T14:13:48.108Z
+> Files: 199 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -14,6 +14,7 @@
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/9f13dddc-a421-447a-b1d7-8ed45193951b/scratchpad/
 
 - `card.html` — Declares html (~522 tok)
+- `dual-poster.html` — Declares html (~811 tok)
 - `icon-wrap.html` — Declares html (~59 tok)
 - `logo-preview.html` — Declares html (~587 tok)
 - `og-card.html` — Declares html (~417 tok)
