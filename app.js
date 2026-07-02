@@ -225,6 +225,17 @@ function resolveImageUrl(url) {
   return url;
 }
 
+// 书单等列表用的封面缩略图路径：把 /media|/uploads 下的图片映射到同目录的 .thumb.jpg
+// （由 scripts/generate_thumbnails.py 用 sips 预生成，~30KB，避免书单一次性拉几十 MB 原图）。
+// 非上传图（默认封面、data URI、外链）或已是缩略图则原样返回；缩略图不存在时前端 onerror 退回原图。
+function thumbPath(url) {
+  if (typeof url !== "string" || !url) return url;
+  if (!/\/(?:media|uploads)\//.test(url)) return url;
+  if (/\.thumb\.jpg(\?|$)/i.test(url)) return url;
+  const [path, query] = url.split("?");
+  return path.replace(/\.[^./]+$/, "") + ".thumb.jpg" + (query ? "?" + query : "");
+}
+
 function bindBookCoverImageFallback(card) {
   const cover = card.querySelector(".book-card-cover");
   const img = cover?.querySelector("img");
@@ -238,6 +249,14 @@ function bindBookCoverImageFallback(card) {
     }
   });
   img.addEventListener("error", () => {
+    // 1) 缩略图缺失/加载失败 → 先退回原图（data-full 仅在有真实缩略图时才写）
+    const full = img.dataset.full || "";
+    if (full && img.dataset.triedFull !== "true") {
+      img.dataset.triedFull = "true";
+      img.src = full;
+      return;
+    }
+    // 2) 原图也失败 → 默认封面
     if (img.dataset.fallbackApplied === "true") return;
     img.dataset.fallbackApplied = "true";
     cover.classList.add("has-default-cover");
@@ -1198,7 +1217,9 @@ function buildBookSearchCard(book, cache) {
   const qCount = cache ? (cache.quoteCountMap.get(book.id) || 0) : getQuoteCount(book.id);
   const cCount = cache ? (cache.connCountMap.get(book.id) || 0) : getConnectionCount(book.id);
   const fallbackImg = cache ? (cache.firstQuoteImageMap.get(book.id) || "") : (state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
-  const coverImage = resolveImageUrl(book.coverImageUrl || fallbackImg || DEFAULT_BOOK_COVER_URL);
+  const rawCover = book.coverImageUrl || fallbackImg || DEFAULT_BOOK_COVER_URL;
+  const coverImage = resolveImageUrl(rawCover);            // 原图（onerror 兜底 / 详情用）
+  const coverThumb = resolveImageUrl(thumbPath(rawCover)); // 书单显示用缩略图
   const progressText =
     progress === null
       ? `已读到第 ${book.currentPage || 0} 页`
@@ -1215,7 +1236,7 @@ function buildBookSearchCard(book, cache) {
   card.dataset.bookCardId = book.id;
   card.innerHTML = `
     <div class="book-card-cover has-image ${book.coverImageUrl || fallbackImg ? "" : "has-default-cover"}">
-      <img src="${coverImage}" alt="${escapeHtml(book.title)}" />
+      <img src="${coverThumb}"${coverThumb !== coverImage ? ` data-full="${coverImage}"` : ""} loading="lazy" decoding="async" alt="${escapeHtml(book.title)}" />
       <span class="book-status-chip" data-status="${book.status}"><span class="chip-dot chip-dot--${book.status}"></span>${escapeHtml(statusMap[book.status] || book.status)}</span>
       <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false">⋯</button>
     </div>
@@ -1532,7 +1553,7 @@ function renderQuotes() {
           </ul>
           <div class="entry-card-cover">
             ${quote.imageUrl
-              ? `<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄图片" />`
+              ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" />`
               : '<div class="entry-cover-fallback"></div>'}
             <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
