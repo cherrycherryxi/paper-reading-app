@@ -723,3 +723,23 @@ Format per item:
 - description: `openNewSessionForBook()`（`app.js:2436`）每次打开对话框时将 `startPage` 强制清空（`value = ""`）。`addSession()`（`app.js:2221-2225`）每次提交都更新 `book.currentPage = Math.max(book.currentPage || 0, endPage)`——该值等于该书所有 session 中最大的 endPage。对顺序阅读用户，下次 session 的 startPage = book.currentPage + 1，值已知但每次须手动输入。
 - why: 「记阅读 session」是 owner 最活跃的录入路径（6/26 signal 佐证，W27 焦点）；startPage 手动输入是已知可消除的重复摩擦；预填值以「建议值」呈现（用户仍可改），不存在强制覆盖风险。同时修复 E138（deleteSession 不回写 book.currentPage）可确保预填基准正确。
 - how: `app.js:2436`：将 `value = ""` 改为 `value = (book && book.currentPage > 0 ? book.currentPage + 1 : "")`；需在该行前确保 `book = state.books.find(b => b.id === bookId)`（openNewSessionForBook 入参已有 bookId）。建议同 PR 修复 E138（deleteSession 回写逻辑），消除数据不对称。Touch: `app.js:2430-2441`；参照 `app.js:2221-2232`（addSession currentPage 维护逻辑）。
+
+### OPT-085 — 书封面上传未压缩（单张可达 4.6MB），拖慢移动端书单加载 — owner 2026-07-02 手机亲测
+- status: new
+- area: frontend (+ backend 可选)
+- priority: P2
+- size: M
+- northstar: 强——owner 2026-07-02 在手机上打开 read.readjot.com 亲测「封面不显示 + 刷新巨卡」（owner 直接体验 signal，最高级别）。首屏加载慢直接否定北极星「不假思索的默认工具」——工具卡到不想打开就不会成为默认。
+- description: 上传封面时原图直接存 uploads/，无限宽/重编码。33 张封面原图共 28.1MB（单张最大 4.6MB）。移动端首次加载要从家用 Mac 上行带宽吐几十 MB → 封面像没显示又巨卡。opt2 缩略图（书单显示）已缓解，但原图仍超大：详情页、以及新上传的封面仍是全分辨率。
+- why: 加书/换封面是高频「采集」触点；不做源头压缩，用户每传一张巨图就给自己和（未来）访客留一份几 MB 负担，缩略图只是遮羞，治标不治本。
+- how: ①（推荐）前端上传前用 canvas 限宽（如最长边 ≤1600px）+ 重编码 JPEG q≈0.8，再走现有上传链路；或 ② 后端落盘时用 sips/Pillow 压缩（注意 app_server.py 目前纯 stdlib，加 Pillow 是依赖决策）。这是移动端性能三步走的第 3 步：opt1 懒加载 + opt2 缩略图（app.js + scripts/generate_thumbnails.py）已实现，本项防新封面再出 4.6MB 巨图。Touch: 上传入口 `uploadBookCoverImage()` / `uploadBookImageIfNeeded()`（app.js ~2146/2630）。
+
+### OPT-086 — 前端静态资源 no-store，每次刷新重下 ~330KB JS/CSS/HTML — owner 2026-07-02 手机亲测
+- status: new
+- area: backend (+ frontend 版本串)
+- priority: P2
+- size: M
+- northstar: 强——同 OPT-085 出处（owner 手机亲测「刷新非常卡」）。移动端每次刷新白等几秒重下前端，直接损伤「随手打开就能用」的默认工具体验。
+- description: app_server.py 的 do_GET `_STATIC` 给 index.html/app.js/chat.js/styles.css 统一设 `Cache-Control: no-store, no-cache, must-revalidate`（约 app_server.py:3421），为「永远拿最新前端」。代价：移动端每次刷新都重下 app.js(172KB)+styles.css(77KB)+index.html(42KB)+chat.js(39KB) ≈ 330KB，走隧道额外几秒。
+- why: 无构建流程的项目为省心用 no-store，但移动端 + 隧道放大了代价；封面图已用 immutable 缓存受益，静态 JS/CSS 反而每刷必重下，是当前刷新耗时的固定大头之一。
+- how: 静态资源版本化长缓存——JS/CSS 引用加内容哈希或版本串（项目已有 `?v=20260531a` 雏形），响应头由 no-store 改为 `Cache-Control: public, max-age=31536000, immutable`，发版时改版本串即让缓存失效。需建立「发版必改版本串」的纪律，否则会推不出新前端。Touch: app_server.py `_STATIC` 响应头（~3416-3425）+ index.html 里对 app.js/chat.js/styles.css 的引用加版本串。
