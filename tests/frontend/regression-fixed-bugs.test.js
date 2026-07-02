@@ -1585,3 +1585,16 @@ test("OPT-033: all dialog elements have aria-labelledby or aria-label (WCAG 4.1.
     );
   }
 });
+
+test("空状态文案指向左上角的加号（+ 实际在搜索行左侧，之前误写右上角）", () => {
+  // UI 改版后加号挪到搜索行左侧；空状态提示曾写「右上角」，用户按提示在右上角找不到入口。
+  assert.ok(!appSource.includes("右上角"), "空状态提示不得再写「右上角」");
+  for (const hint of [
+    "点左上角 + 开始建立联系",
+    "点左上角加号新增一本",
+    "点左上角加号记录一次",
+    "点左上角加号新增一张",
+  ]) {
+    assert.ok(appSource.includes(hint), `应有空状态文案: ${hint}`);
+  }
+});

@@ -860,7 +860,7 @@ function renderConnections() {
   }
   if (!filtered.length) {
     els.connectionsList.className = "connections-list empty-state";
-    els.connectionsList.innerHTML = conns.length ? "当前筛选条件下没有关联。" : "还没有记录思想碰撞，点右上角 + 开始建立联系。";
+    els.connectionsList.innerHTML = conns.length ? "当前筛选条件下没有关联。" : "还没有记录思想碰撞，点左上角 + 开始建立联系。";
     return;
   }
   els.connectionsList.className = "connections-list";
@@ -1389,7 +1389,7 @@ function renderBooks() {
     els.booksList.className = "book-list empty-state";
     els.booksList.textContent = selectedTagFilter
       ? "没有匹配的书籍，试试清除搜索条件。"
-      : "还没有匹配的书籍，点右上角加号新增一本。";
+      : "还没有匹配的书籍，点左上角加号新增一本。";
     return;
   }
 
@@ -1450,7 +1450,7 @@ function renderTimeline() {
 
   if (!sessions.length) {
     els.timeline.className = "timeline empty-state";
-    els.timeline.textContent = searchRaw ? "没有匹配的阅读记录。" : "还没有阅读会话，点右上角加号记录一次。";
+    els.timeline.textContent = searchRaw ? "没有匹配的阅读记录。" : "还没有阅读会话，点左上角加号记录一次。";
     return;
   }
 
@@ -1525,7 +1525,7 @@ function renderQuotes() {
 
   if (!quotes.length) {
     els.quotesList.className = "quote-list empty-state";
-    els.quotesList.textContent = "还没有摘抄卡片，点右上角加号新增一张。";
+    els.quotesList.textContent = "还没有摘抄卡片，点左上角加号新增一张。";
     return;
   }
 
