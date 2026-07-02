@@ -146,9 +146,10 @@ MAX_REQUEST_BYTES = 20 * 1024 * 1024  # 20 MB
 PLAN_LIMITS = {
     "free": {
         "label": "免费版",
-        "book_cap": 10,
+        "book_cap": 50,
         "endpoints": {
-            "chat": {"hour": 30, "day": 120},
+            "chat": {"hour": 30, "day": 50},
+            # 「精识别」与「快速识别」共用此桶：40/天 = 20 + 20。前端「我的」显示一条 OCR 用量。
             "ocr": {"hour": 12, "day": 40},
             # Auth endpoints are limited per client IP (no user yet). Values are
             # generous enough for legitimate users behind shared NAT but cap

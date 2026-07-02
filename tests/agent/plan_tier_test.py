@@ -129,15 +129,18 @@ class PlanTierTests(unittest.TestCase):
         body = json.loads(handler.wfile.getvalue().decode())
         self.assertEqual(body["plan"], "free")
         self.assertEqual(body["planLabel"], "免费版")
-        self.assertEqual(body["bookCap"], 10)
+        self.assertEqual(body["bookCap"], 50)
         self.assertEqual(body["bookCount"], 0)
         self.assertIn("chat", body["usage"])
         self.assertIn("ocr", body["usage"])
         self.assertEqual(body["usage"]["chat"]["hour_count"], 1)
+        # 免费版限额（2026-07: 对话 50/天，OCR 40/天 = 精识别20 + 快速20 合用一桶）
+        self.assertEqual(body["usage"]["chat"]["day_limit"], 50)
+        self.assertEqual(body["usage"]["ocr"]["day_limit"], 40)
 
     def test_agent_add_book_action_enforces_book_cap_on_free_plan(self):
-        # Seed 10 books for free user
-        state = {"books": [{"id": f"b{i}", "title": f"book{i}"} for i in range(10)],
+        # Seed books up to the free book_cap (50) so the next add is rejected.
+        state = {"books": [{"id": f"b{i}", "title": f"book{i}"} for i in range(50)],
                  "sessions": [], "quotes": [], "chatHistories": {}}
         self.conn.execute(
             "UPDATE user_state SET state_json = ? WHERE user_id = ?",
@@ -148,7 +151,7 @@ class PlanTierTests(unittest.TestCase):
         action = {
             "id": "act-1",
             "type": "add_book",
-            "data": {"title": "11th book", "author": "X"},
+            "data": {"title": "51st book", "author": "X"},
             "status": app_server.ACTION_STATUS_APPROVED,
         }
         executor = app_server.ActionExecutor()
@@ -159,7 +162,7 @@ class PlanTierTests(unittest.TestCase):
         row = self.conn.execute(
             "SELECT state_json FROM user_state WHERE user_id='user-free'"
         ).fetchone()
-        self.assertEqual(len(json.loads(row["state_json"])["books"]), 10)
+        self.assertEqual(len(json.loads(row["state_json"])["books"]), 50)
 
     def test_agent_add_book_action_succeeds_for_plus_at_high_count(self):
         # Plus has book_cap=0 (unlimited)
