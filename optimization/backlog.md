@@ -705,7 +705,7 @@ Format per item:
 - how: `app.js:1419` 将 `if (searchRaw && sessions.length)` 改为 `if (allSorted.length)`（含搜索词时展示匹配计，无搜索时展示全量统计）；对应 `textContent` 区分两种文案：有搜索时保持「N 次记录 · 共 T 分钟 · 约 P 页」；无搜索时改为「共 N 次 · 累计 T 分钟 · 约 P 页」（含 10 条截断时在 OPT-076 修复后可进一步完善）。Touch: `app.js:1418-1428`。
 
 ### OPT-083 — `renderQuotes()` 搜索 haystack 不含 `ocrText`：AI-OCR 直存摘抄完全不可搜 — 由 explore E136 提拔 [2026-07-01]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P1
 - size: S
@@ -715,7 +715,7 @@ Format per item:
 - how: ① `app.js:1498`：将 `item.content || ""` 改为 `item.content || item.ocrText || ""`（或在 haystack 数组追加 `item.ocrText || ""`）；② `app.js:1143`：将 `fuzzyMatch(quote.content || "", query)` 改为 `fuzzyMatch(quote.content || quote.ocrText || "", query)`。两处改动，无副作用，建议同 PR。Touch: `app.js:1498`、`app.js:1143`。
 
 ### OPT-084 — `openNewSessionForBook()` 从不预填 `startPage`，每次录入需手动输入已知起始页 — 由 explore E137 提拔 [2026-07-01]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -725,7 +725,7 @@ Format per item:
 - how: `app.js:2436`：将 `value = ""` 改为 `value = (book && book.currentPage > 0 ? book.currentPage + 1 : "")`；需在该行前确保 `book = state.books.find(b => b.id === bookId)`（openNewSessionForBook 入参已有 bookId）。建议同 PR 修复 E138（deleteSession 回写逻辑），消除数据不对称。Touch: `app.js:2430-2441`；参照 `app.js:2221-2232`（addSession currentPage 维护逻辑）。
 
 ### OPT-085 — 书封面上传未压缩（单张可达 4.6MB），拖慢移动端书单加载 — owner 2026-07-02 手机亲测
-- status: new
+- status: triaged
 - area: frontend (+ backend 可选)
 - priority: P2
 - size: M
@@ -735,7 +735,7 @@ Format per item:
 - how: ①（推荐）前端上传前用 canvas 限宽（如最长边 ≤1600px）+ 重编码 JPEG q≈0.8，再走现有上传链路；或 ② 后端落盘时用 sips/Pillow 压缩（注意 app_server.py 目前纯 stdlib，加 Pillow 是依赖决策）。这是移动端性能三步走的第 3 步：opt1 懒加载 + opt2 缩略图（app.js + scripts/generate_thumbnails.py）已实现，本项防新封面再出 4.6MB 巨图。Touch: 上传入口 `uploadBookCoverImage()` / `uploadBookImageIfNeeded()`（app.js ~2146/2630）。
 
 ### OPT-086 — 前端静态资源 no-store，每次刷新重下 ~330KB JS/CSS/HTML — owner 2026-07-02 手机亲测
-- status: new
+- status: triaged
 - area: backend (+ frontend 版本串)
 - priority: P2
 - size: M
