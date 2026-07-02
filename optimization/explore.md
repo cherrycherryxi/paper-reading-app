@@ -2696,3 +2696,128 @@ try { await syncState(); renderTimeline(); showToast("阅读记录已删除"); }
 ---
 
 > 本次 run 将 E136（ocrText 不在搜索 haystack）提拔为 OPT-083，将 E137（session startPage 预填）提拔为 OPT-084。E138（deleteSession 不回写 book 进度）和 E139（关联 Tab 无计数）作为候选登记，建议分别与 OPT-084 和 OPT-079/OPT-080 搭车合并实施。
+
+---
+
+## 2026-07-02
+
+> 本次 run 聚焦：关联搜索质量、sample 数据清理、timestamp 一致性。所有结论均经代码 Read 验证。
+> 提拔：E141 → OPT-088，E140 → OPT-089。
+
+### E140 — `clearSampleData()` 不清理 chatHistories / chatContexts
+
+**What (verified):** `app.js:1729-1744`：
+```js
+const SAMPLE_COLLECTIONS = ["books", "quotes", "connections", "sessions"];
+async function clearSampleData() {
+  if (!currentUser?.id) return;
+  for (const k of SAMPLE_COLLECTIONS) {
+    state[k] = (state[k] || []).filter((it) => !(it && it.isSample));
+  }
+  try { await syncState(); } catch (error) { showToast(`清除失败：${error.message}`); return; }
+  render();
+  ...
+  showToast("示例已清除");
+}
+```
+`SAMPLE_COLLECTIONS` 不含 `chatHistories` / `chatContexts`。对比 `deleteBook()`（`app.js:2353-2366`）会显式删除 `state.chatHistories[bookId]`、`state.chatHistories["book:"+bookId]`、`state.chatContexts[*]`。若用户对示例书"百年孤独"（`sample-book-marquez`）发起过对话，点「一键清除」后，`state.chatHistories["book:sample-book-marquez"]` 和 `state.chatContexts["book:sample-book-marquez"]` 仍残留，随 syncState 写回后端，形成僵尸聊天历史。
+
+**Why it matters:** 「一键清除」的语义是「像没来过一样」。僵尸聊天历史不可见（无 UI 入口），但占用 state 体积并干扰导出——用户导出时会带走无对应书籍的孤儿聊天记录。S 级改动，对齐 `deleteBook()` 逻辑即可。现有测试 `tests/frontend/sample-onboarding.test.js:95-108` 的 `clearSampleData` 用例不验证 chatHistories，修复时需同步补测。
+
+**Complexity:** S — `app.js:clearSampleData` 补全 chatHistories/chatContexts 清理（对照 `deleteBook` 约 10 行）；`tests/frontend/sample-onboarding.test.js` 补充断言。
+
+**Files:** `app.js:1729-1744`（clearSampleData），`app.js:2353-2366`（deleteBook 参考模式），`tests/frontend/sample-onboarding.test.js:95-108`
+
+**northstar:** 弱-中——数据干净是「无忧采集」的隐性前提；onboarding 体验（示例→清除→空白起步）是新用户留存的关键路径，状态残留会污染首次真实使用体验。
+
+---
+
+### E141 — `renderConnections()` 搜索 haystack 缺少引文内容
+
+**What (verified):** `app.js:847-860`：
+```js
+const getBookTitle = (type, id) => {
+  if (type === "book") return state.books.find((b) => b.id === id)?.title || "";
+  if (type === "quote") {
+    const q = state.quotes.find((q) => q.id === id);
+    return state.books.find((b) => b.id === q?.bookId)?.title || ""; // 返回书名，非摘抄内容
+  }
+  return "";
+};
+const haystack = [
+  getBookTitle(c.sourceType, c.sourceId),
+  getBookTitle(c.targetType, c.targetId),
+  c.thought || "",
+].join(" ").toLowerCase();
+```
+当 source 或 target 为 `quote` 类型时，haystack 仅含**书名**，不含 `quote.content` / `quote.ocrText`。用户按摘抄文字搜索关联，找不到结果。
+
+**Why it matters:** 关联功能主体是「摘抄 ↔ 摘抄」或「摘抄 ↔ 书」的连线。摘抄内容是关联最自然的搜索词，当前搜索实际只能按书名和 thought 过滤，功能形同虚设——Theme 2「回顾有价值」的核心用例（「我在想 X 话题时找到了哪些连线？」）命中率极低。
+
+**Complexity:** S — `getBookTitle` 重命名为 `getSearchLabel`，quote 分支追加 `(q?.content || q?.ocrText || "").slice(0, 60)`；haystack 不变，约 3 行修改。
+
+**Files:** `app.js:847-860`（renderConnections / getBookTitle），可选：`tests/frontend/connections.test.js`（若存在）
+
+**northstar:** 中——直接影响 Theme 2「找到相关联想法」体验；关联搜索是 Theme 2 核心交互之一，但修复仅针对已有功能的缺陷，不扩展功能边界。
+
+---
+
+### E142 — `build_sample_state()` 用 `now_iso()`（本地时间）而非 `utc_now_iso()`
+
+**What (verified):** `app_server.py:200`：
+```python
+def build_sample_state() -> dict:
+    now = now_iso()  # "2026-07-02T23:16:25"（无时区）
+```
+`now_iso()`（`app_server.py:347`）返回 `datetime.now().isoformat(timespec="seconds")`，无时区标识。`utc_now_iso()`（`app_server.py:352`）返回带 `Z` 的 UTC 串，其注释明确：「Use this for timestamps the frontend sorts/compares against client-side timestamps」。前端 `addSession()` 用 `new Date().toISOString()`（UTC+Z），示例 session 用本地时间串，同日内 `localeCompare` 排序会错乱（UTC+8 环境下示例时间串 `T23:xx` > 用户时间串 `T04:xx`，示例排在用户当天记录之前）。
+
+**Complexity:** S — `app_server.py:200` 将 `now_iso()` 改为 `utc_now_iso()`，一行修改。
+
+**Files:** `app_server.py:200`（build_sample_state），`app_server.py:347-355`（now_iso / utc_now_iso 定义）
+
+**northstar:** 弱——示例数据时序错乱仅影响新用户 onboarding 期间的 Timeline 显示，且仅在非 UTC+8 时区或夜间创建账号时明显。值得一改但不急。
+
+---
+
+### E143 — `renderTimeline()` 用 `localeCompare` 排序 session，与 OPT-037 修复的 book 排序不一致
+
+**What (verified):** `app.js:1439`：
+```js
+const allSorted = [...state.sessions].sort((a, b) =>
+  (b.date || "").localeCompare(a.date || "")
+);
+```
+OPT-037（PR #已合并）将 `compareBooksForList()` 的 `localeCompare` 改为 `Date.parse()`，解决 UTC+Z 与本地时间串混合排序问题。但 `renderTimeline()` 的 session 排序沿用 `localeCompare`，存在相同隐患：当示例 session（`now_iso()` 本地串，E142 已记录）与用户 session（UTC+Z 串）混在同一 Timeline 时，同日内顺序可能颠倒。
+
+**Complexity:** S — `app.js:1439` 将 `localeCompare` 改为 `Date.parse(b.date) - Date.parse(a.date)`，一行修改；`Date.parse` 对两种格式均健壮。
+
+**Files:** `app.js:1439`（renderTimeline sort）
+
+**northstar:** 弱-中——Timeline 是「看见自己读书积累」的主界面；排序错乱虽低频，但会在「凌晨记录 + 当天早些时候有示例 session」场景下误导 owner 的使用天数指标（roadmap §2 北极星可观测代理指标第一项）。与 E142 搭车修复为零额外成本。
+
+---
+
+### E144 — `build_sample_state()` 示例书 `currentPage` 与示例 session `endPage` 不一致
+
+**What (verified):** `app_server.py:204-235`：
+```python
+"books": [
+    {"id": "sample-book-marquez", "title": "百年孤独",
+     "currentPage": 120, "status": "reading", ...},
+],
+"sessions": [
+    {"id": "sample-session-1", "bookId": "sample-book-marquez",
+     "startPage": 1, "endPage": 30, "pagesRead": 30, ...},
+],
+```
+`addSession()` 会执行 `book.currentPage = Math.max(book.currentPage || 0, endPage)`。示例数据手工构造，`currentPage=120` 远高于唯一 session 的 `endPage=30`，违反此不变式。新用户看到书卡显示「读到第 120 页」，却只有一条「第 1–30 页」的阅读记录，数据自相矛盾，影响可信度。
+
+**Complexity:** S — `app_server.py:204`：将 `"currentPage": 120` 改为 `"currentPage": 30`（对齐 session endPage），或补充第二条 session（startPage=31, endPage=120）以使数据更丰富。后者更能展示产品价值（多条阅读记录的 Timeline）。
+
+**Files:** `app_server.py:204-235`（build_sample_state）
+
+**northstar:** 弱-中——示例数据是新用户对产品能力的第一印象；一致的示例数据（多条 session + 进度吻合）能更好展示阅读 Timeline 的价值，辅助 onboarding 转化。
+
+---
+
+> 本次 run 将 E141（关联搜索 haystack 缺摘抄内容）提拔为 OPT-088，将 E140（clearSampleData 不清 chatHistories）提拔为 OPT-089。E142/E143/E144（timestamp 一致性 + 示例数据修正）建议搭车 E141/E140 实施，S 级代价。

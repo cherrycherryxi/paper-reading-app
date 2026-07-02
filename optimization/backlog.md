@@ -753,3 +753,23 @@ Format per item:
 - description: 在每张摘抄卡 / 书卡 / 思想碰撞(关联)卡上加「生成分享图」按钮，一键渲染成带品牌 + 二维码的竖版海报，可保存 / 发朋友圈。三种版式：摘抄卡=留白衬线；关联卡=深色「发现感」；书卡=封面+评分+读后感金句。
 - why: 分享「一句摘抄 / 一个书籍关联」比分享落地页更抓人——转发者替产品传播，扫码者被内容勾入，转化质量远高于硬广。每个用户都是获客节点，是可持续自传播。2026-07-02 已手工做出成品（assets/brand + Chrome 渲染）验证视觉与吸引力，本项是把它产品化进 App。
 - how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
+
+### OPT-088 — renderConnections 搜索 haystack 缺少摘抄内容
+- status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 中——关联搜索是 Theme 2「回顾有价值」的核心交互；当前按摘抄内容搜索关联结果为零，功能形同虚设。S 级修复直接打通「找到相关联想法」的使用闭环。
+- description: `app.js:847-860` 的 `getBookTitle(type, id)` 在 type==="quote" 时只返回书名，不含 quote.content / ocrText。haystack = `[书名, 书名, thought]`，摘抄文字无法命中搜索。用户积累了「摘抄 ↔ 摘抄」关联后，按摘抄关键词找不到连线，Theme 2 回顾场景直接受损。
+- why: 关联的主体（尤其摘抄-摘抄型）其搜索词自然是摘抄内容本身；书名仅覆盖「按书找关联」场景，排除了「按想法找关联」的高频需求。6/29 signal 已记录「建立关联」摩擦，修复 haystack 是将已建立的关联用起来的前提。
+- how: 将 `getBookTitle` 重命名为 `getSearchLabel`，quote 分支追加 `(q?.content || q?.ocrText || "").slice(0, 60)` 拼入返回串；haystack 构造不变。约 3 行修改，纯前端，无后端影响。Touch: `app.js:847-860`。
+
+### OPT-089 — clearSampleData 不清理 chatHistories / chatContexts
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——onboarding「示例→清除→空白起步」是新用户留存关键路径；清除后残留孤儿聊天历史会污染导出数据，且与「像没来过一样」的语义相悖。
+- description: `app.js:1729-1744`：`clearSampleData()` 只过滤 `SAMPLE_COLLECTIONS = ["books","quotes","connections","sessions"]`，不清理 `state.chatHistories` / `state.chatContexts`。若用户对示例书发起过对话，「一键清除」后孤儿聊天历史随 syncState 写回后端。对比 `deleteBook()`（`app.js:2353-2366`）已正确清理 chatHistories/chatContexts。现有测试 `tests/frontend/sample-onboarding.test.js:95-108` 不覆盖此场景。
+- why: 「清除示例」的用户期望是「恢复零状态」；残留的聊天历史不仅是静默数据污染，还会在用户导出 state 时带走无书籍锚点的孤儿记录，影响导入恢复体验。
+- how: `clearSampleData()` 补全 chatHistories/chatContexts 清理：遍历所有示例书/摘抄 id（`isSample:true`），逐一执行与 `deleteBook()` 相同的 key 删除逻辑（`delete state.chatHistories[id]`、`delete state.chatHistories["book:"+id]`、`delete state.chatContexts[*]`）。`tests/frontend/sample-onboarding.test.js` 补充断言。Touch: `app.js:clearSampleData`，`tests/frontend/sample-onboarding.test.js`。
