@@ -1756,11 +1756,14 @@ function activateTab(tabName) {
 async function loginSuccess(payload) {
   setAuthToken(payload.token);
   currentUser = payload.user || null;
+  // 登录响应已内联返回整个 state，拿到即可立刻渲染进入 App。
   state = normalizeStateShape(payload.state);
-  await loadRemoteLogs();
   render();
   dispatchUserChange();
   closeMeDrawer();
+  // 模型日志仅供「我的 → 调试日志」面板，与登录无关且要多一次隧道往返，
+  // 后台异步加载，绝不阻塞「登录中…」的解除（否则登录要白等一次日志请求）。
+  loadRemoteLogs().catch(() => {});
 }
 
 async function handleRegister(formData) {

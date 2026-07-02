@@ -539,7 +539,7 @@
   async function recoverCompletedChatAfterLoadError(userText) {
     try {
       await window.paperReadingApp?.refreshSessionState?.();
-      await window.paperReadingApp?.loadRemoteLogs?.();
+      window.paperReadingApp?.loadRemoteLogs?.();
       const context = activeChatContext();
       const remoteHistory = getChatHistory(context);
       const recoveredReply = findRecoveredAssistantMessage(remoteHistory, userText);
@@ -599,7 +599,7 @@
         history = Array.isArray(finalPayload.history) ? finalPayload.history : [];
         const actions = Array.isArray(finalPayload.actions) ? finalPayload.actions : [];
         setChatHistory(finalPayload.context || context, history);
-        await window.paperReadingApp.loadRemoteLogs?.();
+        window.paperReadingApp.loadRemoteLogs?.();
         if (actions.length > 0) {
           handleAgentActions(actions);
         }
@@ -693,7 +693,7 @@
           if (typeof finalPayload.stateVersion === "string") {
             window.paperReadingApp.setStateVersion?.(finalPayload.stateVersion);
           }
-          await window.paperReadingApp.loadRemoteLogs?.();
+          window.paperReadingApp.loadRemoteLogs?.();
           if (actions.length > 0) {
             handleAgentActions(actions);
           }
@@ -709,7 +709,7 @@
       // failed to load"). Render an explicit timeout state with a retry control.
       if (error?.name === "AbortError") {
         renderStreamTimeout(thinking, text);
-        await window.paperReadingApp.loadRemoteLogs?.();
+        window.paperReadingApp.loadRemoteLogs?.();
         return;
       }
       const recovered = await recoverCompletedChatAfterLoadError(text);
@@ -722,7 +722,7 @@
           thinking.textContent = `出错了：${error.message}`;
           thinking.classList.add("chat-error");
         }
-        await window.paperReadingApp.loadRemoteLogs?.();
+        window.paperReadingApp.loadRemoteLogs?.();
       }
     }
   }
@@ -731,7 +731,7 @@
   // offer an inline retry control that re-sends the original message.
   function renderStreamTimeout(thinking, text) {
     thinking.classList.remove("chat-bubble-loading");
-    thinking.textContent = "请求超时，请重试";
+    thinking.textContent = "请求超时";
     thinking.classList.add("chat-error");
 
     const retryBtn = document.createElement("button");
@@ -1043,7 +1043,7 @@
     populateChatBookSelect(selectedBookId);
     app.showToast("操作已执行");
 
-    await app.loadRemoteLogs?.();
+    app.loadRemoteLogs?.();
     window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
   }
 
