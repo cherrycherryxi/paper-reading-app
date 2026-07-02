@@ -3770,3 +3770,49 @@ body.is-admin .admin-only { display: revert; }
     display: none;
   }
 }
+
+/* 示例内容横幅:新用户注册即种入示例，顶部提示可一键清除 */
+.sample-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.sample-banner-text {
+  line-height: 1.4;
+}
+
+.sample-banner-clear {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.sample-banner-clear:hover {
+  background: var(--color-border);
+}
+
+/* 空状态里的文字链接按钮(如「载入示例看看」) */
+.link-btn {
+  padding: 0;
+  font: inherit;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}

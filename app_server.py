@@ -191,6 +191,54 @@ INITIAL_STATE = {
 }
 
 
+def build_sample_state() -> dict:
+    """新用户注册时种入的示例内容（每条带 isSample=True，前端可一键清除）。
+
+    覆盖完整闭环：2 本书 + 2 条摘抄 + 1 条关联 + 1 条阅读记录，让新用户一进来
+    就看到「填满」的样子，并能直接拿示例书试探讨。sanitize_state 对数组条目整体
+    透传，isSample 字段会被保留。"""
+    now = now_iso()
+    b1, b2 = "sample-book-marquez", "sample-book-yuhua"
+    q1, q2 = "sample-quote-marquez", "sample-quote-yuhua"
+    return {
+        "books": [
+            {"id": b1, "title": "百年孤独", "author": "加西亚·马尔克斯",
+             "totalPages": 360, "currentPage": 120, "status": "reading",
+             "tags": ["小说", "拉美文学"], "notes": "布恩迪亚家族七代人的孤独轮回。",
+             "coverImageUrl": "", "createdAt": now, "updatedAt": now,
+             "startedAt": now, "finishedAt": "", "lastReadAt": now, "isSample": True},
+            {"id": b2, "title": "活着", "author": "余华",
+             "totalPages": 240, "currentPage": 240, "status": "finished",
+             "tags": ["小说", "当代文学"], "notes": "福贵在苦难中活着本身的力量。",
+             "coverImageUrl": "", "createdAt": now, "updatedAt": now,
+             "startedAt": now, "finishedAt": now, "lastReadAt": now, "isSample": True},
+        ],
+        "quotes": [
+            {"id": q1, "bookId": b1, "page": 55, "kind": "quote",
+             "content": "过去都是假的，回忆是一条没有归途的路，以往的一切春天都无法复原。",
+             "reflection": "", "tags": ["时间", "记忆"], "imageUrl": "",
+             "ocrSource": "", "ocrStatus": "", "createdAt": now, "isSample": True},
+            {"id": q2, "bookId": b2, "page": 180, "kind": "quote",
+             "content": "人是为活着本身而活着的，而不是为了活着之外的任何事物而活着。",
+             "reflection": "", "tags": ["生命", "存在"], "imageUrl": "",
+             "ocrSource": "", "ocrStatus": "", "createdAt": now, "isSample": True},
+        ],
+        "connections": [
+            {"id": "sample-conn-1", "sourceType": "quote", "sourceId": q1,
+             "targetType": "quote", "targetId": q2, "kind": "对比",
+             "thought": "一个在回忆里追问时间的虚妄，一个在苦难里确认活着的实在——两种面对命运的姿态。",
+             "tags": ["命运", "存在"], "createdAt": now, "isSample": True},
+        ],
+        "sessions": [
+            {"id": "sample-session-1", "bookId": b1, "startPage": 1, "endPage": 30,
+             "pagesRead": 30, "minutes": 35, "note": "开篇的家族史，被叙事节奏一下吸住。",
+             "date": now, "createdAt": now, "isSample": True},
+        ],
+        "chatHistories": {},
+        "chatContexts": {},
+    }
+
+
 def initialize_tool_schema_provider_for_tests() -> None:
     ToolSchemaProvider.initialize_for_testing(
         [
@@ -3848,6 +3896,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"version": BUILD_VERSION})
             return
 
+        # 示例内容（新用户注册即种入；此端点供「载入示例」按钮给已清空的用户重新载入）。
+        # 静态内容，无需鉴权。
+        if parsed.path == "/api/sample-state":
+            self._send_json({"sample": build_sample_state()})
+            return
+
         if parsed.path == "/debug/logs":
             if not self._authorized_for_admin():
                 self._send_html("<h1>Unauthorized</h1>", 401)
@@ -4104,9 +4158,10 @@ class Handler(BaseHTTPRequestHandler):
                 " VALUES (?, ?, ?, ?, ?, ?)",
                 (user_id, username, hash_password(password), email, now_iso(), now_iso()),
             )
+            # 新用户种入示例内容（isSample 标记，前端可一键清除），避免一进来空到无从下手。
             conn.execute(
                 "INSERT INTO user_state (user_id, state_json, updated_at) VALUES (?, ?, ?)",
-                (user_id, json.dumps(INITIAL_STATE, ensure_ascii=False), now_iso()),
+                (user_id, json.dumps(build_sample_state(), ensure_ascii=False), now_iso()),
             )
             token = create_session(conn, user_id)
             user = conn.execute("SELECT id, username, created_at FROM users WHERE id = ?", (user_id,)).fetchone()

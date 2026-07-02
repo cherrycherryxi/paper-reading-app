@@ -148,6 +148,8 @@ const els = {
   sessionDialog: document.querySelector("#sessionDialog"),
   quoteDialog: document.querySelector("#quoteDialog"),
   openBookDialogBtn: document.querySelector("#openBookDialogBtn"),
+  sampleBanner: document.querySelector("#sampleBanner"),
+  clearSampleBtn: document.querySelector("#clearSampleBtn"),
   openSessionDialogBtn: document.querySelector("#openSessionDialogBtn"),
   openQuoteDialogBtn: document.querySelector("#openQuoteDialogBtn"),
   openConnectionDialogBtn: document.querySelector("#openConnectionDialogBtn"),
@@ -1387,9 +1389,16 @@ function renderBooks() {
   els.booksResultCount.textContent = `共 ${books.length} 本`;
   if (!books.length) {
     els.booksList.className = "book-list empty-state";
-    els.booksList.textContent = selectedTagFilter
-      ? "没有匹配的书籍，试试清除搜索条件。"
-      : "还没有匹配的书籍，点左上角加号新增一本。";
+    if (state.books.length === 0 && selectedStatusFilter === "all" && !selectedTagFilter) {
+      // 完全没有书:给主动作 + 载入示例(通常示例已随注册种入,此入口供清空后重来)
+      els.booksList.innerHTML =
+        '还没有书，点左上角 <b>+</b> 添加你在读的书，或 <button type="button" class="link-btn" id="loadSampleBtn">载入示例看看</button>。';
+      els.booksList.querySelector("#loadSampleBtn")?.addEventListener("click", loadSampleData);
+    } else {
+      els.booksList.textContent = selectedTagFilter
+        ? "没有匹配的书籍，试试清除搜索条件。"
+        : "还没有匹配的书籍，点左上角加号新增一本。";
+    }
     return;
   }
 
@@ -1706,8 +1715,63 @@ function renderBookImagePreview() {
   els.bookImagePreview.classList.remove("is-hidden");
 }
 
+const SAMPLE_COLLECTIONS = ["books", "quotes", "connections", "sessions"];
+
+function hasSampleData() {
+  return SAMPLE_COLLECTIONS.some((k) => (state[k] || []).some((it) => it && it.isSample));
+}
+
+function renderSampleBanner() {
+  if (!els.sampleBanner) return;
+  els.sampleBanner.hidden = !(currentUser?.id && hasSampleData());
+}
+
+// 一键清除示例:剔除所有 isSample 条目并同步。
+async function clearSampleData() {
+  if (!currentUser?.id) return;
+  for (const k of SAMPLE_COLLECTIONS) {
+    state[k] = (state[k] || []).filter((it) => !(it && it.isSample));
+  }
+  try {
+    await syncState();
+  } catch (error) {
+    showToast(`清除失败：${error.message}`);
+    return;
+  }
+  render();
+  window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
+  showToast("示例已清除");
+}
+
+// 载入示例(供已清空的用户重新体验):从后端拉取示例并按 id 去重合并。
+async function loadSampleData() {
+  if (!requireAuth("载入示例")) return;
+  let sample;
+  try {
+    const data = await apiFetch("/api/sample-state", {}, false);
+    sample = data.sample || {};
+  } catch (error) {
+    showToast(`载入失败：${error.message}`);
+    return;
+  }
+  for (const k of SAMPLE_COLLECTIONS) {
+    const existing = new Set((state[k] || []).map((it) => it.id));
+    state[k] = (state[k] || []).concat((sample[k] || []).filter((it) => !existing.has(it.id)));
+  }
+  try {
+    await syncState();
+  } catch (error) {
+    showToast(`保存失败：${error.message}`);
+    return;
+  }
+  render();
+  window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
+  showToast("已载入示例，随时可清除");
+}
+
 function render() {
   renderHero();
+  renderSampleBanner();
   renderSummary();
   renderAuthPanels();
   if (searchQuery) {
@@ -4082,6 +4146,11 @@ function bindEvents() {
   els.openBookDialogBtn?.addEventListener("click", () => {
     resetBookDraft();
     openDialog(els.bookDialog, "新增书籍");
+  });
+  els.clearSampleBtn?.addEventListener("click", () => {
+    if (window.confirm("清除所有示例内容？你自己添加的书和摘抄不受影响。")) {
+      clearSampleData();
+    }
   });
   els.openSessionDialogBtn?.addEventListener("click", () => {
     if (!requireAuth("记录阅读")) return;
