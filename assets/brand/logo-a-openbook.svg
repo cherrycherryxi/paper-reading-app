@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2efe6"/>
+      <stop offset="1" stop-color="#e6ecd9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgA)"/>
+  <!-- sprout above spine: reading as growth -->
+  <path d="M256 196 C 256 168 236 150 210 146 C 210 176 230 194 256 196 Z" fill="#7f9b63"/>
+  <path d="M256 196 C 256 168 276 150 302 146 C 302 176 282 194 256 196 Z" fill="#4c6b3e"/>
+  <rect x="251" y="188" width="10" height="52" rx="5" fill="#4c6b3e"/>
+  <!-- open book, two pages -->
+  <path d="M256 236 C 210 214 150 212 100 222 C 88 224 80 234 80 246 L 80 378 C 80 390 88 398 100 396 C 150 386 210 390 256 412 Z"
+        fill="#ffffff" stroke="#3d4a3f" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M256 236 C 302 214 362 212 412 222 C 424 224 432 234 432 246 L 432 378 C 432 390 424 398 412 396 C 362 386 302 390 256 412 Z"
+        fill="#eef3e4" stroke="#3d4a3f" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M256 236 L 256 412" stroke="#3d4a3f" stroke-width="14" stroke-linecap="round"/>
+  <!-- page lines -->
+  <path d="M132 268 C 168 262 210 264 234 276" stroke="#b8c69a" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M132 312 C 168 306 210 308 234 320" stroke="#b8c69a" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M380 268 C 344 262 302 264 278 276" stroke="#9fb381" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M380 312 C 344 306 302 308 278 320" stroke="#9fb381" stroke-width="10" stroke-linecap="round" fill="none"/>
+</svg>
