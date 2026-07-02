@@ -6338,6 +6338,38 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-07-02T18:27:36.296Z"
+    },
+    {
+      "id": "bug-376",
+      "timestamp": "2026-07-02T19:18:20.565Z",
+      "error_message": "Missing error handling in function",
+      "file": "optimization/explore.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T19:18:20.565Z"
+    },
+    {
+      "id": "bug-377",
+      "timestamp": "2026-07-02T19:18:52.543Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/backlog.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T19:18:52.543Z"
     }
   ]
 }
