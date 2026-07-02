@@ -743,3 +743,13 @@ Format per item:
 - description: app_server.py 的 do_GET `_STATIC` 给 index.html/app.js/chat.js/styles.css 统一设 `Cache-Control: no-store, no-cache, must-revalidate`（约 app_server.py:3421），为「永远拿最新前端」。代价：移动端每次刷新都重下 app.js(172KB)+styles.css(77KB)+index.html(42KB)+chat.js(39KB) ≈ 330KB，走隧道额外几秒。
 - why: 无构建流程的项目为省心用 no-store，但移动端 + 隧道放大了代价；封面图已用 immutable 缓存受益，静态 JS/CSS 反而每刷必重下，是当前刷新耗时的固定大头之一。
 - how: 静态资源版本化长缓存——JS/CSS 引用加内容哈希或版本串（项目已有 `?v=20260531a` 雏形），响应头由 no-store 改为 `Cache-Control: public, max-age=31536000, immutable`，发版时改版本串即让缓存失效。需建立「发版必改版本串」的纪律，否则会推不出新前端。Touch: app_server.py `_STATIC` 响应头（~3416-3425）+ index.html 里对 app.js/chat.js/styles.css 的引用加版本串。
+
+### OPT-087 — 摘抄/书/思想碰撞「一键生成分享图」(内容卡自传播增长引擎)
+- status: new
+- area: frontend
+- priority: P2（owner 主动为读书会推广提出，获客侧价值高，可争 P1）
+- size: L
+- northstar: 强——owner 2026-07-02 为线下读书会推广主动提出。内容卡自带二维码，用户每次分享摘抄/书籍关联都在替产品拉新，直击北极星「成为默认阅读工具」的获客侧。flomo / 微信读书同款自传播逻辑。
+- description: 在每张摘抄卡 / 书卡 / 思想碰撞(关联)卡上加「生成分享图」按钮，一键渲染成带品牌 + 二维码的竖版海报，可保存 / 发朋友圈。三种版式：摘抄卡=留白衬线；关联卡=深色「发现感」；书卡=封面+评分+读后感金句。
+- why: 分享「一句摘抄 / 一个书籍关联」比分享落地页更抓人——转发者替产品传播，扫码者被内容勾入，转化质量远高于硬广。每个用户都是获客节点，是可持续自传播。2026-07-02 已手工做出成品（assets/brand + Chrome 渲染）验证视觉与吸引力，本项是把它产品化进 App。
+- how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
