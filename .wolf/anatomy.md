@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-01T19:18:34.308Z
-> Files: 185 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-02T14:06:48.447Z
+> Files: 197 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -10,6 +10,15 @@
 - `index.html` — 🐛 又买了一本书 (~8023 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 11 more (~29248 tok)
 - `styles.css` — Styles: 149 rules, 51 vars (~13191 tok)
+
+## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/9f13dddc-a421-447a-b1d7-8ed45193951b/scratchpad/
+
+- `card.html` — Declares html (~522 tok)
+- `icon-wrap.html` — Declares html (~59 tok)
+- `logo-preview.html` — Declares html (~587 tok)
+- `og-card.html` — Declares html (~417 tok)
+- `slide.html` — Declares html (~606 tok)
+- `wechat-poster.html` — Declares html (~594 tok)
 
 ## ../../.claude/
 
@@ -65,7 +74,8 @@
 
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~302 tok)
+- `MEMORY.md` (~370 tok)
+- `project_brand_share_kit.md` (~327 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
@@ -100,21 +110,22 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
-- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 3 mo (~66954 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~48553 tok)
+- `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 2 mo (~66972 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~48880 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
-- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11315 tok)
+- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
 - `CLAUDE.md` — OpenWolf (~1301 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~10720 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
+- `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~22596 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~22724 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -196,6 +207,9 @@
 ## assets/
 
 
+## assets/brand/
+
+
 ## data/
 
 - `golden_set_baseline.json` (~68 tok)
@@ -217,6 +231,7 @@
 
 - `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1692 tok)
 - `dev_backend.sh` (~153 tok)
+- `generate_thumbnails.py` — 为 uploads 下的图片生成书单用缩略图（<stem>.thumb.jpg，最长边 400px）。 (~735 tok)
 - `run_backend_service.sh` — Unattended backend runner for launchd (stable serving, NOT the dev watcher). (~123 tok)
 - `start_backend.sh` (~348 tok)
 
@@ -248,6 +263,7 @@
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
+- `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
 - `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3253 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
@@ -256,6 +272,7 @@
 ## tests/frontend/
 
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
+- `book-cover-thumbnail-lazy.test.js` — 书单封面「缩略图 + 懒加载」优化：书单原来一次性拉 28MB 原图封面，改为用 (~1084 tok)
 - `book-dates-display.test.js` — OPT-074: startedAt / finishedAt are written to the book object via saveSession() (~1526 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
@@ -267,6 +284,7 @@
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
+- `login-fast-and-retry-btn.test.js` — 两个移动端体验修复： (~698 tok)
 - `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)
 - `ocr-fast-panel-integration.test.js` — Integration test for the FAST OCR path (runOcrFromImage("fast")): (~1884 tok)
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4036 tok)
