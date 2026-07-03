@@ -2821,3 +2821,118 @@ OPT-037（PR #已合并）将 `compareBooksForList()` 的 `localeCompare` 改为
 ---
 
 > 本次 run 将 E141（关联搜索 haystack 缺摘抄内容）提拔为 OPT-088，将 E140（clearSampleData 不清 chatHistories）提拔为 OPT-089。E142/E143/E144（timestamp 一致性 + 示例数据修正）建议搭车 E141/E140 实施，S 级代价。
+
+## 2026-07-03
+
+> 本次 run 聚焦：记录会话路径的时区一致性、页数统计精度、Timeline 排序、deleteSession 进度回写缺失、示例数据时间戳。所有断言均经代码 Read 验证。
+> 提拔：E145 → OPT-090，E146 → OPT-091。
+
+### E145 — `editSession()` date 字段用 `toISOString().split("T")[0]` 而非已有的 `isoToDateInput()` 辅助函数
+
+**What (verified):** `app.js:2412`：
+```js
+const dateStr = session.date ? new Date(session.date).toISOString().split("T")[0] : "";
+els.sessionForm.querySelector('[name="date"]').value = dateStr;
+```
+`isoToDateInput()`（`app.js:477-484`）已有本地时区感知的转换（`d.getFullYear()` / `d.getMonth()` / `d.getDate()` 取本地分量），且已被正确用于书籍编辑表单（`app.js:2647-2648`）：
+```js
+els.bookEditForm.elements.startedAt.value = isoToDateInput(book.startedAt); // OPT-074
+els.bookEditForm.elements.finishedAt.value = isoToDateInput(book.finishedAt); // OPT-074
+```
+但 `editSession()` 没有调用它，而是直接调 `.toISOString()` 再 split。对于在 UTC+8 00:00–07:59（本地深夜/清晨）记录、date 字段留空后端走 `new Date().toISOString()` 默认路径的 session，`session.date` 为 UTC 前一天的时间串（如 `2026-07-02T16:30:00.000Z`），`.toISOString().split("T")[0]` 返回 `2026-07-02`，但本地实际是 `2026-07-03`——编辑时日期字段预填错一天。
+
+**Why it matters:** OPT-059（本周 W27 最高优先项）正在修复新建 session 的日期预填；`editSession()` 是完全对称的 bug，在同一路径上，修复方式也完全一致：将 `toISOString().split("T")[0]` 换成 `isoToDateInput(session.date)`，1 行改动，复用已有辅助。漏掉编辑路径意味着 owner 在深夜用完 OPT-059 后新建了正确日期的 session，但第二天打开编辑时仍看到昨天——数据准确性缺口未完全填上，Theme 1「采集顺滑」验收不完整。
+
+**Complexity:** S — `app.js:2412`：将 `new Date(session.date).toISOString().split("T")[0]` 改为 `isoToDateInput(session.date)`；1 行修改，零后端/CSS 变更，零测试变更（`isoToDateInput` 已在 OPT-074 测试中覆盖）。
+
+**Files:** `app.js:2412`（editSession）；参照 `app.js:477-484`（isoToDateInput 定义）；`app.js:2647-2648`（正确使用参考）
+
+**northstar:** 中——直接在 W27 唯一焦点「记阅读 session」路径上消除 date 预填的时区错误，与 OPT-059 构成完整对（新建 + 编辑），Theme 1「数据准确」验收要求两个入口都正确。
+
+---
+
+### E146 — `renderTimeline()` 用 `localeCompare` 排序 session，OPT-037 的书单修复漏覆盖 Timeline
+
+**What (verified):** `app.js:1439`：
+```js
+const allSorted = [...state.sessions].sort((a, b) =>
+  (b.date || "").localeCompare(a.date || "")
+);
+```
+OPT-037（PR #42，2026-06-13）已将 `compareBooksForList()` 的同类 `localeCompare` 改为 `Date.parse(b.createdAt) - Date.parse(a.createdAt)`，OPT-014 已将 `renderQuotes()` 改为 `Date.parse`，但 `renderTimeline()` 的 session 排序未同步修复。`session.date` 在新建路径存为 `${dateValue}T12:00:00` 锚定本地正午的 UTC 串，在空日期 fallback 路径存为当前 UTC 时间串；混合排序时，同一本地日历日创建的 session 会因时间串字面值（是否带毫秒、是否带 Z）而乱序。
+
+**Why it matters:** `renderTimeline()` 是「动态」Tab 的主视图，也是 OPT-077（阅读里程碑事件）的预定接入点。排序不一致是与 OPT-037 完全相同的已知问题类别，一行修改复用相同的修复模式，对 Timeline 日期顺序的准确性是 roadmap §2「本周使用天数」可观测代理指标的基础。
+
+**Complexity:** S — `app.js:1439`：将 `(b.date || "").localeCompare(a.date || "")` 改为 `Date.parse(b.date || "") - Date.parse(a.date || "")`（降序）；1 行修改，零其他影响。
+
+**Files:** `app.js:1439`（renderTimeline sort），参照 `app.js:1026`（OPT-037 已修复的书单 sort）
+
+**northstar:** 弱-中——Timeline 是「看见自己读书积累」的主界面，date 排序正确是「本周使用天数」观测准确的前提；S 级改动，与 OPT-037 同一修复系列，建议与 E145 合并同一 PR。
+
+---
+
+### E147 — `deleteSession()` 删除记录后不回写 `book.currentPage` / `book.lastReadAt`，进度数据残留
+
+**What (verified):** `app.js:2583-2598`：
+```js
+state.sessions = state.sessions.filter((item) => item.id !== sessionId);
+try { await syncState(); renderTimeline(); showToast("阅读记录已删除"); }
+```
+删除后对任何书籍字段不作任何更新。对比 `addSession()`（`app.js:2314-2325`）每次新建都做：
+```js
+book.currentPage = Math.max(book.currentPage || 0, endPage);
+book.lastReadAt = date;
+```
+若用户误填了 endPage（如 endPage=400）并删除该 session，`book.currentPage` 保持 400 不变；OPT-084（startPage 预填）将基于 `book.currentPage=400` 错误计算下次起始页，给出错误建议值 401。
+
+**Why it matters:** 新建/删除路径逻辑不对称是正确性缺陷。「记阅读 session」是 W27 焦点路径，OPT-059/061/066 正在打磨其顺滑度；deleteSession 的进度残留会在用户纠错（删掉错误 session）后立即在 OPT-084 的预填中暴露出来，产生新的摩擦。
+
+**Complexity:** S-M — 删除后需扫描该书所有剩余 session 找最大 endPage 回写 `book.currentPage`（若无 session 则清零），同步更新 `book.lastReadAt` 和 finished 状态判断；约 10–15 行，参照 `addSession()` 逻辑。建议与 OPT-084（startPage 预填）合并一 PR，因两者共享 `book.currentPage` 的读写路径。
+
+**Files:** `app.js:2583-2598`（deleteSession）；参照 `app.js:2314-2325`（addSession 回写逻辑）
+
+**northstar:** 弱-中——数据准确性背景项；孤立看贡献有限，但 E145/OPT-084 使 `book.currentPage` 成为 session 录入的关键输入，deleteSession 残留进度会直接降低预填准确度，削弱 Theme 1「零摩擦录入」验收的实效。
+
+---
+
+### E148 — `pagesRead` 计算 `endPage - startPage` 少 1，阅读量指标系统性低估
+
+**What (verified):** `app.js:2303` 和 `2310`：
+```js
+pagesRead: endPage - startPage,
+```
+`build_sample_state()` 的示例 session（`app_server.py:251`）手工赋值 `"pagesRead": 30, "startPage": 1, "endPage": 30`，而公式给出 `30 - 1 = 29`，两者相差 1。`getBookMetrics()`（`app.js:767`）和 `buildRenderCache()`（`app.js:740`）均直接累加 `item.pagesRead`：
+```js
+pages: sessions.reduce((sum, item) => sum + Number(item.pagesRead || 0), 0)
+```
+读第 1 页到第 30 页实际读了 30 页，公式存 29——每条 session 都少记 1 页，书卡和书本级指标长期低估总阅读量。
+
+**Why it matters:** 阅读量统计是最直接的「自我感知进步」指标；10 次 session 就低估 10 页，100 次 session 低估 100 页。修复方式有争议：若改公式（`+1`）则历史数据与新数据不一致（需迁移或接受分裂）；若只更新渲染层而不动存储，则 `pagesRead` 字段与显示脱节。建议：仅改公式（`endPage - startPage + 1`），历史数据保持不动（差 1 页属于「旧数据自然老化」），同时在样本数据中更正（已与公式一致的 30 保持不动）。
+
+**Complexity:** S — `app.js:2303` 和 `2310`：`endPage - startPage` → `endPage - startPage + 1`；`renderTimeline()` 的统计行（`app.js:1452`）也用同一公式，同步修改。共 3 处，各 1 字符修改。
+
+**Files:** `app.js:2303, 2310`（addSession）；`app.js:1452`（renderTimeline 统计行）
+
+**northstar:** 弱-中——阅读量统计不直接是 roadmap §2 的三个代理指标之一（本周使用天数 / 新增摘抄数 / 回顾操作次数），但与「不假思索的默认工具」要求基础数据可靠相符；系统性 -1 页/session 偏差是隐性可信度问题。
+
+---
+
+### E149 — `build_sample_state()` 用 `now_iso()`（本地时间）且 `currentPage=120` 与唯一 session `endPage=30` 矛盾
+
+**What (verified):** `app_server.py:217`：
+```python
+now = now_iso()  # "2026-07-03T10:XX:XX"，无时区
+```
+`utc_now_iso()` 的注释（`app_server.py:368-371`）明确：「Use this for timestamps the frontend sorts/compares against client-side timestamps」。示例书 `b1` 的 `currentPage=120`（`app_server.py:222`），但唯一示例 session 为 `startPage=1, endPage=30`（`app_server.py:250`）；`addSession()` 的不变式是 `book.currentPage = max(currentPage, endPage)`，即 currentPage 应等于所有 session endPage 的最大值（此处应为 30，而非 120）。两个问题叠加：① 时间戳本地时间排序混乱（与新用户自己添加的 UTC+Z 数据混排）；② 示例数据自相矛盾（页码显示「读到 120 页」但只有 1-30 页的记录）。
+
+**Why it matters:** 示例数据是新用户对产品的第一印象。不一致的示例（进度 120 页 vs 只有 30 页 session）会让用户对数据的可信度产生疑问。两项修复均为 1–2 行：① `now = utc_now_iso()`；② `currentPage: 30`（或补一条 31-120 的 session 使数据更丰富）。
+
+**Complexity:** S — `app_server.py:217`（`now_iso()` → `utc_now_iso()`）+ `app_server.py:222`（`currentPage: 120` → `currentPage: 30`）；共 2 处，1 行各。
+
+**Files:** `app_server.py:211-253`（build_sample_state）
+
+**northstar:** 弱——仅影响新用户 onboarding；但示例数据是产品能力的橱窗，与当前首屏体验打磨方向吻合。建议与 OPT-089/clearSampleData 搭车修复。
+
+---
+
+> 本次 run 将 E145（editSession 日期 timezone 预填 bug）提拔为 OPT-090，将 E146（renderTimeline localeCompare 排序）提拔为 OPT-091。E147（deleteSession 不回写进度）、E148（pagesRead 少 1）、E149（示例数据 now_iso + 数值不一致）作为候选登记，建议分别搭车相关 PR 合并实施。
