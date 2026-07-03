@@ -38,6 +38,23 @@ HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8787"))
 BUILD_VERSION = "20260529a"
 
+# OPT-086: 前端静态资源版本串,基于关键文件 mtime——文件一变(发版)版本串就变。
+# 用于给 HTML 里的 app.js/chat.js/styles.css 引用打 ?v=,配合 immutable 长缓存实现
+# 「Cloudflare 边缘缓存 + 发版自动失效」,避免每次加载都穿隧道回家用 Mac 取(高延迟)。
+_VERSIONED_STATIC = ("app.js", "chat.js", "styles.css")
+
+
+def static_asset_version() -> str:
+    parts = []
+    for name in (*_VERSIONED_STATIC, "index.html"):
+        try:
+            parts.append(str((BASE_DIR / name).stat().st_mtime_ns))
+        except OSError:
+            pass
+    raw = "|".join(parts) or BUILD_VERSION
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:10]
+
+
 # 服务端密钥只从环境变量读取，不要放到前端或提交到仓库。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
@@ -3683,8 +3700,20 @@ class Handler(BaseHTTPRequestHandler):
             content = (BASE_DIR / filename).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", mime)
-            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
-            self.send_header("Pragma", "no-cache")
+            # OPT-086: HTML 必须常新(它携带资源版本串)；JS/CSS 用 immutable 长缓存，
+            # 让 Cloudflare 边缘缓存、不再每次回源(穿隧道读家用 Mac 的 ~1.3s 高延迟)。
+            if filename.endswith(".html"):
+                # 把 JS/CSS 引用的 ?v= 统一改成当前版本串(按文件 mtime,发版自动失效)。
+                ver = static_asset_version()
+                text = content.decode("utf-8")
+                text = re.sub(r"(app\.js|chat\.js|styles\.css)\?v=[^\"']*", rf"\1?v={ver}", text)
+                content = text.encode("utf-8")
+                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+                self.send_header("Pragma", "no-cache")
+            elif filename.endswith((".js", ".css")):
+                self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+            else:  # 图标等未版本化资源：中等缓存,避免永远陈旧
+                self.send_header("Cache-Control", "public, max-age=86400")
             self._send_security_headers()
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
