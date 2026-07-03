@@ -3786,6 +3786,11 @@ body.is-admin .admin-only { display: revert; }
   color: var(--color-ink);
 }
 
+/* display:flex 会压过 [hidden] 的 display:none，必须显式恢复，否则横幅永远显示。 */
+.sample-banner[hidden] {
+  display: none;
+}
+
 .sample-banner-text {
   line-height: 1.4;
 }
