@@ -131,3 +131,15 @@ test("结构：横幅/清除按钮/CSS/注册种入 都到位", () => {
     "注册须种入 build_sample_state()");
   assert.match(serverSource, /\/api\/sample-state/, "应有 /api/sample-state 端点");
 });
+
+test("横幅 [hidden] 必须生效(display:flex 会压过 hidden，否则空账号也永远显示)", () => {
+  assert.match(cssSource, /\.sample-banner\[hidden\]\s*\{[^}]*display:\s*none/,
+    ".sample-banner[hidden] 须显式 display:none");
+});
+
+test("探讨(chat)tab 不显示横幅(固定高度布局会被横幅顶掉输入框)", () => {
+  assert.match(appSource, /renderSampleBanner[\s\S]{0,200}data-tab-section="chat"[\s\S]{0,120}tab-active/,
+    "renderSampleBanner 须在 chat tab 激活时隐藏横幅");
+  assert.match(appSource, /tab-active[\s\S]{0,200}renderSampleBanner\(\)/,
+    "activateTab 切换后须调用 renderSampleBanner 更新可见性");
+});

@@ -1723,7 +1723,11 @@ function hasSampleData() {
 
 function renderSampleBanner() {
   if (!els.sampleBanner) return;
-  els.sampleBanner.hidden = !(currentUser?.id && hasSampleData());
+  // 探讨(chat)tab 用固定高度布局，横幅在其上方会把输入框顶出屏幕 → 该 tab 不显示横幅。
+  const onChatTab = document
+    .querySelector('.layout [data-tab-section="chat"]')
+    ?.classList.contains("tab-active");
+  els.sampleBanner.hidden = onChatTab || !(currentUser?.id && hasSampleData());
 }
 
 // 一键清除示例:剔除所有 isSample 条目并同步。
@@ -1807,6 +1811,7 @@ function activateTab(tabName) {
   document.querySelectorAll(".layout [data-tab-section]").forEach((section) => {
     section.classList.toggle("tab-active", section.dataset.tabSection === tabName);
   });
+  renderSampleBanner(); // 切 tab 后按当前 tab(尤其 chat)更新横幅可见性
   if (tabName === "chat" && typeof window.populateChatBookSelect === "function") {
     window.populateChatBookSelect();
     // Scroll to latest message after panel becomes visible
