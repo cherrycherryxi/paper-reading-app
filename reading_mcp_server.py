@@ -14,6 +14,7 @@ Tool description 写作原则（语义合约）：
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 import uuid
@@ -24,7 +25,9 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "app_state.db"
+# DB 与端口可用环境变量覆盖，让 prod 能起独立 MCP 实例指向 prod 库(否则 prod 的 agent
+# 动作会派发到默认 8788 的 dev-库 MCP，导致「user_state not found」或写错库)。
+DB_PATH = Path(os.getenv("READING_MCP_DB", str(BASE_DIR / "app_state.db")))
 
 VALID_CONNECTION_KINDS = {"异曲同工", "引用", "对比", "影响", "延伸"}
 EntityType = Literal["book", "quote"]
@@ -501,4 +504,5 @@ def link_thought(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(mcp.streamable_http_app(), host="127.0.0.1", port=8788)
+    port = int(os.getenv("MCP_PORT", "8788"))
+    uvicorn.run(mcp.streamable_http_app(), host="127.0.0.1", port=port)

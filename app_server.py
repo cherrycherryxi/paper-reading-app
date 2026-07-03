@@ -3049,7 +3049,9 @@ class ActionStateMachine:
             ACTION_STATUS_APPROVED: {ACTION_STATUS_EXECUTED, ACTION_STATUS_FAILED},
             ACTION_STATUS_REJECTED: set(),
             ACTION_STATUS_EXECUTED: set(),
-            ACTION_STATUS_FAILED: set(),
+            # FAILED 可重新审批以支持「重试」(执行失败常是瞬时问题,如后端/网络);
+            # 否则前端点「重试」重发 /approve 会被状态机拒,永远只能忽略。
+            ACTION_STATUS_FAILED: {ACTION_STATUS_APPROVED},
         }
         if target_status not in allowed.get(current, set()):
             raise ValueError(f"invalid action state transition: {current} -> {target_status}")
