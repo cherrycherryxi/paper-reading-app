@@ -3,6 +3,7 @@
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-02T19:18:52.526Z
 > Files: 199 tracked | Anatomy hits: 0 | Misses: 0
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-02T18:43:47.335Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T07:47:40.842Z
 > Files: 200 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -116,7 +117,7 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
 - `app_server.py` — import: is_admin_username, initialize_tool_schema_provider_for_tests, guess_base_url, now_iso + 2 mo (~66972 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~48880 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
 - `CLAUDE.md` — OpenWolf (~1301 tok)
@@ -130,7 +131,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~22724 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~23015 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
