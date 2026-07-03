@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T09:09:56.878Z
-> Files: 201 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T10:26:21.447Z
+> Files: 204 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -83,7 +83,7 @@
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
-- `reference_remote_access_setup.md` (~538 tok)
+- `reference_remote_access_setup.md` — 2026-07-02 更新：Cloudflare 固定命名隧道 + prod/dev 分离 (~1611 tok)
 - `reference_weekly_report_email.md` (~339 tok)
 
 ## ../../.claude/scripts/
@@ -92,6 +92,7 @@
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~642 tok)
+- `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
 - `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
 - `weekly-report.sh` (~476 tok)
@@ -104,6 +105,7 @@
 
 - `com.huangnanqi.caffeinate.plist` (~174 tok)
 - `com.huangnanqi.paper-backend.plist` (~291 tok)
+- `com.huangnanqi.paper-mcp-prod.plist` (~285 tok)
 - `com.huangnanqi.paper-tunnel.plist` (~255 tok)
 - `com.huangnanqi.product-owner.plist` (~307 tok)
 - `com.huangnanqi.tunnel-watchdog.plist` (~247 tok)
@@ -113,7 +115,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68118 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
@@ -125,7 +127,7 @@
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
-- `reading_mcp_server.py` — add_note, add_book, summary, question (~4217 tok)
+- `reading_mcp_server.py` — add_note, add_book, summary (~4352 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~23015 tok)
@@ -262,6 +264,7 @@
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_retries_on_429, side_effect, test_retries_on_503 + 24 (~4466 tok)
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
+- `mcp_db_and_retry_test.py` — 两个 prod bug 的回归锁: (~600 tok)
 - `media_cors_test.py` — Regression test for OPT-023: /media/ route must NOT emit Access-Control-Allow-Origin. (~819 tok)
 - `metrics_json_guard_test.py` — SummarizeMetricsJsonGuardTest: setUp, tearDown, test_valid_rows_still_counted, test_corrupted_row_sk (~1322 tok)
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
