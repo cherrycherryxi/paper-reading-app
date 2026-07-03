@@ -735,7 +735,7 @@ Format per item:
 - how: ①（推荐）前端上传前用 canvas 限宽（如最长边 ≤1600px）+ 重编码 JPEG q≈0.8，再走现有上传链路；或 ② 后端落盘时用 sips/Pillow 压缩（注意 app_server.py 目前纯 stdlib，加 Pillow 是依赖决策）。这是移动端性能三步走的第 3 步：opt1 懒加载 + opt2 缩略图（app.js + scripts/generate_thumbnails.py）已实现，本项防新封面再出 4.6MB 巨图。Touch: 上传入口 `uploadBookCoverImage()` / `uploadBookImageIfNeeded()`（app.js ~2146/2630）。
 
 ### OPT-086 — 前端静态资源 no-store，每次刷新重下 ~330KB JS/CSS/HTML — owner 2026-07-02 手机亲测
-- status: triaged
+- status: done (commit 239e6e9, 2026-07-02 — `_STATIC` 响应头改 `max-age=31536000,immutable`；index.html 中 app.js/chat.js/styles.css 引用加自动版本串；owner 直接合入 feature/agent，不计 auto/ 预算)
 - area: backend (+ frontend 版本串)
 - priority: P2
 - size: M
@@ -755,7 +755,7 @@ Format per item:
 - how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
 
 ### OPT-088 — renderConnections 搜索 haystack 缺少摘抄内容
-- status: new
+- status: triaged
 - area: frontend
 - priority: P1
 - size: S
@@ -765,7 +765,7 @@ Format per item:
 - how: 将 `getBookTitle` 重命名为 `getSearchLabel`，quote 分支追加 `(q?.content || q?.ocrText || "").slice(0, 60)` 拼入返回串；haystack 构造不变。约 3 行修改，纯前端，无后端影响。Touch: `app.js:847-860`。
 
 ### OPT-089 — clearSampleData 不清理 chatHistories / chatContexts
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
