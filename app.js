@@ -2530,7 +2530,10 @@ function openNewSessionForBook(bookId) {
   els.sessionForm.querySelector('[name="endPage"]').value = "";
   els.sessionForm.querySelector('[name="minutes"]').value = "";
   els.sessionForm.querySelector('[name="note"]').value = "";
-  els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];
+  const _todayLocal = new Intl.DateTimeFormat("sv").format(new Date());
+  const _dateInput = els.sessionForm.querySelector('[name="date"]');
+  _dateInput.value = _todayLocal;
+  _dateInput.max = _todayLocal;
   els.sessionDialog.showModal();
 }
 
