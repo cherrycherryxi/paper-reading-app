@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T10:26:21.447Z
-> Files: 204 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T15:54:19.254Z
+> Files: 205 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -13,6 +13,7 @@
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/9f13dddc-a421-447a-b1d7-8ed45193951b/scratchpad/
 
+- `build_deck.py` — Build 《伯格的女儿》读书会 5-min deck: deck.html (live) + s1..s6.html (for PNG). (~2742 tok)
 - `card.html` — Declares html (~522 tok)
 - `dual-poster.html` — Declares html (~811 tok)
 - `icon-wrap.html` — Declares html (~59 tok)
@@ -229,7 +230,7 @@
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1310 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~343 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~416 tok)
 - `triage.md` — Triage (~4149 tok)
 
 ## scripts/
