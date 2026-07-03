@@ -23,7 +23,7 @@ roadmap/signal 依据：roadmap.md §2 W27「OPT-059 最高优先」；optimizat
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-059 | Session 日期预填 UTC 日期，UTC+8 凌晨记录日期差一天 | P1 | S | triaged | roadmap W27 最高优先；signal 2026-06-26 佐证；correctness bug 污染「本周使用天数」指标。`app.js:2261`：`toISOString().split("T")[0]` → `new Intl.DateTimeFormat("sv").format(new Date())`（sv locale 本地时区 YYYY-MM-DD）。 |
+| OPT-059 | Session 日期预填 UTC 日期，UTC+8 凌晨记录日期差一天 | P1 | S | in-progress (PR #54) | roadmap W27 最高优先；signal 2026-06-26 佐证；correctness bug 污染「本周使用天数」指标。`app.js:2261`：`toISOString().split("T")[0]` → `new Intl.DateTimeFormat("sv").format(new Date())`（sv locale 本地时区 YYYY-MM-DD）。 |
 | OPT-061 | Session 对话框 showModal() 后无 focus()，移动端须额外点击才能开始输入 | P1 | S | triaged | roadmap W27 #2；signal 2026-06-26 佐证；Theme 1「采集顺滑」每日触点。`app.js:2142`（editSession）和 `app.js:2262`（openNewSessionForBook）末尾各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。 |
 | OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | roadmap W27 OPT-061 对称补丁；Theme 1「采集顺滑」核心录入路径。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`。 |
 | OPT-066 | 编辑 Session 未同步书籍进度字段（currentPage/lastReadAt/updatedAt） | P1 | S | triaged | roadmap W27 #3；signal 2026-06-26 佐证；`app.js:2029-2037` 的 `if(existingId)` 分支只更新 session 本体，未重算书籍进度；对比新建分支（`app.js:2046-2055`）完整同步。约 5 行补全。 |
