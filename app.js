@@ -491,6 +491,10 @@ function dateInputToIso(value) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+function todayLocalDateInput() {
+  return new Intl.DateTimeFormat("sv").format(new Date());
+}
+
 function normalizeTags(raw) {
   return String(raw || "")
     .split(",")
@@ -2291,6 +2295,10 @@ async function addSession(formData) {
     showToast("结束页不能超过总页数");
     return;
   }
+  if (dateValue && dateValue > todayLocalDateInput()) {
+    showToast("日期不能晚于今天");
+    return;
+  }
 
   const note = String(formData.get("note")).trim();
 
@@ -2530,7 +2538,10 @@ function openNewSessionForBook(bookId) {
   els.sessionForm.querySelector('[name="endPage"]').value = "";
   els.sessionForm.querySelector('[name="minutes"]').value = "";
   els.sessionForm.querySelector('[name="note"]').value = "";
-  els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];
+  const todayLocal = todayLocalDateInput();
+  const dateInput = els.sessionForm.querySelector('[name="date"]');
+  dateInput.value = todayLocal;
+  dateInput.max = todayLocal;
   els.sessionDialog.showModal();
 }
 
