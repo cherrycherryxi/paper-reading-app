@@ -1,6 +1,7 @@
 # anatomy.md
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-04T14:32:01.309Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T18:08:16.606Z
 > Files: 202 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -115,6 +116,7 @@
 - `.gitignore` — Git ignore rules (~196 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
 - `CLAUDE.md` — OpenWolf (~1301 tok)
@@ -228,7 +230,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~1310 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~4310 tok)
+- `triage.md` — Triage (~4313 tok)
 
 ## scripts/
 
@@ -300,6 +302,7 @@
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19497 tok)
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~2616 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
+- `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3176 tok)
 
 ## wechat-miniprogram/
