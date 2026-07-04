@@ -475,7 +475,7 @@ Format per item:
 - how: 在两处 `showModal()` 后各追加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`（共 2 处，各 3 行）。`requestAnimationFrame` 确保 dialog 渲染完成后再 focus，兼容 Safari `<dialog>` 异步显示时序，与 OPT-049 等先例中已用模式一致。Touch: `app.js:2248`（`openNewQuoteForBook` 末尾）；`app.js:2283`（`editQuote` 末尾）。
 
 ### OPT-059 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨（00:00–08:00）读书记录日期差一天 — 由 explore E94 提拔
-- status: triaged
+- status: done (PR #54, 2026-07-04 — `todayLocalDateInput()` helper（Intl sv locale 本地 YYYY-MM-DD）+ date input `max=今天` + `addSession()` 未来日期提交拦截；回归测试 `tests/frontend/session-date-prefill.test.js` 3 例。注意：编辑路径的对称 bug 是 OPT-090，未随本项修复)
 - area: frontend
 - northstar: 中——Theme 1「采集顺滑」数据准确性：凌晨阅读记录日期自动填入昨天，owner 晚睡读书场景高频；记录日期错误直接损害「零丢失/零错数据」验收标准，且用户通常不会注意日期字段并手动修正。S 复杂度，1 行改动。
 - description: `app.js:2261`：`els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];`——`toISOString()` 返回 UTC 日期，UTC+8 凌晨 00:00–07:59 对应 UTC 前一天，导致「今晚」的阅读被记录为「昨天」。`index.html:430` 的日期 `<input>` 亦无 `max` 属性，用户可无限制选择未来日期。
