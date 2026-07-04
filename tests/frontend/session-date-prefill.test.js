@@ -37,7 +37,11 @@ function createElementStub(tagName = "div") {
   return stub;
 }
 
-function createHarness() {
+// `overrides.fixedNowMs` + `overrides.tzOffsetHours` let a test simulate "the browser's
+// local timezone" independently of the host running the test (see test #3 below), by
+// replacing Date/Intl inside the vm context rather than touching the real globals.
+function createHarness(overrides = {}) {
+  const { fixedNowMs, tzOffsetHours } = overrides;
   const elements = new Map();
   const getElement = (s) => { if (!elements.has(s)) elements.set(s, createElementStub()); return elements.get(s); };
 
@@ -68,6 +72,35 @@ function createHarness() {
     dispatchEvent() {}, addEventListener() {}, removeEventListener() {},
     clearTimeout() {}, setTimeout(fn) { return fn(); }, confirm() { return true; },
   };
+
+  let ContextDate = Date;
+  if (fixedNowMs !== undefined) {
+    ContextDate = class extends Date {
+      constructor(...args) {
+        if (args.length === 0) super(fixedNowMs);
+        else super(...args);
+      }
+      static now() { return fixedNowMs; }
+    };
+  }
+
+  let ContextIntl = Intl;
+  if (tzOffsetHours !== undefined) {
+    // Stand in for a device whose local timezone is UTC+tzOffsetHours, so the mechanism
+    // under test (Intl.DateTimeFormat("sv")) actually branches away from UTC.
+    ContextIntl = {
+      DateTimeFormat(_locale, _opts) {
+        return {
+          format(d) {
+            const shifted = new Date(d.getTime() + tzOffsetHours * 3600 * 1000);
+            const pad = (n) => String(n).padStart(2, "0");
+            return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}`;
+          },
+        };
+      },
+    };
+  }
+
   const context = {
     console, document, window,
     localStorage: { getItem() { return ""; }, setItem() {}, removeItem() {} },
@@ -78,7 +111,7 @@ function createHarness() {
     }),
     CustomEvent: function CustomEvent(type) { this.type = type; },
     FormData, structuredClone,
-    Date, Intl, Math, JSON, Array, Object, String, Number, Boolean, RegExp,
+    Date: ContextDate, Intl: ContextIntl, Math, JSON, Array, Object, String, Number, Boolean, RegExp,
     Promise, setTimeout, clearTimeout,
     requestAnimationFrame(cb) { cb(); return 1; },
   };
@@ -134,15 +167,15 @@ test("OPT-059: openNewSessionForBook() sets max attribute to today's local date 
   assert.equal(maxAttr, expectedLocalDate, "max must be today in local timezone");
 });
 
-test("OPT-059: local-tz date never equals UTC date when UTC is midnight-shifted (simulation)", () => {
-  // Simulate a scenario where UTC gives the previous day.
-  // We cannot force TZ in Node without env, so we verify the mechanism instead:
-  // Intl.DateTimeFormat("sv") must use the JS engine's local TZ, while toISOString() uses UTC.
-  // When TZ is UTC+8 and the time is 00:30 local, toISOString gives previous day; Intl gives current.
-  //
-  // To test the mechanism: fabricate a Date that is midnight UTC — in UTC+8 that would be 08:00 local.
-  // Both approaches agree here. The key assertion is that `sv` locale returns YYYY-MM-DD format.
-  const d = new Date("2026-07-03T00:00:00Z"); // midnight UTC = 08:00 CST
-  const svResult = new Intl.DateTimeFormat("sv").format(d);
-  assert.match(svResult, /^\d{4}-\d{2}-\d{2}$/, "sv locale always returns YYYY-MM-DD");
+test("OPT-059: openNewSessionForBook() pre-fills local date, not UTC date, in the UTC+8 midnight window", () => {
+  // 2026-07-03T16:30:00Z is 2026-07-04T00:30 in UTC+8 — exactly the "after local midnight,
+  // still previous day in UTC" window that caused the original bug. Drive the real source
+  // through a vm context whose Date/Intl are pinned to this instant/offset, so the assertion
+  // actually exercises openNewSessionForBook() rather than recomputing the fix's own formula.
+  const fixedNowMs = Date.parse("2026-07-03T16:30:00Z");
+  const h = createHarness({ fixedNowMs, tzOffsetHours: 8 });
+  h.openNewSessionForBook("b1");
+
+  // The old, buggy `toISOString().split("T")[0]` would have produced "2026-07-03".
+  assert.equal(h.dateInput.value, "2026-07-04", "must use the local-timezone date, not the UTC date");
 });

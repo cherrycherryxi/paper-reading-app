@@ -6386,6 +6386,22 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-07-03T17:11:06.704Z"
+    },
+    {
+      "id": "bug-379",
+      "timestamp": "2026-07-04T14:31:51.001Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/frontend/session-date-prefill.test.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-04T14:31:51.001Z"
     }
   ]
 }
