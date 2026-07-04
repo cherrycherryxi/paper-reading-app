@@ -1,10 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-04T14:41:54.525Z
-> Files: 212 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-04T14:32:01.309Z
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T18:08:16.606Z
-> Files: 202 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-04T15:36:41.259Z
+> Files: 217 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -93,18 +90,20 @@
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_remote_access_setup.md` — 2026-07-02 更新：Cloudflare 固定命名隧道 + prod/dev 分离 (~1611 tok)
-- `reference_weekly_report_email.md` (~339 tok)
+- `reference_weekly_report_email.md` (~530 tok)
 
 ## ../../.claude/scripts/
 
 - `email-cheatsheet.sh` — email-cheatsheet — 把全局共享工具 / 常用命令速查发到邮箱。 (~473 tok)
+- `focus-midweek-check.sh` — 焦点中期检查(每周四 21:00,launchd com.huangnanqi.focus-midweek-check)。 (~562 tok)
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
+- `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~642 tok)
+- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~838 tok)
 - `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
 - `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
-- `weekly-report.sh` (~476 tok)
+- `weekly-report.sh` (~897 tok)
 
 ## ../../.claude/skills/organize-downloads/
 
@@ -113,6 +112,7 @@
 ## ../../Library/LaunchAgents/
 
 - `com.huangnanqi.caffeinate.plist` (~174 tok)
+- `com.huangnanqi.focus-midweek-check.plist` (~297 tok)
 - `com.huangnanqi.paper-backend.plist` (~291 tok)
 - `com.huangnanqi.paper-mcp-prod.plist` (~285 tok)
 - `com.huangnanqi.paper-tunnel.plist` (~255 tok)
@@ -239,7 +239,7 @@
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~51760 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~1310 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~1776 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~416 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
