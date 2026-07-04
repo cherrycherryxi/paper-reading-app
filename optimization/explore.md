@@ -2936,3 +2936,87 @@ now = now_iso()  # "2026-07-03T10:XX:XX"，无时区
 ---
 
 > 本次 run 将 E145（editSession 日期 timezone 预填 bug）提拔为 OPT-090，将 E146（renderTimeline localeCompare 排序）提拔为 OPT-091。E147（deleteSession 不回写进度）、E148（pagesRead 少 1）、E149（示例数据 now_iso + 数值不一致）作为候选登记，建议分别搭车相关 PR 合并实施。
+
+---
+
+## 2026-07-04
+
+### E150 — `matchBooks()` 只搜 `title`/`author`，忽略 `tags` / `notes`，书单「按主题/标签找书」零结果
+
+**What (verified):** `app.js:1160-1163`：
+```js
+function matchBooks(query) {
+  return state.books.filter(
+    (book) => fuzzyMatch(book.title, query) || fuzzyMatch(book.author || "", query)
+  );
+}
+```
+书籍对象存有 `tags`（数组，`app.js:2251`）和 `notes`（字符串，`app.js:2252`）两个字段，但 `matchBooks()` 不检索它们。`globalSearch()`（`app.js:1355-1373`）和书单 Tab 搜索均通过 `matchBooks()` 路由；书单标签 `小说(成长/哲学)` 或 notes 中含「成长」的书，搜索「成长」返回零结果。
+
+**Why it matters:** 2026-07-03 signal：「书单搜『成长』零结果——但库里有多本成长题材（标签 `小说(成长/哲学)`、简介含「成长」）」。roadmap W28「Theme 2 第一刀『检索修通』」明确列出 `matchBooks()` app.js:1156 作为首个需要修复的搜索入口。2-3 行修改即可命中标签与 notes；修复后书单按主题/标签找书的场景直接打通。
+
+**Complexity:** S — `app.js:1160-1163`：在 `fuzzyMatch(book.author || "", query)` 后追加 `|| (book.tags || []).some(t => fuzzyMatch(t, query)) || fuzzyMatch(book.notes || "", query)`；单文件，零后端，零 DB 变更。
+
+**Files:** `app.js:1160-1163`（matchBooks），参照 `app.js:2251-2252`（addBook tags/notes 存储确认）
+
+**northstar:** 中——roadmap W28 显式优先项，Theme 2「检索修通」首刀；S 级修复，signal 直接验证，建议本周 PR 一并实施。→ 提拔为 OPT-092
+
+---
+
+### E151 — 跨页摘抄：OCR 仅支持单张照片，跨页句子无法一次拼入同一条摘抄
+
+**What:** 2026-07-03 signal：「一段摘抄有可能跨页（横跨左右两页或翻页续写），现在加摘抄只能拍一张，跨页的句子拍不全 → 希望能拍 2 张照片一起 OCR，拼成同一条摘抄」。当前 `addQuoteModal` 的文件选择器（`app.js` 快速 OCR 入口）接受 `accept="image/*"` 但为 `<input type="file" accept="image/*">`（单文件），返回单张图片 Blob 后立即上传识别；多张图拼接无任何支持。用户目前只能分两次拍、手动合并，或只拍一页后在文本框里补齐。
+
+**Why it matters:** 书籍竖排和诗文摘抄中跨页现象常见；强制单张拍摄会导致「摘抄不完整」或「手动拼接」的摩擦——与「拍照摘抄不假思索」的北极星直接冲突。实现上可分两阶段：Phase 1 允许选多张图各自识别、结果拼接；Phase 2 探索两张图合并为同一 API 请求（Kimi vision 支持多图）。
+
+**Complexity:** M — Phase 1：`<input multiple>`，前端并发调用两次 OCR，按顺序拼接结果至同一文本框；约 30-40 行。Phase 2 需评估 Kimi multi-image payload；后端无结构变更，quote 存储不变。
+
+**Files:** `app.js`（addQuoteModal file input + OCR 上传逻辑）；`app_server.py`（`/api/ocr` 端点，评估多图支持）
+
+**northstar:** 中-高——「拍照摘抄→摘抄卡」是 Theme 1「采集顺滑」的核心场景；跨页摘抄是该场景的长尾痛点，覆盖频率因书而异但摩擦极高。
+
+---
+
+### E152 — 书籍对象无「开始阅读」/ 「读完」日期字段，依赖手动添加 session 记录，容易遗忘
+
+**What:** `app.js:2244-2258`（`addBook()`）的书籍对象结构只有 `status`（未开始/在读/已读）、`currentPage`、`lastReadAt`（由 `addSession()` 自动写入）；无独立的 `startedAt`（第一次翻开日期）/ `finishedAt`（读完日期）字段。2026-06-26 signal：「想记下开始/读完日期，但现在只能手动加『记录』，经常忘 → 希望每本书有『开始阅读 / 读完』日期字段，能自动或一键标记，不依赖手动加记录」。实际上，`startedAt` 可从该书最早 session 的 `date` 字段推导，`finishedAt` 可从 `status=已读` 的时机自动打戳。
+
+**Why it matters:** 读完一本书是「记阅读」场景里最有仪式感的节点；无法快速记录「哪天开始 / 哪天读完」是用户明确表达的摩擦。当前只能靠 session 记录间接推算，体验不直观，且不查全 session 无法在书卡看到。若自动推导（从 session 取 min/max date），零额外用户操作；若补字段，也可在「书详情」展示「已读：2026-06-01 ~ 2026-06-26」。
+
+**Complexity:** S-M — 方案 A（纯计算，无结构变更）：`getBookMetrics()`（`app.js:767`）追加 `startedAt = min(sessions.date)`，`finishedAt = max(sessions.date)`，书详情渲染展示；完全向后兼容，无 DB 变更。方案 B（存结构字段）：`addBook()` 增加字段，需迁移脚本。建议先走方案 A。
+
+**Files:** `app.js:767`（getBookMetrics）；书详情渲染函数；可选：`addBook()` / `editBook()` 表单增加手动字段
+
+**northstar:** 中——2026-06-26 signal 直接记录；「开始日期 / 读完日期」与「记阅读」Theme 高度相符，自动推导版本是零摩擦实现，可与 OPT-059/061 同路径发布。
+
+---
+
+### E153 — 聊天面板「最新」标签独占整行，压缩左侧主操作区宽度
+
+**What:** 2026-06-16 signal：「聊天输入框里『最新』独占一行，挤压了左侧交互内容的空间 → 希望它不占整行」。`chat.js` 的模型选择 UI 或上下文切换标签中，「最新」徽章/标签使用 `display:block` 或在 flex 行内撑满，导致输入区有效宽度减少。需读 `chat.js` 对应 DOM 结构确认根因，可能是 `flex: 1` 缺失或 `white-space: nowrap` 问题。
+
+**Why it matters:** 输入框宽度是聊天体验的直接参数；在 iPhone 12（375px）窄屏下，任何非必要的整行元素都显著压缩可用空间。纯 CSS 修复，零逻辑变更。
+
+**Complexity:** S — 定位 `chat.js` 中「最新」标签的 CSS 类，改为 `inline` / `inline-flex` 或删除多余的换行；`styles.css` 可能也需小调。预计 1–3 行。
+
+**Files:** `chat.js`（模型/上下文选择区 DOM）；`styles.css`（对应样式）
+
+**northstar:** 弱-中——聊天是 Theme 2「回顾有价值」的探索入口；输入框宽度直接影响打字体验，signal 已明确记录。S 级，可搭车任意 chat.js 修改。
+
+---
+
+### E154 — OCR 结果无法按行快速删除，整页识别后手动清理负担重
+
+**What:** 2026-06-16 signal：「快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能『一行一行快速删除』OCR 结果」。OCR 识别后结果填入 `<textarea>`（`app.js` addQuote 流程），用户须在 textarea 中手动定位并删去整页无关文字；每行末尾无一键删除操作，且 textarea 无行级结构感知。
+
+**Why it matters:** 快速 OCR 覆盖整页导致「有用内容 / 无用内容」比例低，用户编辑成本与页面密度正比。若在 OCR 结果上方渲染逐行列表（每行带×按钮），用户可在 2–3 次点击内清理 10 行无关文字，而现在需要 textarea 内精确选中多行删除——对手机用户尤其痛苦。
+
+**Complexity:** M — 将 OCR 返回文本按 `\n` 切分，渲染为 `<ul>` 逐行 + 删除按钮；确认后再拼回纯文本写入 content 字段；需在 addQuote 流程中插入「逐行确认」步骤或可折叠区域。约 40–60 行前端，无后端改动。
+
+**Files:** `app.js`（addQuote / OCR 结果展示区域）；`styles.css`（行列表样式）
+
+**northstar:** 中——「拍照摘抄→只留划线句」是 Theme 1「采集顺滑」最高频摩擦；整页识别是现阶段 OCR 管线的已知缺陷，行删除是成本最低的用户侧缓解手段。
+
+---
+
+> 本次 run 将 E150（matchBooks tags/notes）提拔为 OPT-092。将 E147（deleteSession 不回写 book.currentPage，上轮已登记）提拔为 OPT-093。E151（跨页 OCR）、E152（书籍阅读日期字段）、E153（聊天「最新」标签占行）、E154（OCR 逐行删除）作为候选登记。

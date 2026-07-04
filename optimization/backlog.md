@@ -793,3 +793,23 @@ Format per item:
 - description: `app.js:1439`：`const allSorted = [...state.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""))`. OPT-037（PR #42）已将书单 `compareBooksForList()` 改为 `Date.parse`，OPT-014 已修摘抄排序，但 `renderTimeline()` 未同步。`session.date` 在主路径存为 `${dateValue}T12:00:00`（UTC）串，在 fallback 路径存为当前 UTC 时间串；两种格式混排时，`localeCompare` 依字面值可能将带毫秒的 UTC 串与不带毫秒的串排错顺序。
 - why: 与已合并的 OPT-037/014 完全相同的 bug 类别，根因一致（UTC 串 vs 本地时间串的字面比较），修复模式完全相同（`Date.parse` 数值差）。Timeline 是 roadmap §2「本周使用天数」的唯一观测窗口，date 排序错误会导致当天的 session 列在前一天或后一天 session 之后，影响 owner 的阅读节律感知。
 - how: `app.js:1439` 将 `(b.date || "").localeCompare(a.date || "")` 改为 `(Date.parse(b.date || "") || 0) - (Date.parse(a.date || "") || 0)`（降序）；参照 `app.js:1026`（OPT-037 修复后）。Touch: `app.js:1439`。
+
+### OPT-092 — `matchBooks()` 忽略 `book.tags` / `book.notes`，书单按主题/标签搜索零结果 — 由 explore E150 提拔 [2026-07-04]
+- status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 中——roadmap W28「Theme 2 第一刀『检索修通』」显式优先项；书单搜标签/简介是「按主题找书」的基础能力，signal 直接验证（2026-07-03），S 级修复，建议本周 PR 首批实施。
+- description: `app.js:1160-1163`：`matchBooks()` 仅检索 `book.title` 和 `book.author`；书籍对象的 `book.tags`（数组，`app.js:2251`）和 `book.notes`（字符串，`app.js:2252`）从未被搜索。`globalSearch()` 和书单 Tab 搜索均通过 `matchBooks()` 路由，搜索「成长」对标签为 `小说(成长/哲学)` 或 notes 含「成长」的书返回零结果。
+- why: 2026-07-03 signal：「为读书会按主题找书，书单搜『成长』零结果——但库里有多本成长题材（标签 `小说(成长/哲学)`、简介含「成长」）」。roadmap W28 明确将 `matchBooks()` app.js:1156 列为 Theme 2「检索修通」第一 PR 的修复目标。tags/notes 是用户主动维护的语义标签，不纳入搜索使其形同摆设。
+- how: `app.js:1160-1163` 在现有 `fuzzyMatch(book.author || "", query)` 后追加 `|| (book.tags || []).some(t => fuzzyMatch(t, query)) || fuzzyMatch(book.notes || "", query)`；2–3 行修改，纯前端，无 DB 变更，无 API 改动。Touch: `app.js:1160-1163`（matchBooks）。
+
+### OPT-093 — `deleteSession()` 不回写 `book.currentPage` / `book.lastReadAt`，删除记录后进度数据残留 — 由 explore E147 提拔 [2026-07-04]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——「记阅读 session」是 Theme 1 焦点路径，deleteSession 与 addSession 的进度逻辑不对称是正确性缺陷；删除错误 session 后 book.currentPage 残留直接影响 OPT-084（startPage 预填）的准确性，进一步削弱「零摩擦录入」验收效果。建议与 OPT-084 搭车同一 PR。
+- description: `app.js:2583-2598`（deleteSession）：`state.sessions = state.sessions.filter(...)` 后对书籍字段无任何更新。对比 `addSession()`（`app.js:2314-2325`）每次新建都执行 `book.currentPage = Math.max(book.currentPage || 0, endPage); book.lastReadAt = date;`。若用户误填 endPage=400 并删除该 session，`book.currentPage` 保持 400，OPT-084 的 startPage 预填将错误建议 401 页。
+- why: 新建/删除路径逻辑不对称是持久性数据准确性缺陷。W28 正在打磨「记阅读 session」录入顺滑度（OPT-059/061/066），deleteSession 的进度残留会在用户纠错（删掉错误 session）后立即暴露，产生新摩擦并降低 OPT-084 预填的可信度。
+- how: `deleteSession()` 完成 `state.sessions.filter()` 后，扫描该书剩余所有 session 找最大 endPage，回写 `book.currentPage`（无 session 则重置为 0），同步更新 `book.lastReadAt` 取剩余 session 最新 date，并重新评估 `finished` 状态（参照 addSession 逻辑）。约 10–15 行，纯前端，无后端改动。Touch: `app.js:2583-2598`（deleteSession）；参照 `app.js:2314-2325`（addSession 回写逻辑）。
