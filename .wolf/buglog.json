@@ -1,6 +1,52 @@
 {
-  "version": 1,
   "bugs": [
+    {
+      "id": "CI-001",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "CI 失败：前端测试 step 因 boot-strip 正则失配，boot 代码在测试沙箱里执行后崩溃",
+      "timestamp": "2026-05-30T03:33:16.000Z",
+      "fixed_at": "2026-05-30T03:33:16.000Z",
+      "file": "tests/frontend/global-search.test.js, regression-fixed-bugs.test.js, quote-content-display.test.js, book-list-ordering-fix.test.js, ui-redesign.test.js",
+      "root_cause": "4 个前端测试用 /\\nbindEvents();\\nrender();\\nactivateTab(\"books\");\\nloadSession();\\s*$/ 把 app.js 末尾 boot 序列剥掉再注入沙箱。近期提交在 loadSession() 之后又追加了 maybeOpenResetPasswordDialog()/maybeShowPlusReturnToast()/hashchange 监听，导致 $ 锚点失配、boot 未被剥离，render()/bindEvents() 在残缺的 stub DOM 上执行 → document.addEventListener / removeAttribute is not a function（约 20 个失败）。另 1 个失败是 ui-redesign.test.js 断言 .layout 用 100dvh，但 styles.css 实际是 100svh。",
+      "fix": "把 4 个文件的 boot-strip 正则改为更鲁棒的 /\\nbindEvents();\\nrender();[\\s\\S]*$/（从 bindEvents()/render() 一直剥到文件末尾，今后再加 boot 行也不会失配）；ui-redesign.test.js 的断言 100dvh→100svh 对齐源码。注意：CI 的 Python tests step 是通过的；本地跑出的 ModuleNotFoundError: mcp 只是本地环境缺 mcp 包，CI 装了 requirements.txt 不受影响。",
+      "tags": [
+        "ci",
+        "frontend-tests",
+        "node-test",
+        "vm-sandbox",
+        "boot-strip-regex",
+        "dom-stub",
+        "dvh-svh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-30T03:33:16.000Z"
+    },
+    {
+      "id": "E24-001",
+      "priority": "P1",
+      "status": "fixed",
+      "title": "前端测试沙箱缺 AbortController，导致 chat.js 流式分支在 vm 里抛 ReferenceError 走错误恢复路径",
+      "timestamp": "2026-06-03T00:00:00.000Z",
+      "fixed_at": "2026-06-03T00:00:00.000Z",
+      "file": "tests/frontend/regression-fixed-bugs.test.js",
+      "root_cause": "E24 给 chat.js 流式分支加了 new AbortController()，但 regression-fixed-bugs.test.js 的 createChatHarness vm context 只注入了 TextDecoder，没有 AbortController。chat.js 在沙箱里执行到 new AbortController() 抛 ReferenceError → 被 _doStreamAndFinalize 的 catch 吞掉走 recover 路径 → 流式回复没 finalize，3 个依赖流式 SSE 的测试失败（断言 .chat-bubble-content 不存在等）。",
+      "fix": "在 createChatHarness 的 vm context 里补上 AbortController（Node 18+ 全局可用）。新写的 chat-agent-approval.test.js 的 createStreamHarness 也一并注入 AbortController/TextDecoder/fetch/Promise。",
+      "tags": [
+        "frontend-tests",
+        "node-test",
+        "vm-sandbox",
+        "abortcontroller",
+        "chat-stream",
+        "E24"
+      ],
+      "related_bugs": [
+        "CI-001"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T00:00:00.000Z"
+    },
     {
       "id": "P0-001",
       "priority": "P0",
@@ -2801,53 +2847,6 @@
       "last_seen": "2026-05-30T03:20:10.175Z"
     },
     {
-      "id": "CI-001",
-      "priority": "P1",
-      "status": "fixed",
-      "title": "CI 失败：前端测试 step 因 boot-strip 正则失配，boot 代码在测试沙箱里执行后崩溃",
-      "timestamp": "2026-05-30T03:33:16.000Z",
-      "fixed_at": "2026-05-30T03:33:16.000Z",
-      "file": "tests/frontend/global-search.test.js, regression-fixed-bugs.test.js, quote-content-display.test.js, book-list-ordering-fix.test.js, ui-redesign.test.js",
-      "root_cause": "4 个前端测试用 /\\nbindEvents();\\nrender();\\nactivateTab(\"books\");\\nloadSession();\\s*$/ 把 app.js 末尾 boot 序列剥掉再注入沙箱。近期提交在 loadSession() 之后又追加了 maybeOpenResetPasswordDialog()/maybeShowPlusReturnToast()/hashchange 监听，导致 $ 锚点失配、boot 未被剥离，render()/bindEvents() 在残缺的 stub DOM 上执行 → document.addEventListener / removeAttribute is not a function（约 20 个失败）。另 1 个失败是 ui-redesign.test.js 断言 .layout 用 100dvh，但 styles.css 实际是 100svh。",
-      "fix": "把 4 个文件的 boot-strip 正则改为更鲁棒的 /\\nbindEvents();\\nrender();[\\s\\S]*$/（从 bindEvents()/render() 一直剥到文件末尾，今后再加 boot 行也不会失配）；ui-redesign.test.js 的断言 100dvh→100svh 对齐源码。注意：CI 的 Python tests step 是通过的；本地跑出的 ModuleNotFoundError: mcp 只是本地环境缺 mcp 包，CI 装了 requirements.txt 不受影响。",
-      "tags": [
-        "ci",
-        "frontend-tests",
-        "node-test",
-        "vm-sandbox",
-        "boot-strip-regex",
-        "dom-stub",
-        "dvh-svh"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-05-30T03:33:16.000Z"
-    },
-    {
-      "id": "E24-001",
-      "priority": "P1",
-      "status": "fixed",
-      "title": "前端测试沙箱缺 AbortController，导致 chat.js 流式分支在 vm 里抛 ReferenceError 走错误恢复路径",
-      "timestamp": "2026-06-03T00:00:00.000Z",
-      "fixed_at": "2026-06-03T00:00:00.000Z",
-      "file": "tests/frontend/regression-fixed-bugs.test.js",
-      "root_cause": "E24 给 chat.js 流式分支加了 new AbortController()，但 regression-fixed-bugs.test.js 的 createChatHarness vm context 只注入了 TextDecoder，没有 AbortController。chat.js 在沙箱里执行到 new AbortController() 抛 ReferenceError → 被 _doStreamAndFinalize 的 catch 吞掉走 recover 路径 → 流式回复没 finalize，3 个依赖流式 SSE 的测试失败（断言 .chat-bubble-content 不存在等）。",
-      "fix": "在 createChatHarness 的 vm context 里补上 AbortController（Node 18+ 全局可用）。新写的 chat-agent-approval.test.js 的 createStreamHarness 也一并注入 AbortController/TextDecoder/fetch/Promise。",
-      "tags": [
-        "frontend-tests",
-        "node-test",
-        "vm-sandbox",
-        "abortcontroller",
-        "chat-stream",
-        "E24"
-      ],
-      "related_bugs": [
-        "CI-001"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-03T00:00:00.000Z"
-    },
-    {
       "id": "bug-166",
       "timestamp": "2026-05-31T17:05:15.964Z",
       "error_message": "Wrong reference: triaged should be done",
@@ -3008,28 +3007,6 @@
       "last_seen": "2026-06-01T09:45:28.800Z"
     },
     {
-      "id": "bug-170",
-      "timestamp": "2026-06-01T09:46:47.132142+00:00",
-      "error_message": "iPad/iOS Safari 上 /app 桌面布局错乱：所有 <dialog>(编辑书籍/书籍详情/新增书籍/记录阅读…)同时显示并排铺开，左侧 sidebar 无法点击",
-      "file": "styles.css",
-      "root_cause": "OPT-004 在 @media(min-width:769px) 给 <body> 设了 display:flex 以做 sidebar|content 行布局。但模态 <dialog> 是 body 的直接子元素；iOS Safari 把 display:flex 容器的子元素做 blockify 时错误地无视了 UA 的 dialog:not([open]){display:none}，把所有关闭态 dialog 当 flex item 渲染出来，叠在内容上还挡住了 sidebar 点击。(Chrome 不复现——它正确隐藏关闭态 dialog。)",
-      "fix": "桌面布局不再用 body flex。改为 .mobile-tabs position:fixed(left/top/bottom:0, width:84px, z-index:1000)，.app-shell margin-left:84px。body 保持 block 流，关闭态 dialog 的 UA display:none 正常生效。",
-      "tags": [
-        "css",
-        "ios-safari",
-        "dialog",
-        "flexbox",
-        "opt-004",
-        "ipad",
-        "desktop"
-      ],
-      "related_bugs": [
-        "bug-168"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-01T09:46:47.132142+00:00"
-    },
-    {
       "id": "bug-177",
       "timestamp": "2026-06-01T09:55:03.699Z",
       "error_message": "CSS fix: max-width",
@@ -3060,31 +3037,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-01T09:56:53.504Z"
-    },
-    {
-      "id": "bug-171",
-      "timestamp": "2026-06-01T09:58:42.547088+00:00",
-      "error_message": "iPad 刷新后:只有 sidebar、内容区空白、sidebar 仍点击不了(bug-170 的 fixed-sidebar 修法在 iPad 上仍不行)",
-      "file": "styles.css, index.html, tests/frontend/ui-redesign.test.js, tests/frontend/regression-fixed-bugs.test.js",
-      "root_cause": "OPT-004 桌面侧边栏布局整体在 iOS Safari 上脆弱:即便去掉 body flex、改 position:fixed sidebar，iPad 仍渲染异常(空白+不可点)。根因是让触屏平板跑了为鼠标设计的桌面布局。",
-      "fix": "按输入设备分流:桌面块 `@media (min-width:769px)` → `@media (min-width:769px) and (pointer:fine)`;移动块 `@media (max-width:768px)` → `@media (max-width:768px), (pointer:coarse)`。iPad(pointer:coarse)回落到经充分测试的手机底部 tab 布局;桌面侧边栏只给鼠标设备。顺带修了桌面 .app-shell 未覆盖 base width:min(1200px) 的问题(加 width:auto)。两个测试的 768px 媒体查询正则放宽以容忍 `, (pointer:coarse)` 后缀。",
-      "tags": [
-        "css",
-        "ios-safari",
-        "ipad",
-        "media-query",
-        "pointer",
-        "opt-004",
-        "opt-003",
-        "desktop",
-        "responsive"
-      ],
-      "related_bugs": [
-        "bug-170",
-        "bug-168"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-01T09:58:42.547088+00:00"
     },
     {
       "id": "bug-180",
@@ -3149,30 +3101,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-01T11:00:58.095Z"
-    },
-    {
-      "id": "bug-172",
-      "timestamp": "2026-06-01T11:03:04.642684+00:00",
-      "error_message": "iPad 上 /app 整页空白、菜单点不动。真实根因(Safari Web Inspector 控制台):SyntaxError: Unexpected token '.' @ app.js:175 / chat.js:31",
-      "file": "index.html, styles.css",
-      "root_cause": "该 iPad 锁死 iOS 12,其 WebKit 不支持 ES2020 可选链 `?.`(iOS 13.4 才支持)。app.js/chat.js 用了 327 处 `?.`,首处即 SyntaxError → 整个 JS 不执行 → 内容(JS 渲染)空白、tab(JS 绑定)点不动。iOS 上所有浏览器(含 Chrome)强制用系统 WebKit,换浏览器无效。bug-170/171 那几轮改 CSS 是误诊——症状是 JS 没跑,不是布局。",
-      "fix": "用户决定不支持 iOS12。在 index.html <head> 加一段纯 ES5 检测脚本:try{eval('a?.b')}catch→不支持则把 body 换成友好提示页(.browser-unsupported,样式在 styles.css,CSS 在旧 Safari 正常解析)。现代浏览器探测通过、提前 return、零影响。",
-      "tags": [
-        "ios-safari",
-        "ios12",
-        "optional-chaining",
-        "es2020",
-        "syntaxerror",
-        "feature-detection",
-        "webkit",
-        "ipad"
-      ],
-      "related_bugs": [
-        "bug-170",
-        "bug-171"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-01T11:03:04.642684+00:00"
     },
     {
       "id": "bug-185",
@@ -3423,26 +3351,23 @@
       "last_seen": "2026-06-02T08:32:14.869Z"
     },
     {
-      "id": "bug-198",
-      "timestamp": "2026-06-02T17:37:50+08:00",
-      "error_message": "配好百度 key 后云 OCR 仍回落 Tesseract；call_cloud_ocr 抛 '百度 OCR 错误 18: Open api qps request limit reached'",
-      "file": "app_server.py (call_cloud_ocr) / 百度账户侧",
-      "root_cause": "两层：①运行中的旧后端进程(16:37启动)早于代码改动和填key，服务请求仍走旧Tesseract——需重启进程。②重启后真实调用百度返回 error_code 18（QPS 超限）：general_basic 和 accurate_basic 首次调用即 18，token鉴权正常，说明账户侧该OCR接口允许QPS=0——通常是未实名认证/未在控制台领取免费资源/应用未开通该接口。代码、key、解析均正常。",
-      "fix": "①kill 旧进程让 dev_backend 用新代码+新env重启（确认监听进程env含BAIDU两个key）。②账户侧：完成实名认证→控制台领取「通用文字识别/高精度版」免费资源→确认应用已勾选文字识别接口。代码层可选加 error 18 退避重试以应对免费QPS突发。",
+      "id": "bug-200",
+      "timestamp": "2026-06-02T19:15:30+08:00",
+      "error_message": "拍照后做快速识别，照片预览消失",
+      "file": "app.js (runOcrFromImage 快路径成功块)",
+      "root_cause": "OCR 成功后把 pendingQuoteImage 重建为 {savedUrl, objectUrl:''}，并 URL.revokeObjectURL 掉本地 blob → renderImagePreview 改从服务器 /media URL 加载；该 URL 未及时加载/加载失败时照片就消失，且本地已知可用的 blob 预览被销毁、无兜底。",
+      "fix": "成功块改为保留本地 objectUrl(blob)作预览(iOS 上最可靠)，只记录 savedUrl 并清掉 dataUrl/compressionPromise，使保存时 uploadQuoteImage 直接返回 savedUrl(不重复上传)。不再 revoke blob、不切服务器 URL。",
       "tags": [
         "ocr",
-        "baidu",
-        "cloud-ocr",
-        "error-18",
-        "qps",
-        "opt-016",
-        "stale-process"
+        "image-preview",
+        "objectUrl",
+        "fast-path",
+        "ios",
+        "opt-016"
       ],
-      "related_bugs": [
-        "bug-197"
-      ],
+      "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-02T17:37:50+08:00"
+      "last_seen": "2026-06-02T19:15:30+08:00"
     },
     {
       "id": "bug-201",
@@ -3461,27 +3386,26 @@
       "last_seen": "2026-06-02T10:13:18.910Z"
     },
     {
-      "id": "bug-199",
-      "timestamp": "2026-06-02T18:19:35+08:00",
-      "error_message": "云OCR(百度)识别成功但排版混乱：每个物理行成硬换行，且对页(右侧)碎片被交替插入正文",
-      "file": "app_server.py (call_cloud_ocr / _assemble_baidu_lines)",
-      "root_cause": "①call_cloud_ocr 用 \\n 拼接百度逐行 words_result，normalize_ocr_text 又保留单/双换行(它是为已分段的Kimi输出设计)，导致书页折行全变硬换行。②照片把右边那一页也拍进去，百度把右页边缘窄碎片当独立行交替插入。accurate_basic 无位置信息无法过滤。",
-      "fix": "endpoint 改用 accurate(高精度含位置版,返回location，env BAIDU_OCR_ENDPOINT 可切回 _basic)。新增 _assemble_baidu_lines：按 left>页宽*0.5 且 width<主栏宽*0.5 滤掉右侧次列噪声(不误伤左对齐短末行)，按top排序后连续拼接(中文折行无分隔)，垂直间距>0.8*行高才插\\n\\n分段。无location时回退\\n拼接。真机端到端验证输出干净连续。",
+      "id": "bug-202",
+      "timestamp": "2026-06-02T19:35:50+08:00",
+      "error_message": "第二次新增摘抄不再自动填充上一次的书籍（OCR 录入时失效）",
+      "file": "app.js (addQuote / openQuoteDialogBtn / openNewQuoteForBook / editQuote)",
+      "root_cause": "addQuote 用 `if(!existingId) lastQuoteBookId=bookId` 记住上次书籍。但走 OCR 时接口会先建草稿并把 quoteId 写进表单 id 字段(runOcrFromImage 2963-2964)，导致保存时 existingId 已有值→走编辑分支→lastQuoteBookId 不再设置。用户每条都用 OCR，故该功能失效。",
+      "fix": "引入显式标志 quoteDialogIsNew（openQuoteDialogBtn/openNewQuoteForBook 置 true，editQuote 置 false），addQuote 改为 `if(quoteDialogIsNew) lastQuoteBookId=bookId`，不再依赖 existingId 区分新增/编辑。加源码级回归测试锁定。",
       "tags": [
+        "quote",
+        "lastQuoteBookId",
+        "prefill",
         "ocr",
-        "baidu",
-        "layout",
-        "formatting",
-        "facing-page",
-        "opt-016",
-        "accurate"
+        "regression",
+        "new-vs-edit"
       ],
       "related_bugs": [
-        "bug-197",
-        "bug-198"
+        "bug-200",
+        "bug-201"
       ],
       "occurrences": 1,
-      "last_seen": "2026-06-02T18:19:35+08:00"
+      "last_seen": "2026-06-02T19:35:50+08:00"
     },
     {
       "id": "bug-203",
@@ -3532,43 +3456,6 @@
       "last_seen": "2026-06-02T11:04:10.901Z"
     },
     {
-      "id": "bug-200",
-      "timestamp": "2026-06-02T19:15:30+08:00",
-      "error_message": "拍照后做快速识别，照片预览消失",
-      "file": "app.js (runOcrFromImage 快路径成功块)",
-      "root_cause": "OCR 成功后把 pendingQuoteImage 重建为 {savedUrl, objectUrl:''}，并 URL.revokeObjectURL 掉本地 blob → renderImagePreview 改从服务器 /media URL 加载；该 URL 未及时加载/加载失败时照片就消失，且本地已知可用的 blob 预览被销毁、无兜底。",
-      "fix": "成功块改为保留本地 objectUrl(blob)作预览(iOS 上最可靠)，只记录 savedUrl 并清掉 dataUrl/compressionPromise，使保存时 uploadQuoteImage 直接返回 savedUrl(不重复上传)。不再 revoke blob、不切服务器 URL。",
-      "tags": [
-        "ocr",
-        "image-preview",
-        "objectUrl",
-        "fast-path",
-        "ios",
-        "opt-016"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-02T19:15:30+08:00"
-    },
-    {
-      "id": "bug-201",
-      "timestamp": "2026-06-02T19:15:30+08:00",
-      "error_message": "保存摘抄后/重新点击编辑，提交按钮一直显示「保存中…」且禁用",
-      "file": "app.js (withSavingState)",
-      "root_cause": "disabled 的提交按钮挡不住 Enter 键触发的二次 form submit → 两个 withSavingState 重叠：第二个把当时的文本「保存中…」当作 originalText，第一个 finally 复原成「保存卡片」、第二个 finally 复原成「保存中…」→ 永久卡住。editQuote 重开对话框不重置按钮，故再开仍显示卡住态。",
-      "fix": "withSavingState 加重入保护 `if(btn.disabled) return;` 杜绝二次提交重叠；并用 `btn.dataset.idleLabel`(首次从 HTML 默认捕获)作为复原文案，确保永不复原到瞬时标签。",
-      "tags": [
-        "save-button",
-        "withSavingState",
-        "double-submit",
-        "reentrancy",
-        "quote-form"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-02T19:15:30+08:00"
-    },
-    {
       "id": "bug-208",
       "timestamp": "2026-06-02T11:33:19.670Z",
       "error_message": "Wrong condition in logic",
@@ -3583,28 +3470,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-02T11:33:19.670Z"
-    },
-    {
-      "id": "bug-202",
-      "timestamp": "2026-06-02T19:35:50+08:00",
-      "error_message": "第二次新增摘抄不再自动填充上一次的书籍（OCR 录入时失效）",
-      "file": "app.js (addQuote / openQuoteDialogBtn / openNewQuoteForBook / editQuote)",
-      "root_cause": "addQuote 用 `if(!existingId) lastQuoteBookId=bookId` 记住上次书籍。但走 OCR 时接口会先建草稿并把 quoteId 写进表单 id 字段(runOcrFromImage 2963-2964)，导致保存时 existingId 已有值→走编辑分支→lastQuoteBookId 不再设置。用户每条都用 OCR，故该功能失效。",
-      "fix": "引入显式标志 quoteDialogIsNew（openQuoteDialogBtn/openNewQuoteForBook 置 true，editQuote 置 false），addQuote 改为 `if(quoteDialogIsNew) lastQuoteBookId=bookId`，不再依赖 existingId 区分新增/编辑。加源码级回归测试锁定。",
-      "tags": [
-        "quote",
-        "lastQuoteBookId",
-        "prefill",
-        "ocr",
-        "regression",
-        "new-vs-edit"
-      ],
-      "related_bugs": [
-        "bug-200",
-        "bug-201"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-02T19:35:50+08:00"
     },
     {
       "id": "bug-210",
@@ -3687,26 +3552,6 @@
       "last_seen": "2026-06-03T14:13:40.266Z"
     },
     {
-      "id": "bug-dedup-nationality-dot",
-      "timestamp": "2026-06-03",
-      "error_message": "加书去重时，作者名首字恰为单字国籍缩写且紧跟间隔号（如『丹·布朗』）会被误删名，规整成『布朗』，导致与作者只写『布朗』的同名书被误判为重复而拒绝新增",
-      "file": "app.js, app_server.py, reading_mcp_server.py",
-      "root_cause": "strip_author_nationality 第二条正则 ^(?:国籍)(?:籍|国)?[分隔符]+ 的分隔符字符类包含了 ·/・，而国籍标签含单字缩写(丹/西/加/爱/韩…)，故『丹·』被当作国籍标记剥掉",
-      "fix": "从该正则的分隔符字符类中移除 · 和 ・（保留方括号/空格/逗号等常规国籍标记分隔符）。『[德]黑塞』↔『黑塞』仍正确去重；『丹·布朗』不再塌缩为『布朗』",
-      "tags": [
-        "dedup",
-        "author",
-        "nationality",
-        "regex",
-        "books",
-        "i18n",
-        "false-positive"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-03"
-    },
-    {
       "id": "bug-217",
       "timestamp": "2026-06-03T14:31:17.902Z",
       "error_message": "Significant refactor of ",
@@ -3737,26 +3582,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-03T14:31:27.376Z"
-    },
-    {
-      "id": "bug-toast-behind-modal-dialog",
-      "timestamp": "2026-06-03",
-      "error_message": "新增重复书籍点保存『没有反应』；提示信息(书单里已存在这本书)要等关闭卡片弹窗后才在外层页面右下角看到。其他 showToast 提示也有同样问题",
-      "file": "app.js",
-      "root_cause": "模态 <dialog>(showModal) 渲染在浏览器 top layer，位于所有 z-index 内容之上；而 #toast 是 body 级元素(z-index:1200)，被画在 dialog 之下，弹窗打开时不可见，关闭后才显现",
-      "fix": "showToast() 中检测 document.querySelectorAll('dialog[open]')，若有打开的弹窗则把 #toast 节点 append 进最上层弹窗(进入 top layer)，否则挂回 body。toast 为 position:fixed 且 dialog 无 transform，相对视口定位不变",
-      "tags": [
-        "toast",
-        "dialog",
-        "modal",
-        "top-layer",
-        "z-index",
-        "ux",
-        "books"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-03"
     },
     {
       "id": "bug-220",
@@ -3805,26 +3630,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-03T15:00:27.352Z"
-    },
-    {
-      "id": "bug-dedup-empty-author-not-wildcard",
-      "timestamp": "2026-06-03",
-      "error_message": "新增书籍只填书名时，不会被识别为与已有同名(有作者)书籍重复",
-      "file": "app.js, app_server.py, reading_mcp_server.py",
-      "root_cause": "去重用『签名完全相等』(title::author)。空作者被当成具体值，悉达多:: ≠ 悉达多::黑塞，故同名书未判重",
-      "fix": "改为匹配函数 isSameBook/books_are_same：标题必须相同，作者『任一方为空则视为通配符』判重，两边都有则需相等。三端(前端 addBook、Excel 导入、后端 add_book、MCP add_book)统一；Excel 导入的 signature Set 换成遍历匹配的 seenBooks 列表(通配语义无法用 Set 表达)。命中时按现状直接拦截+toast",
-      "tags": [
-        "dedup",
-        "books",
-        "author",
-        "wildcard",
-        "empty-author",
-        "excel-import",
-        "ux"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-03"
     },
     {
       "id": "bug-224",
@@ -4019,25 +3824,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-04T13:56:24.349Z"
-    },
-    {
-      "id": "bug-234",
-      "timestamp": "2026-06-04T00:00:00Z",
-      "error_message": "DeprecationWarning: datetime.datetime.utcfromtimestamp()/utcnow() is deprecated and scheduled for removal (app_server.py:1401/1865/1876/1885; tests session_expiry/password_reset)",
-      "file": "app_server.py, tests/agent/session_expiry_test.py, tests/agent/password_reset_test.py",
-      "root_cause": "Python 3.12+ deprecates naive datetime.utcfromtimestamp()/utcnow(). 4 GC cutoff builders in app_server.py + 2 test helpers used them.",
-      "fix": "Added helper utc_iso_z_from_epoch(epoch) = datetime.fromtimestamp(epoch, timezone.utc).replace(tzinfo=None).isoformat()+'Z' (byte-identical to old output, GC semantics unchanged); replaced all 4 sites. Tests: datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(...). Verified: full suite passes under -W error::DeprecationWarning.",
-      "tags": [
-        "datetime",
-        "deprecation",
-        "python3.12",
-        "gc",
-        "utcnow",
-        "utcfromtimestamp"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T00:00:00Z"
     },
     {
       "id": "bug-237",
@@ -5783,6 +5569,22 @@
       "last_seen": "2026-06-28T09:05:22.711Z"
     },
     {
+      "id": "bug-345",
+      "timestamp": "2026-06-28T11:30:54.854Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/hooks/permission-notify.sh",
+      "root_cause": "Had '/HIDIdleTime/ {print int($NF/1000000000); exit}'",
+      "fix": "Changed to '/HIDIdleTime/ {v=int($NF/1000000000)} END{print v",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T11:30:54.854Z"
+    },
+    {
       "id": "bug-346",
       "timestamp": "2026-06-28T09:24:25.612Z",
       "error_message": "书籍开始日期晚于结束日期（如《月亮虎》：Excel 导入 finishedAt=2025-09-02，开始日期却显示 2026-05-19）",
@@ -5801,54 +5603,6 @@
       "last_seen": "2026-06-28T09:24:25.612Z"
     },
     {
-      "id": "bug-343",
-      "timestamp": "2026-06-28T11:05:34.912Z",
-      "error_message": "Wrong reference: memory should be status",
-      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md",
-      "root_cause": "Used \"memory\" instead of \"status\"",
-      "fix": "Changed memory → status",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-28T11:05:34.912Z"
-    },
-    {
-      "id": "bug-344",
-      "timestamp": "2026-06-28T11:14:25.265Z",
-      "error_message": "Significant refactor of ",
-      "file": "../../.claude/hooks/stop-bark.sh",
-      "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 7→12 lines (4 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "sh"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-28T11:14:25.265Z"
-    },
-    {
-      "id": "bug-345",
-      "timestamp": "2026-06-28T11:30:54.854Z",
-      "error_message": "Incorrect value in code",
-      "file": "../../.claude/hooks/permission-notify.sh",
-      "root_cause": "Had '/HIDIdleTime/ {print int($NF/1000000000); exit}'",
-      "fix": "Changed to '/HIDIdleTime/ {v=int($NF/1000000000)} END{print v",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "sh"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-28T11:30:54.854Z"
-    },
-    {
       "id": "bug-347",
       "timestamp": "2026-06-28T17:07:01.700Z",
       "error_message": "Wrong reference: new should be done",
@@ -5863,22 +5617,6 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-28T17:07:04.991Z"
-    },
-    {
-      "id": "bug-347",
-      "timestamp": "2026-06-29T01:04:29.694Z",
-      "error_message": "Significant refactor of ",
-      "file": "optimization/roadmap.md",
-      "root_cause": "7 lines replaced/restructured",
-      "fix": "Rewrote 10→12 lines (7 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-29T01:04:29.694Z"
     },
     {
       "id": "bug-348",
@@ -5995,25 +5733,22 @@
       "last_seen": "2026-06-29T09:08:11.261Z"
     },
     {
-      "id": "bug-353",
-      "timestamp": "2026-06-29T00:00:00+08:00",
-      "error_message": "自定义新增的摘抄标签总会莫名消失（可复用的自定义标签 chip 丢失）",
-      "file": "app.js, tests/frontend/ui-redesign.test.js",
-      "root_cause": "可复用自定义标签只存 localStorage 的 quote-custom-tags，按 origin 隔离——换设备/远程隧道URL一变就清空；而 books/quotes 走账号 state 同步。标签其实没丢（仍在每条 quote 的 tags 里随账号同步），丢的是 picker 里的可复用 chip 选项",
-      "fix": "新增 getUsedQuoteTags() 扫描 state.quotes 收集所有用过的标签（随账号同步、跨设备/URL 稳定），并入 renderQuoteTagPicker 的 pickerTags 来源：DEFAULT ∪ getUsedQuoteTags() ∪ localStorage。只取已保存 quotes 的 tag，新建/未存 quote 的 AI 建议仍走 selected-only，不违反 regression-123 意图。更新 ui-redesign.test.js:124 断言，新增 quote-tag-picker-persist.test.js（vm 跑真实源码） | 修正(2026-06-29 二次反馈): getUsedQuoteTags 一开始扫全部书的 quotes,书多时 picker 标签爆炸。改为按当前书过滤——getUsedQuoteTags(bookId) 只取该书、无 bookId 返回空;picker 从 els.quoteForm 的 [name=bookId] 读当前书。最终 picker = 默认标签 ∪ 当前书用过的标签 ∪ localStorage自定义 | 三次修正(2026-06-29 终): getUsedQuoteTags 方向错误,彻底删除。state.quotes 混装 quote/note/question 三类卡片+AI OCR 自动标签,反推『书用过的标签』会拖进笔记标签和AI标签(月亮虎仅quote类就17个,含note共34个),非常杂乱。用户最终要的=默认+localStorage手敲自定义。picker 改回 [DEFAULT ∪ getCustomQuoteTags()],与当前书无关,三入口一致。代价:手敲自定义仍是localStorage(换origin可能丢),用户当前优先干净一致",
+      "id": "bug-355",
+      "timestamp": "2026-06-29T18:00:00+08:00",
+      "error_message": "探讨『从书单查找我读过的书』时返回了还没开始读(wishlist)的书",
+      "file": "app_server.py",
+      "root_cause": "PromptBuilder.build_chat_prompt 的 all_books_summary 只发 {id,title,author}，不带阅读状态，且系统提示没要求按状态区分。模型在整个书单(含 wishlist)上做召回",
+      "fix": "all_books_summary 每本书加 status(finished/reading/wishlist)；common_rules 新增第5条：用户提到『我读过的』时只从 finished/reading 取，不得把 wishlist 算作读过的，若顺带提及需显式标注『还没开始读』。三个 scenario_rules 编号从5顺延到6。新增后端测试",
       "tags": [
-        "tags",
-        "localStorage",
-        "sync",
-        "quote",
-        "picker",
-        "origin"
+        "chat",
+        "prompt",
+        "book-status",
+        "wishlist",
+        "recall"
       ],
-      "related_bugs": [
-        "bug-336"
-      ],
-      "occurrences": 3,
-      "last_seen": "2026-06-29T19:00:00+08:00"
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T18:00:00+08:00"
     },
     {
       "id": "bug-356",
@@ -6046,42 +5781,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-29T10:23:24.196Z"
-    },
-    {
-      "id": "bug-354",
-      "timestamp": "2026-06-29T18:00:00+08:00",
-      "error_message": "探讨回复里的有序列表序号全显示成「1.」（用户：序号明显不对）",
-      "file": "chat.js",
-      "root_cause": "renderMiniMarkdown 的有序列表收集器只把『连续』的 N. 行收进同一个 <ol> 并丢弃原始数字让 <ol> 自动编号。LLM 列表项之间几乎总有空行，于是每项被拆进独立 <ol>，每个 <ol> 默认从 1 重新计数 → 1.1.1.。模型原始输出编号其实正确（DB 验证 17:38:50 那条 raw output 是 1.2.3.4.）",
-      "fix": "渲染有序列表时解析行首数字，每项输出 <li value=\"N\"> 锚定原始序号，<ol start=\"N\"> 兜底，使跨空行/跨段的列表也保持连续正确编号。新增 regression 测试",
-      "tags": [
-        "chat",
-        "markdown",
-        "ordered-list",
-        "rendering",
-        "frontend"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-29T18:00:00+08:00"
-    },
-    {
-      "id": "bug-355",
-      "timestamp": "2026-06-29T18:00:00+08:00",
-      "error_message": "探讨『从书单查找我读过的书』时返回了还没开始读(wishlist)的书",
-      "file": "app_server.py",
-      "root_cause": "PromptBuilder.build_chat_prompt 的 all_books_summary 只发 {id,title,author}，不带阅读状态，且系统提示没要求按状态区分。模型在整个书单(含 wishlist)上做召回",
-      "fix": "all_books_summary 每本书加 status(finished/reading/wishlist)；common_rules 新增第5条：用户提到『我读过的』时只从 finished/reading 取，不得把 wishlist 算作读过的，若顺带提及需显式标注『还没开始读』。三个 scenario_rules 编号从5顺延到6。新增后端测试",
-      "tags": [
-        "chat",
-        "prompt",
-        "book-status",
-        "wishlist",
-        "recall"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-29T18:00:00+08:00"
     },
     {
       "id": "bug-360",
@@ -6386,6 +6085,66 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-03T10:26:21.472Z"
+    },
+    {
+      "id": "bug-dedup-empty-author-not-wildcard",
+      "timestamp": "2026-06-03",
+      "error_message": "新增书籍只填书名时，不会被识别为与已有同名(有作者)书籍重复",
+      "file": "app.js, app_server.py, reading_mcp_server.py",
+      "root_cause": "去重用『签名完全相等』(title::author)。空作者被当成具体值，悉达多:: ≠ 悉达多::黑塞，故同名书未判重",
+      "fix": "改为匹配函数 isSameBook/books_are_same：标题必须相同，作者『任一方为空则视为通配符』判重，两边都有则需相等。三端(前端 addBook、Excel 导入、后端 add_book、MCP add_book)统一；Excel 导入的 signature Set 换成遍历匹配的 seenBooks 列表(通配语义无法用 Set 表达)。命中时按现状直接拦截+toast",
+      "tags": [
+        "dedup",
+        "books",
+        "author",
+        "wildcard",
+        "empty-author",
+        "excel-import",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03"
+    },
+    {
+      "id": "bug-dedup-nationality-dot",
+      "timestamp": "2026-06-03",
+      "error_message": "加书去重时，作者名首字恰为单字国籍缩写且紧跟间隔号（如『丹·布朗』）会被误删名，规整成『布朗』，导致与作者只写『布朗』的同名书被误判为重复而拒绝新增",
+      "file": "app.js, app_server.py, reading_mcp_server.py",
+      "root_cause": "strip_author_nationality 第二条正则 ^(?:国籍)(?:籍|国)?[分隔符]+ 的分隔符字符类包含了 ·/・，而国籍标签含单字缩写(丹/西/加/爱/韩…)，故『丹·』被当作国籍标记剥掉",
+      "fix": "从该正则的分隔符字符类中移除 · 和 ・（保留方括号/空格/逗号等常规国籍标记分隔符）。『[德]黑塞』↔『黑塞』仍正确去重；『丹·布朗』不再塌缩为『布朗』",
+      "tags": [
+        "dedup",
+        "author",
+        "nationality",
+        "regex",
+        "books",
+        "i18n",
+        "false-positive"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03"
+    },
+    {
+      "id": "bug-toast-behind-modal-dialog",
+      "timestamp": "2026-06-03",
+      "error_message": "新增重复书籍点保存『没有反应』；提示信息(书单里已存在这本书)要等关闭卡片弹窗后才在外层页面右下角看到。其他 showToast 提示也有同样问题",
+      "file": "app.js",
+      "root_cause": "模态 <dialog>(showModal) 渲染在浏览器 top layer，位于所有 z-index 内容之上；而 #toast 是 body 级元素(z-index:1200)，被画在 dialog 之下，弹窗打开时不可见，关闭后才显现",
+      "fix": "showToast() 中检测 document.querySelectorAll('dialog[open]')，若有打开的弹窗则把 #toast 节点 append 进最上层弹窗(进入 top layer)，否则挂回 body。toast 为 position:fixed 且 dialog 无 transform，相对视口定位不变",
+      "tags": [
+        "toast",
+        "dialog",
+        "modal",
+        "top-layer",
+        "z-index",
+        "ux",
+        "books"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03"
     }
   ]
 }

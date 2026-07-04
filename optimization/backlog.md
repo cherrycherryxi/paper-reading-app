@@ -735,7 +735,7 @@ Format per item:
 - how: ①（推荐）前端上传前用 canvas 限宽（如最长边 ≤1600px）+ 重编码 JPEG q≈0.8，再走现有上传链路；或 ② 后端落盘时用 sips/Pillow 压缩（注意 app_server.py 目前纯 stdlib，加 Pillow 是依赖决策）。这是移动端性能三步走的第 3 步：opt1 懒加载 + opt2 缩略图（app.js + scripts/generate_thumbnails.py）已实现，本项防新封面再出 4.6MB 巨图。Touch: 上传入口 `uploadBookCoverImage()` / `uploadBookImageIfNeeded()`（app.js ~2146/2630）。
 
 ### OPT-086 — 前端静态资源 no-store，每次刷新重下 ~330KB JS/CSS/HTML — owner 2026-07-02 手机亲测
-- status: triaged
+- status: done (commit 239e6e9, 2026-07-02 — `_STATIC` 响应头改 `max-age=31536000,immutable`；index.html 中 app.js/chat.js/styles.css 引用加自动版本串；owner 直接合入 feature/agent，不计 auto/ 预算)
 - area: backend (+ frontend 版本串)
 - priority: P2
 - size: M
@@ -755,7 +755,7 @@ Format per item:
 - how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
 
 ### OPT-088 — renderConnections 搜索 haystack 缺少摘抄内容
-- status: new
+- status: triaged
 - area: frontend
 - priority: P1
 - size: S
@@ -765,7 +765,7 @@ Format per item:
 - how: 将 `getBookTitle` 重命名为 `getSearchLabel`，quote 分支追加 `(q?.content || q?.ocrText || "").slice(0, 60)` 拼入返回串；haystack 构造不变。约 3 行修改，纯前端，无后端影响。Touch: `app.js:847-860`。
 
 ### OPT-089 — clearSampleData 不清理 chatHistories / chatContexts
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -773,3 +773,23 @@ Format per item:
 - description: `app.js:1729-1744`：`clearSampleData()` 只过滤 `SAMPLE_COLLECTIONS = ["books","quotes","connections","sessions"]`，不清理 `state.chatHistories` / `state.chatContexts`。若用户对示例书发起过对话，「一键清除」后孤儿聊天历史随 syncState 写回后端。对比 `deleteBook()`（`app.js:2353-2366`）已正确清理 chatHistories/chatContexts。现有测试 `tests/frontend/sample-onboarding.test.js:95-108` 不覆盖此场景。
 - why: 「清除示例」的用户期望是「恢复零状态」；残留的聊天历史不仅是静默数据污染，还会在用户导出 state 时带走无书籍锚点的孤儿记录，影响导入恢复体验。
 - how: `clearSampleData()` 补全 chatHistories/chatContexts 清理：遍历所有示例书/摘抄 id（`isSample:true`），逐一执行与 `deleteBook()` 相同的 key 删除逻辑（`delete state.chatHistories[id]`、`delete state.chatHistories["book:"+id]`、`delete state.chatContexts[*]`）。`tests/frontend/sample-onboarding.test.js` 补充断言。Touch: `app.js:clearSampleData`，`tests/frontend/sample-onboarding.test.js`。
+
+### OPT-090 — `editSession()` 日期预填用 `toISOString()` 而非已有的 `isoToDateInput()` 辅助，编辑路径存在与 OPT-059 对称的时区 bug — 由 explore E145 提拔 [2026-07-03]
+- status: new
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 中——直接在 W27 唯一焦点「记阅读 session」路径上消除日期预填时区错误，与 OPT-059（新建路径）构成完整对，Theme 1「数据准确」验收要求两个入口均正确。
+- description: `app.js:2412`：`editSession()` 使用 `new Date(session.date).toISOString().split("T")[0]` 预填日期字段，在 UTC+8 深夜（00:00–07:59 本地）创建、date 字段未手动选择的 session 场景下，`toISOString()` 返回 UTC 前一天日期，编辑时日期字段显示错一天。`isoToDateInput()`（`app.js:477-484`）已是本地时区感知辅助函数，且已被书籍编辑表单（`app.js:2647-2648`）正确调用，但 `editSession()` 未使用它。
+- why: OPT-059 修复新建路径（已指派 PR #54），但编辑路径存在相同 bug。两个入口共同构成「记阅读 session」的完整录入链路；若只修新建不修编辑，owner 在 00:00–08:00 记录的 session 虽新建时日期正确，但打开编辑时仍见到昨天的日期，Theme 1 验收缺口未完全填上。
+- how: `app.js:2412` 将 `new Date(session.date).toISOString().split("T")[0]` 改为 `isoToDateInput(session.date)`；1 行修改，复用已有辅助。Touch: `app.js:2412`（editSession）。
+
+### OPT-091 — `renderTimeline()` 用 `localeCompare` 排序 session，OPT-037 的书单修复未覆盖 Timeline — 由 explore E146 提拔 [2026-07-03]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——Timeline 是「看见自己读书积累」的主界面；date 排序正确是「本周使用天数」可观测指标准确的基础；S 级改动，与 OPT-037（书单 sort）/ OPT-014（摘抄 sort）同一修复系列，建议与 OPT-090 合并一 PR。
+- description: `app.js:1439`：`const allSorted = [...state.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""))`. OPT-037（PR #42）已将书单 `compareBooksForList()` 改为 `Date.parse`，OPT-014 已修摘抄排序，但 `renderTimeline()` 未同步。`session.date` 在主路径存为 `${dateValue}T12:00:00`（UTC）串，在 fallback 路径存为当前 UTC 时间串；两种格式混排时，`localeCompare` 依字面值可能将带毫秒的 UTC 串与不带毫秒的串排错顺序。
+- why: 与已合并的 OPT-037/014 完全相同的 bug 类别，根因一致（UTC 串 vs 本地时间串的字面比较），修复模式完全相同（`Date.parse` 数值差）。Timeline 是 roadmap §2「本周使用天数」的唯一观测窗口，date 排序错误会导致当天的 session 列在前一天或后一天 session 之后，影响 owner 的阅读节律感知。
+- how: `app.js:1439` 将 `(b.date || "").localeCompare(a.date || "")` 改为 `(Date.parse(b.date || "") || 0) - (Date.parse(a.date || "") || 0)`（降序）；参照 `app.js:1026`（OPT-037 修复后）。Touch: `app.js:1439`。
