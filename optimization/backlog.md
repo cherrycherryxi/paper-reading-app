@@ -745,7 +745,7 @@ Format per item:
 - how: 静态资源版本化长缓存——JS/CSS 引用加内容哈希或版本串（项目已有 `?v=20260531a` 雏形），响应头由 no-store 改为 `Cache-Control: public, max-age=31536000, immutable`，发版时改版本串即让缓存失效。需建立「发版必改版本串」的纪律，否则会推不出新前端。Touch: app_server.py `_STATIC` 响应头（~3416-3425）+ index.html 里对 app.js/chat.js/styles.css 的引用加版本串。
 
 ### OPT-087 — 摘抄/书/思想碰撞「一键生成分享图」(内容卡自传播增长引擎)
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2（owner 主动为读书会推广提出，获客侧价值高，可争 P1）
 - size: L
@@ -775,7 +775,7 @@ Format per item:
 - how: `clearSampleData()` 补全 chatHistories/chatContexts 清理：遍历所有示例书/摘抄 id（`isSample:true`），逐一执行与 `deleteBook()` 相同的 key 删除逻辑（`delete state.chatHistories[id]`、`delete state.chatHistories["book:"+id]`、`delete state.chatContexts[*]`）。`tests/frontend/sample-onboarding.test.js` 补充断言。Touch: `app.js:clearSampleData`，`tests/frontend/sample-onboarding.test.js`。
 
 ### OPT-090 — `editSession()` 日期预填用 `toISOString()` 而非已有的 `isoToDateInput()` 辅助，编辑路径存在与 OPT-059 对称的时区 bug — 由 explore E145 提拔 [2026-07-03]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P1
 - size: S
@@ -785,7 +785,7 @@ Format per item:
 - how: `app.js:2412` 将 `new Date(session.date).toISOString().split("T")[0]` 改为 `isoToDateInput(session.date)`；1 行修改，复用已有辅助。Touch: `app.js:2412`（editSession）。
 
 ### OPT-091 — `renderTimeline()` 用 `localeCompare` 排序 session，OPT-037 的书单修复未覆盖 Timeline — 由 explore E146 提拔 [2026-07-03]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
