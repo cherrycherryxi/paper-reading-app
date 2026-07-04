@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T16:05:11.267Z
-> Files: 206 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-03T18:08:16.606Z
-> Files: 202 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-04T14:41:54.525Z
+> Files: 212 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -12,6 +10,10 @@
 - `index.html` — 🐛 又买了一本书 (~8023 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 11 more (~29248 tok)
 - `styles.css` — Styles: 149 rules, 51 vars (~13191 tok)
+
+## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/3bfa5118-bef4-4aee-b646-f659353e2f2c/scratchpad/pr54-fix/tests/frontend/
+
+- `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2153 tok)
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/9f13dddc-a421-447a-b1d7-8ed45193951b/scratchpad/
 
@@ -120,8 +122,8 @@
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68118 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
@@ -236,8 +238,8 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~1310 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~416 tok)
-- `triage.md` — Triage (~4149 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
+- `triage.md` — Triage (~4149 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/

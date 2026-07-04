@@ -6145,6 +6145,26 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-03"
+    },
+    {
+      "id": "bug-379",
+      "timestamp": "2026-07-04T00:00:00Z",
+      "error_message": "TypeError: Intl.DateTimeFormat is not a constructor (session-date-prefill.test.js test #3, 2/3 red)",
+      "file": "tests/frontend/session-date-prefill.test.js",
+      "root_cause": "测试里伪造的 ContextIntl 用方法简写 `DateTimeFormat() {}` 定义;方法简写函数不是构造器,而 app.js 用 `new Intl.DateTimeFormat(\"sv\")`,new 一个非构造器直接抛错。",
+      "fix": "把 fake 改成函数表达式 `DateTimeFormat: function DateTimeFormat(...) {...}`,可被 new。3/3 绿,且仍能抓回归。PR#54 commit b775a48。",
+      "tags": [
+        "test",
+        "intl",
+        "vm-stub",
+        "constructor",
+        "method-shorthand",
+        "OPT-059",
+        "PR-54"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-04T00:00:00Z"
     }
   ]
 }
