@@ -88,8 +88,11 @@ function createHarness(overrides = {}) {
   if (tzOffsetHours !== undefined) {
     // Stand in for a device whose local timezone is UTC+tzOffsetHours, so the mechanism
     // under test (Intl.DateTimeFormat("sv")) actually branches away from UTC.
+    // NB: app.js calls `new Intl.DateTimeFormat(...)`, so this stand-in must be a real
+    // constructor — a method-shorthand `DateTimeFormat() {}` is not newable and throws
+    // "Intl.DateTimeFormat is not a constructor".
     ContextIntl = {
-      DateTimeFormat(_locale, _opts) {
+      DateTimeFormat: function DateTimeFormat(_locale, _opts) {
         return {
           format(d) {
             const shifted = new Date(d.getTime() + tzOffsetHours * 3600 * 1000);
