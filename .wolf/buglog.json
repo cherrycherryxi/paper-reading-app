@@ -6378,6 +6378,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-05T18:06:05.018Z"
+    },
+    {
+      "id": "bug-381",
+      "timestamp": "2026-07-05T19:20:28.668Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-05T19:20:28.668Z"
+    },
+    {
+      "id": "bug-382",
+      "timestamp": "2026-07-05T19:21:00.105Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/backlog.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-05T19:21:00.105Z"
     }
   ]
 }
