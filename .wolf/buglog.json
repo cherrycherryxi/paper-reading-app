@@ -6309,6 +6309,27 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-05T14:06:34.887Z"
+    },
+    {
+      "id": "bug-380",
+      "timestamp": "2026-07-05T00:00:00Z",
+      "error_message": "read.readjot.com/debug/logs|errors|overview|agent-dashboard 公网可访问,泄露全部用户 AI 对话/错误/增长数据",
+      "file": "app_server.py (_is_loopback_client / _authorized_for_admin) + prod .env",
+      "root_cause": "cloudflared 把公网请求代理到 localhost:8790,app_server 看到的 client_address 恒为 127.0.0.1(真 loopback)。OPT-028 兜底 `if not ADMIN_TOKEN: return _is_loopback_client()` 在隧道后失效,prod .env 的 ADMIN_TOKEN 又是空值 → 所有 /debug/* 走 loopback 分支放行。既有漏洞,部署 P2 时发现。",
+      "fix": "立即:prod .env 设强 ADMIN_TOKEN(token_urlsafe(32),存 ~/.claude/paper-prod-admin-token.txt 600)+重启 → 公网全 401,owner 带 X-Log-Token 访问。深层未做:_is_loopback_client 在存在 CF-Connecting-IP/X-Forwarded-For 时不应认 loopback。",
+      "tags": [
+        "security",
+        "prod",
+        "debug-endpoint",
+        "cloudflare-tunnel",
+        "loopback-bypass",
+        "data-leak",
+        "OPT-028",
+        "ADMIN_TOKEN"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-05T00:00:00Z"
     }
   ]
 }
