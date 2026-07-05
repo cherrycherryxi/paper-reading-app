@@ -795,7 +795,7 @@ Format per item:
 - how: `app.js:1439` 将 `(b.date || "").localeCompare(a.date || "")` 改为 `(Date.parse(b.date || "") || 0) - (Date.parse(a.date || "") || 0)`（降序）；参照 `app.js:1026`（OPT-037 修复后）。Touch: `app.js:1439`。
 
 ### OPT-092 — `matchBooks()` 忽略 `book.tags` / `book.notes`，书单按主题/标签搜索零结果 — 由 explore E150 提拔 [2026-07-04]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P1
 - size: S
@@ -805,7 +805,7 @@ Format per item:
 - how: `app.js:1160-1163` 在现有 `fuzzyMatch(book.author || "", query)` 后追加 `|| (book.tags || []).some(t => fuzzyMatch(t, query)) || fuzzyMatch(book.notes || "", query)`；2–3 行修改，纯前端，无 DB 变更，无 API 改动。Touch: `app.js:1160-1163`（matchBooks）。
 
 ### OPT-093 — `deleteSession()` 不回写 `book.currentPage` / `book.lastReadAt`，删除记录后进度数据残留 — 由 explore E147 提拔 [2026-07-04]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S

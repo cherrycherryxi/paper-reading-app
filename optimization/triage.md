@@ -2,33 +2,34 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-04
+Last triaged: 2026-07-05
 
 ## Next up
 
 **OPT-064 — PromptBuilder 发送摘抄完整对象含 ocrText，每次对话浪费数百至数万 token**
 
-实现预算检查：近 7 天 `auto/` PR 共 **0 个**，距上限 4 还余 **4 个槽位**，可以指派。
+实现预算检查：近 7 天 `auto/` PR 共 **1 个**（#54 OPT-059，2026-07-03），距上限 4 还余 **3 个槽位**，可以指派。
 
 选择理由：
-1. **roadmap §2 W28 明确「OPT-064 交还夜间轨」**——白天 focus 是录入修复包（OPT-058+061+066+090+084+091），OPT-064 被 owner 专程指定给夜间 agent 处理，不占白天时间。
-2. **高频路径、直接成本**——`build_chat_prompt()` 每次对话必经；10 条摘抄场景下 `ocrText`（每页 500–2000 字符）+ `imageUrl`/`ocrStatus`/`ocrSource`/`ocrError` 等冗余字段最多浪费 ~20,000 tokens/次；累计效果随摘抄积累指数增长。
+1. **roadmap §2 W28 明确「OPT-064 交还夜间轨」**——白天 focus 是录入修复包（OPT-058+061+066+090+084+091）与 Theme 2 检索修通（OPT-092+083+056+088），均为「白天 bundle 项」，OPT-064 被 owner 专程指定给夜间 agent 处理，不占白天时间。
+2. **高频路径、直接成本**——`build_chat_prompt()` 每次对话必经；10 条摘抄场景下 `ocrText`（每页 500–2000 字符）+ `imageUrl`/`ocrStatus`/`ocrSource`/`ocrError` 等冗余字段最多浪费 ~20,000 tokens/次；2026-07-05 北极星记录显示本周新增摘抄 28 条、探讨操作 47 次，冗余 token 已是实质性支出。
 3. **P1/S，纯后端，零 DB/API 变更**——`app_server.py:2312-2345`（`build_chat_prompt`）加白名单 dict comprehension，过滤 `ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt`；约 8 行修改，无前端改动，不与白天 app.js bundle 冲突。
-4. northstar「中」（token 节省 = API 成本直接降低，同类已落地 OPT-020/047）。
+4. northstar「中」（token 节省 = API 成本直接降低，同类已落地 OPT-020/047）；昨日已为 Next up 但未被实施，今日继续指派。
 
 关键文件：`app_server.py:2312-2345`（`build_chat_prompt`，quotes 注入段落）；可加回归断言：mock 摘抄对象含 ocrText，断言 system prompt 中不含 ocrText 字段内容。
-roadmap 依据：roadmap.md §2 W28 「OPT-064 交还夜间轨」。
+roadmap 依据：roadmap.md §2 W28「OPT-064 交还夜间轨」。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-064 | PromptBuilder 发送摘抄完整对象含 ocrText，每次对话浪费数百至数万 token | P1 | S | triaged | roadmap §2 W28「交还夜间轨」；northstar「中」；OPT-020/047 同类 token 裁剪；`app_server.py:2312-2345`（`build_chat_prompt`）白名单 dict comprehension 过滤 ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt；零 API/DB 变更。 |
+| OPT-064 | PromptBuilder 发送摘抄完整对象含 ocrText，每次对话浪费数百至数万 token | P1 | S | triaged | roadmap §2 W28「交还夜间轨」；signal 2026-07-05 北极星记录本周摘抄 28 条/探讨 47 次，ocrText 冗余已是实质支出；OPT-020/047 同类 token 裁剪；`app_server.py:2312-2345`（`build_chat_prompt`）白名单 dict comprehension 过滤 ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt；零 API/DB 变更。 |
 | OPT-061 | Session 对话框 showModal() 后无 focus()，移动端须额外点击才能开始输入 | P1 | S | triaged | roadmap W28 录入修复包 item；signal 2026-06-26 佐证；Theme 1「采集顺滑」每日触点。`app.js:2142`（editSession）和 `app.js:2262`（openNewSessionForBook）末尾各追加 `requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus())`。白天 bundle 项。 |
 | OPT-058 | 摘抄对话框 showModal() 后未 focus() 文本区，移动端每次多点击一次 | P1 | S | triaged | roadmap W28 录入修复包 item；Theme 1「采集顺滑」核心录入路径。`app.js:2248`（openNewQuoteForBook）和 `app.js:2283`（editQuote）各加 `requestAnimationFrame(() => document.getElementById("quoteContent")?.focus())`。白天 bundle 项。 |
 | OPT-066 | 编辑 Session 未同步书籍进度字段（currentPage/lastReadAt/updatedAt） | P1 | S | triaged | roadmap W28 录入修复包 item；signal 2026-06-26 佐证；`app.js:2029-2037` 的 `if(existingId)` 分支只更新 session 本体，未重算书籍进度；对比新建分支（`app.js:2046-2055`）完整同步。约 5 行补全。白天 bundle 项。 |
 | OPT-090 | editSession() 日期预填用 toISOString() 而非 isoToDateInput()，编辑路径存在与 OPT-059 对称的时区 bug | P1 | S | triaged | NEW（explore E145，2026-07-03）；roadmap W28 录入修复包 item；OPT-059 的编辑路径对称 bug；`editSession()` 中日期预填直接用 `value.split("T")[0]`，UTC+8 凌晨跨天时显示错误；改用已有的 `isoToDateInput()` helper（`app.js:60-63`）。白天 bundle 项。Touch: `app.js` editSession 日期 input。 |
 | OPT-091 | renderTimeline() 用 localeCompare 排序 session，OPT-037 的书单修复未覆盖 Timeline | P1 | S | triaged | NEW（explore E146，2026-07-03）；OPT-037 同类遗漏（书单修复未同步 Timeline）；`renderTimeline()` 中 session 排序仍用字符串 localeCompare，agent/OCR 创建的 session 在东八区比手动创建的 UTC 字面大 ~8h，恒排前；改 `Date.parse()` 数值比较（降序 b-a）。Touch: `app.js:1400-1430`（renderTimeline 排序段）。白天 bundle 项。 |
+| OPT-092 | matchBooks() 忽略 book.tags / book.notes，书单按主题/标签搜索零结果 | P1 | S | triaged | NEW（explore E150，2026-07-04）；**signal 2026-07-03** 直接佐证（为读书会找书，书单搜「成长」零结果）；roadmap W28 Theme 2「检索修通」第一 PR 显式命名；`app.js:1160-1163` 追加 `(book.tags||[]).some(t => fuzzyMatch(t,query)) \|\| fuzzyMatch(book.notes||"",query)`；2–3 行，纯前端，零后端变更。白天 bundle 项（与 OPT-083/056/088 合并一 PR）。 |
 | OPT-083 | renderQuotes() 搜索 haystack 不含 ocrText：OCR 未编辑摘抄完全不可搜 | P1 | S | triaged | explore E136 2026-07-01；**强北极星** Theme 2「回顾有价值」；OCR 摘抄 content="" ocrText=全文，显示正常但搜索完全命中不了，积累越多回顾越失准。`app.js:1498` haystack 追加 `item.ocrText||""`；`app.js:1143` matchQuotes 改 `quote.content||quote.ocrText||""`；2 行，零副作用。W28 Theme 2 bundle 项。 |
 | OPT-080 | 关联对话框目标摘抄标签截断至 32 字 + CSS 双重省略导致同书摘抄无法辨识 | P1 | S | triaged | **signal 2026-06-29** 直接佐证「目标显示不完整、看不清内容、找不到想关联的那一条」；Theme 2「建立关联」核心路径；`app.js:3815` slice(0,32)→slice(0,60) + 去掉 `nowrap`，S 级修复；建议与 OPT-079 合并一 PR。 |
 | OPT-079 | 摘抄卡 ⋯ 菜单增加「建立关联」直达入口；来源自动预填当前摘抄 | P1 | S | triaged | **signal 2026-06-29** 佐证「来源没自动填入当前摘抄（还得手动选）」；Theme 2；`app.js:1528-1535` 菜单加 `connect` 选项 + `quoteMenuHandler` 新增分支调用 `openConnectionDialog({sourceType:"quote",sourceId:quote.id})`；建议与 OPT-080 合并一 PR 作关联体验系统修复。 |
@@ -39,6 +40,7 @@ roadmap 依据：roadmap.md §2 W28 「OPT-064 交还夜间轨」。
 | OPT-084 | openNewSessionForBook() 从不预填 startPage，每次录入需手动输入已知起始页 | P2 | S | triaged | explore E137 2026-07-01；中北极星 Theme 1；session 录入是 W28 焦点路径，startPage 预填 = book.currentPage+1 减少每次录入 1–2 次交互；`app.js:2436` value="" → `(book.currentPage>0?book.currentPage+1:"")`；建议与同路径 bundle 搭车。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；signal 2026-06-26 佐证可观测性价值。`app.js:1415-1425`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集。3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
 | OPT-082 | renderTimeline() sessionStats 仅在搜索时显示，默认视图无累计阅读数据 | P2 | S | triaged | **与 OPT-053 完全重复**（同一代码问题 `app.js:1419` `if (searchRaw && sessions.length)`，方案完全一致）；OPT-053 实现后自动解决，**不另行指派**。 |
+| OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | NEW（explore E147，2026-07-04）；northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性，deleteSession 残留会导致预填错误；`app.js:2583-2598`（deleteSession）增加剩余 session 扫描后回写 currentPage/lastReadAt；约 10–15 行，纯前端；建议与 OPT-084 搭车同一 PR。 |
 | OPT-070 | buildQuoteSearchCard() OPT-052 后未同步：全局搜索摘抄结果永远显示灰色占位图 | P2 | S | triaged | OPT-052 视觉闭环；northstar「中」，Theme 2 搜索一致性。`app.js:1199-1201`（`buildQuoteSearchCard`）封面区域改为与 `renderQuotes`（`app.js:1455`）相同的条件渲染（`quote.imageUrl ? <img> : fallback`）；可与 OPT-071 合并一 PR。 |
 | OPT-071 | 摘抄卡片与详情弹窗图片缺少 onerror 回退：URL 失效时显示浏览器破图图标 | P2 | S | triaged | OPT-052 遗漏错误处理；northstar「中」，Theme 1 视觉可靠性。`app.js:1455`（卡面 `<img>`）+ `app.js:2246`（`openQuoteDetail` img.src）各加 onerror 回退至灰色占位，复用 `bindBookCoverImageFallback`（`app.js:229-250`）模式；可与 OPT-070 合并。 |
 | OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | P2 | S | triaged | northstar「中」，Theme 1「零等太久放弃」；摘抄积累 100+ 条后按键卡顿是直接违背 Theme 1 验收的体验悬崖。`app.js:4175-4176`（quoteSearch/sessionSearch）和 `app.js:3956`（connectionSearch）各加内联 `debounce(fn, 250)` 包裹；5 行改动。 |
