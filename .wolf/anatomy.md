@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-04T18:20:21.215Z
-> Files: 217 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-05T13:25:42.544Z
-> Files: 218 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-05T13:56:03.222Z
+> Files: 225 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -92,16 +90,20 @@
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
+- `reference_prod_monitoring.md` (~535 tok)
 - `reference_remote_access_setup.md` — 2026-07-02 更新：Cloudflare 固定命名隧道 + prod/dev 分离 (~1611 tok)
 - `reference_weekly_report_email.md` (~530 tok)
 
 ## ../../.claude/scripts/
 
+- `bark-push.sh` — 可复用 Bark 推送(跨项目个人基建)。key 从 ~/.claude/bark-key.txt 读,不硬编码。 (~206 tok)
 - `email-cheatsheet.sh` — email-cheatsheet — 把全局共享工具 / 常用命令速查发到邮箱。 (~473 tok)
 - `focus-midweek-check.sh` — 焦点中期检查(每周四 21:00,launchd com.huangnanqi.focus-midweek-check)。 (~562 tok)
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
+- `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
+- `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~838 tok)
 - `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
@@ -119,6 +121,8 @@
 - `com.huangnanqi.paper-backend.plist` (~291 tok)
 - `com.huangnanqi.paper-mcp-prod.plist` (~285 tok)
 - `com.huangnanqi.paper-tunnel.plist` (~255 tok)
+- `com.huangnanqi.prod-daily-digest.plist` (~280 tok)
+- `com.huangnanqi.prod-monitor.plist` (~244 tok)
 - `com.huangnanqi.product-owner.plist` (~307 tok)
 - `com.huangnanqi.tunnel-watchdog.plist` (~247 tok)
 - `com.huangnanqi.weekly-report.plist` (~301 tok)
@@ -127,7 +131,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68118 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~70210 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
@@ -278,6 +282,7 @@
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
+- `debug_overview_test.py` — P2 增长总览 /debug/overview 回归锁。 (~992 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_retries_on_429, side_effect, test_retries_on_503 + 24 (~4466 tok)
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
