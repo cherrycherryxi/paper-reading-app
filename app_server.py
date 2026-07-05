@@ -4150,10 +4150,19 @@ class Handler(BaseHTTPRequestHandler):
                 return
             from datetime import datetime as _dt, timedelta as _td, timezone as _tz
             from html import escape as _esc
+            from urllib.parse import parse_qs as _qs
+            # 活跃/错误/LLM 的时间窗可配（默认 7 天，?days=N 覆盖，clamp 1..365）——
+            # 潜在用户少时 24h 窗口易全 0 且错失数据（累计/激活/明细本就全量，不受此影响）。
+            try:
+                win = int((_qs(parsed.query).get("days", ["7"])[0]))
+            except (ValueError, TypeError):
+                win = 7
+            win = max(1, min(365, win))
             now = _dt.now(_tz.utc)
-            d1_iso = (now - _td(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
             d7_iso = (now - _td(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
-            d1_sp = (now - _td(days=1)).strftime("%Y-%m-%d %H:%M:%S")  # model_logs 用空格格式
+            d1_iso = (now - _td(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
+            dw_iso = (now - _td(days=win)).strftime("%Y-%m-%dT%H:%M:%S")
+            dw_sp = (now - _td(days=win)).strftime("%Y-%m-%d %H:%M:%S")  # model_logs 用空格格式
             conn = self._open_conn()
             try:
                 total = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -4164,21 +4173,21 @@ class Handler(BaseHTTPRequestHandler):
                     " FROM users u LEFT JOIN user_state s ON s.user_id = u.id"
                     " ORDER BY u.created_at DESC"
                 ).fetchall()
-                # DAU：24h 有 model_logs 活动 ∪ user_state 更新
+                # 活跃用户：窗口内有 model_logs 活动 ∪ user_state 更新
                 dau = set()
-                for (uid,) in conn.execute("SELECT DISTINCT user_id FROM model_logs WHERE created_at > ?", (d1_sp,)):
+                for (uid,) in conn.execute("SELECT DISTINCT user_id FROM model_logs WHERE created_at > ?", (dw_sp,)):
                     dau.add(uid)
-                for (uid,) in conn.execute("SELECT user_id FROM user_state WHERE updated_at > ?", (d1_iso,)):
+                for (uid,) in conn.execute("SELECT user_id FROM user_state WHERE updated_at > ?", (dw_iso,)):
                     dau.add(uid)
                 errs = conn.execute(
                     "SELECT path, error_class, status_code, COUNT(*) c FROM server_errors"
                     " WHERE created_at > ? GROUP BY path, error_class, status_code ORDER BY c DESC LIMIT 10",
-                    (d1_sp,)).fetchall()
-                err_total = conn.execute("SELECT COUNT(*) FROM server_errors WHERE created_at > ?", (d1_sp,)).fetchone()[0]
+                    (dw_sp,)).fetchall()
+                err_total = conn.execute("SELECT COUNT(*) FROM server_errors WHERE created_at > ?", (dw_sp,)).fetchone()[0]
                 llm = conn.execute(
                     "SELECT type, COUNT(*), SUM(CASE WHEN error != '' THEN 1 ELSE 0 END),"
                     " SUM(input_tokens), SUM(output_tokens) FROM model_logs"
-                    " WHERE created_at > ? AND type IN ('chat','ocr') GROUP BY type", (d1_sp,)).fetchall()
+                    " WHERE created_at > ? AND type IN ('chat','ocr') GROUP BY type", (dw_sp,)).fetchall()
             finally:
                 conn.close()
 
@@ -4202,7 +4211,7 @@ class Handler(BaseHTTPRequestHandler):
                     act_quote += 1
                 if chats:
                     act_chat += 1
-                active = bool(u["updated_at"] and u["updated_at"] > d1_iso)
+                active = bool(u["updated_at"] and u["updated_at"] > dw_iso)
                 dot = "#16a34a" if active else "#d1d5db"
                 rows_html.append(
                     f"<tr>"
@@ -4228,6 +4237,10 @@ class Handler(BaseHTTPRequestHandler):
                 llm_html += f"<li>{_esc(typ)}: {cnt} 次 · 失败 {fails or 0} · in {itok or 0} / out {otok or 0} tok</li>"
             llm_html = llm_html or "<li style='color:#9ca3af;'>无调用</li>"
 
+            _win = f"{win}天"
+            _switch = " · ".join(
+                (f"<b>{d}天</b>" if d == win else f"<a href='?days={d}' style='color:#2563eb;text-decoration:none;'>{d}天</a>")
+                for d in (1, 7, 30, 90))
             html = f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>Prod 总览</title>
@@ -4238,20 +4251,20 @@ class Handler(BaseHTTPRequestHandler):
             th,td{{padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:left;}}th{{background:#f8fafc;color:#6b7280;font-weight:600;}}
             ul{{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 12px 12px 30px;margin:0;}}code{{background:#f3f4f6;padding:1px 5px;border-radius:5px;}}</style>
             </head><body><main>
-            <h1>Prod 增长总览</h1><p class="sub">按需刷新 · 过去 24 小时窗口 · 只显示聚合数(无用户内容)</p>
+            <h1>Prod 增长总览</h1><p class="sub">按需刷新 · 时间窗 <b>{_win}</b>(切换:{_switch})· 累计/激活/明细为全量,不受窗口影响 · 只显示聚合数(无用户内容)</p>
             <div class="grid">
               {_card("累计用户", total, f"7天+{new7} · 24h+{new1}")}
-              {_card("DAU (24h)", len(dau), f"外部 {len([x for x in dau if x])}")}
-              {_card("激活·加书", f"{act_book}/{total}")}
-              {_card("激活·摘抄", f"{act_quote}/{total}")}
-              {_card("激活·探讨", f"{act_chat}/{total}")}
-              {_card("错误 (24h)", err_total)}
+              {_card(f"活跃用户 ({_win})", len(dau), f"外部 {len([x for x in dau if x])}")}
+              {_card("激活·加书", f"{act_book}/{total}", "全量")}
+              {_card("激活·摘抄", f"{act_quote}/{total}", "全量")}
+              {_card("激活·探讨", f"{act_chat}/{total}", "全量")}
+              {_card(f"错误 ({_win})", err_total)}
             </div>
-            <h2>用户明细(● 绿=24h 活跃)</h2>
+            <h2>用户明细(● 绿={_win}内活跃 · 书/摘抄/探讨为全量累计)</h2>
             <table><thead><tr><th>用户</th><th>书</th><th>摘抄</th><th>记录</th><th>探讨</th><th>注册</th><th>最近活跃</th></tr></thead>
             <tbody>{''.join(rows_html)}</tbody></table>
-            <h2>错误 Top (24h)</h2><ul>{err_html}</ul>
-            <h2>LLM 用量 (24h)</h2><ul>{llm_html}</ul>
+            <h2>错误 Top ({_win})</h2><ul>{err_html}</ul>
+            <h2>LLM 用量 ({_win})</h2><ul>{llm_html}</ul>
             </main></body></html>"""
             self._send_html(html)
             return

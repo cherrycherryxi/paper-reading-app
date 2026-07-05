@@ -86,6 +86,47 @@ class DebugOverviewTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Prod 增长总览", body)
 
+    def test_default_window_is_7_days(self):
+        # 默认窗口 7 天(不再是 24h)——潜在用户少时短窗易漏数据。
+        _, body = self._get_overview()
+        self.assertIn("时间窗 <b>7天</b>", body)
+        self.assertIn("活跃用户 (7天)", body)
+
+    def test_days_query_param_overrides_window(self):
+        h = app_server.Handler.__new__(app_server.Handler)
+        h.path = "/debug/overview?days=30"
+        h.command = "GET"
+        h.client_address = ("127.0.0.1", 5432)
+        h.headers = {"Content-Length": "0"}
+        h.rfile = BytesIO(b"")
+        h.wfile = BytesIO()
+        h._status = None
+        h._active_conn = None
+        h.send_response = lambda c: setattr(h, "_status", c)
+        h.send_header = lambda *a, **k: None
+        h.end_headers = lambda: None
+        h.do_GET()
+        body = h.wfile.getvalue().decode()
+        self.assertEqual(h._status, 200)
+        self.assertIn("时间窗 <b>30天</b>", body)
+        self.assertIn("错误 (30天)", body)
+
+    def test_bad_days_param_falls_back_safely(self):
+        h = app_server.Handler.__new__(app_server.Handler)
+        h.path = "/debug/overview?days=abc"
+        h.command = "GET"
+        h.client_address = ("127.0.0.1", 5432)
+        h.headers = {"Content-Length": "0"}
+        h.rfile = BytesIO(b"")
+        h.wfile = BytesIO()
+        h._status = None
+        h._active_conn = None
+        h.send_response = lambda c: setattr(h, "_status", c)
+        h.send_header = lambda *a, **k: None
+        h.end_headers = lambda: None
+        h.do_GET()
+        self.assertEqual(h._status, 200)  # 非法值不崩,回落默认
+
 
 if __name__ == "__main__":
     unittest.main()
