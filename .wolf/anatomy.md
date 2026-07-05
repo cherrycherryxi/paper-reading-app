@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-04T18:20:21.215Z
 > Files: 217 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-05T13:25:42.544Z
+> Files: 218 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -53,6 +55,7 @@
 - `2026-07-02.md` — 日报 2026-07-02 (~532 tok)
 - `2026-07-03.md` — 日报 2026-07-03 (~475 tok)
 - `2026-07-04.md` — 日报 2026-07-04 (~338 tok)
+- `2026-07-05.md` — 日报 2026-07-05 (~498 tok)
 
 ## ../../.claude/hooks/
 
@@ -241,7 +244,7 @@
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1776 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~416 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~445 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
 - `triage.md` — Triage (~4455 tok)
 - `triage.md` — Triage (~4313 tok)
