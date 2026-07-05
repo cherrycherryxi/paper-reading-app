@@ -2379,11 +2379,28 @@ def chat_context_from_payload(user_state: dict, payload: dict) -> dict:
     return context
 
 
+# Fields sent to the LLM for each quote. Heavy OCR fields are excluded to save tokens.
+# ocrText is coalesced into `content` below so OCR-only quotes remain readable.
+_QUOTE_PROMPT_FIELDS = frozenset({
+    "id", "bookId", "kind", "content", "reflection", "tags", "note", "page", "createdAt",
+})
+
+
+def _strip_quote_for_prompt(q: dict) -> dict:
+    """Return a copy of q with only LLM-relevant fields; coalesce ocrText → content."""
+    result = {k: v for k, v in q.items() if k in _QUOTE_PROMPT_FIELDS}
+    if not result.get("content") and q.get("ocrText"):
+        result["content"] = q["ocrText"]
+    return result
+
+
 class PromptBuilder:
     def build_chat_prompt(self, user_state: dict, book_id: str, chat_history: list[dict], quote_id: str = "") -> str:
         book = next((item for item in user_state.get("books", []) if item.get("id") == book_id), None)
-        quotes = [item for item in user_state.get("quotes", []) if item.get("bookId") == book_id][:20] if book_id else []
-        focused_quote = next((item for item in user_state.get("quotes", []) if item.get("id") == quote_id), None) if quote_id else None
+        raw_quotes = [item for item in user_state.get("quotes", []) if item.get("bookId") == book_id][:20] if book_id else []
+        quotes = [_strip_quote_for_prompt(q) for q in raw_quotes]
+        raw_focused = next((item for item in user_state.get("quotes", []) if item.get("id") == quote_id), None) if quote_id else None
+        focused_quote = _strip_quote_for_prompt(raw_focused) if raw_focused else None
         book_payload = {
             "book": book or {},
             "quotes": quotes,
