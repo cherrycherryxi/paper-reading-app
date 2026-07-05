@@ -2297,3 +2297,6 @@
 | 17:09 | Created optimization/triage.md | — | ~4984 |
 | 17:09 | Edited optimization/backlog.md | 3→3 lines | ~38 |
 | 17:10 | Edited optimization/backlog.md | 3→3 lines | ~42 |
+| 18:06 | Edited app_server.py | modified _strip_quote_for_prompt() | ~403 |
+| 18:07 | Edited tests/agent/agent_backend_property_test.py | modified test_opt064_ocr_fields_stripped_from_prompt_quotes() | ~1352 |
+| 18:09 | Edited optimization/triage.md | inline fix | ~96 |
