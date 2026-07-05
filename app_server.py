@@ -4141,6 +4141,121 @@ class Handler(BaseHTTPRequestHandler):
             self._send_html(html)
             return
 
+        if parsed.path == "/debug/overview":
+            # P2 增长/运维总览：按需版的 prod 每日摘要（注册/激活漏斗/DAU/错误/LLM）。
+            # 端点跑在哪个实例就查哪个库（prod 上=prod 数据），无需硬编码路径。
+            # 只读、只聚合、不含任何用户摘抄内容（隐私边界，同 P0/P1 监控脚本）。
+            if not self._authorized_for_admin():
+                self._send_html("<h1>Unauthorized</h1>", 401)
+                return
+            from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+            from html import escape as _esc
+            now = _dt.now(_tz.utc)
+            d1_iso = (now - _td(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
+            d7_iso = (now - _td(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
+            d1_sp = (now - _td(days=1)).strftime("%Y-%m-%d %H:%M:%S")  # model_logs 用空格格式
+            conn = self._open_conn()
+            try:
+                total = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+                new1 = conn.execute("SELECT COUNT(*) FROM users WHERE created_at > ?", (d1_iso,)).fetchone()[0]
+                new7 = conn.execute("SELECT COUNT(*) FROM users WHERE created_at > ?", (d7_iso,)).fetchone()[0]
+                users = conn.execute(
+                    "SELECT u.id, u.username, u.email, u.plan, u.created_at, s.state_json, s.updated_at"
+                    " FROM users u LEFT JOIN user_state s ON s.user_id = u.id"
+                    " ORDER BY u.created_at DESC"
+                ).fetchall()
+                # DAU：24h 有 model_logs 活动 ∪ user_state 更新
+                dau = set()
+                for (uid,) in conn.execute("SELECT DISTINCT user_id FROM model_logs WHERE created_at > ?", (d1_sp,)):
+                    dau.add(uid)
+                for (uid,) in conn.execute("SELECT user_id FROM user_state WHERE updated_at > ?", (d1_iso,)):
+                    dau.add(uid)
+                errs = conn.execute(
+                    "SELECT path, error_class, status_code, COUNT(*) c FROM server_errors"
+                    " WHERE created_at > ? GROUP BY path, error_class, status_code ORDER BY c DESC LIMIT 10",
+                    (d1_sp,)).fetchall()
+                err_total = conn.execute("SELECT COUNT(*) FROM server_errors WHERE created_at > ?", (d1_sp,)).fetchone()[0]
+                llm = conn.execute(
+                    "SELECT type, COUNT(*), SUM(CASE WHEN error != '' THEN 1 ELSE 0 END),"
+                    " SUM(input_tokens), SUM(output_tokens) FROM model_logs"
+                    " WHERE created_at > ? AND type IN ('chat','ocr') GROUP BY type", (d1_sp,)).fetchall()
+            finally:
+                conn.close()
+
+            # 激活漏斗（全量用户）+ 逐用户行
+            act_book = act_quote = act_chat = 0
+            rows_html = []
+            for u in users:
+                books = quotes = sessions = chats = 0
+                if u["state_json"]:
+                    try:
+                        st = json.loads(u["state_json"])
+                        books = len(st.get("books") or [])
+                        quotes = len(st.get("quotes") or [])
+                        sessions = len(st.get("sessions") or [])
+                        chats = len(st.get("chatHistories") or {})
+                    except (ValueError, TypeError):
+                        pass
+                if books:
+                    act_book += 1
+                if quotes:
+                    act_quote += 1
+                if chats:
+                    act_chat += 1
+                active = bool(u["updated_at"] and u["updated_at"] > d1_iso)
+                dot = "#16a34a" if active else "#d1d5db"
+                rows_html.append(
+                    f"<tr>"
+                    f"<td><span style='display:inline-block;width:8px;height:8px;border-radius:50%;background:{dot};margin-right:6px;'></span>{_esc(str(u['username']))}"
+                    f"<div style='font-size:11px;color:#9ca3af;'>{_esc(u['email'] or '(无邮箱)')} · {_esc(u['plan'])}</div></td>"
+                    f"<td style='text-align:center;'>{books}</td><td style='text-align:center;'>{quotes}</td>"
+                    f"<td style='text-align:center;'>{sessions}</td><td style='text-align:center;'>{chats}</td>"
+                    f"<td style='font-size:12px;color:#6b7280;'>{_esc((u['created_at'] or '')[:16])}</td>"
+                    f"<td style='font-size:12px;color:#6b7280;'>{_esc((u['updated_at'] or '')[:16] or '—')}</td>"
+                    f"</tr>"
+                )
+
+            def _card(label, value, sub=""):
+                return (f"<div style='padding:14px 16px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;'>"
+                        f"<div style='font-size:12px;color:#6b7280;'>{label}</div>"
+                        f"<div style='font-size:26px;font-weight:700;margin-top:2px;'>{value}</div>"
+                        f"<div style='font-size:11px;color:#9ca3af;'>{sub}</div></div>")
+
+            err_html = ("".join(f"<li>×{r['c']} · <code>{r['status_code']} {_esc(r['error_class'] or '?')}</code> @ {_esc(r['path'])}</li>" for r in errs)
+                        or "<li style='color:#16a34a;'>无 ✅</li>")
+            llm_html = ""
+            for typ, cnt, fails, itok, otok in llm:
+                llm_html += f"<li>{_esc(typ)}: {cnt} 次 · 失败 {fails or 0} · in {itok or 0} / out {otok or 0} tok</li>"
+            llm_html = llm_html or "<li style='color:#9ca3af;'>无调用</li>"
+
+            html = f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Prod 总览</title>
+            <style>body{{font-family:-apple-system,"PingFang SC",sans-serif;background:#f9fafb;color:#111;margin:0;padding:24px;}}
+            main{{max-width:960px;margin:0 auto;}}h1{{font-size:22px;margin:0 0 4px;}}p.sub{{color:#6b7280;margin:0 0 20px;font-size:13px;}}
+            .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}}
+            h2{{font-size:15px;margin:20px 0 10px;}}table{{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;}}
+            th,td{{padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:left;}}th{{background:#f8fafc;color:#6b7280;font-weight:600;}}
+            ul{{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 12px 12px 30px;margin:0;}}code{{background:#f3f4f6;padding:1px 5px;border-radius:5px;}}</style>
+            </head><body><main>
+            <h1>Prod 增长总览</h1><p class="sub">按需刷新 · 过去 24 小时窗口 · 只显示聚合数(无用户内容)</p>
+            <div class="grid">
+              {_card("累计用户", total, f"7天+{new7} · 24h+{new1}")}
+              {_card("DAU (24h)", len(dau), f"外部 {len([x for x in dau if x])}")}
+              {_card("激活·加书", f"{act_book}/{total}")}
+              {_card("激活·摘抄", f"{act_quote}/{total}")}
+              {_card("激活·探讨", f"{act_chat}/{total}")}
+              {_card("错误 (24h)", err_total)}
+            </div>
+            <h2>用户明细(● 绿=24h 活跃)</h2>
+            <table><thead><tr><th>用户</th><th>书</th><th>摘抄</th><th>记录</th><th>探讨</th><th>注册</th><th>最近活跃</th></tr></thead>
+            <tbody>{''.join(rows_html)}</tbody></table>
+            <h2>错误 Top (24h)</h2><ul>{err_html}</ul>
+            <h2>LLM 用量 (24h)</h2><ul>{llm_html}</ul>
+            </main></body></html>"""
+            self._send_html(html)
+            return
+
         self._send_json({"error": "Not found"}, 404)
 
     def do_POST(self) -> None:
