@@ -69,6 +69,22 @@ class DebugOverviewTests(unittest.TestCase):
         self.assertIn("激活·加书", body)
         self.assertIn("1/2", body)  # 加书 & 摘抄都是 1/2
 
+    def test_per_user_llm_column_shows_usage(self):
+        # 给 alice 记两条 model_logs(chat+ocr),明细表应显示其调用次数与 token。
+        conn = app_server.get_conn()
+        now = app_server.now_iso()
+        for i, (typ, itok, otok) in enumerate([("chat", 1000, 500), ("ocr", 200, 0)]):
+            conn.execute(
+                "INSERT INTO model_logs (id, user_id, username, type, model, prompt, input,"
+                " output, error, created_at, input_tokens, output_tokens)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (f"ml-{i}", "user-alice", "alice", typ, "m", "", "", "", "", now, itok, otok))
+        conn.commit()
+        conn.close()
+        _, body = self._get_overview()
+        self.assertIn("LLM(7天)", body)          # 列头
+        self.assertIn("2 次 · 1700 tok", body)    # alice: 2 次,1000+500+200 tok
+
     def test_does_not_leak_quote_body(self):
         _, body = self._get_overview()
         self.assertNotIn("SECRET_QUOTE_BODY", body,

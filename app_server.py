@@ -4188,8 +4188,19 @@ class Handler(BaseHTTPRequestHandler):
                     "SELECT type, COUNT(*), SUM(CASE WHEN error != '' THEN 1 ELSE 0 END),"
                     " SUM(input_tokens), SUM(output_tokens) FROM model_logs"
                     " WHERE created_at > ? AND type IN ('chat','ocr') GROUP BY type", (dw_sp,)).fetchall()
+                # 每用户 LLM 用量(窗口内,chat+ocr 合计)——盯外部用户 API 成本/异常刷量
+                llm_by_user = {
+                    uid: (calls, itok or 0, otok or 0)
+                    for uid, calls, itok, otok in conn.execute(
+                        "SELECT user_id, COUNT(*), SUM(input_tokens), SUM(output_tokens)"
+                        " FROM model_logs WHERE created_at > ? AND type IN ('chat','ocr')"
+                        " GROUP BY user_id", (dw_sp,))
+                }
             finally:
                 conn.close()
+
+            # LLM 粗估费率(元/1M token),与 prod_daily_digest 一致,仅量级参考
+            _rate_in, _rate_out = 2.0, 8.0
 
             # 激活漏斗（全量用户）+ 逐用户行
             act_book = act_quote = act_chat = 0
@@ -4213,12 +4224,19 @@ class Handler(BaseHTTPRequestHandler):
                     act_chat += 1
                 active = bool(u["updated_at"] and u["updated_at"] > dw_iso)
                 dot = "#16a34a" if active else "#d1d5db"
+                # 每用户 LLM 用量(窗口内)+ 粗估成本;异常高亮红
+                lc, li, lo = llm_by_user.get(u["id"], (0, 0, 0))
+                ltok = li + lo
+                lcost = li / 1e6 * _rate_in + lo / 1e6 * _rate_out
+                llm_cell = f"{lc} 次 · {ltok} tok<br><span style='font-size:11px;color:#9ca3af;'>~¥{lcost:.3f}</span>" if lc else "<span style='color:#d1d5db;'>—</span>"
+                llm_style = "background:#fef2f2;" if ltok > 200000 else ""  # 窗口内 >20万 token 提示留意
                 rows_html.append(
                     f"<tr>"
                     f"<td><span style='display:inline-block;width:8px;height:8px;border-radius:50%;background:{dot};margin-right:6px;'></span>{_esc(str(u['username']))}"
                     f"<div style='font-size:11px;color:#9ca3af;'>{_esc(u['email'] or '(无邮箱)')} · {_esc(u['plan'])}</div></td>"
                     f"<td style='text-align:center;'>{books}</td><td style='text-align:center;'>{quotes}</td>"
                     f"<td style='text-align:center;'>{sessions}</td><td style='text-align:center;'>{chats}</td>"
+                    f"<td style='font-size:12px;{llm_style}'>{llm_cell}</td>"
                     f"<td style='font-size:12px;color:#6b7280;'>{_esc((u['created_at'] or '')[:16])}</td>"
                     f"<td style='font-size:12px;color:#6b7280;'>{_esc((u['updated_at'] or '')[:16] or '—')}</td>"
                     f"</tr>"
@@ -4260,8 +4278,8 @@ class Handler(BaseHTTPRequestHandler):
               {_card("激活·探讨", f"{act_chat}/{total}", "全量")}
               {_card(f"错误 ({_win})", err_total)}
             </div>
-            <h2>用户明细(● 绿={_win}内活跃 · 书/摘抄/探讨为全量累计)</h2>
-            <table><thead><tr><th>用户</th><th>书</th><th>摘抄</th><th>记录</th><th>探讨</th><th>注册</th><th>最近活跃</th></tr></thead>
+            <h2>用户明细(● 绿={_win}内活跃 · 书/摘抄/探讨为全量累计 · LLM 用量为{_win}窗口)</h2>
+            <table><thead><tr><th>用户</th><th>书</th><th>摘抄</th><th>记录</th><th>探讨</th><th>LLM({_win})</th><th>注册</th><th>最近活跃</th></tr></thead>
             <tbody>{''.join(rows_html)}</tbody></table>
             <h2>错误 Top ({_win})</h2><ul>{err_html}</ul>
             <h2>LLM 用量 ({_win})</h2><ul>{llm_html}</ul>
