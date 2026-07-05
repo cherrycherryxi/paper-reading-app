@@ -105,10 +105,13 @@ class DebugGateTests(unittest.TestCase):
     def tearDown(self):
         app_server.AUTH_TOKEN = self._orig_token
 
-    def _handler(self, client_ip, log_token=None):
+    def _handler(self, client_ip, log_token=None, extra_headers=None):
         h = app_server.Handler.__new__(app_server.Handler)
         h.client_address = (client_ip, 54321)
-        h.headers = {"X-Log-Token": log_token} if log_token is not None else {}
+        headers = {"X-Log-Token": log_token} if log_token is not None else {}
+        if extra_headers:
+            headers.update(extra_headers)
+        h.headers = headers
         return h
 
     def test_token_unset_denies_remote_client(self):
@@ -138,6 +141,22 @@ class DebugGateTests(unittest.TestCase):
         app_server.AUTH_TOKEN = "secret"
         self.assertTrue(self._handler("203.0.113.7", "secret")._authorized_for_admin())
         self.assertFalse(self._handler("203.0.113.7", "wrong")._authorized_for_admin())
+
+    def test_token_unset_denies_tunneled_request_despite_loopback_addr(self):
+        # bug-380: cloudflared connects from 127.0.0.1, so client_address looks
+        # local; a forwarding header proves it came through the tunnel and must
+        # NOT be trusted as loopback (else /debug/* is world-readable).
+        app_server.AUTH_TOKEN = ""
+        for hdr in ("CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP", "CF-Ray"):
+            self.assertFalse(
+                self._handler("127.0.0.1", extra_headers={hdr: "8.8.8.8"})._authorized_for_admin(),
+                f"loopback addr + {hdr} must be denied")
+
+    def test_token_unset_still_allows_genuine_local_browser(self):
+        # A real local browser hitting 127.0.0.1 directly sends no forwarding
+        # header → dev convenience preserved.
+        app_server.AUTH_TOKEN = ""
+        self.assertTrue(self._handler("127.0.0.1")._authorized_for_admin())
 
 
 if __name__ == "__main__":

@@ -3567,7 +3567,17 @@ class Handler(BaseHTTPRequestHandler):
 
         Used to keep the documented dev convenience (`127.0.0.1:8787/debug/logs`)
         working when no ADMIN_TOKEN is configured, without exposing the debug
-        viewers to the public internet on a token-less deployment."""
+        viewers to the public internet on a token-less deployment.
+
+        bug-380: behind a reverse proxy / Cloudflare tunnel, cloudflared connects
+        to localhost so ``client_address`` is ALWAYS 127.0.0.1 — trusting it would
+        expose /debug/* to the whole internet on a token-less deploy. So a request
+        carrying any proxy-forwarding header (it came through the tunnel/proxy, not
+        from a genuinely local browser) is never treated as loopback. A real local
+        browser hitting 127.0.0.1:8787 directly sends none of these headers."""
+        forwarded_markers = ("CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP", "CF-Ray")
+        if any(self.headers.get(h) for h in forwarded_markers):
+            return False
         addr = getattr(self, "client_address", None)
         host = addr[0] if addr else ""
         # ::ffff:127.0.0.1 is the IPv4-mapped IPv6 form some stacks report.
