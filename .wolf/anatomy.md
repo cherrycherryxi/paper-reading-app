@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-05T14:16:41.881Z
-> Files: 225 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-05T14:46:05.767Z
+> Files: 226 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -90,7 +90,7 @@
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
-- `reference_prod_monitoring.md` (~535 tok)
+- `reference_prod_monitoring.md` (~790 tok)
 - `reference_remote_access_setup.md` — 2026-07-02 更新：Cloudflare 固定命名隧道 + prod/dev 分离 (~1611 tok)
 - `reference_weekly_report_email.md` (~530 tok)
 
@@ -131,7 +131,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~70764 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~70956 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
@@ -278,6 +278,7 @@
 ## tests/agent/
 
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
+- `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
 - `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~9956 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
