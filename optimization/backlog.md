@@ -813,3 +813,23 @@ Format per item:
 - description: `app.js:2583-2598`（deleteSession）：`state.sessions = state.sessions.filter(...)` 后对书籍字段无任何更新。对比 `addSession()`（`app.js:2314-2325`）每次新建都执行 `book.currentPage = Math.max(book.currentPage || 0, endPage); book.lastReadAt = date;`。若用户误填 endPage=400 并删除该 session，`book.currentPage` 保持 400，OPT-084 的 startPage 预填将错误建议 401 页。
 - why: 新建/删除路径逻辑不对称是持久性数据准确性缺陷。W28 正在打磨「记阅读 session」录入顺滑度（OPT-059/061/066），deleteSession 的进度残留会在用户纠错（删掉错误 session）后立即暴露，产生新摩擦并降低 OPT-084 预填的可信度。
 - how: `deleteSession()` 完成 `state.sessions.filter()` 后，扫描该书剩余所有 session 找最大 endPage，回写 `book.currentPage`（无 session 则重置为 0），同步更新 `book.lastReadAt` 取剩余 session 最新 date，并重新评估 `finished` 状态（参照 addSession 逻辑）。约 10–15 行，纯前端，无后端改动。Touch: `app.js:2583-2598`（deleteSession）；参照 `app.js:2314-2325`（addSession 回写逻辑）。
+
+### OPT-094 — `addSession()` pagesRead 计算差一，统计数据永远少计一页 — 由 explore E148 提拔 [2026-07-05]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱——数据准确性缺陷；`pagesRead` 在 session 存储和统计栏中均偏低 1 页，长期累积后总页数与真实阅读量不符，削弱用户对统计数字的信任。
+- description: `app.js:2311`（addSession 存储路径）：`pagesRead: endPage - startPage`；`app.js:2318`（editSession 路径）：同一公式；`app.js:1456`（统计栏汇总）：`Number(s.endPage || 0) - Number(s.startPage || 0)`。三处均漏 `+1`。对照：`app_server.py:251`（build_sample_state）手动写 `"pagesRead": 30`（对应 startPage=1, endPage=30），正确值应为 endPage - startPage + 1 = 30，公式返回 29。
+- why: 阅读第 1–30 页实际读了 30 页，但公式返回 29；按月/按书统计总页数时，每条 session 均低估 1 页。用户若以统计数字衡量阅读量，持续偏低 1 页/次会慢慢积累为可感知误差。
+- how: 将 `app.js:2311`、`app.js:2318`、`app.js:1456` 三处的 `endPage - startPage` 改为 `endPage - startPage + 1`。纯前端，3 处均为单行修改，无 DB schema 变更，无后端改动。Touch: `app.js:2311, 2318`（addSession/editSession）；`app.js:1456`（统计栏）。
+
+### OPT-095 — 新建摘抄对话框页码字段从不预填 `book.currentPage` — 由 explore E155 提拔 [2026-07-05]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——「拍照摘抄」是北极星路径最高频操作；页码字段是摘抄对话框中唯一无默认值的常用字段，每次手动填写是持续小摩擦，预填消除之。与 OPT-084（session startPage 预填当前页）完全对称，建议搭车同一 PR。
+- description: `app.js:2520`（openNewQuoteForBook）：`els.quoteForm.querySelector('[name="page"]').value = ""`，无条件将页码置空。`book.currentPage` 已由 `addSession()` 维护（`app.js:2314`），OPT-084 将其用于 session startPage 预填（已 triaged）；摘抄对话框却从未读取该值，与 session 表单形成对称缺陷。
+- why: 用户拍照摘抄时通常处于当前页（即 book.currentPage），每次都需手动输入页码；OPT-084 已验证「预填当前页」有价值，摘抄页码与之对称且独立，S 级修复，可直接搭车 OPT-084。
+- how: 在 `openNewQuoteForBook(bookId)` 内，将 `value = ""` 改为：`const _curPage = state.books.find(b => b.id === bookId)?.currentPage; els.quoteForm.querySelector('[name="page"]').value = _curPage || "";`。约 2–3 行，纯前端。Touch: `app.js:2520`（openNewQuoteForBook）；参照 `app.js:2314`（addSession 回写 currentPage）及 OPT-084 预填逻辑。

@@ -3020,3 +3020,51 @@ function matchBooks(query) {
 ---
 
 > 本次 run 将 E150（matchBooks tags/notes）提拔为 OPT-092。将 E147（deleteSession 不回写 book.currentPage，上轮已登记）提拔为 OPT-093。E151（跨页 OCR）、E152（书籍阅读日期字段）、E153（聊天「最新」标签占行）、E154（OCR 逐行删除）作为候选登记。
+
+## 2026-07-05
+
+> 本次 run 核实 E153（聊天「最新」标签）已修（OPT-054 PR #47 done）、E154（OCR 逐行删除）已修（OPT-055 PR #46 done），两条 stale。新增 E155–E157 三条方向；将 E148（pagesRead 差一）提拔为 OPT-094，E155（摘抄页码预填）提拔为 OPT-095。
+
+### E155 — 新建摘抄对话框页码字段从不预填 `book.currentPage`，与 OPT-084 形成对称缺陷
+
+**What:** `app.js:2520`（`openNewQuoteForBook()`）硬写 `els.quoteForm.querySelector('[name="page"]').value = ""`，无论 `book.currentPage` 是否有值，页码字段永远置空。OPT-084（阅读记录 startPage 预填当前页）已 triaged，摘抄页码存在完全相同的模式却未登记。用户拍照摘抄时通常知道当前页码（即 `book.currentPage`），每次新建摘抄都需手动填写。
+
+**Why it matters:** 「拍照摘抄」是北极星路径最高频操作；页码字段是摘抄对话框中唯一无默认值的常用字段。OPT-084 已明确「startPage 预填当前页」有价值，摘抄页码与之对称，S 级修复，可搭车 OPT-084 同一 PR。
+
+**Complexity:** S — 在 `openNewQuoteForBook(bookId)` 内读取 `state.books.find(b => b.id === bookId)?.currentPage`，若有值则填入，否则保持空。1–3 行，纯前端，无 API 改动。
+
+**Files:** `app.js:2520`（openNewQuoteForBook）
+
+**northstar:** 弱-中——「采集顺滑」直接受益；手机上手动输入数字页码每次都是小摩擦，预填消除这一摩擦。S 级，建议搭车 OPT-084。
+
+---
+
+### E156 — `/api/account/export` 导出时间戳使用 `now_iso()`（本地时间）而非 `utc_now_iso()`，违反 UTC 策略
+
+**What:** `app_server.py:3905`：`"exportedAt": now_iso()`；OPT-014/024/031 已在所有用户可见时间戳上建立 `utc_now_iso()` 统一策略。`now_iso()` 输出服务器本地时间（不带 Z 后缀），导出文件的 `exportedAt` 字段与所有其他 ISO 时间戳格式不一致，跨时区环境下时间含义模糊。
+
+**Why it matters:** 导出文件是离线备份；`exportedAt` 是文件唯一的时间戳，若未来做导出历史对比或版本校验，本地时间会产生歧义。S 级单行修复，无需设计讨论。
+
+**Complexity:** S — 将 `app_server.py:3905` 的 `now_iso()` 改为 `utc_now_iso()`，单行，无测试变更。
+
+**Files:** `app_server.py:3903-3905`（/api/account/export handler）
+
+**northstar:** 弱——数据一致性，非用户直接感知路径；但与既定策略对齐，预防将来时区 bug。S 级，可搭车任意后端 PR。
+
+---
+
+### E157 — 摘抄列表过滤维度仅有 全部/摘抄/笔记，缺少「拍照来源」过滤器
+
+**What:** `index.html:129-132`：过滤 chips 固定为三项（`全部` / `摘抄` / `笔记`）；`app.js:1521-1535`（`renderQuotes()`）仅按 `q.kind === "quote"` / `q.kind === "note"` 过滤。现有 quote 对象有 `source` 字段（`"ocr"` / `"manual"`），但未用于任何过滤维度。用户无法快速找出所有「拍照生成」的摘抄进行批量审核或补充页码。
+
+**Why it matters:** 随着 OCR 存量增多，用户「想回去补全旧摘抄」（2026-07-05 北极星主观信号：「很想把之前读过的书的摘抄补全」）需要一个「按来源过滤」入口；若 OCR 摘抄有明确标识，用户可系统性地找到并完善它们，提升回顾价值（Theme 2）。
+
+**Complexity:** M — 前端：`index.html` 增加「拍照」chip，`renderQuotes()` 增加 `source === "ocr"` 分支（约 15–20 行）；需确认后端 OCR 路径是否写入 `source: "ocr"`（若否，需补写 5 行后端逻辑）。整体前后端均需小改。
+
+**Files:** `index.html:129-132`（filter chips）；`app.js:1521-1535`（renderQuotes filter logic）；`app_server.py`（OCR addQuote 路径，确认 source 字段写入）
+
+**northstar:** 弱-中——「回顾有价值」Theme 2；「拍照」过滤能帮用户快速定位 OCR 存量做系统性整理，与主观信号直接对应。
+
+---
+
+> 本次 run 将 E148（pagesRead 差一）提拔为 OPT-094，E155（摘抄页码预填）提拔为 OPT-095。E151（跨页 OCR）、E152（书籍阅读日期字段）、E156（导出时间戳 UTC 一致性）、E157（摘抄来源过滤）作为候选登记。
