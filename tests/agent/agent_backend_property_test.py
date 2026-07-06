@@ -782,5 +782,115 @@ class AgentBackendPropertyTests(unittest.TestCase):
             self.assertTrue(any(action_type in item for item in payload["validationErrors"]))
 
 
+    def test_opt064_ocr_fields_stripped_from_prompt_quotes(self):
+        """OPT-064: ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt
+        must NOT appear in the system prompt sent to the LLM."""
+        builder = app_server.PromptBuilder()
+        state = {
+            "books": [{"id": "bk-1", "title": "测试书", "author": "作者", "updatedAt": "2026-01-01T00:00:00Z"}],
+            "sessions": [],
+            "quotes": [
+                {
+                    "id": "q-1",
+                    "bookId": "bk-1",
+                    "kind": "quote",
+                    "content": "这是手工输入的摘抄",
+                    "ocrText": "这段大段 OCR 原始文本不应该被发送给模型",
+                    "imageUrl": "/media/user/img.jpg",
+                    "ocrStatus": "done",
+                    "ocrSource": "kimi",
+                    "ocrError": "",
+                    "ocrUpdatedAt": "2026-01-01T01:00:00Z",
+                    "ocrRequestedAt": "2026-01-01T00:59:00Z",
+                }
+            ],
+            "chatHistories": {},
+            "connections": [],
+        }
+
+        prompt = builder.build_chat_prompt(state, "bk-1", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        payload = json.loads(user_data_json)
+        quotes_in_prompt = payload["quotes"]
+
+        self.assertEqual(len(quotes_in_prompt), 1)
+        q = quotes_in_prompt[0]
+        # Heavy OCR fields must be absent
+        for field in ("ocrText", "imageUrl", "ocrStatus", "ocrSource", "ocrError", "ocrUpdatedAt", "ocrRequestedAt"):
+            self.assertNotIn(field, q, f"Field '{field}' must not be sent to the LLM")
+        # Essential fields must be present
+        self.assertEqual(q["id"], "q-1")
+        self.assertEqual(q["content"], "这是手工输入的摘抄")
+        # The raw ocrText value must not appear anywhere in the prompt string
+        self.assertNotIn("这段大段 OCR 原始文本不应该被发送给模型", prompt)
+
+    def test_opt064_ocr_only_quote_content_coalesced_from_ocrtext(self):
+        """OPT-064: For OCR quotes where content is empty, ocrText must be coalesced
+        into the content field so the LLM still sees the quote's text."""
+        builder = app_server.PromptBuilder()
+        ocr_text = "这是 OCR 识别出来的全文，content 字段为空"
+        state = {
+            "books": [{"id": "bk-1", "title": "书", "author": "A", "updatedAt": "2026-01-01T00:00:00Z"}],
+            "sessions": [],
+            "quotes": [
+                {
+                    "id": "q-ocr",
+                    "bookId": "bk-1",
+                    "kind": "quote",
+                    "content": "",          # typical for OCR quotes before editing
+                    "ocrText": ocr_text,
+                    "ocrStatus": "done",
+                    "imageUrl": "/media/user/img.jpg",
+                }
+            ],
+            "chatHistories": {},
+            "connections": [],
+        }
+
+        prompt = builder.build_chat_prompt(state, "bk-1", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        payload = json.loads(user_data_json)
+        q = payload["quotes"][0]
+
+        # ocrText field itself must not appear
+        self.assertNotIn("ocrText", q)
+        # But its value must be coalesced into content
+        self.assertEqual(q["content"], ocr_text, "ocrText must be promoted to content for OCR-only quotes")
+
+    def test_opt064_focused_quote_ocr_fields_stripped(self):
+        """OPT-064: focused_quote in the prompt must also have OCR fields stripped."""
+        builder = app_server.PromptBuilder()
+        ocr_text = "focused 摘抄的 OCR 文本"
+        state = {
+            "books": [{"id": "bk-1", "title": "书", "author": "A", "updatedAt": "2026-01-01T00:00:00Z"}],
+            "sessions": [],
+            "quotes": [
+                {
+                    "id": "q-focus",
+                    "bookId": "bk-1",
+                    "kind": "quote",
+                    "content": "",
+                    "ocrText": ocr_text,
+                    "ocrStatus": "done",
+                    "imageUrl": "/media/user/big-image.jpg",
+                    "ocrSource": "kimi",
+                }
+            ],
+            "chatHistories": {},
+            "connections": [],
+        }
+
+        prompt = builder.build_chat_prompt(state, "bk-1", [], quote_id="q-focus")
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        payload = json.loads(user_data_json)
+        fq = payload["focused_quote"]
+
+        self.assertNotIn("ocrText", fq)
+        self.assertNotIn("imageUrl", fq)
+        self.assertNotIn("ocrStatus", fq)
+        self.assertNotIn("ocrSource", fq)
+        self.assertEqual(fq["content"], ocr_text)
+
+
 if __name__ == "__main__":
     unittest.main()
