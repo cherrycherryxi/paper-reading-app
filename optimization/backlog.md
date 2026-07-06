@@ -519,7 +519,7 @@ Format per item:
 - how: 将 `save_state` 调用移入 `try` 块内（压缩成功才持久化），`except` 改为直接 `return history`（原样返回，下次请求在条件改善时重试压缩）。修改后：`app_server.py:2279-2292` 的 `try` 块末尾追加 `state.setdefault("chatHistories", {})[history_key] = compressed; save_state(conn, user_id, state); return compressed`；`except Exception: return history`。Touch: `app_server.py:2267-2292`（`compress_chat_history_if_needed` 函数体，约 4 行重排）。
 
 ### OPT-064 — `PromptBuilder.build_chat_prompt()` 向 LLM 发送摘抄完整对象含 `ocrText`，每次对话浪费数百至数万 token — 由 explore E101 提拔
-- status: triaged
+- status: done (PR #55, merged 2026-07-06 — build_chat_prompt 摘抄白名单过滤 ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt；零 API/DB 变更)
 - area: backend
 - northstar: 中——与 OPT-020/OPT-047 同类，直接降低每次探讨的 API 成本；`ocrText` 字段是隐形成本炸弹（用户 OCR 越多、每次对话越贵），Theme 1 成本控制遗漏项。
 - description: `app_server.py:2319` 将摘抄列表以完整对象形式写入 LLM payload（`"quotes": quotes`）。每个对象包含 LLM 推理无用字段：`imageUrl`（~8 tokens）、`ocrStatus/ocrSource`（各 ~3 tokens）、`ocrError`（~5 tokens）、`ocrUpdatedAt/ocrRequestedAt`（各 ~8 tokens），以及最严重的 `ocrText`——快速 OCR 后若用户已手动编辑 content，原始全页文本以 `ocrText` 保留（`app_server.py:1347-1352`），每页 500-2000 字符（125-500 tokens）；20 张摘抄含 5 张 ocrText 即超 2500 tokens。同理 `focused_quote`（`app_server.py:2320`）也含 `imageUrl` 等字段。估算：正常场景 ~600 tokens 浪费，ocrText 全量存在时超 10,000 tokens。OPT-020（connections 字段裁剪）和 OPT-047（all_books_summary 截断）已修复同类问题，本项是漏网的同等优先级补丁。
@@ -823,7 +823,7 @@ Format per item:
 - how: `deleteSession()` 完成 `state.sessions.filter()` 后，扫描该书剩余所有 session 找最大 endPage，回写 `book.currentPage`（无 session 则重置为 0），同步更新 `book.lastReadAt` 取剩余 session 最新 date，并重新评估 `finished` 状态（参照 addSession 逻辑）。约 10–15 行，纯前端，无后端改动。Touch: `app.js:2583-2598`（deleteSession）；参照 `app.js:2314-2325`（addSession 回写逻辑）。
 
 ### OPT-094 — `addSession()` pagesRead 计算差一，统计数据永远少计一页 — 由 explore E148 提拔 [2026-07-05]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -833,7 +833,7 @@ Format per item:
 - how: 将 `app.js:2311`、`app.js:2318`、`app.js:1456` 三处的 `endPage - startPage` 改为 `endPage - startPage + 1`。纯前端，3 处均为单行修改，无 DB schema 变更，无后端改动。Touch: `app.js:2311, 2318`（addSession/editSession）；`app.js:1456`（统计栏）。
 
 ### OPT-095 — 新建摘抄对话框页码字段从不预填 `book.currentPage` — 由 explore E155 提拔 [2026-07-05]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
