@@ -725,7 +725,8 @@ Format per item:
 - how: `app.js:2436`：将 `value = ""` 改为 `value = (book && book.currentPage > 0 ? book.currentPage + 1 : "")`；需在该行前确保 `book = state.books.find(b => b.id === bookId)`（openNewSessionForBook 入参已有 bookId）。建议同 PR 修复 E138（deleteSession 回写逻辑），消除数据不对称。Touch: `app.js:2430-2441`；参照 `app.js:2221-2232`（addSession currentPage 维护逻辑）。
 
 ### OPT-085 — 书封面上传未压缩（单张可达 4.6MB），拖慢移动端书单加载 — owner 2026-07-02 手机亲测
-- status: triaged
+- status: done (2026-07-06 — 方案 A：前端压缩早已实现，本次只做历史存量清理)
+- done note (2026-07-06，实测核对后重定范围): **原描述「封面上传未压缩」已过时。** 三条封面上传路径（新建 `bookImageInput` app.js:4559 / 编辑 `bookEditImageInput` app.js:4545 / 更换 `changeBookCover` app.js:3068）自 `2026-05-14`（`resizeImageToDataUrl`）起**已全部压缩到 1200px/q0.85**，backlog「推荐方案①前端 canvas 限宽」即已上线代码。磁盘实测证实：>1MB 大图 12 张（合计 36MB）**mtime 全在 4月–5月13日**（压缩上线前），压缩后仅 2 张 >1MB 且是摘抄 OCR 图（`QUOTE_IMAGE_MAX_PX=1800/q0.92` 为识别质量保高分辨率，非封面）。「书单巨卡」本已被缩略图(opt2 `.thumb.jpg` ~30KB)+懒加载遮蔽。**真正剩余工作=一次性历史清理**：`scripts/generate_thumbnails.py --recompress-originals`（就地重压 >1.2MB 老图到 1600px/q0.80，保持文件名/格式→URL 不变，压前备份到 `uploads-recompress-backup-<date>/`，仅更小才替换）。2026-07-06 dev 已执行：12 张 36MB→4.6MB（省 31.4MB），缩略图已重生成，备份完好。回归测试 `tests/agent/recompress_originals_test.py`（6 例：目标选择/阈值/dry-run 无副作用/flag 解析）。**prod 侧同样的历史大图需在 prod checkout 各跑一次**（`paper-reading-app-prod/uploads`）。
 - area: frontend (+ backend 可选)
 - priority: P2
 - size: M
@@ -745,10 +746,17 @@ Format per item:
 - how: 静态资源版本化长缓存——JS/CSS 引用加内容哈希或版本串（项目已有 `?v=20260531a` 雏形），响应头由 no-store 改为 `Cache-Control: public, max-age=31536000, immutable`，发版时改版本串即让缓存失效。需建立「发版必改版本串」的纪律，否则会推不出新前端。Touch: app_server.py `_STATIC` 响应头（~3416-3425）+ index.html 里对 app.js/chat.js/styles.css 的引用加版本串。
 
 ### OPT-087 — 摘抄/书/思想碰撞「一键生成分享图」(内容卡自传播增长引擎)
-- status: triaged
+- status: in-progress (2026-07-06 — 三版式全部落地：摘抄卡/思想碰撞卡/书卡；剩真机 QC+埋点)
+- progress (2026-07-06): 采用**方案 A（前端纯 Canvas 原生绘制，零依赖，契合项目「无构建/不引重库」约定）**。三版式照 `~/Downloads/又买了一本书-分享物料/` 复刻，共用 header/footer/divider/pill/tags 绘制助手（`drawShareHeader`/`drawShareFooter`/`drawShareDivider`/`drawSharePill`/`layoutShareTags`/`newShareCanvas`/`loadShareAssets`），全部动态高度：
+  - **摘抄卡** `renderQuoteShareCard`：装饰引号+衬线正文+《出处》+批注；slogan「买书容易，读完才算。/扫码，记录你自己的阅读」。入口:摘抄 ⋯ 菜单 + 摘抄详情弹窗。
+  - **思想碰撞卡** `renderConnectionShareCard`：kind 胶囊(◎ 思想碰撞·{kind})+顶部装饰圆+双书纵向堆叠(↓)+thought+标签；slogan「发现你书架上的暗线/扫码，让 AI 帮你连起来」。入口:关联卡 action 分享按钮。
+  - **书卡** `renderBookShareCard`：真实封面裁圆(左)+书名/作者/状态胶囊(✓读完·N页·M天读完)/标签(右)+左绿边「我的读后」卡；slogan「买书容易，读完才算。/扫码，管理你自己的书架」。入口:书卡 ⋯ 菜单 + 书详情弹窗。
+  统一收尾 `openShareCardDialog()`→`shareCardDialog` 预览(长按存图/下载)。三版式均经 **headless Chrome 真渲染验收**。
+  **owner 反馈迭代(2026-07-06)**:① 长文本会撑成巨图 → 加 `truncateForShare()`(摘抄≤240/thought≤220/书简介≤150 字，超出加省略号)，分享图恒为海报尺寸；② 书卡原用参照图的「我的读后」标签，但本应用 `book.notes` 官方语义是「内容简介/备注」(index.html:360)——先纠正为「内容简介」；③ owner 要「有读后感优先展示读后感」→ **新增 book.review 字段**(纯前端，`sanitize_state` 对 books 透传、零后端改动)：书编辑表单加「读后感」textarea、`openBookEditDialog`/`saveBookEdit` 存取、书卡与书详情**优先展示 review(标签「我的读后」)、无则回落 notes(标签「内容简介」)**。
+  测试 `tests/frontend/share-card.test.js` **9 例**(三渲染器内容入画+折行+dialog/下载+空内容拒绝+三入口接线+read-priority+截断)。Touch: `app.js`、`index.html`(shareCardDialog+详情弹窗按钮+book.review 输入)、`styles.css`(.share-card-preview+.book-detail-review)。**剩余**:真机视觉 QC；分享埋点(北极星获客可观测)；(可选)新增书表单/OCR 加书也支持 review。
 - area: frontend
 - priority: P2（owner 主动为读书会推广提出，获客侧价值高，可争 P1）
-- size: L
+- size: L（三版式均已实现；剩 QC/埋点收尾）
 - northstar: 强——owner 2026-07-02 为线下读书会推广主动提出。内容卡自带二维码，用户每次分享摘抄/书籍关联都在替产品拉新，直击北极星「成为默认阅读工具」的获客侧。flomo / 微信读书同款自传播逻辑。
 - description: 在每张摘抄卡 / 书卡 / 思想碰撞(关联)卡上加「生成分享图」按钮，一键渲染成带品牌 + 二维码的竖版海报，可保存 / 发朋友圈。三种版式：摘抄卡=留白衬线；关联卡=深色「发现感」；书卡=封面+评分+读后感金句。
 - why: 分享「一句摘抄 / 一个书籍关联」比分享落地页更抓人——转发者替产品传播，扫码者被内容勾入，转化质量远高于硬广。每个用户都是获客节点，是可持续自传播。2026-07-02 已手工做出成品（assets/brand + Chrome 渲染）验证视觉与吸引力，本项是把它产品化进 App。

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-06T01:07:36.920Z
-> Files: 226 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-06T13:41:17.876Z
+> Files: 228 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -130,10 +130,10 @@
 ## ./
 
 - `.DS_Store` (~2186 tok)
-- `.gitignore` — Git ignore rules (~196 tok)
+- `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71177 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54506 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
@@ -141,7 +141,7 @@
 - `CLAUDE.md` — OpenWolf (~1301 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~10720 tok)
+- `index.html` — 🐛 又买了一本书 (~11081 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
@@ -241,7 +241,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~22677 tok)
+- `backlog.md` — Optimization Backlog (~23267 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~55120 tok)
@@ -250,14 +250,14 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~445 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~4676 tok)
+- `triage.md` — Triage (~4734 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
 
 - `dev_backend.py` — backend_python, check_backend_environment, check_mcp_server, iter_watched_files (~1692 tok)
 - `dev_backend.sh` (~153 tok)
-- `generate_thumbnails.py` — 为 uploads 下的图片生成书单用缩略图（<stem>.thumb.jpg，最长边 400px）。 (~735 tok)
+- `generate_thumbnails.py` — 生成书单缩略图（<stem>.thumb.jpg，400px）；另 `--recompress-originals` 模式(OPT-085)就地重压历史大图(保名/保格式，压前备份)。 (~1969 tok)
 - `run_backend_service.sh` — Unattended backend runner for launchd (stable serving, NOT the dev watcher). (~123 tok)
 - `start_backend.sh` (~348 tok)
 
@@ -295,6 +295,7 @@
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
 - `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3253 tok)
+- `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
 - `static_cache_test.py` — OPT-086: 静态资源缓存策略测试。 (~692 tok)
@@ -327,6 +328,7 @@
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~2616 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
+- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~3130 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3176 tok)
 
 ## wechat-miniprogram/
