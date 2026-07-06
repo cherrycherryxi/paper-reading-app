@@ -807,6 +807,9 @@ function buildConnectionCard(conn) {
     <div class="connection-card-header">
       <span class="connection-kind-badge" data-kind="${escapeHtml(conn.kind)}">${escapeHtml(kindLabel)}</span>
       <div class="conn-card-actions">
+        <button class="conn-share-btn button-icon" type="button" aria-label="生成分享图" data-conn-id="${escapeHtml(conn.id)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+        </button>
         <button class="conn-edit-btn button-icon" type="button" aria-label="编辑关联" data-conn-id="${escapeHtml(conn.id)}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -1252,6 +1255,7 @@ function buildBookSearchCard(book, cache) {
       <li><button type="button" data-menu="edit">编辑</button></li>
       <li><button type="button" data-menu="chat">去聊</button></li>
       <li><button type="button" data-menu="connect">关联</button></li>
+      <li><button type="button" data-menu="share">生成分享图</button></li>
       <li class="menu-item-danger"><button type="button" data-menu="delete">删除</button></li>
     </ul>
     <div class="book-grid-body">
@@ -1284,6 +1288,7 @@ function buildBookSearchCard(book, cache) {
     else if (action === "edit") openBookEditDialog(book.id);
     else if (action === "chat") { activateTab("chat"); window.paperReadingApp?.switchChatToBook?.(book.id); }
     else if (action === "connect") openConnectionDialog({ sourceType: "book", sourceId: book.id });
+    else if (action === "share") shareBookCard(book.id);
     else if (action === "delete") deleteBook(book.id);
   });
 
@@ -1562,6 +1567,7 @@ function renderQuotes() {
           <ul class="card-context-menu" hidden>
             <li><button type="button" data-quote-menu="chat">去聊</button></li>
             <li><button type="button" data-quote-menu="edit">编辑</button></li>
+            <li><button type="button" data-quote-menu="share">生成分享图</button></li>
             <li class="menu-item-danger"><button type="button" data-quote-menu="delete">删除</button></li>
           </ul>
           <div class="entry-card-cover">
@@ -2250,6 +2256,7 @@ async function addBook(formData) {
       status: String(formData.get("status")),
       tags: normalizeTags(formData.get("tags")),
       notes: String(formData.get("notes")).trim(),
+      review: String(formData.get("review") || "").trim(),
       coverImageUrl,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -2510,6 +2517,461 @@ function goToQuoteChat(quoteId) {
   window.paperReadingApp?.switchChatToQuote?.(quote.bookId, quote.id);
 }
 
+// ===== OPT-087 分享图（摘抄卡 / 思想碰撞卡 / 书卡）=====
+// 品牌参照物料（~/Downloads/又买了一本书-分享物料/）：米白底 + 品牌绿 + 衬线大字 +
+// 底部 slogan/二维码。三版式共用 header/footer/divider/tags 助手。纯 Canvas，零依赖、离线可用。
+const SHARE_CARD = {
+  W: 1080, PAD: 84,
+  bg: "#f5f0e8", ink: "#3d4a3f", inkSoft: "#5a6a5d", inkMuted: "#8a948a",
+  accent: "#c9a85a", pillBg: "#e7ecdf",
+  brand: "又买了一本书",
+  serif: '"Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif',
+  sans: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif',
+};
+
+function loadImageForShare(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null); // 资源缺失时降级，不阻断出图
+    img.src = src;
+  });
+}
+
+// 按最大宽度把 text 折成多行（CJK 无空格，逐字测量）。
+function wrapCanvasText(ctx, text, maxWidth) {
+  const lines = [];
+  let line = "";
+  for (const ch of String(text || "")) {
+    if (ch === "\n") { lines.push(line); line = ""; continue; }
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
+// 分享图是海报不是文档：超长正文截断到 max 字并加省略号，避免生成一张要滚动半天的巨图。
+function truncateForShare(text, max) {
+  const s = String(text || "").trim();
+  return s.length > max ? s.slice(0, max).replace(/\s+$/, "") + "…" : s;
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// 三版式共用：加载品牌资源、建 canvas + 铺底、画 header。
+async function loadShareAssets() {
+  const [qr, logo] = await Promise.all([
+    loadImageForShare("/assets/brand/qr-readjot.png"),
+    loadImageForShare("/assets/brand/logo-b-stack.svg"),
+  ]);
+  return { qr, logo };
+}
+
+function newShareCanvas(C, height) {
+  const canvas = document.createElement("canvas");
+  canvas.width = C.W;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, C.W, height);
+  return { canvas, ctx };
+}
+
+function drawShareHeader(ctx, C, logo) {
+  const y = C.PAD;
+  if (logo) {
+    ctx.drawImage(logo, C.PAD, y, 64, 64);
+  } else {
+    ctx.fillStyle = C.ink;
+    roundRectPath(ctx, C.PAD, y, 64, 64, 14);
+    ctx.fill();
+  }
+  ctx.fillStyle = C.ink;
+  ctx.font = `600 40px ${C.sans}`;
+  ctx.fillText(C.brand, C.PAD + 84, y + 44);
+  return y + 64; // header 底部 y
+}
+
+function drawShareDivider(ctx, C, y) {
+  ctx.strokeStyle = "rgba(61,74,63,0.15)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(C.PAD, y);
+  ctx.lineTo(C.W - C.PAD, y);
+  ctx.stroke();
+}
+
+function drawShareFooter(ctx, C, qr, footerTop, slogan, sub) {
+  const qrSize = 176;
+  if (qr) ctx.drawImage(qr, C.W - C.PAD - qrSize, footerTop, qrSize, qrSize);
+  ctx.fillStyle = C.ink;
+  ctx.font = `700 34px ${C.sans}`;
+  ctx.fillText(slogan, C.PAD, footerTop + 46);
+  ctx.fillStyle = C.inkMuted;
+  ctx.font = `26px ${C.sans}`;
+  ctx.fillText(sub, C.PAD, footerTop + 92);
+}
+
+// 一个胶囊标签；返回其宽度。
+function drawSharePill(ctx, x, y, text, { font, fg, bg, padX = 24, h = 52, radius = 26 }) {
+  ctx.font = font;
+  const w = ctx.measureText(text).width + padX * 2;
+  ctx.fillStyle = bg;
+  roundRectPath(ctx, x, y, w, h, radius);
+  ctx.fill();
+  ctx.fillStyle = fg;
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + padX, y + h / 2 + 1);
+  ctx.textBaseline = "alphabetic";
+  return w;
+}
+
+// 标签行（# tag 胶囊，自动换行）。draw=false 时只测量高度不绘制。返回结束 y。
+function layoutShareTags(ctx, C, tags, startY, draw) {
+  if (!tags || !tags.length) return startY;
+  const h = 48, gap = 16, rowGap = 14;
+  ctx.font = `26px ${C.sans}`;
+  let x = C.PAD, y = startY;
+  for (const t of tags) {
+    const label = `# ${t}`;
+    const w = ctx.measureText(label).width + 40;
+    if (x + w > C.W - C.PAD && x > C.PAD) { x = C.PAD; y += h + rowGap; }
+    if (draw) {
+      ctx.fillStyle = "rgba(61,74,63,0.06)";
+      roundRectPath(ctx, x, y, w, h, 12);
+      ctx.fill();
+      ctx.fillStyle = C.inkSoft;
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, x + 20, y + h / 2 + 1);
+      ctx.textBaseline = "alphabetic";
+    }
+    x += w + gap;
+  }
+  return y + h;
+}
+
+async function renderQuoteShareCard(quote, book) {
+  const C = SHARE_CARD;
+  const contentW = C.W - C.PAD * 2;
+  const { qr, logo } = await loadShareAssets();
+
+  const body = truncateForShare(quote.content || quote.ocrText || "", 240);
+  const title = book?.title ? `《${book.title.replace(/[《》]/g, "")}》` : "";
+  const reflection = truncateForShare(quote.reflection || "", 90);
+
+  const measure = document.createElement("canvas").getContext("2d");
+  const bodyLH = 74;
+  measure.font = `44px ${C.serif}`;
+  const bodyLines = wrapCanvasText(measure, body, contentW);
+  measure.font = `30px ${C.sans}`;
+  const reflLines = reflection ? wrapCanvasText(measure, `批注 · ${reflection}`, contentW) : [];
+
+  let y = C.PAD + 64 + 64 + 96;         // header + 间距 + 装饰引号
+  y += bodyLines.length * bodyLH + 52;  // 正文 + 间距
+  y += 46;                              // 出处
+  if (reflLines.length) y += 16 + reflLines.length * 44;
+  y += 80;
+  const dividerY = y;
+  const footerTop = dividerY + 56;
+  const height = footerTop + 150 + C.PAD;
+
+  const { canvas, ctx } = newShareCanvas(C, height);
+  let cy = drawShareHeader(ctx, C, logo) + 64;
+
+  ctx.fillStyle = "rgba(61,74,63,0.20)";
+  ctx.font = `italic 700 150px ${C.serif}`;
+  ctx.fillText("“", C.PAD - 6, cy + 60);
+  cy += 96;
+
+  ctx.fillStyle = C.ink;
+  ctx.font = `44px ${C.serif}`;
+  for (const ln of bodyLines) { ctx.fillText(ln, C.PAD, cy + 44); cy += bodyLH; }
+  cy += 52;
+
+  if (title) {
+    ctx.fillStyle = C.inkSoft;
+    ctx.font = `700 36px ${C.sans}`;
+    ctx.fillText(`—— ${title}`, C.PAD, cy);
+  }
+  cy += 46;
+
+  if (reflLines.length) {
+    cy += 16;
+    ctx.fillStyle = C.inkMuted;
+    ctx.font = `30px ${C.sans}`;
+    for (const ln of reflLines) { ctx.fillText(ln, C.PAD, cy + 30); cy += 44; }
+  }
+
+  drawShareDivider(ctx, C, dividerY);
+  drawShareFooter(ctx, C, qr, footerTop, "买书容易，读完才算。", "扫码，记录你自己的阅读");
+  return canvas.toDataURL("image/png");
+}
+
+async function renderConnectionShareCard(conn) {
+  const C = SHARE_CARD;
+  const contentW = C.W - C.PAD * 2;
+  const { qr, logo } = await loadShareAssets();
+
+  const src = resolveConnectionSide(conn.sourceType, conn.sourceId);
+  const tgt = resolveConnectionSide(conn.targetType, conn.targetId);
+  const kindLabel = KIND_LABELS[conn.kind] || conn.kind || "关联";
+  const thought = truncateForShare(conn.thought || "", 220);
+  const tags = conn.tags || [];
+
+  const measure = document.createElement("canvas").getContext("2d");
+  measure.font = `700 44px ${C.serif}`;
+  const srcLines = wrapCanvasText(measure, src.label, contentW);
+  const tgtLines = wrapCanvasText(measure, tgt.label, contentW);
+  measure.font = `40px ${C.serif}`;
+  const thoughtLH = 62;
+  const thoughtLines = thought ? wrapCanvasText(measure, thought, contentW) : [];
+  const tagsBlock = layoutShareTags(measure, C, tags, 0, false); // 0 起算的标签块高度
+
+  let y = C.PAD + 64 + 56;                         // header + 间距
+  y += 60 + 40;                                    // kind 胶囊 + 间距
+  const sidesTop = y;
+  y += srcLines.length * 54 + (src.sub ? 36 : 0);
+  y += 54;                                         // 箭头行
+  y += tgtLines.length * 54 + (tgt.sub ? 36 : 0);
+  y += 44;
+  const dividerY1 = y; y += 52;
+  y += thoughtLines.length * thoughtLH;
+  if (tags.length) y += 20 + tagsBlock;
+  y += 70;
+  const dividerY2 = y;
+  const footerTop = dividerY2 + 56;
+  const height = footerTop + 150 + C.PAD;
+
+  const { canvas, ctx } = newShareCanvas(C, height);
+  drawShareHeader(ctx, C, logo);
+
+  // 顶部偏右的装饰圆（发现感）
+  ctx.fillStyle = "rgba(61,74,63,0.06)";
+  ctx.beginPath();
+  ctx.arc(C.W - 30, 40, 190, 0, Math.PI * 2);
+  ctx.fill();
+
+  let cy = C.PAD + 64 + 56;
+  // kind 胶囊
+  drawSharePill(ctx, C.PAD, cy, `◎ 思想碰撞 · ${kindLabel}`,
+    { font: `700 30px ${C.sans}`, fg: C.ink, bg: C.pillBg, h: 60, radius: 30 });
+  cy += 60 + 40;
+
+  // 两侧（纵向堆叠，长标题也不溢出）
+  ctx.fillStyle = C.ink;
+  ctx.font = `700 44px ${C.serif}`;
+  for (const ln of srcLines) { ctx.fillText(ln, C.PAD, cy + 44); cy += 54; }
+  if (src.sub) { ctx.fillStyle = C.inkMuted; ctx.font = `26px ${C.sans}`; ctx.fillText(src.sub, C.PAD, cy + 26); cy += 36; }
+  ctx.fillStyle = C.accent;
+  ctx.font = `700 34px ${C.sans}`;
+  ctx.fillText("↓", C.PAD + 4, cy + 34); cy += 54;
+  ctx.fillStyle = C.ink;
+  ctx.font = `700 44px ${C.serif}`;
+  for (const ln of tgtLines) { ctx.fillText(ln, C.PAD, cy + 44); cy += 54; }
+  if (tgt.sub) { ctx.fillStyle = C.inkMuted; ctx.font = `26px ${C.sans}`; ctx.fillText(tgt.sub, C.PAD, cy + 26); cy += 36; }
+  cy += 44;
+
+  drawShareDivider(ctx, C, dividerY1);
+  cy = dividerY1 + 52;
+  ctx.fillStyle = C.ink;
+  ctx.font = `40px ${C.serif}`;
+  for (const ln of thoughtLines) { ctx.fillText(ln, C.PAD, cy + 40); cy += thoughtLH; }
+  if (tags.length) { cy += 20; layoutShareTags(ctx, C, tags, cy, true); }
+
+  drawShareDivider(ctx, C, dividerY2);
+  drawShareFooter(ctx, C, qr, footerTop, "发现你书架上的暗线", "扫码，让 AI 帮你连起来");
+  return canvas.toDataURL("image/png");
+}
+
+function readingDaysLabel(book) {
+  const s = Date.parse(book?.startedAt || ""), f = Date.parse(book?.finishedAt || "");
+  if (!s || !f || f < s) return "";
+  return `${Math.max(1, Math.round((f - s) / 86400000))} 天读完`;
+}
+
+async function renderBookShareCard(book) {
+  const C = SHARE_CARD;
+  const [{ qr, logo }, cover] = await Promise.all([
+    loadShareAssets(),
+    book.coverImageUrl ? loadImageForShare(resolveImageUrl(book.coverImageUrl)) : Promise.resolve(null),
+  ]);
+
+  const title = `《${(book.title || "").replace(/[《》]/g, "")}》`;
+  const author = book.author || "";
+  // 有读后感优先展示读后感，否则回落内容简介；标签随内容语义变化。
+  const review = (book.review || "").trim();
+  const notesLabel = review ? "我的读后" : "内容简介";
+  const notes = truncateForShare(review || book.notes || "", 150);
+  const tags = book.tags || [];
+  const statusLabel = statusMap[book.status] || book.status || "";
+  const pills = [];
+  if (statusLabel) pills.push((book.status === "finished" ? "✓ " : "") + statusLabel);
+  if (book.totalPages) pills.push(`${book.totalPages} 页`);
+  const days = readingDaysLabel(book);
+  if (days) pills.push(days);
+
+  const coverW = 300, coverH = 400, gap = 44;
+  const hasCover = !!cover;
+  const infoX = C.PAD + (hasCover ? coverW + gap : 0);
+  const infoW = C.W - C.PAD - infoX;
+
+  const measure = document.createElement("canvas").getContext("2d");
+  measure.font = `700 52px ${C.serif}`;
+  const titleLines = wrapCanvasText(measure, title, infoW);
+  const tagsLine = tags.length ? tags.join(" · ") : "";
+  const notesLH = 60;
+  measure.font = `44px ${C.serif}`;
+  const notesLines = notes ? wrapCanvasText(measure, notes, contentWFor(C, 48)) : [];
+
+  const headerBottom = C.PAD + 64 + 56;
+  // 右信息列高度
+  let infoH = titleLines.length * 64 + 12;
+  if (author) infoH += 48;
+  if (pills.length) infoH += 68;
+  if (tagsLine) infoH += 40;
+  const topBlockH = Math.max(hasCover ? coverH : 0, infoH);
+
+  let y = headerBottom + topBlockH + 56;
+  let notesBoxTop = 0, notesBoxH = 0;
+  if (notesLines.length) {
+    notesBoxTop = y;
+    notesBoxH = 40 + 40 + notesLines.length * notesLH + 40; // 上内边距+标签+正文+下内边距
+    y += notesBoxH + 70;
+  }
+  const dividerY = y;
+  const footerTop = dividerY + 56;
+  const height = footerTop + 150 + C.PAD;
+
+  const { canvas, ctx } = newShareCanvas(C, height);
+  drawShareHeader(ctx, C, logo);
+
+  const blockTop = headerBottom;
+  if (hasCover) {
+    ctx.save();
+    roundRectPath(ctx, C.PAD, blockTop, coverW, coverH, 16);
+    ctx.clip();
+    ctx.drawImage(cover, C.PAD, blockTop, coverW, coverH);
+    ctx.restore();
+  }
+
+  let iy = blockTop + 8;
+  ctx.fillStyle = C.ink;
+  ctx.font = `700 52px ${C.serif}`;
+  for (const ln of titleLines) { ctx.fillText(ln, infoX, iy + 52); iy += 64; }
+  iy += 12;
+  if (author) {
+    ctx.fillStyle = C.inkSoft;
+    ctx.font = `34px ${C.sans}`;
+    ctx.fillText(author, infoX, iy + 34); iy += 48;
+  }
+  if (pills.length) {
+    let px = infoX;
+    for (const p of pills) {
+      const w = drawSharePill(ctx, px, iy, p, { font: `600 28px ${C.sans}`, fg: C.ink, bg: C.pillBg, h: 56, radius: 28 });
+      px += w + 16;
+    }
+    iy += 68;
+  }
+  if (tagsLine) {
+    ctx.fillStyle = C.inkMuted;
+    ctx.font = `28px ${C.sans}`;
+    ctx.fillText(tagsLine, infoX, iy + 28); iy += 40;
+  }
+
+  if (notesLines.length) {
+    // 读后卡：左绿边 + 浅底
+    ctx.fillStyle = "#ffffff";
+    roundRectPath(ctx, C.PAD, notesBoxTop, C.W - C.PAD * 2, notesBoxH, 18);
+    ctx.fill();
+    ctx.fillStyle = C.ink;
+    roundRectPath(ctx, C.PAD, notesBoxTop, 8, notesBoxH, 4);
+    ctx.fill();
+    let ny = notesBoxTop + 40;
+    ctx.fillStyle = C.inkSoft;
+    ctx.font = `700 28px ${C.sans}`;
+    ctx.fillText(notesLabel, C.PAD + 48, ny + 28); ny += 40 + 12;
+    ctx.fillStyle = C.ink;
+    ctx.font = `44px ${C.serif}`;
+    for (const ln of notesLines) { ctx.fillText(ln, C.PAD + 48, ny + 44); ny += notesLH; }
+  }
+
+  drawShareDivider(ctx, C, dividerY);
+  drawShareFooter(ctx, C, qr, footerTop, "买书容易，读完才算。", "扫码，管理你自己的书架");
+  return canvas.toDataURL("image/png");
+}
+
+// 读后卡内容区宽度（左右各留 48 内边距）。
+function contentWFor(C, innerPad) {
+  return C.W - C.PAD * 2 - innerPad * 2;
+}
+
+// 三版式统一的「出图 → 预览弹窗」收尾。
+function openShareCardDialog(dataUrl, filename) {
+  const dialog = document.getElementById("shareCardDialog");
+  const img = document.getElementById("shareCardImg");
+  const dl = document.getElementById("shareCardDownload");
+  if (img) img.src = dataUrl;
+  if (dl) { dl.href = dataUrl; dl.download = `${String(filename).replace(/[《》\/\\]/g, "")}-分享图.png`; }
+  dialog?.showModal();
+}
+
+async function shareQuoteCard(quoteId) {
+  if (!requireAuth("生成分享图")) return;
+  const quote = state.quotes.find((q) => q.id === quoteId);
+  if (!quote) return;
+  if (!(quote.content || quote.ocrText || "").trim()) {
+    showToast("这条摘抄还没有文字内容，先补全再生成分享图");
+    return;
+  }
+  const book = state.books.find((b) => b.id === quote.bookId);
+  try {
+    showToast("正在生成分享图…");
+    openShareCardDialog(await renderQuoteShareCard(quote, book), book?.title || "摘抄");
+  } catch (err) {
+    showToast("生成分享图失败：" + (err?.message || err));
+  }
+}
+
+async function shareConnectionCard(connId) {
+  if (!requireAuth("生成分享图")) return;
+  const conn = (state.connections || []).find((c) => c.id === connId);
+  if (!conn) return;
+  try {
+    showToast("正在生成分享图…");
+    openShareCardDialog(await renderConnectionShareCard(conn), "思想碰撞");
+  } catch (err) {
+    showToast("生成分享图失败：" + (err?.message || err));
+  }
+}
+
+async function shareBookCard(bookId) {
+  if (!requireAuth("生成分享图")) return;
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  try {
+    showToast("正在生成分享图…");
+    openShareCardDialog(await renderBookShareCard(book), book.title || "书");
+  } catch (err) {
+    showToast("生成分享图失败：" + (err?.message || err));
+  }
+}
+
 function openNewQuoteForBook(bookId) {
   if (!requireAuth("新增摘抄")) return;
   activateTab("quote");
@@ -2658,6 +3120,7 @@ function openBookEditDialog(bookId) {
   els.bookEditForm.elements.startedAt.value = isoToDateInput(book.startedAt); // OPT-074
   els.bookEditForm.elements.finishedAt.value = isoToDateInput(book.finishedAt); // OPT-074
   els.bookEditForm.elements.notes.value = book.notes || "";
+  if (els.bookEditForm.elements.review) els.bookEditForm.elements.review.value = book.review || "";
   els.bookEditDialogTitle.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
   if (book.coverImageUrl) {
     pendingBookEditImage = { name: "existing-cover", dataUrl: book.coverImageUrl };
@@ -2691,6 +3154,7 @@ async function saveBookEdit(formData) {
   book.currentPage = currentPage;
   book.status = String(formData.get("status"));
   book.notes = String(formData.get("notes")).trim();
+  book.review = String(formData.get("review") || "").trim();
   book.tags = Array.isArray(book.tags) ? book.tags : [];
   book.updatedAt = new Date().toISOString();
   book.startedAt = startedAtIso;
@@ -2782,7 +3246,16 @@ function openBookDetailDialog(bookId) {
     detailDatesEl.classList.toggle("is-hidden", parts.length === 0);
   }
 
-  els.bookDetailIntro.textContent = (book.notes || "").trim() || "暂无内容简介。";
+  // 优先展示读后感（若有），内容简介保留其下。
+  const detailReview = (book.review || "").trim();
+  const detailIntro = (book.notes || "").trim();
+  if (detailReview) {
+    els.bookDetailIntro.innerHTML =
+      `<div class="book-detail-review"><span class="book-detail-sub-label">我的读后</span><p>${escapeHtml(detailReview)}</p></div>` +
+      (detailIntro ? `<div class="book-detail-intro-text"><span class="book-detail-sub-label">内容简介</span><p>${escapeHtml(detailIntro)}</p></div>` : "");
+  } else {
+    els.bookDetailIntro.textContent = detailIntro || "暂无内容简介。";
+  }
 
   const bookQuestion = state.quotes
     .filter((q) => q.bookId === bookId && q.kind === "question")
@@ -4214,6 +4687,8 @@ function bindEvents() {
   els.connectionSearch?.addEventListener("input", renderConnections);
 
   els.connectionsList?.addEventListener("click", (event) => {
+    const shareBtn = event.target.closest(".conn-share-btn");
+    if (shareBtn) { event.stopPropagation(); shareConnectionCard(shareBtn.dataset.connId); return; }
     const delBtn = event.target.closest(".conn-delete-btn");
     if (delBtn) { event.stopPropagation(); deleteConnection(delBtn.dataset.connId); return; }
     const editBtn = event.target.closest(".conn-edit-btn");
@@ -4236,6 +4711,12 @@ function bindEvents() {
   els.quoteDetailChatBtn?.addEventListener("click", () => {
     const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
     goToQuoteChat(quoteId);
+  });
+
+  document.getElementById("quoteDetailShareBtn")?.addEventListener("click", () => {
+    const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
+    document.getElementById("quoteDetailDialog").close();
+    shareQuoteCard(quoteId);
   });
 
   // OPT-027: quote detail delete (action center now owns the full action set)
@@ -4281,6 +4762,11 @@ function bindEvents() {
     const id = _bookDetailCurrentId;
     els.bookDetailDialog.close();
     openConnectionDialog({ sourceType: "book", sourceId: id });
+  });
+  document.getElementById("bookDetailShareBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    shareBookCard(id);
   });
   document.getElementById("bookDetailAddQuoteBtn")?.addEventListener("click", () => {
     const id = _bookDetailCurrentId;
@@ -4466,6 +4952,7 @@ function bindEvents() {
       if (action === "edit") editQuote(id);
       else if (action === "delete") deleteQuote(id);
       else if (action === "chat") goToQuoteChat(id);
+      else if (action === "share") shareQuoteCard(id);
       return;
     }
     const card = event.target.closest("[data-quote-id]");

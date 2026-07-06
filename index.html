@@ -358,6 +358,7 @@
           <label><span>读完日期</span><input name="finishedAt" type="date" /></label>
         </div>
         <label><span>内容简介 / 备注</span><textarea name="notes" rows="4" placeholder="记录这本书的简介、感受或关键背景。"></textarea></label>
+        <label><span>读后感</span><textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。"></textarea></label>
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="bookEditDialog">取消</button>
           <button type="submit" class="button button-primary">保存修改</button>
@@ -386,6 +387,7 @@
           <button type="button" class="button button-ghost" id="bookDetailConnectBtn">建立关联</button>
           <button type="button" class="button button-ghost" id="bookDetailAddQuoteBtn">新增摘抄</button>
           <button type="button" class="button button-ghost" id="bookDetailAddSessionBtn">新增记录</button>
+          <button type="button" class="button button-ghost" id="bookDetailShareBtn">生成分享图</button>
           <button type="button" class="button button-danger" id="bookDetailDeleteBtn">删除</button>
           <button type="button" class="button button-ghost" data-close-dialog="bookDetailDialog">关闭</button>
         </div>
@@ -420,6 +422,7 @@
         </div>
         <div id="bookImagePreview" class="image-preview is-hidden"><img id="bookPreviewImg" alt="书籍封面预览" /></div>
         <label><span>备注</span><textarea name="notes" rows="3" placeholder="记录你为什么读这本书。"></textarea></label>
+        <label><span>读后感</span><textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。"></textarea></label>
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="bookDialog">取消</button>
           <button type="submit" class="button button-primary">保存书籍</button>
@@ -514,9 +517,24 @@
         <div class="dialog-actions dialog-actions-stack">
           <button type="button" class="button button-primary" id="quoteDetailChatBtn">去聊</button>
           <button type="button" class="button button-ghost" id="quoteDetailEditBtn">编辑</button>
+          <button type="button" class="button button-ghost" id="quoteDetailShareBtn">生成分享图</button>
           <button type="button" class="button button-ghost" id="quoteDetailConnectBtn">建立关联</button>
           <button type="button" class="button button-danger" id="quoteDetailDeleteBtn">删除</button>
           <button type="button" class="button button-ghost" data-close-dialog="quoteDetailDialog">关闭</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="shareCardDialog" aria-labelledby="shareCardTitle">
+      <div class="dialog-form">
+        <div class="section-head">
+          <h2 id="shareCardTitle">分享图</h2>
+          <p id="shareCardHint" class="share-card-hint">长按图片保存，或点下方按钮下载</p>
+        </div>
+        <div class="share-card-preview"><img id="shareCardImg" alt="摘抄分享图" /></div>
+        <div class="dialog-actions dialog-actions-stack">
+          <a id="shareCardDownload" class="button button-primary" download="摘抄分享图.png" role="button">下载图片</a>
+          <button type="button" class="button button-ghost" data-close-dialog="shareCardDialog">关闭</button>
         </div>
       </div>
     </dialog>

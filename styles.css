@@ -3821,3 +3821,35 @@ body.is-admin .admin-only { display: revert; }
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* OPT-087 摘抄分享图预览 */
+.share-card-hint {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+.share-card-preview {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 4px;
+}
+.share-card-preview img {
+  max-width: 100%;
+  max-height: 60vh;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+/* 书详情：读后感 / 内容简介 分区标签 */
+.book-detail-review { margin-bottom: 12px; }
+.book-detail-sub-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-ink-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.book-detail-review p,
+.book-detail-intro-text p { margin: 0; }
