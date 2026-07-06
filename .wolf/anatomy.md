@@ -1,6 +1,7 @@
 # anatomy.md
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-05T15:11:33.312Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-05T19:21:00.093Z
 > Files: 226 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -131,7 +132,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~196 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~70956 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71177 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49578 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
@@ -241,16 +242,16 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~21691 tok)
+- `backlog.md` — Optimization Backlog (~22677 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~51760 tok)
+- `explore.md` — Exploration — new optimization directions (~55120 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1776 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~445 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~4455 tok)
+- `triage.md` — Triage (~4676 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -279,7 +280,7 @@
 
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
-- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~9956 tok)
+- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~11300 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
