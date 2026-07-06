@@ -6668,6 +6668,41 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-06T13:41:17.911Z"
+    },
+    {
+      "id": "bug-399",
+      "timestamp": "2026-07-06T14:08:45.409Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 17→33 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-06T14:08:45.409Z"
+    },
+    {
+      "id": "bug-382",
+      "timestamp": "2026-07-06T14:10:00Z",
+      "error_message": "分享图 Canvas 文字排版出现标点在行首（，。等落在一行开头）",
+      "file": "app.js (wrapCanvasText)",
+      "root_cause": "wrapCanvasText 只按像素宽度逐字断行，没有中文排版避头尾（禁则）处理；当标点恰好越过行宽时被推到下一行行首。",
+      "fix": "wrapCanvasText 加避头尾：行首禁则标点(，。、；：？！）》」等)悬挂到上一行末尾(宽容超出、落在页边距内)；行尾禁则开引号/括号(《「（等)连同下一字符换行。加回归测试断言无行以标点开头且折行不丢字。",
+      "tags": [
+        "typography",
+        "canvas",
+        "share-card",
+        "OPT-087",
+        "kinsoku",
+        "中文排版"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-06T14:10:00Z"
     }
   ]
 }
