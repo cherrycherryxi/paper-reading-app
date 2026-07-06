@@ -6,6 +6,7 @@
 app_state.db
 app_state.db-journal
 uploads/
+uploads-recompress-backup-*/
 
 # Python
 __pycache__/
