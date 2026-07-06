@@ -126,7 +126,20 @@ test("长正文按宽度折行（wrapCanvasText）", () => {
   const measure = { measureText: (t) => ({ width: t.length * 22 }) };
   const lines = hooks.wrapCanvasText(measure, "一".repeat(60), 220); // 220/22=10 字每行
   assert.ok(lines.length > 1, "超宽文本应折成多行");
-  assert.ok(lines.every((l) => l.length <= 10), "每行不超过测得宽度");
+  assert.ok(lines.every((l) => l.length <= 11), "每行不超过测得宽度（+悬挂标点容差）");
+});
+
+test("避头尾：标点不出现在行首，且折行不丢字", () => {
+  const { hooks } = buildContext();
+  const measure = { measureText: (t) => ({ width: t.length * 22 }) };
+  // 9 字/行；在多个边界刻意放逗号/句号/引号，naive 折行会把标点推到行首
+  const text = "克劳迪娅在书中说争辩才是历史的要义，坚决反对辉格史观，认为历史必然走向自由。对胜利叙事都要保持警觉。";
+  const lines = hooks.wrapCanvasText(measure, text, 198);
+  const noStart = "，。、；：？！）》」』…”’·";
+  for (const ln of lines) {
+    assert.ok(!noStart.includes(ln[0]), `行不应以标点开头：「${ln}」`);
+  }
+  assert.equal(lines.join(""), text, "折行不得增删任何字符");
 });
 
 test("shareQuoteCard 打开 dialog 并设置图片与下载链接", async () => {

@@ -2538,7 +2538,13 @@ function loadImageForShare(src) {
   });
 }
 
-// 按最大宽度把 text 折成多行（CJK 无空格，逐字测量）。
+// 中文排版避头尾（禁则处理）：
+// 行首禁则——这些标点不能出现在行首，出现则「悬挂」到上一行末尾（宽容超出，落在页边距内）。
+const KINSOKU_NO_START = "，。、；：？！）］｝〉》」』】…—·、％‰℃”’》。，！？：；";
+// 行尾禁则——这些开引号/开括号不能出现在行尾，出现则连同下一字符换到下一行。
+const KINSOKU_NO_END = "（［｛〈《「『【“‘《(";
+
+// 按最大宽度把 text 折成多行（CJK 无空格，逐字测量），并做避头尾。
 function wrapCanvasText(ctx, text, maxWidth) {
   const lines = [];
   let line = "";
@@ -2546,8 +2552,18 @@ function wrapCanvasText(ctx, text, maxWidth) {
     if (ch === "\n") { lines.push(line); line = ""; continue; }
     const test = line + ch;
     if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line);
-      line = ch;
+      if (KINSOKU_NO_START.includes(ch)) {
+        line = test; // 行首禁则：标点悬挂在当前行末尾，不另起一行
+      } else {
+        // 行尾禁则：若当前行末是开引号/括号，把它一起带到下一行
+        let carried = "";
+        if (KINSOKU_NO_END.includes(line[line.length - 1])) {
+          carried = line[line.length - 1];
+          line = line.slice(0, -1);
+        }
+        lines.push(line);
+        line = carried + ch;
+      }
     } else {
       line = test;
     }
