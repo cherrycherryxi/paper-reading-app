@@ -35,6 +35,8 @@
 
 ## Key Learnings
 
+- **[2026-07-07] CSS `-webkit-line-clamp:N`（多行封顶）在带垂直 padding 的元素上裁切会泄漏，第 N+1 行部分字形从 padding 区露出（bug-405 / OPT-080）。** `display:-webkit-box; overflow:hidden; -webkit-line-clamp:2; -webkit-box-orient:vertical` 是多行截断+省略号的标准配方，但若同一元素还有 `padding-top/bottom`，`overflow:hidden` 的裁切盒把垂直 padding 一并计入，导致刚好多露一行的顶部。**解法：垂直 padding 归零（`padding:0 14px`），行间距改用 `margin`（margin 在 overflow 盒外，不参与 clamp 裁切）。** 另：clamp 依赖 `display:-webkit-box`，会覆盖元素原有的 `display:flex`——若该元素本来靠 flex 放右侧 badge，改 clamp 会破坏布局（本例 quote 下拉无 badge 故安全）。视觉改动务必 headless Chrome 真渲染逐版验收，单测断不出泄漏。
+
 - **[2026-06-11] OCR 草稿落库时机：同步快路径"一次性存最终态"，只有异步 AI 路径才预存 `pending`（OPT-042）。** `/api/quotes/ocr`（`app_server.py`）快/慢两路：**快速识别是同步的**——必须在 `run_fast_ocr` 完成后才 `save_state`（带 done/failed），**绝不能在 OCR 前先存 `pending` 草稿**，否则请求被打断（后端重启/断连）就遗留卡死在「识别中」的孤儿卡。**AI 路径是异步的**——必须先 `save_state(pending)` 再 `start_background_ocr`（前端要轮询、后台线程要 `load_state` 找到这张卡）。回收兜底在前端 `recoverStalePendingOcr()`（`loadSession` 时把超过 staleness 窗口的 `pending` 翻 `failed`，因为重启会杀掉所有 OCR 后台线程，挂太久的 pending 必死）。规则：给同步操作加"中途草稿"前先想清楚被打断会不会留垃圾——能一次性存终态就别预存中间态。
 
 - **[2026-06-11] 数据导出有两种格式、导入是纯前端走 `PUT /api/state`（OPT-040）。** ①「导出书单备份」`exportData()`（app.js）客户端直接 dump `state`，字段在**顶层**；②「完整账号导出（GDPR）」`GET /api/account/export`（app_server.py）把 state 嵌在 `.state` 下并带 `exportFormat:1`（还含 modelLogs/traces/uploads 清单）。**没有也不需要 `POST /api/account/import`**——`importData()` 读文件→`normalizeStateShape`→`syncState()`→`PUT /api/state` 即恢复。改导入逻辑时：用 `resolveImportedState()` 统一解包两种格式（有 `.state`/`exportFormat` 就解包），且**导入是整体替换**（覆盖全账号），解析后内容为 0 而当前非空时必须经 `confirmDialog` 二次确认，别静默覆盖。explore.md 的 E10「无 import 端点/不可恢复」是**误判**，核代码后已重定性为 OPT-040（GDPR 文件导入会清空账号）。

@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-06T14:15:44.225Z
-> Files: 229 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-06T19:17:26.227Z
-> Files: 228 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-07T13:18:27.451Z
+> Files: 230 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -136,7 +134,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71177 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54665 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54777 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
@@ -244,7 +242,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~23770 tok)
+- `backlog.md` — Optimization Backlog (~23793 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~41315 tok)
@@ -316,6 +314,7 @@
 - `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~6007 tok)
 - `book-reading-dates.test.js` — OPT-074: book startedAt/finishedAt display in detail dialog + editable date inputs in edit dialog (~2600 tok)
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
+- `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1425 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
 - `login-fast-and-retry-btn.test.js` — 两个移动端体验修复： (~698 tok)

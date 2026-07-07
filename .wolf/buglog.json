@@ -6719,6 +6719,73 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-07-06T18:26:17.460Z"
+    },
+    {
+      "id": "bug-402",
+      "timestamp": "2026-07-07T13:07:13.748Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-07T13:07:16.196Z"
+    },
+    {
+      "id": "bug-403",
+      "timestamp": "2026-07-07T13:07:46.518Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"edit\"",
+      "fix": "Changed to \"connect\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-07T13:07:55.732Z"
+    },
+    {
+      "id": "bug-404",
+      "timestamp": "2026-07-07T13:16:27.127Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \").slice(0, 80) + (q.content?.length > 80 ? \"",
+      "fix": "Changed to \").slice(0, 70) + (q.content?.length > 70 ? \"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-07T13:16:30.027Z"
+    },
+    {
+      "id": "bug-405",
+      "timestamp": "2026-07-07T13:20:00.000Z",
+      "error_message": "OPT-080 修复：-webkit-line-clamp:2 两行封顶在带垂直 padding 的元素上裁切泄漏，第三行部分文字露出",
+      "file": "app.js",
+      "root_cause": "关联对话框目标摘抄下拉行 .book-combobox-item 类带 padding:10px 14px；给 li 内联 display:-webkit-box + -webkit-line-clamp:2 做两行封顶时，overflow:hidden 的裁切盒把垂直 padding 也算进去，导致第 3 行部分字形从 padding 区泄漏出来（headless Chrome 逐版截图发现）。",
+      "fix": "垂直 padding 归零（padding:0 14px），行间距改用 margin:6px 0 撑起（margin 在 overflow 盒外，不参与 clamp 裁切）；line-height 1.6 给行内透气。同时 quoteLabel slice 由 32 放宽到 70 字。真渲染验收至无泄漏、同书多段摘抄可辨识。",
+      "tags": [
+        "css",
+        "webkit-line-clamp",
+        "overflow",
+        "OPT-080",
+        "connections",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-07T13:20:00.000Z"
     }
   ]
 }

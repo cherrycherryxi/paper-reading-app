@@ -2419,3 +2419,16 @@
 |------|--------|---------|---------|--------|
 | 19:16 | Edited optimization/explore.md | modified matchBooks() | ~1373 |
 | 19:17 | Edited optimization/backlog.md | expanded (+20 lines) | ~748 |
+| 21:07 | Edited optimization/backlog.md | 2→2 lines | ~43 |
+| 21:07 | Edited optimization/backlog.md | 2→2 lines | ~48 |
+| 21:07 | Edited app.js | 2→3 lines | ~68 |
+| 21:07 | Edited app.js | added 1 condition(s) | ~87 |
+| 21:07 | Edited app.js | 2→2 lines | ~37 |
+| 21:07 | Edited app.js | 3→3 lines | ~78 |
+| 21:09 | Created tests/frontend/connection-entry-ux.test.js | — | ~1422 |
+| 21:16 | Edited app.js | 2→2 lines | ~37 |
+| 21:16 | Edited app.js | 1→3 lines | ~85 |
+| 21:16 | Edited tests/frontend/connection-entry-ux.test.js | 7→7 lines | ~101 |
+| 21:18 | Edited optimization/backlog.md | 2→2 lines | ~36 |
+| 21:18 | Edited optimization/backlog.md | 2→2 lines | ~41 |
+| 21:20 | OPT-079/080 关联体验双修：摘抄卡菜单加「关联」直达+来源预填；目标下拉两行封顶(webkit line-clamp)可辨识 | app.js, tests/frontend/connection-entry-ux.test.js | PR #56 开；前端 268 例过；headless 真渲染验收 | ~1200 |
