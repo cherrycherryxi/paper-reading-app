@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-06T14:09:14.806Z
-> Files: 228 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-06T14:15:44.225Z
+> Files: 229 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -54,6 +54,7 @@
 - `2026-07-03.md` — 日报 2026-07-03 (~475 tok)
 - `2026-07-04.md` — 日报 2026-07-04 (~338 tok)
 - `2026-07-05.md` — 日报 2026-07-05 (~543 tok)
+- `2026-07-06.md` — 日报 2026-07-06 (~587 tok)
 
 ## ../../.claude/hooks/
 
