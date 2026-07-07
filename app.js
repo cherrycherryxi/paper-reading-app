@@ -4286,6 +4286,19 @@ async function clearChatHistory() {
   }
 }
 
+// 同一时刻只允许一个 combobox 下拉打开。关联对话框里有 4 个 combobox（来源/目标 ×
+// 书/摘抄），iOS 上从一个输入框切到另一个时，blur→close 的 200ms 延时与软键盘下
+// position:fixed 的重定位会让上一个下拉残留——表现为「在目标摘抄框输入，却弹出并
+// 显示来源那一侧的下拉」（bug-406）。打开任一下拉前，先关掉当前打开的那个。
+let _activeComboboxCloser = null;
+function _registerOpenCombobox(closeFn) {
+  if (_activeComboboxCloser && _activeComboboxCloser !== closeFn) _activeComboboxCloser();
+  _activeComboboxCloser = closeFn;
+}
+function _unregisterOpenCombobox(closeFn) {
+  if (_activeComboboxCloser === closeFn) _activeComboboxCloser = null;
+}
+
 function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   if (!wrapperEl || !hiddenInput) return;
   const textInput = wrapperEl.querySelector(".book-combobox-input");
@@ -4347,6 +4360,7 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   }
 
   function openList() {
+    _registerOpenCombobox(closeList); // 关掉其它已打开的下拉，避免残留
     buildList(textInput.value);
     positionList();
     list.classList.add("is-open");
@@ -4356,6 +4370,7 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   function closeList() {
     list.classList.remove("is-open");
     isOpen = false;
+    _unregisterOpenCombobox(closeList);
   }
 
   function pick(book) {
@@ -4449,6 +4464,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   }
 
   function openList() {
+    _registerOpenCombobox(closeList); // 关掉其它已打开的下拉，避免残留
     buildList(textInput.value);
     positionList();
     list.classList.add("is-open");
@@ -4458,6 +4474,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   function closeList() {
     list.classList.remove("is-open");
     isOpen = false;
+    _unregisterOpenCombobox(closeList);
   }
 
   function pick(quote) {
