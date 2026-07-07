@@ -10,6 +10,7 @@ const initialState = {
   chatHistories: {},
   chatContexts: {},
   connections: [],
+  customQuoteTags: [],
 };
 
 const statusMap = {
@@ -344,6 +345,7 @@ function normalizeStateShape(rawState) {
     connections: Array.isArray(base.connections) ? base.connections : [],
     chatHistories: chat.chatHistories,
     chatContexts: chat.chatContexts,
+    customQuoteTags: Array.isArray(base.customQuoteTags) ? base.customQuoteTags : [],
   };
 }
 
@@ -502,14 +504,43 @@ function normalizeTags(raw) {
     .filter(Boolean);
 }
 
-// picker 的自定义标签来源**只用这一个**：localStorage 里用户经标签输入框亲手敲过的标签。
+// picker 的自定义标签来源**只用这一个**：用户经标签输入框亲手敲过的标签。
 // 不要从 state.quotes 里反推「这本书用过的标签」——那会把笔记(note)卡片的标签、以及 AI OCR
 // 自动生成的标签全拖进来，几十个堆在一起特别杂乱（用户明确：只要默认 + 自己手动加的摘抄标签）。
+// OPT-078：标签现在跨设备同步——权威来源是 state.customQuoteTags（随 syncState 持久化、
+// 进导出包）；localStorage 仅作离线/迁移镜像（登出时也能记住本机敲过的标签）。
+const CUSTOM_QUOTE_TAGS_LS_KEY = "quote-custom-tags";
+function _readLocalCustomQuoteTags() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CUSTOM_QUOTE_TAGS_LS_KEY) || "[]");
+    return Array.isArray(raw) ? raw.filter((t) => typeof t === "string" && t.trim()) : [];
+  } catch { return []; }
+}
 function getCustomQuoteTags() {
-  try { return JSON.parse(localStorage.getItem("quote-custom-tags") || "[]"); } catch { return []; }
+  // 已登录：state 为权威；未登录：回退本机镜像。
+  if (currentUser?.id) return Array.isArray(state.customQuoteTags) ? state.customQuoteTags : [];
+  return _readLocalCustomQuoteTags();
 }
 function saveCustomQuoteTags(tags) {
-  localStorage.setItem("quote-custom-tags", JSON.stringify(tags));
+  const clean = [...new Set((tags || []).filter((t) => typeof t === "string" && t.trim()).map((t) => t.trim()))];
+  try { localStorage.setItem(CUSTOM_QUOTE_TAGS_LS_KEY, JSON.stringify(clean)); } catch { /* 隐私模式等，忽略 */ }
+  if (currentUser?.id) {
+    state.customQuoteTags = clean;
+    syncState().catch(() => {}); // 落库失败不阻塞 UI；下次编辑/同步会重试
+  }
+}
+// 迁移：把本机 localStorage 里的老标签一次性并入 state（union，加成语义幂等）。
+// 加成语义：标签只增不删，union 永远正确；迁移后 state 已含全部，重复调用无副作用。
+function migrateLocalCustomTagsIntoState() {
+  if (!currentUser?.id) return;
+  const local = _readLocalCustomQuoteTags();
+  if (!local.length) return;
+  const current = Array.isArray(state.customQuoteTags) ? state.customQuoteTags : [];
+  const merged = [...new Set([...current, ...local])];
+  if (merged.length !== current.length) {
+    state.customQuoteTags = merged;
+    syncState().catch(() => {});
+  }
 }
 function _syncQuoteTagsInput() {
   const hidden = document.getElementById("quoteTagsHidden");
@@ -941,6 +972,7 @@ async function loadSession() {
     const data = await apiFetch("/api/session");
     currentUser = data.user || null;
     state = normalizeStateShape(data.state);
+    migrateLocalCustomTagsIntoState(); // OPT-078：老 localStorage 标签一次性并入云端
     await recoverStalePendingOcr();
     await loadRemoteLogs();
   } catch {

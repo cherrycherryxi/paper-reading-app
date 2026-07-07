@@ -723,6 +723,21 @@ def sanitize_state(payload: dict | None) -> dict:
         history_key = chat_context_history_key(context)
         if history_key in migrated_histories:
             migrated_contexts[history_key] = context
+
+    # 自定义摘抄标签（OPT-078）：跨设备同步的用户数据。去重、去空白、限 200 条，
+    # 顺序稳定（保留首次出现顺序，picker 展示才不会跳）。
+    raw_custom_tags = payload.get("customQuoteTags")
+    custom_quote_tags: list[str] = []
+    if isinstance(raw_custom_tags, list):
+        seen: set[str] = set()
+        for tag in raw_custom_tags:
+            if isinstance(tag, str):
+                cleaned = tag.strip()
+                if cleaned and cleaned not in seen:
+                    seen.add(cleaned)
+                    custom_quote_tags.append(cleaned)
+        custom_quote_tags = custom_quote_tags[:200]
+
     return {
         "books": payload.get("books") if isinstance(payload.get("books"), list) else [],
         "sessions": payload.get("sessions") if isinstance(payload.get("sessions"), list) else [],
@@ -730,6 +745,7 @@ def sanitize_state(payload: dict | None) -> dict:
         "chatHistories": migrated_histories,
         "chatContexts": migrated_contexts,
         "connections": payload.get("connections") if isinstance(payload.get("connections"), list) else [],
+        "customQuoteTags": custom_quote_tags,
     }
 
 
