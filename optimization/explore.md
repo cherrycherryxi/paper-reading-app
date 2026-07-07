@@ -2420,6 +2420,91 @@ return haystack.includes(searchRaw);
 
 > 本次 run 核实 E135（renderConnections haystack 缺 tags）仍有效，提拔为 OPT-096；新增 E158 并提拔为 OPT-097；E159（AI 读后感生成）、E160（书籍星级评分）作为 M 级信号驱动方向登记。
 
+## 2026-07-07
+
+> 本次 run 聚焦：debug/overview 格式不匹配（当前 bug）、renderQuotes 搜索漏 reflection 字段、matchQuotes 死代码。  
+> 将 E159（AI 一键生成读后感）和 E160（书籍 1-5 星评分）从 2026-07-06 蓄水池提拔为 OPT-098/OPT-099。
+
+### E162 — `/debug/overview` 用空格格式 `dw_sp` 查询 `model_logs`/`server_errors`，但两表均用 `now_iso()` T 格式存储，格式不匹配导致当天边界计算偏差 (S)
+
+**What (verified):** `app_server.py:4192`：
+
+```python
+dw_sp = (now - _td(days=win)).strftime("%Y-%m-%d %H:%M:%S")  # model_logs 用空格格式
+```
+
+注释称 `model_logs` 用空格格式存储，但实际插入时（`app_server.py:2079`）调用 `now_iso()`，而 `now_iso()` 定义为（`app_server.py:364-365`）：
+
+```python
+def now_iso() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+```
+
+Python `.isoformat()` 默认使用 T 分隔符，产生 `YYYY-MM-DDTHH:MM:SS` 格式——而非空格格式。`server_errors.created_at`（`app_server.py:1705`：`now_iso()`）同样为 T 格式。`dw_sp` 被用于两表共 5 处 WHERE 子句（lines 4205, 4212, 4213, 4217, 4224）。
+
+SQLite 文本比较中，`'T'`（0x54）> `' '`（0x20），因此存储值 `"2026-06-24T10:00:00"` 与截止值 `"2026-06-24 12:00:00"` 比较时，因位置 10 的 T > 空格，结果为「大于」——即使实际时间早 2 小时。效果：**截止日当天所有记录均被纳入窗口，无论时间早晚**，窗口边界比预期宽最多约 24 小时。同一文件中已存在 T 格式的对照变量 `dw_iso = (now - _td(days=win)).strftime("%Y-%m-%dT%H:%M:%S")`（line 4191），可直接复用。
+
+**Why it matters:** `/debug/overview` 是 prod 运营监控看板（活跃用户数、LLM 调用量、错误数），错误的时间窗口边界导致 7 天窗口中最多多统计截止日全天数据，使 DAU/LLM 量/错误数轻微虚高；注释「model_logs 用空格格式」与实际代码相悖，会误导维护者理解 DB 格式。S 级一字修复，消除 `dw_sp` 变量，统一用 `dw_iso`。
+
+**Complexity:** S — 将 `app_server.py:4192` 的 `dw_sp` 定义删除（或改为 T 格式），将所有 `dw_sp` 用例（lines 4205, 4212, 4213, 4217, 4224）替换为已有的 `dw_iso`，同时删除错误注释。共 6 处改动，全在同一函数体，无 schema / 前端 / 测试变更。
+
+**Files:** `app_server.py:4191-4192`（dw_iso/dw_sp 定义）；`app_server.py:4205, 4212, 4213, 4217, 4224`（5 处 dw_sp 用例）；`app_server.py:364-365`（now_iso 定义，确认 T 格式）；`app_server.py:2079`（model_logs 插入，确认 now_iso 用例）
+
+**northstar:** 弱——admin/monitoring 路径，不影响用户数据；但错误注释掩盖了真实格式，可能误导后续维护者对 DB timestamp 格式的判断。S 级，可搭车任何后端 PR。
+
+---
+
+### E163 — `renderQuotes()` 搜索 haystack 遗漏 `quote.reflection`，用户无法通过个人理解文本找到摘抄 (S)
+
+**What (verified):** `app.js:1534-1539`：
+
+```js
+const haystack = [
+  book?.title || "",
+  book?.author || "",
+  item.content || "",
+  (item.tags || []).join(" "),
+].join(" ").toLowerCase();
+```
+
+haystack 涵盖书名、作者、摘抄原文、标签，但不含 `item.reflection`（「我的理解」字段）。`reflection` 在 UI 多处展示：摘抄详情弹窗（`app.js:2463-2464`：`if (quote.reflection) { reflEl.textContent = quote.reflection; }`）、书详情摘抄预览（`app.js:3298`：`${quote.reflection ? `<span ...>${escapeHtml(quote.reflection)}</span>` : ""}`)）、摘抄分享图（`app.js:2692`：`const reflection = truncateForShare(quote.reflection || "", 90)`）。用户若在 reflection 中记下「这句话让我想到自己创业时的迷茫」，搜索「创业」或「迷茫」，零结果。
+
+**Why it matters:** reflection 是「为什么这句话值得记」的记录——摘抄对象中最个人化、最有长期检索价值的字段。随着 owner 摘抄库增大（2026-07-05 北极星：「很想把之前读过的书的摘抄补全」），reflection 不可搜索意味着这批个人感悟文字与检索路径完全断开，直接违背 Theme 2「回顾有价值」的目标。S 级单行追加，与 E150/E161/OPT-092/096/097 同属「searchable fields 补全」系列，可搭车同一 bundle PR。
+
+**Complexity:** S — 在 `app.js:1538`（`(item.tags || []).join(" ")` 之后）追加 `(item.reflection || ""),`；1 行修改，零后端/DB/测试改动。
+
+**Files:** `app.js:1534-1539`（renderQuotes haystack）；参照 `app.js:2463-2464`（reflection 详情展示）；`app.js:2692`（reflection 分享图用例，确认字段权重）
+
+**northstar:** 弱-中——Theme 2「回顾有价值」：reflection 是「个人意义」字段，搜索它让用户能按「感悟」而非只能按「原文」找到摘抄；已有标签搜索（OPT-092）覆盖了分类维度，补上 reflection 覆盖内容维度，两者合力形成完整的语义搜索。→ **promoted to OPT-098**
+
+---
+
+### E164 — `matchQuotes()` 是死代码：`app.js:1170` 定义但从未在生产代码中调用，注释已过时 (S)
+
+**What (verified):** `app.js:1170-1172`：
+
+```js
+// Used by book-detail and quote-tab filtering only. Intentionally NOT wired into globalSearch().
+function matchQuotes(query) {
+  return state.quotes.filter((quote) => isRegularQuote(quote) && fuzzyMatch(quote.content || "", query));
+}
+```
+
+注释声称此函数被「书详情和摘抄 Tab 过滤」使用，但 `grep -n "matchQuotes" app.js` 只返回该定义行（line 1170），无任何调用点。`renderQuotes()`（`app.js:1519-1541`）的实际过滤逻辑使用自己的内联 haystack（包含书名、作者、摘抄内容、标签，比 `matchQuotes()` 更全面），不调用此函数。函数仅在 `tests/frontend/global-search.test.js:149, 347-355` 被测试文件直接引用（作为 exports 测试）。
+
+**Why it matters:** 过时注释（"Used by book-detail and quote-tab filtering"）与实际代码不符，会误导维护者：若有人想优化摘抄搜索逻辑（如 E163），可能错误地改 `matchQuotes()` 而非 `renderQuotes()` 的 haystack，产生无效变更。与此同时，`matchQuotes()` 只搜 `content`，比 `renderQuotes()` 的 haystack 更窄，若误将其接入主过滤路径会造成搜索质量退步。
+
+**Complexity:** S — 两个选项：① 清除死代码：删除 `app.js:1170-1172` + 对应测试 `tests/frontend/global-search.test.js:149, 347-355`；② 若后续需提取共享函数，基于 `renderQuotes()` 的完整 haystack 重写（而非现函数）并正确接入。推荐选项①（及时清理），避免「已有函数但无人维护」的陷阱。
+
+**Files:** `app.js:1170-1172`（matchQuotes 死定义）；`tests/frontend/global-search.test.js:149, 347-355`（对应测试）
+
+**northstar:** 弱——代码健康；死代码 + 过时注释不影响用户，但增加维护风险。可搭车任意 app.js 修改。
+
+---
+
+> 本次 run（2026-07-07）核实 `/debug/overview` 时间格式 bug（E162，当前可复现）、`renderQuotes()` 遗漏 reflection（E163，S 级 Theme 2 提升）、`matchQuotes()` 死代码（E164，代码健康）。  
+> 从 2026-07-06 蓄水池将 E159（AI 读后感生成）提拔为 OPT-098，E160（书籍 1-5 星评分）提拔为 OPT-099；两项均有 2026-07-06 信号直接驱动、代码路径已验证。E162（dw_sp 修正）、E163（reflection 搜索）、E164（死代码清理）登记候选，建议搭车相关 PR。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
