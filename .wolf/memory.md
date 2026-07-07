@@ -2432,3 +2432,16 @@
 | 21:18 | Edited optimization/backlog.md | 2→2 lines | ~36 |
 | 21:18 | Edited optimization/backlog.md | 2→2 lines | ~41 |
 | 21:20 | OPT-079/080 关联体验双修：摘抄卡菜单加「关联」直达+来源预填；目标下拉两行封顶(webkit line-clamp)可辨识 | app.js, tests/frontend/connection-entry-ux.test.js | PR #56 开；前端 268 例过；headless 真渲染验收 | ~1200 |
+| 21:20 | Session end: 12 writes across 3 files (backlog.md, app.js, connection-entry-ux.test.js) | 10 reads | ~177614 tok |
+| 21:33 | Edited optimization/backlog.md | 2→2 lines | ~42 |
+| 21:33 | Edited app_server.py | modified items() | ~399 |
+| 21:33 | Edited app_server.py | modified isinstance() | ~73 |
+| 21:34 | Edited app.js | 8→9 lines | ~44 |
+| 21:34 | Edited app.js | 5→6 lines | ~70 |
+| 21:34 | Edited app.js | added optional chaining | ~478 |
+| 21:34 | Edited app.js | 5→6 lines | ~77 |
+| 21:36 | Created tests/agent/custom_quote_tags_sanitize_test.py | — | ~554 |
+| 21:37 | Created tests/frontend/custom-quote-tags-sync.test.js | — | ~2006 |
+| 21:37 | Edited tests/frontend/custom-quote-tags-sync.test.js | 9→10 lines | ~151 |
+| 21:39 | Edited optimization/backlog.md | 2→2 lines | ~36 |
+| 21:40 | OPT-078 自定义摘抄标签跨设备同步：sanitize_state 加 customQuoteTags(去重/限量)；前端 state 权威+localStorage 镜像+登录迁移 union 幂等 | app_server.py, app.js, tests/agent/custom_quote_tags_sanitize_test.py, tests/frontend/custom-quote-tags-sync.test.js | PR #57 开；Python 362/前端 271 全绿 | ~2000 |

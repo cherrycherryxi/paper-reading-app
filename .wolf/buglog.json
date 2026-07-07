@@ -6786,6 +6786,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-07T13:20:00.000Z"
+    },
+    {
+      "id": "bug-406",
+      "timestamp": "2026-07-07T13:33:23.096Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-07T13:33:23.096Z"
+    },
+    {
+      "id": "bug-407",
+      "timestamp": "2026-07-07T13:34:25.501Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-07T13:34:25.501Z"
     }
   ]
 }

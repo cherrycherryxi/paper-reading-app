@@ -35,6 +35,8 @@
 
 ## Key Learnings
 
+- **[2026-07-07] vm 沙箱里跑 app.js 的测试：`assert.deepEqual`（node `assert/strict`）会按原型比较，跨 realm 数组会误判不等（OPT-078 测试）。** 被测代码在 vm realm 内用数组字面量 `[]` 构造的返回值，其原型是 vm realm 的 `%Array%`，与测试文件 realm 的 `Array.prototype` 不是同一个——即使内容相同，`assert.deepEqual(vmArr, [])` 也会以 `AssertionError` 失败（报错里两边看起来都是 `[]`，极具迷惑性）。**解法：把 vm 返回的数组 spread 进测试 realm 再比：`assert.deepEqual([...result.arr], [...])`。** 注意：若测试是把自己 realm 造的对象 `setState` 进去、再读回同一引用来断言，则不受影响（引用同源）——只有断言「被测代码新造的数组/对象」时才踩。往 vm context 注入 `Array`/`Set` 等 global 不解决这个：字面量用的是 realm intrinsic，不是注入的 global。
+
 - **[2026-07-07] CSS `-webkit-line-clamp:N`（多行封顶）在带垂直 padding 的元素上裁切会泄漏，第 N+1 行部分字形从 padding 区露出（bug-405 / OPT-080）。** `display:-webkit-box; overflow:hidden; -webkit-line-clamp:2; -webkit-box-orient:vertical` 是多行截断+省略号的标准配方，但若同一元素还有 `padding-top/bottom`，`overflow:hidden` 的裁切盒把垂直 padding 一并计入，导致刚好多露一行的顶部。**解法：垂直 padding 归零（`padding:0 14px`），行间距改用 `margin`（margin 在 overflow 盒外，不参与 clamp 裁切）。** 另：clamp 依赖 `display:-webkit-box`，会覆盖元素原有的 `display:flex`——若该元素本来靠 flex 放右侧 badge，改 clamp 会破坏布局（本例 quote 下拉无 badge 故安全）。视觉改动务必 headless Chrome 真渲染逐版验收，单测断不出泄漏。
 
 - **[2026-06-11] OCR 草稿落库时机：同步快路径"一次性存最终态"，只有异步 AI 路径才预存 `pending`（OPT-042）。** `/api/quotes/ocr`（`app_server.py`）快/慢两路：**快速识别是同步的**——必须在 `run_fast_ocr` 完成后才 `save_state`（带 done/failed），**绝不能在 OCR 前先存 `pending` 草稿**，否则请求被打断（后端重启/断连）就遗留卡死在「识别中」的孤儿卡。**AI 路径是异步的**——必须先 `save_state(pending)` 再 `start_background_ocr`（前端要轮询、后台线程要 `load_state` 找到这张卡）。回收兜底在前端 `recoverStalePendingOcr()`（`loadSession` 时把超过 staleness 窗口的 `pending` 翻 `failed`，因为重启会杀掉所有 OCR 后台线程，挂太久的 pending 必死）。规则：给同步操作加"中途草稿"前先想清楚被打断会不会留垃圾——能一次性存终态就别预存中间态。

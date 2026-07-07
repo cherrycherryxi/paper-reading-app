@@ -655,7 +655,7 @@ Format per item:
 - how: 在 `renderTimeline()` 开头从 `state.books` 提取所有有 `startedAt`/`finishedAt` 的书，构建里程碑事件列表（`{type:"milestone", kind:"started"|"finished", bookId, date: startedAt/finishedAt, book}`），与 `sessions` 数组合并后统一按 `date` 排序；为里程碑设计专属卡片 HTML 模板（视觉上与 session 卡片区分，如「📖 开始阅读《书名》」「✅ 读完《书名》」）；`searchRaw` 过滤时对里程碑按书名过滤，与现有 session 过滤逻辑并列。无后端/DB schema 改动。Touch: `app.js:1321-1399`（`renderTimeline`）；`styles.css`（里程碑卡片样式，少量新增）。
 
 ### OPT-078 — 自定义摘抄标签仅存 localStorage，跨设备不同步，导出包中不存在 — 由 explore E120 提拔 [2026-06-28]
-- status: in-progress (2026-07-07, branch auto/opt-078-custom-tags-sync)
+- status: in-progress (PR #57, 2026-07-07, 待审合)
 - area: frontend
 - northstar: 中——自定义标签是 Theme 2「回顾有价值」里「按主题检索」路径的基础；标签体系越积累越难补救——换设备或清缓存后选项消失，历史摘抄的主题过滤入口失效；Theme 2 验收前修复成本最低。
 - priority: P2
