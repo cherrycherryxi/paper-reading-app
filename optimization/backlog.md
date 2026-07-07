@@ -519,7 +519,7 @@ Format per item:
 - how: 将 `save_state` 调用移入 `try` 块内（压缩成功才持久化），`except` 改为直接 `return history`（原样返回，下次请求在条件改善时重试压缩）。修改后：`app_server.py:2279-2292` 的 `try` 块末尾追加 `state.setdefault("chatHistories", {})[history_key] = compressed; save_state(conn, user_id, state); return compressed`；`except Exception: return history`。Touch: `app_server.py:2267-2292`（`compress_chat_history_if_needed` 函数体，约 4 行重排）。
 
 ### OPT-064 — `PromptBuilder.build_chat_prompt()` 向 LLM 发送摘抄完整对象含 `ocrText`，每次对话浪费数百至数万 token — 由 explore E101 提拔
-- status: triaged
+- status: done (PR #55, merged 2026-07-06 — build_chat_prompt 摘抄白名单过滤 ocrText/imageUrl/ocrStatus/ocrSource/ocrError/ocrUpdatedAt/ocrRequestedAt；零 API/DB 变更)
 - area: backend
 - northstar: 中——与 OPT-020/OPT-047 同类，直接降低每次探讨的 API 成本；`ocrText` 字段是隐形成本炸弹（用户 OCR 越多、每次对话越贵），Theme 1 成本控制遗漏项。
 - description: `app_server.py:2319` 将摘抄列表以完整对象形式写入 LLM payload（`"quotes": quotes`）。每个对象包含 LLM 推理无用字段：`imageUrl`（~8 tokens）、`ocrStatus/ocrSource`（各 ~3 tokens）、`ocrError`（~5 tokens）、`ocrUpdatedAt/ocrRequestedAt`（各 ~8 tokens），以及最严重的 `ocrText`——快速 OCR 后若用户已手动编辑 content，原始全页文本以 `ocrText` 保留（`app_server.py:1347-1352`），每页 500-2000 字符（125-500 tokens）；20 张摘抄含 5 张 ocrText 即超 2500 tokens。同理 `focused_quote`（`app_server.py:2320`）也含 `imageUrl` 等字段。估算：正常场景 ~600 tokens 浪费，ocrText 全量存在时超 10,000 tokens。OPT-020（connections 字段裁剪）和 OPT-047（all_books_summary 截断）已修复同类问题，本项是漏网的同等优先级补丁。
@@ -823,7 +823,7 @@ Format per item:
 - how: `deleteSession()` 完成 `state.sessions.filter()` 后，扫描该书剩余所有 session 找最大 endPage，回写 `book.currentPage`（无 session 则重置为 0），同步更新 `book.lastReadAt` 取剩余 session 最新 date，并重新评估 `finished` 状态（参照 addSession 逻辑）。约 10–15 行，纯前端，无后端改动。Touch: `app.js:2583-2598`（deleteSession）；参照 `app.js:2314-2325`（addSession 回写逻辑）。
 
 ### OPT-094 — `addSession()` pagesRead 计算差一，统计数据永远少计一页 — 由 explore E148 提拔 [2026-07-05]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -833,7 +833,7 @@ Format per item:
 - how: 将 `app.js:2311`、`app.js:2318`、`app.js:1456` 三处的 `endPage - startPage` 改为 `endPage - startPage + 1`。纯前端，3 处均为单行修改，无 DB schema 变更，无后端改动。Touch: `app.js:2311, 2318`（addSession/editSession）；`app.js:1456`（统计栏）。
 
 ### OPT-095 — 新建摘抄对话框页码字段从不预填 `book.currentPage` — 由 explore E155 提拔 [2026-07-05]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -841,3 +841,23 @@ Format per item:
 - description: `app.js:2520`（openNewQuoteForBook）：`els.quoteForm.querySelector('[name="page"]').value = ""`，无条件将页码置空。`book.currentPage` 已由 `addSession()` 维护（`app.js:2314`），OPT-084 将其用于 session startPage 预填（已 triaged）；摘抄对话框却从未读取该值，与 session 表单形成对称缺陷。
 - why: 用户拍照摘抄时通常处于当前页（即 book.currentPage），每次都需手动输入页码；OPT-084 已验证「预填当前页」有价值，摘抄页码与之对称且独立，S 级修复，可直接搭车 OPT-084。
 - how: 在 `openNewQuoteForBook(bookId)` 内，将 `value = ""` 改为：`const _curPage = state.books.find(b => b.id === bookId)?.currentPage; els.quoteForm.querySelector('[name="page"]').value = _curPage || "";`。约 2–3 行，纯前端。Touch: `app.js:2520`（openNewQuoteForBook）；参照 `app.js:2314`（addSession 回写 currentPage）及 OPT-084 预填逻辑。
+
+### OPT-096 — `renderConnections()` 搜索 haystack 缺少 `c.tags`，关联标签无法被搜索命中 — 由 explore E135/E161 提拔 [2026-07-06]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——「回顾有价值」：用户依赖标签做概念检索，关联搜索漏 tags 使标签化工作付之东流；S 级单行修复，建议与 OPT-092（matchBooks 补 tags/notes）、OPT-097（matchBooks 补 review）搭车同一 PR。
+- description: `app.js:862-866`（`renderConnections()` 搜索过滤）haystack 数组仅含 `getBookTitle(source)`、`getBookTitle(target)`、`c.thought`，完全排除 `c.tags`。Connection 对象有 tags 字段（addConnection 表单有 tags 输入），但搜索跳过 tags，用户按标签关键词搜关联返回零结果。E135（2026-06-30 首次登记）、E161（2026-07-06 再次核实证据有效）均确认该缺陷未修。
+- why: 标签是关联对象唯一的显式分类维度；搜索跳过 tags 使标签系统对搜索路径完全失效。与 E150/OPT-092（matchBooks 缺 tags）同质——searchable-fields 系列延伸；S 级，无 API 改动，无 schema 变更。
+- how: 将 `app.js:862-866` haystack 数组第三项由 `c.thought || ""` 扩展为 `...[c.thought || "", ...(c.tags || [])]`（实际 1–2 行修改）。建议与 OPT-092、OPT-097 合并为「搜索字段补全 bundle」PR。Touch: `app.js:862-866`（renderConnections haystack）。
+
+### OPT-097 — `matchBooks()` 不搜索 `book.review`，OPT-087 新增字段对搜索路径完全不可见 — 由 explore E158 提拔 [2026-07-06]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——「事后回顾」路径：用户通过搜索重新找到有感情关联的书；review 字段（OPT-087 同日上线）若不进 matchBooks，则该字段对搜索毫无价值，新功能变死功能。与 OPT-092 同类，建议搭车。
+- description: `app.js:1163-1166`（`matchBooks()`）filter 条件仅含 `fuzzyMatch(book.title, query) || fuzzyMatch(book.author || "", query)`。OPT-087（2026-07-06）在书籍对象新增 `review` 字段并已接入表单存储（`app.js:2259`）、编辑（`app.js:3173`）、详情展示（`app.js:3266-3274`）和分享卡（`app.js:2834`），但 matchBooks 未同步更新，用户输入读后感关键词，书单 tab 返回零结果。
+- why: 搜索遗漏 review 使刚上线的 OPT-087 功能在搜索路径上无价值，且对用户而言是令人沮丧的「功能存在但搜不到」问题。S 级单行修复，与 OPT-092（matchBooks 补 tags/notes）完全同质，建议合并为同一 PR。
+- how: 在 `app.js:1165` matchBooks filter 末尾追加 `|| fuzzyMatch(book.review || "", query)`（1 行）。建议与 OPT-092（matchBooks tags/notes）、OPT-096（connections tags）合并为「搜索字段补全 bundle」PR。Touch: `app.js:1165`（matchBooks filter）。

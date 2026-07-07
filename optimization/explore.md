@@ -2337,6 +2337,89 @@ function matchBooks(query) {
 
 > 本次 run 将 E148（pagesRead 差一）提拔为 OPT-094，E155（摘抄页码预填）提拔为 OPT-095。E151（跨页 OCR）、E152（书籍阅读日期字段）、E156（导出时间戳 UTC 一致性）、E157（摘抄来源过滤）作为候选登记。
 
+## 2026-07-06
+
+> 本次 run 核实 E135（connections 搜索 haystack 缺 tags）及 E149（build_sample_state 时间/currentPage 不一致）仍未提拔，确认证据仍有效。新增 E158–E161 四条方向：OPT-087 刚加的 `book.review` 字段未进 matchBooks()（E158）；两条来自 2026-07-06 信号的功能方向（E159 AI 读后感，E160 星级评分）；E161 补充 E135 的姊妹缺陷（connections 全局搜索也漏 tags）。将 E135（connections 搜索 haystack 缺 tags）提拔为 OPT-096，E158（book.review 未进 matchBooks）提拔为 OPT-097。
+
+### E158 — `matchBooks()` 不搜索 `book.review`，OPT-087 刚加的读后感字段无法被全局搜索命中 (S)
+
+**What:** `app.js:1163-1166`（`matchBooks()`）：
+
+```js
+function matchBooks(query) {
+  return state.books.filter(
+    (book) => fuzzyMatch(book.title, query) || fuzzyMatch(book.author || "", query)
+  );
+}
+```
+
+仅搜 `title` + `author`。OPT-087（2026-07-06 同日上线）在书籍对象新增了 `review` 字段（`app.js:2259`，`app.js:3173`），前端表单已保存，详情页已展示（`app.js:3266-3274`），分享卡已使用（`app.js:2834`）。但 `matchBooks()` 未更新，用户在搜索框输入任何读后感关键词，书单 tab 返回零结果。同一函数也缺 `book.tags`、`book.notes`（已列 OPT-092 / E150），`review` 是 OPT-087 带来的新增空缺。
+
+**Why it matters:** 用户写下读后感后自然会尝试「搜某本书的感受」；搜索无结果不仅浪费输入，还会让刚添加的功能显得无效。S 级单函数修改，且与 OPT-092（matchBooks 补 tags/notes）完全同质，可搭车同一 PR。
+
+**Complexity:** S — 在 `matchBooks()` 的 filter 条件里增加 `|| fuzzyMatch(book.review || "", query)`（1 行）。Touch: `app.js:1165`（matchBooks filter）；可同步搭车 OPT-092 一并处理。
+
+**Files:** `app.js:1163-1166`（matchBooks）；参照 `app.js:2259`（addBook review 存储）
+
+**northstar:** 弱-中——「事后回顾」路径：用户通过搜索重新找到有感情关联的书；review 字段刚上线，不修意味着这一字段对搜索毫无价值。与 OPT-092 同类，建议搭车。→ **promoted to OPT-097**
+
+---
+
+### E159 — 信号驱动：「AI 一键生成读后感」功能缺失，用户须全手写 [signal-backed 2026-07-06] (M)
+
+**What:** 2026-07-06 signals.md 新增信号「AI 一键生成读后感」。现有 OPT-087 在书籍对象加入了 `review` 字段（`app.js:2259`，`index.html:361/425` 均有 `<textarea name="review">`），但字段纯手工填写——无 AI 生成入口。Chat 面板（`chat.js`）已有「AI 帮你记录」能力，`PromptBuilder.build_chat_prompt()`（`app_server.py:2398-2435`）在 focused-book 模式下注入完整 book 对象（包含 sessions / quotes），理论上具备上下文来生成 review。
+
+**Why it matters:** 「每次读完一本书后愿意写读后感」与「一键让 AI 生成草稿后微调」之间存在明显摩擦差。OPT-087 已打通字段存储，AI 生成 review 草稿是最自然的下一步：一个「✨ 生成读后感」按钮在书籍编辑对话框或详情页触发，调用现有 `/api/chat` 端点（focused mode），返回文本后填入 textarea，用户确认或微调后保存。
+
+**Complexity:** M — 前端：在书籍编辑对话框（`index.html:425`）的 `review` textarea 旁加「✨ AI 起草」按钮；点击后调用 `/api/chat`（不流式，系统提示要求生成读后感草稿），返回文本填入字段。后端：`PromptBuilder` 已有 focused-book 注入，可复用；可用 `/api/chat` 的非流式调用（已有 `call_deepseek()`），无新 API 端点。总约 40–60 行前端 + 轻微后端 prompt 调整。
+
+**Files:** `index.html:425`（书籍编辑对话框 review 区域）；`app.js`（新建 `generateBookReview()` 函数）；`app_server.py:2398-2435`（PromptBuilder — 可能需小调 system prompt）；`chat.js`（可复用 fetchChat 逻辑）
+
+**northstar:** 中——「拍照摘抄→事后回顾」闭环的终点是「能沉淀书的个人意义」；AI 起草读后感显著降低从读书到写感想的摩擦，与 Theme 2「回顾有价值」直接对应，且由明确信号驱动。
+
+---
+
+### E160 — 信号驱动：书籍缺少独立 1–5 星评分字段，用户只能把喜好埋进文本 [signal-backed 2026-07-06] (M)
+
+**What:** 2026-07-06 signals.md 新增信号「喜欢程度/喜爱程度 → 独立 1-5 星评分字段」。当前书籍对象字段为 `{id, title, author, status, notes, tags, review, currentPage, lastReadAt, startedAt, finishedAt, createdAt, updatedAt}`（`app.js:2250-2271` addBook 路径，结合 OPT-087 新增 review）；无数值型喜好字段。用户须在 `notes` 或 `review` 中手写「5星」，无法做基于评分的过滤/排序。
+
+**Why it matters:** 数值评分是复盘书单时最高频的筛选维度（「只看我评了4星以上的」）；对外展示（WeChat 分享卡）也能直接渲染星级，比文字更直观。与 OPT-087 的 review 字段是天然配对——review 是文字主观感受，rating 是数值化的喜好程度。`sanitize_state()` 已将 books 直接透传，新字段无需后端 schema 变更（与 OPT-087/review 同等处理）。
+
+**Complexity:** M — 前端：在 addBook/editBook 表单（`index.html:361/425`）各加一个星级选择器（1–5 radio 或点击式 `<button>`）；`app.js:2259`（addBook）补存 `rating: Number(...) || 0`；`app.js:3173`（saveBookEdit）同；书单卡面（`app.js:renderBooks()`）显示星标；可选：bookList 排序加「按评分」维度。约 60–80 行前端，无后端改动。
+
+**Files:** `index.html:361`（newBookDialog）；`index.html:425`（bookEditDialog）；`app.js:2259`（addBook）；`app.js:3173`（saveBookEdit）；`app.js`（renderBooks 卡面）
+
+**northstar:** 中——「事后回顾」路径；评分让书单从「打过的书的列表」变为「可按个人价值检索的书库」，直接服务 Theme 2「回顾有价值」，且由明确信号驱动。
+
+---
+
+### E161 — `renderConnections()` 搜索 haystack 缺少 `c.tags`，标签已存储但无法搜索（E135 确认仍有效）(S)
+
+**What:** `app.js:862-866`（`renderConnections()` 搜索过滤）：
+
+```js
+const haystack = [
+  getBookTitle(c.sourceType, c.sourceId),
+  getBookTitle(c.targetType, c.targetId),
+  c.thought || "",
+].join(" ").toLowerCase();
+return haystack.includes(searchRaw);
+```
+
+`c.tags`（connections 对象上的标签数组，`index.html` addConnection 表单有 tags 输入字段）被完全排除在 haystack 之外。用户给关联打了「哲学」标签，在搜索框输入「哲学」，该关联不会出现。此条在 E135（2026-06-30）首次登记，今日（2026-07-06）再次核实代码未变，证据有效，从未提拔。
+
+**Why it matters:** 标签是「关联」对象上关系分类的唯一显式维度；搜索跳过 tags 意味着标签系统对搜索路径完全无效。S 级单行修复：将 haystack 数组第三项改为 `[c.thought || "", ...(c.tags || [])].join(" ")`。与 E150/E158 同质——searchable fields 系列共同构成 OPT-092 bundle 的延伸。
+
+**Complexity:** S — 将 `app.js:862-866` haystack 数组的 `c.thought || ""` 替换为 `...[c.thought || "", ...(c.tags || [])]`（1–2 行改动）。无后端改动，无 schema 变更。Touch: `app.js:862-866`（renderConnections filter）。
+
+**Files:** `app.js:862-866`（renderConnections haystack）；参照 `app.js:1163-1166`（matchBooks — 同类缺陷）
+
+**northstar:** 弱-中——「回顾有价值」：用户依赖标签做概念检索，关联搜索漏 tags 使标签化工作付之东流。S 级，建议与 OPT-092（matchBooks 补 tags）、OPT-097（matchBooks 补 review）搭车同一 PR。→ **promoted to OPT-096**
+
+---
+
+> 本次 run 核实 E135（renderConnections haystack 缺 tags）仍有效，提拔为 OPT-096；新增 E158 并提拔为 OPT-097；E159（AI 读后感生成）、E160（书籍星级评分）作为 M 级信号驱动方向登记。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
