@@ -4332,6 +4332,27 @@ function _unregisterOpenCombobox(closeFn) {
   if (_activeComboboxCloser === closeFn) _activeComboboxCloser = null;
 }
 
+// 计算并设置 combobox 下拉列表位置。列表是 position:fixed，必须按输入框「当前」视口
+// 位置定位。iOS 软键盘弹出/输入法预测栏变化会把输入框顶动，触发的是 visualViewport /
+// window 滚动而非 .dialog-form 滚动——若不在这些事件上重定位，列表会停在旧坐标、跑到
+// 输入框上方（bug-415）。同时：下方被键盘挤得放不下、而上方更宽裕时，向上翻转，避免
+// 下拉被键盘遮住。调用前需保证 list 可测高（display 非 none）。
+function positionComboboxList(textInput, list) {
+  const rect = textInput.getBoundingClientRect();
+  const vv = window.visualViewport;
+  const viewTop = vv ? vv.offsetTop : 0;
+  const viewBottom = viewTop + (vv ? vv.height : window.innerHeight || 0);
+  const listH = Math.min(list.scrollHeight || 220, 220);
+  const spaceBelow = viewBottom - rect.bottom;
+  list.style.left = `${rect.left}px`;
+  list.style.width = `${rect.width}px`;
+  if (spaceBelow < listH + 8 && (rect.top - viewTop) > spaceBelow) {
+    list.style.top = `${Math.max(viewTop + 4, rect.top - listH - 2)}px`; // 向上翻转
+  } else {
+    list.style.top = `${rect.bottom + 2}px`;
+  }
+}
+
 function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   if (!wrapperEl || !hiddenInput) return;
   const textInput = wrapperEl.querySelector(".book-combobox-input");
@@ -4342,7 +4363,10 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   let isOpen = false;
 
   function bookLabel(b) {
-    return b.title + (b.author ? ` · ${b.author}` : "");
+    // 存储约定是裸标题（见 formatBookTitle），显示时才包书名号；但历史上有些录入
+    // 路径把《》存进了 title，故先去后包，保证下拉里所有书名号格式一致（bug-415）。
+    const bare = (b.title || "").replace(/[《》]/g, "").trim();
+    return `《${bare}》` + (b.author ? ` · ${b.author}` : "");
   }
 
   function filteredBooks(q) {
@@ -4357,10 +4381,7 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   }
 
   function positionList() {
-    const rect = textInput.getBoundingClientRect();
-    list.style.top = `${rect.bottom + 2}px`;
-    list.style.left = `${rect.left}px`;
-    list.style.width = `${rect.width}px`;
+    positionComboboxList(textInput, list);
   }
 
   function buildList(q = "") {
@@ -4395,8 +4416,8 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   function openList() {
     _registerOpenCombobox(closeList); // 关掉其它已打开的下拉，避免残留
     buildList(textInput.value);
+    list.classList.add("is-open"); // 先显示再定位，positionList 才能测到列表高度
     positionList();
-    list.classList.add("is-open");
     isOpen = true;
   }
 
@@ -4424,6 +4445,12 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
     if (isOpen) positionList();
   }, { passive: true });
+  // iOS 键盘弹出/预测栏变化会移动输入框但不触发 dialog-form 滚动——在 visualViewport
+  // 与 window（捕获阶段）滚动/尺寸变化时重定位，避免下拉停在旧坐标（bug-415）。
+  const _reposition = () => { if (isOpen) positionList(); };
+  window.visualViewport?.addEventListener("resize", _reposition);
+  window.visualViewport?.addEventListener("scroll", _reposition);
+  window.addEventListener("scroll", _reposition, true);
 
   wrapperEl._comboboxUpdate = (books) => {
     allBooks = books;
@@ -4468,10 +4495,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   }
 
   function positionList() {
-    const rect = textInput.getBoundingClientRect();
-    list.style.top = `${rect.bottom + 2}px`;
-    list.style.left = `${rect.left}px`;
-    list.style.width = `${rect.width}px`;
+    positionComboboxList(textInput, list);
   }
 
   function buildList(q = "") {
@@ -4501,8 +4525,8 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   function openList() {
     _registerOpenCombobox(closeList); // 关掉其它已打开的下拉，避免残留
     buildList(textInput.value);
+    list.classList.add("is-open"); // 先显示再定位，positionList 才能测到列表高度
     positionList();
-    list.classList.add("is-open");
     isOpen = true;
   }
 
@@ -4530,6 +4554,12 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
     if (isOpen) positionList();
   }, { passive: true });
+  // iOS 键盘弹出/预测栏变化会移动输入框但不触发 dialog-form 滚动——在 visualViewport
+  // 与 window（捕获阶段）滚动/尺寸变化时重定位，避免下拉停在旧坐标（bug-415）。
+  const _reposition = () => { if (isOpen) positionList(); };
+  window.visualViewport?.addEventListener("resize", _reposition);
+  window.visualViewport?.addEventListener("scroll", _reposition);
+  window.addEventListener("scroll", _reposition, true);
 
   wrapperEl._comboboxUpdate = (quotes) => {
     allQuotes = (quotes || []).filter(isRegularQuote);
