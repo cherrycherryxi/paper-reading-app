@@ -2491,3 +2491,14 @@
 | 13:03 | Edited optimization/backlog.md | inline fix | ~33 |
 | 13:03 | Edited optimization/backlog.md | inline fix | ~36 |
 | 22:30 | 把 OPT-078/079/080 + bug-406(#58) 三分支合回 feature/agent(非 main)，dev 上线并重启后端；关闭误设 base=main 的 PR#56/57/58；记录规则「PR base 必须 feature/agent」 | app.js, app_server.py, .wolf/cerebrum.md, backlog.md | dev 已上线 JS280/py362 绿；#59(base=feature/agent 正确) | ~2500 |
+| 13:03 | Session end: 32 writes across 9 files (backlog.md, app.js, connection-entry-ux.test.js, app_server.py, custom_quote_tags_sanitize_test.py) | 13 reads | ~195900 tok |
+| 17:06 | Edited app.js | modified bookLabel() | ~74 |
+| 17:07 | Edited app.js | added 1 condition(s) | ~315 |
+| 17:07 | Edited app.js | getBoundingClientRect() → positionComboboxList() | ~41 |
+| 17:07 | Edited app.js | added 1 condition(s) | ~357 |
+| 17:07 | Edited app.js | getBoundingClientRect() → positionComboboxList() | ~42 |
+| 17:08 | Edited app.js | added 1 condition(s) | ~358 |
+| 17:09 | Created tests/frontend/combobox-position-and-label.test.js | — | ~1472 |
+| 17:10 | Edited app.js | 407 → 415 | ~2 |
+| 17:10 | Edited tests/frontend/combobox-position-and-label.test.js | 407 → 415 | ~2 |
+| 17:20 | 修 bug-415 书籍 combobox：书名号统一(bookLabel 先去后包《》) + iOS 下拉定位健壮化(positionComboboxList 视口感知+向上翻转+visualViewport/window 重定位) | app.js, tests/frontend/combobox-position-and-label.test.js | dev 已上线(纯前端)，前端 285 绿；iOS 键盘场景待真机验 | ~2200 |

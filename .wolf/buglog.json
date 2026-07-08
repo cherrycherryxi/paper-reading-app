@@ -6900,6 +6900,73 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-07T19:22:05.970Z"
+    },
+    {
+      "id": "bug-413",
+      "timestamp": "2026-07-08T09:06:59.460Z",
+      "error_message": "Wrong return value",
+      "file": "app.js",
+      "root_cause": "Was returning: b.title + (b.author ? ` · ${b.author}` : \"\");",
+      "fix": "Now returns: `《${bare}》` + (b.author ? ` · ${b.author}` : \"\");",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T09:06:59.460Z"
+    },
+    {
+      "id": "bug-414",
+      "timestamp": "2026-07-08T09:07:24.607Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→6 lines (4 removed) | Also: const rect = textInput.getBoundingClientRect();; list.style.top = `${rect.bottom + 2}px`;",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-08T09:07:57.856Z"
+    },
+    {
+      "id": "bug-415",
+      "timestamp": "2026-07-08T09:10:43.681Z",
+      "error_message": "关联对话框书籍 combobox：①下拉里书名号《》格式不一致（有的书有、有的没有）；②输入关键词后下拉浮在输入框上方而非下方，iOS 键盘点确认后下拉消失（owner 实测截图）",
+      "file": "app.js",
+      "root_cause": "①bookLabel 直接返回存储原文 b.title——存储约定是裸标题、显示时才包《》，但历史录入路径有的把《》存进了 title，故下拉里格式不一。②下拉是 position:fixed，positionList 只在 .dialog-form 滚动时重定位；iOS 软键盘弹出/预测栏变化把输入框顶动，触发的是 visualViewport/window 滚动而非 dialog-form 滚动，列表停在旧坐标（跑到输入框上方）；键盘确认 blur→200ms 关闭即消失。",
+      "fix": "①bookLabel 先剥离已有《》再统一包上（与分享卡 2724/2864 一致）。②抽出 positionComboboxList：视口感知定位（用 visualViewport.height），下方放不下且上方更宽裕时向上翻转；并在 visualViewport resize/scroll 与 window 捕获阶段 scroll 时重定位。书/摘抄两个 combobox 对称接入；openList 先显示再定位以便测高。测试 tests/frontend/combobox-position-and-label.test.js 5 例。iOS 键盘真实场景需真机验收。",
+      "tags": [
+        "connections",
+        "combobox",
+        "ios",
+        "position-fixed",
+        "book-title",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T09:10:43.681Z"
+    },
+    {
+      "id": "bug-416",
+      "timestamp": "2026-07-08T09:10:44.965Z",
+      "error_message": "Wrong reference: 407 should be 415",
+      "file": "tests/frontend/combobox-position-and-label.test.js",
+      "root_cause": "Used \"407\" instead of \"415\"",
+      "fix": "Changed 407 → 415",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T09:10:44.965Z"
     }
   ]
 }
