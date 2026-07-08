@@ -6823,19 +6823,83 @@
     },
     {
       "id": "bug-408",
-      "timestamp": "2026-07-07T13:57:41.341Z",
-      "error_message": "Wrong condition in logic",
-      "file": "app.js",
-      "root_cause": "Condition was: if (!wrapperEl || !hiddenInput)",
-      "fix": "Changed to: if (_activeComboboxCloser && _activeComboboxCloser !==)",
+      "timestamp": "2026-07-07T17:14:30.595Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
       "tags": [
         "auto-detected",
-        "logic-fix",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-07T17:14:33.123Z"
+    },
+    {
+      "id": "bug-409",
+      "timestamp": "2026-07-07T18:07:07.865Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: requestAnimationFrame(() => document.getElementById(\"quoteCo",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-07T18:07:26.952Z"
+    },
+    {
+      "id": "bug-410",
+      "timestamp": "2026-07-07T18:09:18.421Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/entry-bundle-opt058-061-066-090-084-091.test.js",
+      "root_cause": "37 lines replaced/restructured",
+      "fix": "Rewrote 51→30 lines (37 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
         "js"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-07-07T13:57:41.341Z"
+      "last_seen": "2026-07-07T18:09:18.421Z"
+    },
+    {
+      "id": "bug-411",
+      "timestamp": "2026-07-07T18:13:59.256Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/triage.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 6,
+      "last_seen": "2026-07-07T18:14:20.651Z"
+    },
+    {
+      "id": "bug-412",
+      "timestamp": "2026-07-07T19:22:05.970Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-07T19:22:05.970Z"
     }
   ]
 }

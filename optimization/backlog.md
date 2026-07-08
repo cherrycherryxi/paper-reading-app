@@ -843,7 +843,7 @@ Format per item:
 - how: 在 `openNewQuoteForBook(bookId)` 内，将 `value = ""` 改为：`const _curPage = state.books.find(b => b.id === bookId)?.currentPage; els.quoteForm.querySelector('[name="page"]').value = _curPage || "";`。约 2–3 行，纯前端。Touch: `app.js:2520`（openNewQuoteForBook）；参照 `app.js:2314`（addSession 回写 currentPage）及 OPT-084 预填逻辑。
 
 ### OPT-096 — `renderConnections()` 搜索 haystack 缺少 `c.tags`，关联标签无法被搜索命中 — 由 explore E135/E161 提拔 [2026-07-06]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -853,7 +853,7 @@ Format per item:
 - how: 将 `app.js:862-866` haystack 数组第三项由 `c.thought || ""` 扩展为 `...[c.thought || "", ...(c.tags || [])]`（实际 1–2 行修改）。建议与 OPT-092、OPT-097 合并为「搜索字段补全 bundle」PR。Touch: `app.js:862-866`（renderConnections haystack）。
 
 ### OPT-097 — `matchBooks()` 不搜索 `book.review`，OPT-087 新增字段对搜索路径完全不可见 — 由 explore E158 提拔 [2026-07-06]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -861,3 +861,23 @@ Format per item:
 - description: `app.js:1163-1166`（`matchBooks()`）filter 条件仅含 `fuzzyMatch(book.title, query) || fuzzyMatch(book.author || "", query)`。OPT-087（2026-07-06）在书籍对象新增 `review` 字段并已接入表单存储（`app.js:2259`）、编辑（`app.js:3173`）、详情展示（`app.js:3266-3274`）和分享卡（`app.js:2834`），但 matchBooks 未同步更新，用户输入读后感关键词，书单 tab 返回零结果。
 - why: 搜索遗漏 review 使刚上线的 OPT-087 功能在搜索路径上无价值，且对用户而言是令人沮丧的「功能存在但搜不到」问题。S 级单行修复，与 OPT-092（matchBooks 补 tags/notes）完全同质，建议合并为同一 PR。
 - how: 在 `app.js:1165` matchBooks filter 末尾追加 `|| fuzzyMatch(book.review || "", query)`（1 行）。建议与 OPT-092（matchBooks tags/notes）、OPT-096（connections tags）合并为「搜索字段补全 bundle」PR。Touch: `app.js:1165`（matchBooks filter）。
+
+### OPT-098 — AI 一键生成读后感草稿：从书籍笔记/摘抄提炼感想，填入 `book.review` 字段 — 由 explore E159 提拔 [2026-07-07]
+- status: new
+- area: frontend + backend
+- priority: P2
+- size: M
+- northstar: 中——「拍照摘抄→事后回顾」闭环的终点是「能沉淀书的个人意义」；AI 起草读后感把「看完摘抄→写下感想」的摩擦压到一次点击，直接服务 Theme 2「回顾有价值」，且由 2026-07-06 明确信号驱动。
+- description: `index.html:425`（书籍编辑对话框）已有 `<textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。">` 但纯手工填写，无 AI 生成入口。OPT-087（2026-07-06）打通 `book.review` 字段的存取（`app.js:2259`/`3173`）与展示（`app.js:3266-3274`，分享卡 `app.js:2834`）。`PromptBuilder.build_chat_prompt()`（`app_server.py:2398-2435`）在 focused-book 模式下已注入完整 book 对象（含 sessions/quotes），基础设施具备生成 review 草稿所需的上下文。
+- why: 2026-07-06 信号：「能一键让 AI 把这本书的笔记/摘抄整理成一段读后感，填进读后感字段；展示时明确标注『AI 根据笔记整理』，与手写读后感区分」。OPT-087 已打通字段存储，AI 生成草稿是最自然下一步：把「看完摘抄→想写感想却要从零开始」这一卡点消除；用户可在草稿基础上微调，保留主动权。
+- how: ① `index.html:425`（书籍编辑对话框 review 区域）review textarea 旁增加「✨ AI 起草」按钮；② 点击后收集书籍 `id`，调用 `/api/chat`（focused-book 模式，system prompt 要求「根据以下摘抄和笔记，生成一句话或一段个人读后感草稿，不超过 80 字」）；③ 返回文本填入 review textarea，同时在字段下方显示「AI 根据笔记整理，可自由修改」提示文案；④ 用户保存时按正常 `saveBookEdit()` 路径存储，无额外标记需求。后端：`PromptBuilder` 在 focused-book 注入路径已有完整 book context，需在 system prompt 加入「请生成读后感草稿」分支指令（约 5–10 行）；无新 API 端点，复用 `/api/chat`。总约 40–60 行前端 + 轻量后端 prompt 调整。Touch: `index.html:425`（书籍编辑对话框）；`app.js`（新建 `generateBookReview()` 函数）；`app_server.py:2398-2435`（PromptBuilder focused-book 分支）。
+
+### OPT-099 — 书籍增加独立 1-5 星评分字段，喜好程度从自由文本升为结构化数据 — 由 explore E160 提拔 [2026-07-07]
+- status: new
+- area: frontend
+- priority: P2
+- size: M
+- northstar: 中——「事后回顾」路径；数值评分让书单从「打过的书的列表」变为「可按个人价值检索的书库」，是 Theme 2「回顾有价值」的结构化入口；且由 2026-07-06 明确信号驱动，与 OPT-087 的 review 字段天然配对（文字感想 + 数值评分）。
+- description: 当前书籍对象字段（`app.js:2244-2264` addBook 路径）含 `status`、`notes`、`tags`、`review`（OPT-087 新增）等，但无数值型喜好字段。用户须在 `notes` 或 `review` 中手写「5星」，无法做基于评分的过滤/排序。`sanitize_state()`（`app_server.py:726-733`）对 `books` 数组整体透传，新增 `rating` 字段无需后端 schema 变更（与 OPT-087/review 相同处理方式）。
+- why: 2026-07-06 信号：「喜欢程度/喜爱程度 现在被混进内容简介里……希望拆成独立字段（如 1-5 星评分），单独录入、单独展示，不要和内容简介混在一起」。数值评分是复盘书单时最高频的筛选维度；书卡分享图（OPT-087 路径）也能直接渲染星级，比文字更直观。与 OPT-087 构成天然配对：review=文字评价，rating=量化评分。
+- how: ① `index.html:399-427`（addBook 对话框）和 `index.html:329-368`（editBook 对话框）各加一个星级选择器（5 个 `<button>` 视觉为可点击星标）；② `app.js:2259`（addBook）补存 `rating: Number(formData.get("rating")) || 0`；③ `app.js:3173`（saveBookEdit）同；④ 书单卡面（`renderBooks()`）在书卡显示 `rating > 0 ? "★".repeat(rating) : ""`；⑤ 可选：书单排序加「按评分」维度；⑥ 书卡分享图可在封面下方渲染星标。约 60–80 行前端，零后端改动，零 DB schema 变更。Touch: `index.html:399-427`（addBook）；`index.html:329-368`（editBook）；`app.js:2259`（addBook 存储）；`app.js:3173`（saveBookEdit 存储）；`app.js`（renderBooks 卡面渲染）。
