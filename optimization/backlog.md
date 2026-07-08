@@ -655,7 +655,7 @@ Format per item:
 - how: 在 `renderTimeline()` 开头从 `state.books` 提取所有有 `startedAt`/`finishedAt` 的书，构建里程碑事件列表（`{type:"milestone", kind:"started"|"finished", bookId, date: startedAt/finishedAt, book}`），与 `sessions` 数组合并后统一按 `date` 排序；为里程碑设计专属卡片 HTML 模板（视觉上与 session 卡片区分，如「📖 开始阅读《书名》」「✅ 读完《书名》」）；`searchRaw` 过滤时对里程碑按书名过滤，与现有 session 过滤逻辑并列。无后端/DB schema 改动。Touch: `app.js:1321-1399`（`renderTimeline`）；`styles.css`（里程碑卡片样式，少量新增）。
 
 ### OPT-078 — 自定义摘抄标签仅存 localStorage，跨设备不同步，导出包中不存在 — 由 explore E120 提拔 [2026-06-28]
-- status: in-progress (PR #57, 2026-07-07, 待审合)
+- status: done (2026-07-07, 合入 feature/agent 提交 830f5b9；dev 已上线并重启后端；原 PR #57 因误设 base=main 已关闭，代码经 feature/agent 落地，待发版随 feature/agent→main 到 prod)
 - area: frontend
 - northstar: 中——自定义标签是 Theme 2「回顾有价值」里「按主题检索」路径的基础；标签体系越积累越难补救——换设备或清缓存后选项消失，历史摘抄的主题过滤入口失效；Theme 2 验收前修复成本最低。
 - priority: P2
@@ -665,7 +665,7 @@ Format per item:
 - how: ① 在 `sanitize_state()`（`app_server.py:633-667`）的返回 dict 中增加 `customQuoteTags` 字段（默认值 `[]`）；② `saveCustomQuoteTags()`（`app.js:483-484`）改为双写：先 `localStorage.setItem(...)` 保持 UI 即时响应，再将 `state.customQuoteTags` 更新并调用 `syncState()` 持久化到服务端；③ `getCustomQuoteTags()`（`app.js:480-481`）改为优先读 `state.customQuoteTags`（若存在且非空），回退 localStorage（迁移过渡期）；④ 更新 `tests/agent/state_sanitization_test.py` 中的 schema 快照测试（如有）。Touch: `app.js:480-484`；`app_server.py:633-667`（`sanitize_state`）。
 
 ### OPT-079 — 摘抄卡 ⋯ 菜单增加「建立关联」直达入口 — 由 explore E129 提拔 [2026-06-29]
-- status: in-progress (PR #56, 2026-07-07, 与 OPT-080 合并一 PR，待审合)
+- status: done (2026-07-07, 合入 feature/agent 提交 8ea4793；dev 已上线；原 PR #56 因误设 base=main 已关闭，代码经 feature/agent 落地，待发版到 prod)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」；从摘抄卡直接触发关联消除 2 步固定摩擦，降低建立关联的放弃率；signal 2026-06-29 佐证
 - priority: P2
@@ -675,7 +675,7 @@ Format per item:
 - how: ① `app.js:1528-1531` 菜单模板加 `<li><button type="button" data-quote-menu="connect">建立关联</button></li>`；② `quoteMenuHandler`（`app.js:~1535`）加 `case "connect"` 分支，调用 `openConnectionDialog({ sourceType: "quote", sourceId: quote.id })`。同 PR 可顺带修复 E131（`app.js:3914` 目标类型默认值）和 E132（`app.js:3820` slice 30 → 50），形成「建立关联」体验修复包。Touch: `app.js:1528-1535`。
 
 ### OPT-080 — 关联对话框目标摘抄标签截断至 32 字 + CSS 双重省略导致同书摘抄无法辨识 — 由 explore E130 提拔 [2026-06-29]
-- status: in-progress (PR #56, 2026-07-07, 与 OPT-079 合并一 PR，待审合)
+- status: done (2026-07-07, 合入 feature/agent 提交 8ea4793，两行封顶 -webkit-line-clamp；dev 已上线；原 PR #56 已关闭，代码经 feature/agent 落地，待发版到 prod)
 - area: frontend
 - northstar: 中——Theme 2「建立关联」核心路径；目标摘抄可辨识度直接决定关联建立质量；signal 2026-06-29 明确佐证「目标显示不完整、看不清内容、找不到想关联的那一条」
 - priority: P2

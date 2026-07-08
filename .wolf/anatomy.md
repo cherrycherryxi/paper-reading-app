@@ -1,8 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-07T13:58:52.194Z
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-07T19:23:39.867Z
-> Files: 233 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-08T05:03:10.372Z
+> Files: 236 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -84,9 +83,10 @@
 
 ## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
 
+- `feedback_pr_target_feature_agent.md` (~223 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~370 tok)
+- `MEMORY.md` (~455 tok)
 - `project_brand_share_kit.md` (~327 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
@@ -244,7 +244,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~24457 tok)
+- `backlog.md` — Optimization Backlog (~24513 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~42518 tok)
