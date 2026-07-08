@@ -2572,3 +2572,11 @@
 | 18:07 | Created tests/frontend/search-field-bundle.test.js | — | ~4258 |
 | 18:10 | Edited optimization/triage.md | 3→3 lines | ~60 |
 | 02:00 | Agent2 run: 检索修通 bundle (OPT-092/083/056/088/096/097) — matchBooks tags/notes/review + matchQuotes ocrText + renderQuotes ocrText/reflection + renderConnections getSearchLabel+tags | app.js, tests/frontend/search-field-bundle.test.js | PR #60 opened targeting feature/agent; JS 18/18 new tests + 36 files all green; Python 345/347 (2 mcp errors expected) | ~4000 |
+
+## Session: 2026-07-08 19:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:16 | Edited optimization/explore.md | added 4 condition(s) | ~1935 |
+| 19:17 | Edited optimization/backlog.md | added 1 condition(s) | ~994 |
+| 03:00 | Agent3 Explore run 2026-07-08: appended E165-E169 to explore.md, promoted OPT-100 (Excel rating regression) and OPT-101 (AI review marker) to backlog.md | optimization/explore.md, optimization/backlog.md | success | ~8000 |

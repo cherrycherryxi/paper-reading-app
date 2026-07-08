@@ -881,3 +881,23 @@ Format per item:
 - description: 当前书籍对象字段（`app.js:2244-2264` addBook 路径）含 `status`、`notes`、`tags`、`review`（OPT-087 新增）等，但无数值型喜好字段。用户须在 `notes` 或 `review` 中手写「5星」，无法做基于评分的过滤/排序。`sanitize_state()`（`app_server.py:726-733`）对 `books` 数组整体透传，新增 `rating` 字段无需后端 schema 变更（与 OPT-087/review 相同处理方式）。
 - why: 2026-07-06 信号：「喜欢程度/喜爱程度 现在被混进内容简介里……希望拆成独立字段（如 1-5 星评分），单独录入、单独展示，不要和内容简介混在一起」。数值评分是复盘书单时最高频的筛选维度；书卡分享图（OPT-087 路径）也能直接渲染星级，比文字更直观。与 OPT-087 构成天然配对：review=文字评价，rating=量化评分。
 - how: ① `index.html:399-427`（addBook 对话框）和 `index.html:329-368`（editBook 对话框）各加一个星级选择器（5 个 `<button>` 视觉为可点击星标）；② `app.js:2259`（addBook）补存 `rating: Number(formData.get("rating")) || 0`；③ `app.js:3173`（saveBookEdit）同；④ 书单卡面（`renderBooks()`）在书卡显示 `rating > 0 ? "★".repeat(rating) : ""`；⑤ 可选：书单排序加「按评分」维度；⑥ 书卡分享图可在封面下方渲染星标。约 60–80 行前端，零后端改动，零 DB schema 变更。Touch: `index.html:399-427`（addBook）；`index.html:329-368`（editBook）；`app.js:2259`（addBook 存储）；`app.js:3173`（saveBookEdit 存储）；`app.js`（renderBooks 卡面渲染）。
+
+### OPT-100 — Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 — 由 explore E165 提拔 [2026-07-08]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 强——2026-07-06 信号直接驱动（OPT-099 是信号响应，本项修复同信号下的遗漏导入路径）；Excel 是书单初始化的主通道，修复后历史书单评分才能正确进入 rating 字段，OPT-099 的用户价值才算闭环；S 复杂度，2 行改动。
+- description: `importFromExcel()`（`app.js:4089-4113`）提取「喜欢程度」列后推入 `notesParts`，最终写入 `notes: notesParts.join("\n")`（`app.js:4106`），构建的书籍对象**无 `rating` 字段**。OPT-099（2026-07-08 同日合并）在 `addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）均已实现 `book.rating` 的存取，详情页和分享卡均已展示星级，但 Excel 导入路径未同步。用户通过 Excel 批量初始化书单（含「喜欢程度」列）后，每本书的评分被埋在 notes 文本，星级 UI 不显示。
+- why: Excel 批量导入是新用户最常走的书单初始化路径；OPT-001（Excel 导入入口）已是 P1 特性，不修此路径 = OPT-099 的星级功能对批量入库用户无效。2026-07-06 信号「希望拆成独立字段、单独展示」的诉求在 Excel 路径上仍未实现。
+- how: `app.js:4092`：将 `const rating = ...` 改为 `const ratingNum = Number(...) || 0`；`app.js:4098-4113` book 对象新增 `rating: ratingNum`；同时可将 `if (rating) notesParts.push(\`喜欢程度：${rating}\`)` 一行删除（评分已存入独立字段，无需再写 notes）。共约 3 行改动，纯前端，零后端/DB 变更。Touch: `app.js:4092-4113`（importFromExcel 书籍对象构建段）。
+
+### OPT-101 — `generateBookReview()` 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 — 由 explore E166 提拔 [2026-07-08]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——2026-07-06 信号明确：「展示时明确标注『AI 根据笔记整理』，与手写读后感区分」；OPT-098 已上线 AI 读后感功能，但缺少来源区分是该功能的完整性缺口；S 修复使 OPT-098 真正落地用户诉求；零后端变更。
+- description: `generateBookReview()`（`app.js:2264-2291`）将 AI 生成内容填入 textarea（`app.js:2281: textarea.value = reply`），但不存任何 AI 来源标记字段。全文件中无 `reviewIsAi`、`aiGenerated`、`review_source` 等字段存在（grep 0 匹配）。书籍详情展示（`app.js:3375`）将 `book.review` 标为「我的读后」，无法区分「AI 草稿」与「手写读后感」。用户不知某段读后感是否是 AI 生成的，无法判断是否需要自己补充。
+- why: 2026-07-06 信号明确要求来源区分，OPT-098 实现了生成功能但未实现标注功能，是信号响应的半成品。AI 草稿 vs 手写读后感的区分在意义上至关重要：前者是起点，后者是终点；混淆会让用户对自己的阅读感悟产生混乱。S 修复完成 OPT-098 的最后一块拼图。
+- how: ① `index.html`（addBook/editBook 对话框 review 区域）新增 `<input type="hidden" name="reviewIsAi" value="false">`，AI 按钮点击时将其设为 `"true"`；② `addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）存取 `reviewIsAi: formData.get("reviewIsAi") === "true"`；③ `generateBookReview()`（`app.js:2280-2282`）填 textarea 后同步将 hidden input 值设为 `"true"`，用户手动修改 textarea 时（`input` 事件）可选重置为 `"false"`；④ 详情页（`app.js:3375`）和分享卡（`app.js:2907`）根据 `book.reviewIsAi` 在「我的读后」标签旁追加 `（AI 草稿）`。约 15–20 行前端，零后端/DB 变更。Touch: `index.html`（addBook/editBook 对话框）；`app.js:2280-2282`（generateBookReview）；`app.js:2316`（addBook）；`app.js:3274`（saveBookEdit）；`app.js:3375`（详情页展示）。
