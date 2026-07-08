@@ -357,8 +357,21 @@
           <label><span>开始阅读</span><input name="startedAt" type="date" /></label>
           <label><span>读完日期</span><input name="finishedAt" type="date" /></label>
         </div>
+        <label><span>评分</span>
+          <div class="star-rating" data-star-rating>
+            <button type="button" class="star-btn" data-star="1" title="1 星">★</button>
+            <button type="button" class="star-btn" data-star="2" title="2 星">★</button>
+            <button type="button" class="star-btn" data-star="3" title="3 星">★</button>
+            <button type="button" class="star-btn" data-star="4" title="4 星">★</button>
+            <button type="button" class="star-btn" data-star="5" title="5 星">★</button>
+          </div>
+          <input type="hidden" name="rating" value="0" />
+        </label>
         <label><span>内容简介 / 备注</span><textarea name="notes" rows="4" placeholder="记录这本书的简介、感受或关键背景。"></textarea></label>
-        <label><span>读后感</span><textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。"></textarea></label>
+        <label><span>读后感</span><textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。"></textarea>
+          <button type="button" class="button button-ghost button-small ai-review-btn"
+                  data-generate-review>✨ AI 起草</button>
+        </label>
         <div class="dialog-actions">
           <button type="button" class="button button-ghost" data-close-dialog="bookEditDialog">取消</button>
           <button type="submit" class="button button-primary">保存修改</button>
@@ -421,6 +434,16 @@
           <span class="helper-text">拍封面后点「识别封面信息」可自动填书名 / 作者 / 标签。</span>
         </div>
         <div id="bookImagePreview" class="image-preview is-hidden"><img id="bookPreviewImg" alt="书籍封面预览" /></div>
+        <label><span>评分</span>
+          <div class="star-rating" data-star-rating>
+            <button type="button" class="star-btn" data-star="1" title="1 星">★</button>
+            <button type="button" class="star-btn" data-star="2" title="2 星">★</button>
+            <button type="button" class="star-btn" data-star="3" title="3 星">★</button>
+            <button type="button" class="star-btn" data-star="4" title="4 星">★</button>
+            <button type="button" class="star-btn" data-star="5" title="5 星">★</button>
+          </div>
+          <input type="hidden" name="rating" value="0" />
+        </label>
         <label><span>备注</span><textarea name="notes" rows="3" placeholder="记录你为什么读这本书。"></textarea></label>
         <label><span>读后感</span><textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。"></textarea></label>
         <div class="dialog-actions">

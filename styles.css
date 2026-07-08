@@ -2383,6 +2383,24 @@ dialog::backdrop {
   align-items: stretch;
 }
 
+/* 星级评分 */
+.star-rating { display: flex; gap: 6px; }
+.star-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 28px; line-height: 1; padding: 2px 0;
+  color: var(--color-border);
+  transition: color 120ms ease, transform 120ms ease;
+}
+.star-btn:hover { transform: scale(1.15); }
+.star-btn.is-filled { color: var(--color-yellow); }
+
+/* AI 读后感按钮 */
+.ai-review-btn {
+  justify-self: start; margin-top: 4px;
+  font-size: 13px;
+}
+.ai-review-btn:disabled { opacity: 0.6; cursor: wait; }
+
 .book-detail-dialog-body {
   /* OPT-049 ②: was `min-width: min(720px, …)`, wider than the dialog's 560px,
      causing the body to overflow horizontally (swipeable left/right). Let it

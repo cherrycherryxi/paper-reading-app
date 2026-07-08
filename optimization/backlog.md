@@ -862,17 +862,17 @@ Format per item:
 - why: 搜索遗漏 review 使刚上线的 OPT-087 功能在搜索路径上无价值，且对用户而言是令人沮丧的「功能存在但搜不到」问题。S 级单行修复，与 OPT-092（matchBooks 补 tags/notes）完全同质，建议合并为同一 PR。
 - how: 在 `app.js:1165` matchBooks filter 末尾追加 `|| fuzzyMatch(book.review || "", query)`（1 行）。建议与 OPT-092（matchBooks tags/notes）、OPT-096（connections tags）合并为「搜索字段补全 bundle」PR。Touch: `app.js:1165`（matchBooks filter）。
 
-### OPT-098 — AI 一键生成读后感草稿：从书籍笔记/摘抄提炼感想，填入 `book.review` 字段 — 由 explore E159 提拔 [2026-07-07]
-- status: new
-- area: frontend + backend
+### OPT-098 — AI 一键生成读后感草稿 + 书籍 1-5 星评分（E159 + E160 合并 PR）— 已实现 [2026-07-08]
+- status: done (2026-07-08 合并实现, 与 OPT-099 同 PR)
+- area: frontend
 - priority: P2
 - size: M
-- northstar: 中——「拍照摘抄→事后回顾」闭环的终点是「能沉淀书的个人意义」；AI 起草读后感把「看完摘抄→写下感想」的摩擦压到一次点击，直接服务 Theme 2「回顾有价值」，且由 2026-07-06 明确信号驱动。
-- description: `index.html:425`（书籍编辑对话框）已有 `<textarea name="review" rows="3" placeholder="读完后一句话的感受（会优先展示在分享图与书详情）。">` 但纯手工填写，无 AI 生成入口。OPT-087（2026-07-06）打通 `book.review` 字段的存取（`app.js:2259`/`3173`）与展示（`app.js:3266-3274`，分享卡 `app.js:2834`）。`PromptBuilder.build_chat_prompt()`（`app_server.py:2398-2435`）在 focused-book 模式下已注入完整 book 对象（含 sessions/quotes），基础设施具备生成 review 草稿所需的上下文。
-- why: 2026-07-06 信号：「能一键让 AI 把这本书的笔记/摘抄整理成一段读后感，填进读后感字段；展示时明确标注『AI 根据笔记整理』，与手写读后感区分」。OPT-087 已打通字段存储，AI 生成草稿是最自然下一步：把「看完摘抄→想写感想却要从零开始」这一卡点消除；用户可在草稿基础上微调，保留主动权。
-- how: ① `index.html:425`（书籍编辑对话框 review 区域）review textarea 旁增加「✨ AI 起草」按钮；② 点击后收集书籍 `id`，调用 `/api/chat`（focused-book 模式，system prompt 要求「根据以下摘抄和笔记，生成一句话或一段个人读后感草稿，不超过 80 字」）；③ 返回文本填入 review textarea，同时在字段下方显示「AI 根据笔记整理，可自由修改」提示文案；④ 用户保存时按正常 `saveBookEdit()` 路径存储，无额外标记需求。后端：`PromptBuilder` 在 focused-book 注入路径已有完整 book context，需在 system prompt 加入「请生成读后感草稿」分支指令（约 5–10 行）；无新 API 端点，复用 `/api/chat`。总约 40–60 行前端 + 轻量后端 prompt 调整。Touch: `index.html:425`（书籍编辑对话框）；`app.js`（新建 `generateBookReview()` 函数）；`app_server.py:2398-2435`（PromptBuilder focused-book 分支）。
+- northstar: 中
+- description: 在 editBook 对话框 review 旁加「✨ AI 起草」按钮，调用 /api/chat focusedBook 模式生成读后感草稿填入 textarea；两个 book 表单各加 1-5★ 点击式评分组件，book.rating 存储 0-5。详情页 meta 行和分享卡展示星标。纯前端，零后端 schema 变更。新增 tests/frontend/book-review-rating.test.js 11 例。
+- how: 已实现。index.html 两表单加 star-rating 组件 + editBook 加 AI 按钮；styles.css 加 .star-rating/.star-btn/.ai-review-btn；app.js 加 generateBookReview 函数 + 星级点击委托 + addBook/saveBookEdit/openBookEditDialog/openBookDetailDialog/renderBookShareCard 各补 rating 存取展示。Touch: index.html, app.js, styles.css, tests/frontend/book-review-rating.test.js。
 
-### OPT-099 — 书籍增加独立 1-5 星评分字段，喜好程度从自由文本升为结构化数据 — 由 explore E160 提拔 [2026-07-07]
+### OPT-099 — 书籍增加独立 1-5 星评分字段（已合并至 OPT-098 同 PR 实现）[2026-07-08]
+- status: done (2026-07-08 合并至 OPT-098 同 PR)
 - status: new
 - area: frontend
 - priority: P2

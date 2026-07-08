@@ -2261,6 +2261,35 @@ function resetBookDraft() {
   }
 }
 
+async function generateBookReview(bookId, textarea) {
+  if (!textarea || !bookId) return;
+  const btn = textarea.closest("label")?.querySelector("[data-generate-review]");
+  const originalText = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = "生成中…"; }
+  try {
+    const data = await apiFetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        context: { type: "book", bookId },
+        bookId,
+        message: "请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-200字），包含你对这本书的个人感受和评价。",
+      }),
+    });
+    const reply = (data?.reply || "").trim();
+    if (reply) {
+      textarea.value = reply;
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    } else {
+      showToast("AI 未能生成读后感，请手动填写");
+    }
+  } catch (err) {
+    showToast("生成失败：" + (err?.message || "网络错误"));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText || "✨ AI 起草"; }
+  }
+}
+
 async function addBook(formData) {
   if (!requireAuth("新增书籍")) return;
 
@@ -2290,6 +2319,7 @@ async function addBook(formData) {
       tags: normalizeTags(formData.get("tags")),
       notes: String(formData.get("notes")).trim(),
       review: String(formData.get("review") || "").trim(),
+      rating: Number(formData.get("rating")) || 0,
       coverImageUrl,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -2884,6 +2914,7 @@ async function renderBookShareCard(book) {
   if (book.totalPages) pills.push(`${book.totalPages} 页`);
   const days = readingDaysLabel(book);
   if (days) pills.push(days);
+  if (book.rating) pills.push("★".repeat(book.rating) + "☆".repeat(5 - book.rating));
 
   const coverW = 300, coverH = 400, gap = 44;
   const hasCover = !!cover;
@@ -3184,6 +3215,15 @@ function openBookEditDialog(bookId) {
   els.bookEditForm.elements.finishedAt.value = isoToDateInput(book.finishedAt); // OPT-074
   els.bookEditForm.elements.notes.value = book.notes || "";
   if (els.bookEditForm.elements.review) els.bookEditForm.elements.review.value = book.review || "";
+  // 预填星级评分
+  const _ratingVal = book.rating || 0;
+  const _starContainer = els.bookEditDialog.querySelector("[data-star-rating]");
+  if (_starContainer) {
+    _starContainer.querySelectorAll(".star-btn").forEach((b) =>
+      b.classList.toggle("is-filled", Number(b.dataset.star) <= _ratingVal));
+    const _hidden = _starContainer.querySelector('input[type="hidden"]');
+    if (_hidden) _hidden.value = _ratingVal;
+  }
   els.bookEditDialogTitle.textContent = `${book.title}${book.author ? ` · ${book.author}` : ""}`;
   if (book.coverImageUrl) {
     pendingBookEditImage = { name: "existing-cover", dataUrl: book.coverImageUrl };
@@ -3218,6 +3258,7 @@ async function saveBookEdit(formData) {
   book.status = String(formData.get("status"));
   book.notes = String(formData.get("notes")).trim();
   book.review = String(formData.get("review") || "").trim();
+  book.rating = Number(formData.get("rating")) || 0;
   book.tags = Array.isArray(book.tags) ? book.tags : [];
   book.updatedAt = new Date().toISOString();
   book.startedAt = startedAtIso;
@@ -3298,6 +3339,9 @@ function openBookDetailDialog(bookId) {
 
   els.bookDetailTitle.textContent = book.title || "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
+  if (book.rating) {
+    els.bookDetailMeta.textContent += " · " + "★".repeat(book.rating) + "☆".repeat(5 - book.rating);
+  }
 
   // OPT-074: show reading dates (auto-filled by saveSession, or set in edit dialog).
   const detailDatesEl = document.getElementById("bookDetailDates");
@@ -5177,6 +5221,34 @@ function bindEvents() {
   });
 
   document.addEventListener("click", closeAllCardMenus);
+
+  // 星级评分：全局点击委托
+  document.addEventListener("click", (e) => {
+    const starBtn = e.target.closest(".star-btn");
+    if (!starBtn) return;
+    const container = starBtn.closest("[data-star-rating]");
+    if (!container) return;
+    const v = Number(starBtn.dataset.star);
+    const hidden = container.querySelector('input[type="hidden"]');
+    container.querySelectorAll(".star-btn").forEach((b) =>
+      b.classList.toggle("is-filled", Number(b.dataset.star) <= v));
+    if (hidden) hidden.value = v;
+  });
+
+  // AI 读后感：「✨ AI 起草」按钮委托
+  document.addEventListener("click", (e) => {
+    const genBtn = e.target.closest("[data-generate-review]");
+    if (!genBtn || genBtn.disabled) return;
+    const dialog = genBtn.closest("dialog");
+    const bookIdInput = dialog?.querySelector('input[name="bookId"]');
+    const bookId = bookIdInput?.value || "";
+    const textarea = genBtn.closest("label")?.querySelector("textarea");
+    if (!bookId) {
+      showToast("请先保存书籍后再生成 AI 读后感");
+      return;
+    }
+    generateBookReview(bookId, textarea);
+  });
 }
 
 window.paperReadingApp = {
