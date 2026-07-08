@@ -467,7 +467,7 @@ Format per item:
 - how: 方案 A（最简）：将硬限从 10 改为 20，`app.js:1332` 单行改动；方案 B（推荐）：在时间线底部追加「查看更多」按钮，点击后 `slice(0, count + 10)`，通过 `state` 或局部变量跟踪当前展示数量。Touch: `app.js:1295-1345`（`renderTimeline`）；`index.html:119`（timeline 容器，可加「更多」按钮占位）。
 
 ### OPT-058 — 摘抄对话框 `showModal()` 后未 `focus()` 文本区，移动端每次打开须额外点击才能输入 — 由 explore E93 提拔
-- status: triaged
+- status: done (PR #59, merged 2026-07-07 — openNewQuoteForBook/editQuote 各加 requestAnimationFrame focus #quoteContent)
 - area: frontend
 - northstar: 中——Theme 1「采集顺滑」触点：摘抄对话框是拍照→OCR→成卡的最终操作界面，每次打开须额外点击才能输入，直接给核心链路增加固定摩擦；CLAUDE.md 明确「mobile-first (iPhone 12)」；S 复杂度，2 行改动，零副作用。
 - description: `openNewQuoteForBook()`（`app.js:2248`）和 `editQuote()`（`app.js:2283`）均以 `els.quoteDialog.showModal()` 结束，之后无 `focus()` 调用。iPhone Safari 对 `<dialog>` 内 textarea 不自动聚焦——`#quoteContent`（`index.html:471`）在弹窗打开后不是焦点元素，用户需额外点击才能开始输入。桌面浏览器通常自动聚焦首个可交互元素，但 iPhone Safari 不支持此行为（dialog 规范差异）。
@@ -491,7 +491,7 @@ Format per item:
 - how: 在 `app.js:740-756` 的 haystack 构建中，对 `c.sourceType === "quote"` 和 `c.targetType === "quote"` 的 side，分别通过 `state.quotes.find()` 查找对应 quote 的 `.content`，加入 haystack 数组。额外查找仅在 `searchRaw` 非空时触发（`app.js:739` 已有 `if (!searchRaw) return true` 短路保护，连接数通常 <100，O(Q) 查找可忽略）。Touch: `app.js:740-756`（haystack 构建块，约 6 行改动）。
 
 ### OPT-061 — Session 对话框 `showModal()` 后无 `focus()`，移动端须额外点击才能开始输入 — 由 explore E97 提拔
-- status: triaged
+- status: done (PR #59, merged 2026-07-07 — editSession/openNewSessionForBook 各加 requestAnimationFrame focus startPage)
 - area: frontend
 - northstar: 中——Theme 1「采集顺滑」每日触点：Session 记录是阅读习惯追踪的核心动作，每次打开弹窗须额外点击 `startPage` 输入框才能填写；mobile-first 原则下此为固定摩擦；OPT-058 已为摘抄对话框做同等修复，本项为平行补丁，S 复杂度，实现风险接近零。
 - description: `editSession()`（`app.js:2142`）和 `openNewSessionForBook()`（`app.js:2262`）均以 `els.sessionDialog.showModal()` 结束，无后续 `focus()` 调用。Session 表单第一个必填手动输入字段是 `startPage`（`[name="startPage"]`，`index.html:431`，`type="number" required`）；`bookId` 和 `date` 均有预填值，`startPage` 才是用户首个须手动填写的字段。iPhone Safari 不对 `<dialog>` 内 input 自动聚焦，导致打开弹窗后须额外点击一次。
@@ -535,7 +535,7 @@ Format per item:
 - how: 在 `reading_mcp_server.py:_save_state()` 中调用 `sanitize_state` 后再序列化写入。最简：从 `app_server` 导入 `sanitize_state`（需验证无循环 import 风险，两模块目前互不引用）；若有风险则将 `sanitize_state` 提取到共享 `state_utils.py`。Touch: `reading_mcp_server.py:70-75`（`_save_state` 函数）；可能需新增 `state_utils.py` 或修改 import。
 
 ### OPT-066 — 编辑阅读会话未同步书籍进度字段（`currentPage` / `lastReadAt` / `updatedAt`） — 由 explore E107 提拔
-- status: triaged
+- status: done (PR #59, merged 2026-07-07 — editSession 分支补全 currentPage/lastReadAt/updatedAt/finished 回写，与新建分支对称)
 - area: frontend
 - priority: P2
 - size: S
@@ -715,7 +715,7 @@ Format per item:
 - how: ① `app.js:1498`：将 `item.content || ""` 改为 `item.content || item.ocrText || ""`（或在 haystack 数组追加 `item.ocrText || ""`）；② `app.js:1143`：将 `fuzzyMatch(quote.content || "", query)` 改为 `fuzzyMatch(quote.content || quote.ocrText || "", query)`。两处改动，无副作用，建议同 PR。Touch: `app.js:1498`、`app.js:1143`。
 
 ### OPT-084 — `openNewSessionForBook()` 从不预填 `startPage`，每次录入需手动输入已知起始页 — 由 explore E137 提拔 [2026-07-01]
-- status: triaged
+- status: done (PR #59, merged 2026-07-07 — openNewSessionForBook startPage value 改为 book.currentPage+1 预填)
 - area: frontend
 - priority: P2
 - size: S
@@ -746,7 +746,7 @@ Format per item:
 - how: 静态资源版本化长缓存——JS/CSS 引用加内容哈希或版本串（项目已有 `?v=20260531a` 雏形），响应头由 no-store 改为 `Cache-Control: public, max-age=31536000, immutable`，发版时改版本串即让缓存失效。需建立「发版必改版本串」的纪律，否则会推不出新前端。Touch: app_server.py `_STATIC` 响应头（~3416-3425）+ index.html 里对 app.js/chat.js/styles.css 的引用加版本串。
 
 ### OPT-087 — 摘抄/书/思想碰撞「一键生成分享图」(内容卡自传播增长引擎)
-- status: in-progress (2026-07-06 — 三版式全部落地：摘抄卡/思想碰撞卡/书卡；剩真机 QC+埋点)
+- status: done (2026-07-06 — 三版式全部落地，代码已合入 feature/agent)
 - progress (2026-07-06): 采用**方案 A（前端纯 Canvas 原生绘制，零依赖，契合项目「无构建/不引重库」约定）**。三版式照 `~/Downloads/又买了一本书-分享物料/` 复刻，共用 header/footer/divider/pill/tags 绘制助手（`drawShareHeader`/`drawShareFooter`/`drawShareDivider`/`drawSharePill`/`layoutShareTags`/`newShareCanvas`/`loadShareAssets`），全部动态高度：
   - **摘抄卡** `renderQuoteShareCard`：装饰引号+衬线正文+《出处》+批注；slogan「买书容易，读完才算。/扫码，记录你自己的阅读」。入口:摘抄 ⋯ 菜单 + 摘抄详情弹窗。
   - **思想碰撞卡** `renderConnectionShareCard`：kind 胶囊(◎ 思想碰撞·{kind})+顶部装饰圆+双书纵向堆叠(↓)+thought+标签；slogan「发现你书架上的暗线/扫码，让 AI 帮你连起来」。入口:关联卡 action 分享按钮。
@@ -783,7 +783,7 @@ Format per item:
 - how: `clearSampleData()` 补全 chatHistories/chatContexts 清理：遍历所有示例书/摘抄 id（`isSample:true`），逐一执行与 `deleteBook()` 相同的 key 删除逻辑（`delete state.chatHistories[id]`、`delete state.chatHistories["book:"+id]`、`delete state.chatContexts[*]`）。`tests/frontend/sample-onboarding.test.js` 补充断言。Touch: `app.js:clearSampleData`，`tests/frontend/sample-onboarding.test.js`。
 
 ### OPT-090 — `editSession()` 日期预填用 `toISOString()` 而非已有的 `isoToDateInput()` 辅助，编辑路径存在与 OPT-059 对称的时区 bug — 由 explore E145 提拔 [2026-07-03]
-- status: triaged
+- status: done (PR #59, merged 2026-07-07 — editSession 日期预填改用 isoToDateInput())
 - area: frontend
 - priority: P1
 - size: S
@@ -793,7 +793,7 @@ Format per item:
 - how: `app.js:2412` 将 `new Date(session.date).toISOString().split("T")[0]` 改为 `isoToDateInput(session.date)`；1 行修改，复用已有辅助。Touch: `app.js:2412`（editSession）。
 
 ### OPT-091 — `renderTimeline()` 用 `localeCompare` 排序 session，OPT-037 的书单修复未覆盖 Timeline — 由 explore E146 提拔 [2026-07-03]
-- status: triaged
+- status: done (PR #59, merged 2026-07-07 — renderTimeline Date.parse 数值排序)
 - area: frontend
 - priority: P2
 - size: S
