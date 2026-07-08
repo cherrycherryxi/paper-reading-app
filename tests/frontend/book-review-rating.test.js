@@ -68,6 +68,21 @@ function formDataMock(obj) {
   return m;
 }
 
+// ─── Test 0: 结构回归 — hidden input 必须在 [data-star-rating] 容器内 ────────
+// bug: 隐藏 input 曾放在 star-rating div 外，点击委托的
+// starBtn.closest("[data-star-rating]").querySelector('input[type=hidden]')
+// 与预填的 _starContainer.querySelector 都取到 null，星星亮了但 rating 永远存 0。
+// 用真实 index.html 结构断言（不是重放点击逻辑），这才能抓到 DOM 布局回归。
+test("OPT-098 回归: name=\"rating\" 的 hidden input 必须嵌在 [data-star-rating] 容器内", () => {
+  // star-rating div 内无嵌套 div，第一个 </div> 即其闭合标签
+  const blocks = [...htmlSource.matchAll(/data-star-rating>([\s\S]*?)<\/div>/g)];
+  assert.equal(blocks.length, 2, "新增书 + 编辑书两个弹窗各有一个 star-rating 容器");
+  for (const [, inner] of blocks) {
+    assert.match(inner, /<input[^>]*type="hidden"[^>]*name="rating"/,
+      "hidden rating input 必须在 [data-star-rating] 内，否则点击/预填的 querySelector 取不到");
+  }
+});
+
 // ─── Test 1: 星级点击 ──────────────────────────────────────────────────────
 
 test("OPT-098: 点击第 3 颗星 → hidden=3，前 3 颗亮、后 2 颗暗", () => {
@@ -258,15 +273,19 @@ test("OPT-098: AI 生成失败 → toast 提示 + 按钮恢复", async () => {
   assert.equal(btnText, "✨ AI 起草", "按钮应恢复原文");
 });
 
-// ─── Test 11: 分享卡展示星标 ───────────────────────────────────────────────
-
-test("OPT-098: 分享卡 book.rating=5 → pills 含 '★★★★★'", () => {
-  assert.match(appSource, /book\.rating.*★/, "renderBookShareCard 应渲染星标");
-
-  const book = { rating: 5 };
-  const pills = [];
-  if (book.rating) pills.push("★".repeat(book.rating) + "☆".repeat(5 - book.rating));
-  assert.ok(pills.some((p) => p.includes("★★★★★")), "pills 应包含五星");
+// ─── Test 11: 分享卡展示星标（源码级；行为覆盖见 share-card.test.js）─────────
+// 评分改为独立金色星标行，不再塞进 meta 胶囊（旧实现四胶囊横排会溢出信息列宽）。
+test("OPT-098: renderBookShareCard 用独立金色星标行渲染评分，不再进 pills", () => {
+  const fnMatch = appSource.match(/async function renderBookShareCard[\s\S]*?\n}/);
+  assert.ok(fnMatch, "应存在 renderBookShareCard");
+  const fn = fnMatch[0];
+  assert.match(fn, /const rating = book\.rating \|\| 0;/, "评分应取为独立变量");
+  assert.doesNotMatch(fn, /pills\.push\([^)]*★/, "评分不应再作为胶囊塞进 pills");
+  // 独立星标行：金色实心 accent + 未满补淡色空心
+  assert.match(fn, /const filled = "★"\.repeat\(rating\);/, "实心星串按评分数生成");
+  assert.match(fn, /ctx\.fillStyle = C\.accent;\s*\n\s*ctx\.fillText\(filled/,
+    "实心星应用金色 accent 绘制");
+  assert.match(fn, /"☆"\.repeat\(5 - rating\)/, "未满 5 星应补空心星");
 });
 
 console.log("\nDone.");

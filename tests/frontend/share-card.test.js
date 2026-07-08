@@ -195,6 +195,35 @@ test("renderBookShareCard 画出书名/作者/读后/书卡 slogan", async () =>
   assert.ok(ctx.__draws.images >= 3, "应绘制 logo/二维码/封面三张图");
 });
 
+test("书卡有评分时画出金色星标行（实心星按评分数、空心星补满 5 颗），无评分则不画", async () => {
+  // 有 rating=4：画 ★★★★ 与 ☆
+  {
+    const { hooks, ctx } = buildContext();
+    await hooks.renderBookShareCard({ id: "b1", title: "活着", author: "余华",
+      status: "finished", rating: 4, tags: [] });
+    const j = ctx.__draws.texts.join("|");
+    assert.ok(j.includes("★★★★"), "4 星应画出 4 颗实心星");
+    assert.ok(j.includes("☆"), "未满 5 星应补空心星");
+    // 星标不再混进 meta 胶囊（旧实现把 ★★★★☆ 当胶囊塞进状态排）
+    assert.ok(!j.includes("★★★★☆"), "实心/空心星应分两次画（分色），不是单串胶囊");
+  }
+  // rating=5：只画 5 颗实心，无空心
+  {
+    const { hooks, ctx } = buildContext();
+    await hooks.renderBookShareCard({ id: "b1", title: "活着", status: "finished", rating: 5, tags: [] });
+    const j = ctx.__draws.texts.join("|");
+    assert.ok(j.includes("★★★★★"), "5 星应画满实心星");
+    assert.ok(!j.includes("☆"), "满星不应有空心星");
+  }
+  // 无 rating：不画任何星
+  {
+    const { hooks, ctx } = buildContext();
+    await hooks.renderBookShareCard({ id: "b1", title: "活着", status: "reading", tags: [] });
+    const j = ctx.__draws.texts.join("|");
+    assert.ok(!j.includes("★") && !j.includes("☆"), "无评分不应画星标");
+  }
+});
+
 test("书卡有读后感时优先展示读后感（标签「我的读后」），无则回落内容简介", async () => {
   // 有 review：展示 review + 「我的读后」，不展示简介
   {

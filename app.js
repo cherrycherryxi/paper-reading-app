@@ -2914,7 +2914,7 @@ async function renderBookShareCard(book) {
   if (book.totalPages) pills.push(`${book.totalPages} 页`);
   const days = readingDaysLabel(book);
   if (days) pills.push(days);
-  if (book.rating) pills.push("★".repeat(book.rating) + "☆".repeat(5 - book.rating));
+  const rating = book.rating || 0; // 独立金色星标行，不塞进 meta 胶囊（避免溢出信息列宽）
 
   const coverW = 300, coverH = 400, gap = 44;
   const hasCover = !!cover;
@@ -2933,6 +2933,7 @@ async function renderBookShareCard(book) {
   // 右信息列高度
   let infoH = titleLines.length * 64 + 12;
   if (author) infoH += 48;
+  if (rating) infoH += 56;
   if (pills.length) infoH += 68;
   if (tagsLine) infoH += 40;
   const topBlockH = Math.max(hasCover ? coverH : 0, infoH);
@@ -2969,6 +2970,19 @@ async function renderBookShareCard(book) {
     ctx.fillStyle = C.inkSoft;
     ctx.font = `34px ${C.sans}`;
     ctx.fillText(author, infoX, iy + 34); iy += 48;
+  }
+  if (rating) {
+    // 金色实心星 + 淡色空心星，独立一行更醒目
+    ctx.font = `600 40px ${C.sans}`;
+    const filled = "★".repeat(rating);
+    ctx.fillStyle = C.accent;
+    ctx.fillText(filled, infoX, iy + 40);
+    if (rating < 5) {
+      const fw = ctx.measureText(filled).width;
+      ctx.fillStyle = C.inkMuted;
+      ctx.fillText("☆".repeat(5 - rating), infoX + fw, iy + 40);
+    }
+    iy += 56;
   }
   if (pills.length) {
     let px = infoX;
