@@ -2445,3 +2445,8 @@
 | 21:37 | Edited tests/frontend/custom-quote-tags-sync.test.js | 9→10 lines | ~151 |
 | 21:39 | Edited optimization/backlog.md | 2→2 lines | ~36 |
 | 21:40 | OPT-078 自定义摘抄标签跨设备同步：sanitize_state 加 customQuoteTags(去重/限量)；前端 state 权威+localStorage 镜像+登录迁移 union 幂等 | app_server.py, app.js, tests/agent/custom_quote_tags_sanitize_test.py, tests/frontend/custom-quote-tags-sync.test.js | PR #57 开；Python 362/前端 271 全绿 | ~2000 |
+| 21:51 | Session end: 23 writes across 6 files (backlog.md, app.js, connection-entry-ux.test.js, app_server.py, custom_quote_tags_sanitize_test.py) | 11 reads | ~181583 tok |
+| 21:57 | Edited app.js | added 2 condition(s) | ~185 |
+| 21:57 | Edited app.js | modified openList() | ~125 |
+| 21:57 | Edited app.js | modified openList() | ~126 |
+| 21:58 | Created tests/frontend/combobox-single-open.test.js | — | ~1391 |

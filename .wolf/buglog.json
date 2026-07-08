@@ -6790,14 +6790,16 @@
     {
       "id": "bug-406",
       "timestamp": "2026-07-07T13:33:23.096Z",
-      "error_message": "Wrong reference: triaged should be in",
-      "file": "optimization/backlog.md",
-      "root_cause": "Used \"triaged\" instead of \"in\"",
-      "fix": "Changed triaged → in",
+      "error_message": "关联对话框：在目标摘抄搜索框输入，却弹出并显示来源那一侧的下拉（未按输入过滤的前 30 条），无法搜索目标摘抄（owner 实测截图）",
+      "file": "app.js",
+      "root_cause": "关联对话框 4 个 combobox（来源/目标 × 书/摘抄）各自维护 is-open。iOS 上从一个输入框切到另一个时，blur→setTimeout(closeList,200) 的延时叠加软键盘下 position:fixed 下拉列表的重定位，会让上一个下拉残留在屏幕上，盖住/顶替当前正在用的那个；可见的是来源框（空输入）的前 30 条未过滤结果。",
+      "fix": "引入单例注册表 _registerOpenCombobox/_unregisterOpenCombobox：任一下拉 openList 前先关掉当前打开的那个，closeList 时注销；initBookCombobox/initQuoteCombobox 两个工厂都接入。任何时刻最多一个下拉打开。测试 tests/frontend/combobox-single-open.test.js 5 例。PR #58。",
       "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
+        "connections",
+        "combobox",
+        "ios",
+        "position-fixed",
+        "frontend"
       ],
       "related_bugs": [],
       "occurrences": 1,
@@ -6818,6 +6820,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-07T13:34:25.501Z"
+    },
+    {
+      "id": "bug-408",
+      "timestamp": "2026-07-07T13:57:41.341Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app.js",
+      "root_cause": "Condition was: if (!wrapperEl || !hiddenInput)",
+      "fix": "Changed to: if (_activeComboboxCloser && _activeComboboxCloser !==)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-07T13:57:41.341Z"
     }
   ]
 }
