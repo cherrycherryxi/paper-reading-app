@@ -7015,6 +7015,89 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-08T12:23:17.414Z"
+    },
+    {
+      "id": "bug-420",
+      "timestamp": "2026-07-08T12:38:54.594Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app.js",
+      "root_cause": "Condition was: if (pills.length)",
+      "fix": "Changed to: if (rating)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T12:38:54.594Z"
+    },
+    {
+      "id": "bug-421",
+      "timestamp": "2026-07-08T12:39:08.477Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/share-card.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T12:39:08.477Z"
+    },
+    {
+      "id": "bug-422",
+      "timestamp": "2026-07-08T12:52:26.564Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \">★</button>\n          </div>\n          <input typ",
+      "fix": "Changed to \">★</button>\n            <input type=\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T12:52:26.564Z"
+    },
+    {
+      "id": "bug-423",
+      "timestamp": "2026-07-08T12:54:11.231Z",
+      "error_message": "Function not marked async",
+      "file": "tests/frontend/book-review-rating.test.js",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08T12:54:11.231Z"
+    },
+    {
+      "id": "bug-424",
+      "timestamp": "2026-07-08",
+      "error_message": "书卡分享图不显示星级评分；实为评分保存失败——点星后 book.rating 一直存 0",
+      "file": "index.html",
+      "root_cause": "OPT-098 里 <input type=hidden name=rating> 放在 [data-star-rating] div 外面（div 已闭合）。点击委托 app.js:5246 用 container.querySelector('input[type=hidden]')（container=该 div）取不到外面的 input→hidden.value 从不更新；预填 app.js:3238 同样失效。星星视觉亮但 formData.get('rating')='0'→book.rating=0。新增+编辑两个弹窗都中招。旧测试 book-review-rating.test.js 是重放点击逻辑的自验证假测试，没验真实 DOM 结构，故一直绿。",
+      "fix": "把两处 hidden input 移进 [data-star-rating] div 内，让点击委托与预填的 querySelector 都能命中。新增结构回归测试断言 hidden rating input 嵌在容器内（读真实 index.html，非重放逻辑）。",
+      "tags": [
+        "OPT-098",
+        "rating",
+        "star",
+        "share-card",
+        "dom-structure",
+        "fake-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-08"
     }
   ]
 }

@@ -2525,3 +2525,27 @@
 | 20:23 | Edited optimization/backlog.md | 9→8 lines | ~199 |
 | 20:23 | Edited optimization/backlog.md | 1→2 lines | ~30 |
 | 20:23 | Session end: 14 writes across 6 files (cuddly-discovering-meadow.md, index.html, styles.css, app.js, book-review-rating.test.js) | 15 reads | ~220878 tok |
+| 20:25 | Session end: 14 writes across 6 files (cuddly-discovering-meadow.md, index.html, styles.css, app.js, book-review-rating.test.js) | 15 reads | ~220878 tok |
+
+## Session: 2026-07-08 20:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-08 20:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:38 | Edited app.js | 3→3 lines | ~39 |
+| 20:38 | Edited app.js | added 1 condition(s) | ~46 |
+| 20:38 | Edited app.js | added 2 condition(s) | ~133 |
+| 20:39 | Edited tests/frontend/share-card.test.js | expanded (+29 lines) | ~352 |
+| 21:05 | 书卡分享图：评分从 meta 胶囊(会溢出信息列宽)抽出，改独立金色星标行(实心 accent#c9a85a + 空心 inkMuted，作者下/胶囊上) | app.js:renderBookShareCard, tests/frontend/share-card.test.js | 前端 share-card 12例全绿；纯前端无后端改动 | ~900 |
+| 20:41 | Session end: 4 writes across 2 files (app.js, share-card.test.js) | 2 reads | ~60718 tok |
+| 20:52 | Edited index.html | 3→3 lines | ~44 |
+| 20:53 | Edited tests/frontend/book-review-rating.test.js | modified for() | ~265 |
+| 20:54 | Edited tests/frontend/book-review-rating.test.js | modified renderBookShareCard() | ~196 |
+| 20:54 | Edited tests/frontend/book-review-rating.test.js | 4→5 lines | ~79 |
+| 21:20 | 修 bug-424 星级评分保存失效：OPT-098 的 hidden rating input 放在 [data-star-rating] div 外，点击委托/预填 querySelector 取不到→rating 恒存 0→分享图无星。移进 div 内(新增+编辑两弹窗) | index.html, tests/frontend/book-review-rating.test.js, tests/frontend/share-card.test.js | 前端 299 全绿；旧星标测试是假测试(重放逻辑)，补真实 DOM 结构回归 | ~1500 |
+| 20:56 | Session end: 8 writes across 4 files (app.js, share-card.test.js, index.html, book-review-rating.test.js) | 5 reads | ~147170 tok |
+| 21:23 | Session end: 8 writes across 4 files (app.js, share-card.test.js, index.html, book-review-rating.test.js) | 5 reads | ~147170 tok |
