@@ -1566,6 +1566,7 @@ function renderQuotes() {
           <button class="card-menu-btn" type="button" aria-label="操作菜单" aria-expanded="false" data-card-menu-toggle>⋯</button>
           <ul class="card-context-menu" hidden>
             <li><button type="button" data-quote-menu="chat">去聊</button></li>
+            <li><button type="button" data-quote-menu="connect">关联</button></li>
             <li><button type="button" data-quote-menu="edit">编辑</button></li>
             <li><button type="button" data-quote-menu="share">生成分享图</button></li>
             <li class="menu-item-danger"><button type="button" data-quote-menu="delete">删除</button></li>
@@ -4405,7 +4406,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   function quoteLabel(q) {
     const book = state.books.find((b) => b.id === q.bookId);
     const bookName = book ? book.title : "未知书籍";
-    const content = (q.content || "").slice(0, 32) + (q.content?.length > 32 ? "…" : "");
+    const content = (q.content || "").slice(0, 70) + (q.content?.length > 70 ? "…" : "");
     return `${bookName} · ${content}`;
   }
 
@@ -4439,7 +4440,9 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
     quotes.forEach((quote) => {
       const li = document.createElement("li");
       li.className = "book-combobox-item" + (quote.id === hiddenInput.value ? " is-selected" : "");
-      li.style.cssText = "overflow:hidden;white-space:nowrap;text-overflow:ellipsis;";
+      // 两行封顶：同书多段摘抄可辨识（OPT-080）。垂直 padding 归零以消除 -webkit-box
+      // + line-clamp 在带 padding 时的裁切泄漏，行距改用 margin 撑起（margin 在 overflow 盒外）。
+      li.style.cssText = "display:-webkit-box;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.6;padding:0 14px;margin:6px 0;";
       li.textContent = quoteLabel(quote);
       function doPick(e) { e.preventDefault(); pick(quote); }
       li.addEventListener("mousedown", doPick);
@@ -4968,6 +4971,7 @@ function bindEvents() {
       if (action === "edit") editQuote(id);
       else if (action === "delete") deleteQuote(id);
       else if (action === "chat") goToQuoteChat(id);
+      else if (action === "connect") openConnectionDialog({ sourceType: "quote", sourceId: id });
       else if (action === "share") shareQuoteCard(id);
       return;
     }
