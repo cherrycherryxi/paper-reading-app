@@ -2549,3 +2549,5 @@
 | 21:20 | 修 bug-424 星级评分保存失效：OPT-098 的 hidden rating input 放在 [data-star-rating] div 外，点击委托/预填 querySelector 取不到→rating 恒存 0→分享图无星。移进 div 内(新增+编辑两弹窗) | index.html, tests/frontend/book-review-rating.test.js, tests/frontend/share-card.test.js | 前端 299 全绿；旧星标测试是假测试(重放逻辑)，补真实 DOM 结构回归 | ~1500 |
 | 20:56 | Session end: 8 writes across 4 files (app.js, share-card.test.js, index.html, book-review-rating.test.js) | 5 reads | ~147170 tok |
 | 21:23 | Session end: 8 writes across 4 files (app.js, share-card.test.js, index.html, book-review-rating.test.js) | 5 reads | ~147170 tok |
+| 21:28 | Session end: 8 writes across 4 files (app.js, share-card.test.js, index.html, book-review-rating.test.js) | 5 reads | ~147170 tok |
+| 21:40 | Created ../../.claude/daily-logs/2026-07-08.md | — | ~486 |
