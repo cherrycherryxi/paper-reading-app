@@ -2503,3 +2503,9 @@
 | 17:10 | Edited tests/frontend/combobox-position-and-label.test.js | 407 → 415 | ~2 |
 | 17:20 | 修 bug-415 书籍 combobox：书名号统一(bookLabel 先去后包《》) + iOS 下拉定位健壮化(positionComboboxList 视口感知+向上翻转+visualViewport/window 重定位) | app.js, tests/frontend/combobox-position-and-label.test.js | dev 已上线(纯前端)，前端 285 绿；iOS 键盘场景待真机验 | ~2200 |
 | 17:19 | Session end: 41 writes across 10 files (backlog.md, app.js, connection-entry-ux.test.js, app_server.py, custom_quote_tags_sanitize_test.py) | 13 reads | ~199262 tok |
+| 17:41 | Session end: 41 writes across 10 files (backlog.md, app.js, connection-entry-ux.test.js, app_server.py, custom_quote_tags_sanitize_test.py) | 13 reads | ~199262 tok |
+
+## Session: 2026-07-08 17:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
