@@ -8,9 +8,9 @@ Last triaged: 2026-07-08
 
 **W28 Item 2 — 检索修通 bundle (OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097)**
 
-状态：triaged → 准备指派 Agent2
+状态：**in-progress — PR #60** (auto/opt-092-search-field-bundle，base=feature/agent，2026-07-08)
 
-实现预算检查：近 7 天 `auto/` PR 共 **3 个**（#54 OPT-059，2026-07-03；#55 OPT-064，2026-07-05；#59 录入修复包，2026-07-07），距上限 4 还余 **1 个槽位**，可以指派。（注：PR #56/auto/opt-079-080 和 PR #57/auto/opt-078 因 base=main 误设已关闭，不计入 base=feature/agent 窗口；相关代码已直接合入 feature/agent。）
+实现预算检查：近 7 天 `auto/` PR 共 **4 个**（#54 OPT-059，2026-07-03；#55 OPT-064，2026-07-05；#59 录入修复包，2026-07-07；#60 本 bundle，2026-07-08），预算已满。
 
 选择理由：
 1. **roadmap W28 §2 显式命名「Theme 2 第一刀：检索修通」**：roadmap 原文点名「修通搜索字段」为 W28 item 2，包含 `matchBooks()` / `renderQuotes()` / `renderConnections()` haystack 补全——正是本 bundle 六项所覆盖的范围。
