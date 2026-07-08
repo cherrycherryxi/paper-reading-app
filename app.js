@@ -1477,7 +1477,7 @@ function renderTimeline() {
   }
 
   const searchRaw = (els.sessionSearch?.value || "").trim().toLowerCase();
-  const allSorted = [...state.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const allSorted = [...state.sessions].sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
   const sessions = searchRaw
     ? allSorted.filter((s) => {
         const book = state.books.find((b) => b.id === s.bookId);
@@ -2351,6 +2351,15 @@ async function addSession(formData) {
       pagesRead: endPage - startPage,
       minutes, note, date,
     };
+    book.currentPage = Math.max(book.currentPage || 0, endPage);
+    book.lastReadAt = date;
+    book.updatedAt = new Date().toISOString();
+    if (book.totalPages && endPage >= book.totalPages) {
+      book.status = "finished";
+      if (!book.finishedAt) book.finishedAt = date;
+    } else if (book.status !== "finished") {
+      book.status = "reading";
+    }
   } else {
     state.sessions.unshift({
       id: createId("session"),
@@ -2457,9 +2466,10 @@ function editSession(sessionId) {
   els.sessionForm.querySelector('[name="endPage"]').value = session.endPage;
   els.sessionForm.querySelector('[name="minutes"]').value = session.minutes;
   els.sessionForm.querySelector('[name="note"]').value = session.note || "";
-  const dateStr = session.date ? new Date(session.date).toISOString().split("T")[0] : "";
+  const dateStr = isoToDateInput(session.date);
   els.sessionForm.querySelector('[name="date"]').value = dateStr;
   els.sessionDialog.showModal();
+  requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus?.());
 }
 
 function openQuoteDetail(quoteId) {
@@ -3037,15 +3047,17 @@ function openNewQuoteForBook(bookId) {
   pendingQuoteImage = null;
   renderImagePreview();
   els.quoteDialog.showModal();
+  requestAnimationFrame(() => document.getElementById("quoteContent")?.focus?.());
 }
 
 function openNewSessionForBook(bookId) {
   if (!requireAuth("新增记录")) return;
   activateTab("session");
+  const book = state.books.find((b) => b.id === bookId);
   document.getElementById("sessionId").value = "";
   els.sessionForm.querySelector('[name="bookId"]').value = bookId;
   document.querySelector("#sessionBookCombobox")?._comboboxSetValue?.(bookId);
-  els.sessionForm.querySelector('[name="startPage"]').value = "";
+  els.sessionForm.querySelector('[name="startPage"]').value = book?.currentPage > 0 ? book.currentPage + 1 : "";
   els.sessionForm.querySelector('[name="endPage"]').value = "";
   els.sessionForm.querySelector('[name="minutes"]').value = "";
   els.sessionForm.querySelector('[name="note"]').value = "";
@@ -3054,6 +3066,7 @@ function openNewSessionForBook(bookId) {
   dateInput.value = todayLocal;
   dateInput.max = todayLocal;
   els.sessionDialog.showModal();
+  requestAnimationFrame(() => document.querySelector('#sessionDialog [name="startPage"]')?.focus?.());
 }
 
 function editQuote(quoteId) {
@@ -3075,6 +3088,7 @@ function editQuote(quoteId) {
     : null;
   renderImagePreview();
   els.quoteDialog.showModal();
+  requestAnimationFrame(() => document.getElementById("quoteContent")?.focus?.());
 }
 
 function showConfirmDialog({ message, confirmLabel = "确认删除", onConfirm }) {
