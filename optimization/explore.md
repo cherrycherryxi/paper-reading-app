@@ -2505,6 +2505,145 @@ function matchQuotes(query) {
 > 本次 run（2026-07-07）核实 `/debug/overview` 时间格式 bug（E162，当前可复现）、`renderQuotes()` 遗漏 reflection（E163，S 级 Theme 2 提升）、`matchQuotes()` 死代码（E164，代码健康）。  
 > 从 2026-07-06 蓄水池将 E159（AI 读后感生成）提拔为 OPT-098，E160（书籍 1-5 星评分）提拔为 OPT-099；两项均有 2026-07-06 信号直接驱动、代码路径已验证。E162（dw_sp 修正）、E163（reflection 搜索）、E164（死代码清理）登记候选，建议搭车相关 PR。
 
+## 2026-07-08
+
+### E165 — Excel 导入将「喜欢程度」列写入 `notes` 文本，未填入 OPT-099 新增的 `book.rating` 字段——信号驱动的功能内成回归 (S)
+
+**What (verified):** `importFromExcel()`（`app.js:4089-4113`）提取「喜欢程度」列后将其推入 `notesParts`：
+
+```js
+// app.js:4092-4095
+const rating = String(getRowField(row, ["喜欢程度", "评分", "rating"])).trim();
+if (translator) notesParts.push(`译者：${translator}`);
+if (intro) notesParts.push(`简介：${intro}`);
+if (rating) notesParts.push(`喜欢程度：${rating}`);
+```
+
+构建书籍对象时（`app.js:4098-4113`）：
+
+```js
+// app.js:4106
+notes: notesParts.join("\n"),
+// 无 rating: 字段
+```
+
+对比 OPT-099（2026-07-08 同日合并）新增的路径——`addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）均已存取 `book.rating`，详情页（`app.js:3371-3380`）和分享卡（`app.js:2907`）均已展示星级。唯独 Excel 导入路径未同步，用户从 Excel 批量入库数百本书后，每本书的「喜欢程度：5」都被埋在 `notes` 文本中，而非 `rating` 数字字段，无法触发星级 UI 展示。
+
+**Why it matters:** 2026-07-06 信号明确指出「喜欢程度被混进内容简介，希望拆成独立字段」——OPT-099 响应了该信号，但遗漏了 Excel 导入路径。用户最常通过 Excel 批量初始化书单，若历史书单含「喜欢程度」列，导入后依然看不到星级，体验与信号诉求直接矛盾。修复代价极小（2 行）：提取数值并加入 book 对象 `rating` 字段。
+
+**Complexity:** S — `app.js:4092`：改为 `const ratingNum = Number(rating) || 0;`；`app.js:4098-4113` book 对象加 `rating: ratingNum`；可选：`notesParts.push` 的 rating 一行同时删除（已存入独立字段，无需再写 notes）。Touch: `app.js:4092-4113`（importFromExcel 书籍对象构建段）。
+
+**Files:** `app.js:4089-4113`（importFromExcel 书籍对象构建）；对比参照 `app.js:2316`（addBook rating 存取）；`app.js:3274`（saveBookEdit rating 存取）
+
+**northstar:** 强——2026-07-06 信号直接驱动（OPT-099 为信号响应，本项修复同信号下的遗漏路径）；Excel 是书单初始化的主通道，修复后用户历史书单评分才能真正进入 rating 字段，OPT-099 的用户价值才算闭环。→ **promoted to OPT-100**
+
+---
+
+### E166 — `generateBookReview()` 只填 textarea，未存 AI 来源标记；详情页「我的读后」标签对 AI 草稿和手写读后感零区分 (S)
+
+**What (verified):** `generateBookReview()`（`app.js:2264-2291`）将 AI 回复直接填入 textarea：
+
+```js
+// app.js:2281
+if (reply) {
+  textarea.value = reply;
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+```
+
+函数仅操作 `textarea.value`，不写入任何 AI 来源标记字段（`reviewIsAi`、`aiGenerated`、`review_source` 等在全文件 grep 中零出现）。书籍详情展示（`app.js:3371-3375`）：
+
+```js
+// app.js:3375
+`<div class="book-detail-review"><span class="book-detail-sub-label">我的读后</span><p>${escapeHtml(detailReview)}</p></div>`
+```
+
+标签硬编码为「我的读后」，无法区分「AI 草稿」与「手写读后感」。
+
+**Why it matters:** 2026-07-06 信号明确要求：「展示时明确标注『AI 根据笔记整理』，与手写读后感区分」。缺乏区分会导致两个问题：① 用户不确定某段读后感是 AI 草稿还是自己写的，在意义感知上有混淆；② OPT-098 的 AI 功能价值被静默掩盖——用户可能不记得哪些读后感是 AI 生成的。修复的最小可行方案：存一个 `book.reviewIsAi: true` 标记，详情页据此在标签旁追加「（AI 草稿）」提示；分享卡同步展示区分文案。
+
+**Complexity:** S — ① `generateBookReview()`（`app.js:2280-2282`）填入 reply 后，同步触发一个 `data-review-is-ai="true"` 的 hidden input 或直接在提交时读取（最简：在 textarea 附近加一个 `<input type="hidden" name="reviewIsAi" value="true">` 由 AI 按钮点击时写入）；② `addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）存取 `reviewIsAi: formData.get("reviewIsAi") === "true"`；③ 详情页（`app.js:3375`）和可选分享卡（`app.js:2907`）根据 `book.reviewIsAi` 在「我的读后」标签旁追加「（AI 草稿）」。零后端变更，零 DB schema 变更。Touch: `app.js:2280-2282`（generateBookReview）；`index.html`（hidden input）；`app.js:2316`、`app.js:3274`（addBook/saveBookEdit 存取）；`app.js:3375`（详情页展示）。
+
+**Files:** `app.js:2264-2291`（generateBookReview）；`app.js:3371-3375`（书籍详情 review 展示）；`app.js:2907`（分享卡 review 段）；`index.html`（addBook/editBook 对话框，AI 按钮所在）
+
+**northstar:** 中——OPT-098 上线了 AI 读后感功能，但「AI vs 手写」无法区分是该功能的完整性缺口；2026-07-06 信号对此有明确诉求；S 修复使 OPT-098 的价值真正落地。→ **promoted to OPT-101**
+
+---
+
+### E167 — Excel 导入成功只弹 2 秒 toast，与 JSON 导入的持久结果弹窗（`showImportResult`）体验不一致 (S)
+
+**What (verified):** Excel 导入成功路径（`app.js:4124`）：
+
+```js
+showToast(`Excel 导入成功：新增 ${imported} 本`);
+```
+
+JSON 导入成功路径（`app.js:3994`）：
+
+```js
+showImportResult(state);  // 持久弹窗，显示书/摘抄/记录/关联明细数字
+```
+
+`showImportResult()` 定义于 `app.js:3958`，展示一个用户须主动关闭的结果对话框，包含 4 行明细（books / quotes / sessions / connections 各自数量）。OPT-041（PR #42）已将 JSON 导入从 toast 升级为此弹窗，但 Excel 路径未做同等升级。toast 2 秒自动消失，「有 7 本重复被跳过」用户无从验证。
+
+**Why it matters:** 数据导入的透明度是 OPT-041 立意核心（误导入事故驱动）。Excel 用户「新增 3 本」但文件里有 10 本时，无法确认是否有 7 本被跳过还是文件格式问题。双入口体验不一致降低用户对导入功能的信任感。`showImportResult()` 已存在，复用成本极低；Excel-only 导入（无摘抄/记录）时结果弹窗仅展示书数行，其余行为 0，可接受。
+
+**Complexity:** S — `app.js:4124`：将 `showToast(...)` 改为 `showImportResult(state)`（1 行），确认 `showImportResult` 对 quotes/sessions 均为 0 时展示正常（已验证 `showImportResult` 读取 `state.quotes.length` 等，Excel 导入不增加摘抄故显示 0，无副作用）。Touch: `app.js:4124`。
+
+**Files:** `app.js:4124`（Excel 导入成功路径）；`app.js:3994`（JSON 导入参照）；`app.js:3958`（showImportResult 定义）
+
+**northstar:** 弱/中——与 OPT-041「零丢失」原则一脉相承；Excel 是 W28 OPT-001 的核心入口，用户首次批量导入应得到与 JSON 相同透明度的反馈；S 改动，建议与 E165（Excel import rating）搭车同一 PR。
+
+---
+
+### E168 — `deleteBook()` 对话框仅显示书名，级联删除数量（N 摘抄 / M 记录）不具体 (S)
+
+**What (verified):** `deleteBook()`（`app.js:2432-2434`）：
+
+```js
+els.deleteBookMessage.textContent = book.title;
+els.deleteBookDialog.showModal();
+```
+
+`#deleteBookDialog`（`index.html:530-539`）内有静态警告「⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。」，但 `els.deleteBookMessage` 仅填入书名，未包含具体数量——「删除《百年孤独》」而非「删除《百年孤独》（含 23 张摘抄、5 条记录）」。
+
+**Why it matters:** 删除是不可逆操作。用户有「意外删掉书」的真实风险（尤其误触）；「23 张摘抄将永久消失」的量级感知，与类别警告「所有摘抄」的抽象感知，在放弃率上有本质差异。`state.quotes.filter(q => q.bookId === bookId).length` 等统计值 app 本地即可计算，无需额外 API 调用。
+
+**Complexity:** S — `app.js:2432` 前插入 3 行：计算该书的 quotes 数和 sessions 数，若非零则将「（含 N 张摘抄、M 条记录）」追加到 `deleteBookMessage.textContent`。Touch: `app.js:2429-2434`（deleteBook dialog 填充段）。
+
+**Files:** `app.js:2429-2434`（deleteBook dialog 填充）；`index.html:530-539`（deleteBookDialog 模板）
+
+**northstar:** 弱/中——「不假思索的默认工具」须让用户对破坏性操作有清晰感知；级联数量可见性是透明度系列（OPT-043/041）的对称延伸；与 E169 搭车是最低成本方案。
+
+---
+
+### E169 — `deleteQuote()` 确认文案不提及将级联删除关联，用户无感知 connections 静默消失 (S)
+
+**What (verified):** `deleteQuote()`（`app.js:3181-3187`）：
+
+```js
+// app.js:3183-3187
+showConfirmDialog({
+  message: "确定删除这张摘抄卡片吗？",  // 无关联数量
+  onConfirm: async () => {
+    state.quotes = state.quotes.filter((item) => item.id !== quoteId);
+    state.connections = (state.connections || []).filter((c) => c.sourceId !== quoteId && c.targetId !== quoteId);  // 静默删除关联
+```
+
+用户点击「确认」时，该摘抄的所有「思想关联」一并被删除，但对话框文案只说「确定删除这张摘抄卡片吗？」，完全不提关联。对比 `deleteBook()`（`index.html:533`）已有「⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。」类别级警告。关联（connections）是 Theme 2 差异化数据——用户手动建立的思想碰撞链接，误删无法恢复。
+
+**Why it matters:** 「建立关联」是 app 差异化功能（owner 主动投入，OPT-079/080 专项优化）；删摘抄时静默消灭关联与「零丢失」原则相悖。`getConnectionCount(quoteId)` 已有实现（`app.js:675-677`），若返回 > 0 即可在文案末追加「及其 N 个思想关联」，约 3 行。
+
+**Complexity:** S — `app.js:3183` 前插入 2 行：`const connCount = getConnectionCount(quoteId); const connNote = connCount > 0 ? \`及其 ${connCount} 个思想关联\` : "";`，将 `message` 改为 `` `确定删除这张摘抄卡片${connNote}吗？` ``。Touch: `app.js:3181-3185`。
+
+**Files:** `app.js:3181-3187`（deleteQuote showConfirmDialog 段）；`app.js:675-677`（getConnectionCount 参照）
+
+**northstar:** 中——Theme 2「回顾有价值」的前提是连接网络数据可靠；关联是用户花时间建立的意义链接，无声消失最为有害；S 修复，与 E168（deleteBook 数量）、OPT-043（导入过载守卫）同属「破坏性操作透明度」系列，建议三者合并为单一 PR。
+
+---
+
+> 本次 run（2026-07-08）核实 Excel 导入 rating 回归（E165，OPT-099 遗漏路径，signal-backed）、AI 读后感来源标记缺失（E166，2026-07-06 信号明确要求，代码路径已验证）、Excel/JSON 双导入体验不一致（E167，E96 重登记）、deleteBook/deleteQuote 级联数量透明度缺口（E168/E169，E89/E92 重登记）。将 E165 提拔为 OPT-100、E166 提拔为 OPT-101，均有 signal 直接佐证且代码路径完整核实。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
