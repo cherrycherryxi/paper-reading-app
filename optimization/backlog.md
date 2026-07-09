@@ -451,7 +451,7 @@ Format per item:
 - how: 在 `syncOpenQuoteFormFromState()`（`app.js:1548-1566`）的 `ocrStatus === "done"` 分支：若识别文本行数 ≥ 3，隐藏 `#quoteContent` textarea，显示新增的「行选择列表」（每行一个 `<div>` + 删除 `✕` 按钮）；用户点删后，剩余行合并写回 textarea，并恢复正常编辑视图。约 40 行 JS + 20 行 CSS。行数 < 3 时跳过，直接填入 textarea（现有行为）。Touch: `app.js:1548-1566`；`index.html:444-486`（quote dialog，可加行列表 UI 占位）；`styles.css`（新增 `.ocr-line-selector` 组件样式）。
 
 ### OPT-056 — 摘抄搜索不包含「我的理解」(reflection) 字段，用户按自己的思考笔记无法检索 — 由 explore E90 提拔
-- status: triaged
+- status: in-progress (PR #60)
 - area: frontend
 - northstar: 中——使用户的个人洞察（reflection）变得可检索，直接支撑 Theme 2「回顾有价值」；累积 50+ 张摘抄后 reflection 检索是最自然的二次入口之一；与北极星「第三个数 > 0」（回顾/检索/关联操作次数）正相关。
 - description: `app.js:1411-1416`（`renderQuotes()` 搜索过滤器）构建 haystack 时未包含 `item.reflection`：`[book?.title, book?.author, item.content, (item.tags||[]).join(" ")].join(" ").toLowerCase()`。`index.html:479` 的「我的理解」textarea（`name="reflection"`）内容通过 `state.quotes[n].reflection` 持久化。若用户在「我的理解」里写了"这和笛卡尔二元论有关"，搜索"笛卡尔"什么都找不到。
@@ -705,7 +705,7 @@ Format per item:
 - how: `app.js:1419` 将 `if (searchRaw && sessions.length)` 改为 `if (allSorted.length)`（含搜索词时展示匹配计，无搜索时展示全量统计）；对应 `textContent` 区分两种文案：有搜索时保持「N 次记录 · 共 T 分钟 · 约 P 页」；无搜索时改为「共 N 次 · 累计 T 分钟 · 约 P 页」（含 10 条截断时在 OPT-076 修复后可进一步完善）。Touch: `app.js:1418-1428`。
 
 ### OPT-083 — `renderQuotes()` 搜索 haystack 不含 `ocrText`：AI-OCR 直存摘抄完全不可搜 — 由 explore E136 提拔 [2026-07-01]
-- status: triaged
+- status: in-progress (PR #60)
 - area: frontend
 - priority: P1
 - size: S
@@ -763,7 +763,7 @@ Format per item:
 - how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
 
 ### OPT-088 — renderConnections 搜索 haystack 缺少摘抄内容
-- status: triaged
+- status: in-progress (PR #60)
 - area: frontend
 - priority: P1
 - size: S
@@ -803,7 +803,7 @@ Format per item:
 - how: `app.js:1439` 将 `(b.date || "").localeCompare(a.date || "")` 改为 `(Date.parse(b.date || "") || 0) - (Date.parse(a.date || "") || 0)`（降序）；参照 `app.js:1026`（OPT-037 修复后）。Touch: `app.js:1439`。
 
 ### OPT-092 — `matchBooks()` 忽略 `book.tags` / `book.notes`，书单按主题/标签搜索零结果 — 由 explore E150 提拔 [2026-07-04]
-- status: triaged
+- status: in-progress (PR #60)
 - area: frontend
 - priority: P1
 - size: S
@@ -843,7 +843,7 @@ Format per item:
 - how: 在 `openNewQuoteForBook(bookId)` 内，将 `value = ""` 改为：`const _curPage = state.books.find(b => b.id === bookId)?.currentPage; els.quoteForm.querySelector('[name="page"]').value = _curPage || "";`。约 2–3 行，纯前端。Touch: `app.js:2520`（openNewQuoteForBook）；参照 `app.js:2314`（addSession 回写 currentPage）及 OPT-084 预填逻辑。
 
 ### OPT-096 — `renderConnections()` 搜索 haystack 缺少 `c.tags`，关联标签无法被搜索命中 — 由 explore E135/E161 提拔 [2026-07-06]
-- status: triaged
+- status: in-progress (PR #60)
 - area: frontend
 - priority: P2
 - size: S
@@ -853,7 +853,7 @@ Format per item:
 - how: 将 `app.js:862-866` haystack 数组第三项由 `c.thought || ""` 扩展为 `...[c.thought || "", ...(c.tags || [])]`（实际 1–2 行修改）。建议与 OPT-092、OPT-097 合并为「搜索字段补全 bundle」PR。Touch: `app.js:862-866`（renderConnections haystack）。
 
 ### OPT-097 — `matchBooks()` 不搜索 `book.review`，OPT-087 新增字段对搜索路径完全不可见 — 由 explore E158 提拔 [2026-07-06]
-- status: triaged
+- status: in-progress (PR #60)
 - area: frontend
 - priority: P2
 - size: S
@@ -873,7 +873,6 @@ Format per item:
 
 ### OPT-099 — 书籍增加独立 1-5 星评分字段（已合并至 OPT-098 同 PR 实现）[2026-07-08]
 - status: done (2026-07-08 合并至 OPT-098 同 PR)
-- status: new
 - area: frontend
 - priority: P2
 - size: M
@@ -883,7 +882,7 @@ Format per item:
 - how: ① `index.html:399-427`（addBook 对话框）和 `index.html:329-368`（editBook 对话框）各加一个星级选择器（5 个 `<button>` 视觉为可点击星标）；② `app.js:2259`（addBook）补存 `rating: Number(formData.get("rating")) || 0`；③ `app.js:3173`（saveBookEdit）同；④ 书单卡面（`renderBooks()`）在书卡显示 `rating > 0 ? "★".repeat(rating) : ""`；⑤ 可选：书单排序加「按评分」维度；⑥ 书卡分享图可在封面下方渲染星标。约 60–80 行前端，零后端改动，零 DB schema 变更。Touch: `index.html:399-427`（addBook）；`index.html:329-368`（editBook）；`app.js:2259`（addBook 存储）；`app.js:3173`（saveBookEdit 存储）；`app.js`（renderBooks 卡面渲染）。
 
 ### OPT-100 — Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 — 由 explore E165 提拔 [2026-07-08]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -893,7 +892,7 @@ Format per item:
 - how: `app.js:4092`：将 `const rating = ...` 改为 `const ratingNum = Number(...) || 0`；`app.js:4098-4113` book 对象新增 `rating: ratingNum`；同时可将 `if (rating) notesParts.push(\`喜欢程度：${rating}\`)` 一行删除（评分已存入独立字段，无需再写 notes）。共约 3 行改动，纯前端，零后端/DB 变更。Touch: `app.js:4092-4113`（importFromExcel 书籍对象构建段）。
 
 ### OPT-101 — `generateBookReview()` 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 — 由 explore E166 提拔 [2026-07-08]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -903,7 +902,7 @@ Format per item:
 - how: ① `index.html`（addBook/editBook 对话框 review 区域）新增 `<input type="hidden" name="reviewIsAi" value="false">`，AI 按钮点击时将其设为 `"true"`；② `addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）存取 `reviewIsAi: formData.get("reviewIsAi") === "true"`；③ `generateBookReview()`（`app.js:2280-2282`）填 textarea 后同步将 hidden input 值设为 `"true"`，用户手动修改 textarea 时（`input` 事件）可选重置为 `"false"`；④ 详情页（`app.js:3375`）和分享卡（`app.js:2907`）根据 `book.reviewIsAi` 在「我的读后」标签旁追加 `（AI 草稿）`。约 15–20 行前端，零后端/DB 变更。Touch: `index.html`（addBook/editBook 对话框）；`app.js:2280-2282`（generateBookReview）；`app.js:2316`（addBook）；`app.js:3274`（saveBookEdit）；`app.js:3375`（详情页展示）。
 
 ### OPT-102 — 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: M
