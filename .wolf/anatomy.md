@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-08T13:40:11.377Z
-> Files: 240 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-09T14:58:01.995Z
+> Files: 241 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -88,14 +88,14 @@
 - `feedback_pr_target_feature_agent.md` (~223 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~455 tok)
+- `MEMORY.md` (~496 tok)
 - `project_brand_share_kit.md` (~327 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_prod_monitoring.md` (~790 tok)
-- `reference_remote_access_setup.md` — 2026-07-02 更新：Cloudflare 固定命名隧道 + prod/dev 分离 (~1611 tok)
+- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~2257 tok)
 - `reference_weekly_report_email.md` (~530 tok)
 
 ## ../../.claude/scripts/
@@ -118,6 +118,10 @@
 
 - `SKILL.md` — Organize Downloads（下载文件夹整理） (~534 tok)
 
+## ../../.cloudflared/
+
+- `config.yml` (~196 tok)
+
 ## ../../Library/LaunchAgents/
 
 - `com.huangnanqi.caffeinate.plist` (~174 tok)
@@ -137,7 +141,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~56985 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49655 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
@@ -341,7 +345,7 @@
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~3593 tok)
-- `ui-redesign.test.js` — test: getRuleBlock (~3176 tok)
+- `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## wechat-miniprogram/
 
