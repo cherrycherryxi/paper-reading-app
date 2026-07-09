@@ -910,3 +910,19 @@ Format per item:
 - description: 当前 `POST /api/quotes/ocr` 把图片以 base64 data URL 塞进 JSON body 上传，base64 比原始二进制多占约 33%（350KB 图 → ~466KB 上行）。改成二进制上传（`multipart/form-data` 或 raw body + 头部带 filename/bookId/quoteId）可直接省掉这 33%，上传再快约 1/4。书封面 OCR `/api/books/ocr` 同理。
 - why: 上传吞吐是快速识别的固定大头（尤其手机上行慢 + 隧道场景），base64 膨胀是纯浪费的开销。去掉后上传时间线性下降，且减小服务端读 body 与内存占用。是 OPT 快修（降质量）之后不再牺牲画质就能拿到的下一档提速。
 - how: 后端 `do_POST` 的 `/api/quotes/ocr`（app_server.py ~4810）与 `/api/books/ocr` 增加对 `Content-Type: multipart/form-data` / `application/octet-stream` 的解析分支：从 multipart part 或 raw body 取二进制 + 从 form 字段/自定义头取 `bookId`/`quoteId`/`filename`；`decode_data_url()` 改为可接收「已是二进制」的路径，复用后续 `save_image`/`run_fast_ocr` 不变。前端 `resizeImageToDataUrl` 之外新增「导出 Blob」路径（`canvas.toBlob`），用 `FormData`/`fetch` 直传 Blob，不再 `toDataURL`。**注意兼容**：保留旧 data URL 分支一段时间（老前端/回退），或前后端同发版。测试：新增 multipart/raw 上传的后端解析用例 + 前端 toBlob 路径断言。Touch: `app_server.py`（两个 OCR 端点的 body 解析）、`app.js`（`handleQuoteImageChange`/`runBookOcr` 的上传路径 + 新 blob 导出）。stdlib 无 multipart 解析器，可用 `email.parser`/`cgi`（cgi 3.13 弃用，倾向手写 boundary 拆分或 `email.message`）——评估后选无弃用依赖的方案。
+
+### OPT-103 — MCP `summary()` 写入 `book.notes` 而非 `book.review`，OPT-098 上线后两条 AI 路径语义分裂 — 由 explore E171 提拔 [2026-07-09]
+- status: new
+- area: agent
+- northstar: 中——2026-07-06 信号「AI 把书的笔记整理成读后感」直接驱动 OPT-098；MCP `summary()` 是同一诉求的另一入口，写入错字段使 OPT-098 对 MCP 用户名存实亡，OPT-101 的 reviewIsAi 来源标记亦无法覆盖；S 修复完成 OPT-098 的跨客户端闭环。
+- description: `reading_mcp_server.py:323` 将 MCP summary 内容追加至 `book["notes"]`；OPT-098（2026-07-08）新增了独立的 `book.review` 字段供 AI 读后感使用，in-app `generateBookReview()` 已写 `book.review`，但 MCP 路径仍写 `book.notes`。结果：(1) MCP 生成的摘要在 UI 书籍详情页被贴「内容简介」标签（`app.js:3375`），语义完全错位；(2) OPT-101 计划的 `reviewIsAi` 标记永远不会覆盖 MCP 路径产生的内容。
+- why: 同一用户诉求在两条 AI 路径（in-app vs MCP）分别写入两个不同字段，产生不可预期的 UI 展示差异和标记缺失；S 级单行改动，零 API/schema 变更，修复后 OPT-101 对 MCP 用户同样生效。
+- how: `reading_mcp_server.py:323` 改 `book["notes"]` → `book["review"]`（1 行）；更新 docstring（lines 296-307）说明目标字段；`sanitize_state()` 已原样透传 book 对象中的 `review` 字段，无需额外改动。Touch: `reading_mcp_server.py:290-328`。
+
+### OPT-104 — 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 — 由 explore E170 提拔 [2026-07-09]
+- status: new
+- area: frontend
+- northstar: 中——分享卡片是「让阅读感染他人」的对外接口；OPT-087（2026-07-06）上线分享功能但未补充暗色路径，深色模式用户输出米白底卡片与 UI 割裂，影响分享意愿；OPT-021 已做 CSS 深色模式，本项是 canvas 的对称收尾。
+- description: `app.js:2599-2606` 定义 `SHARE_CARD` 常量（`bg: "#f5f0e8"`, `ink: "#3d4a3f"` 等亮色值）；`newShareCanvas()`（line 2676）始终以 `ctx.fillStyle = C.bg` 填充背景，无任何 `matchMedia` 判断。三种卡片（摘抄卡、思想碰撞卡、书卡）均走同一路径，深色模式下统一输出亮色卡片。
+- why: OPT-021 CSS 深色模式已覆盖全 UI，canvas 是唯一遗漏；深色用户分享时视觉割裂为已知痛点，且 OPT-087 刚上线，补暗色路径是该功能的完整度收尾，而非独立改动。
+- how: 新增 `SHARE_CARD_DARK` 常量（深色调色板，如 `bg: "#1a1a1a"`, `ink: "#e8e0d0"`）；在 `renderQuoteShareCard`、`renderConnectionShareCard`、`renderBookShareCard` 各入口顶部各加一行 `const C = window.matchMedia('(prefers-color-scheme: dark)').matches ? SHARE_CARD_DARK : SHARE_CARD;`；`newShareCanvas` 无需改动。Touch: `app.js:2599-2606`（新增 `SHARE_CARD_DARK`）+ 三个 `renderXShareCard` 函数入口（各 1 行）。

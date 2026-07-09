@@ -2644,6 +2644,90 @@ showConfirmDialog({
 
 > 本次 run（2026-07-08）核实 Excel 导入 rating 回归（E165，OPT-099 遗漏路径，signal-backed）、AI 读后感来源标记缺失（E166，2026-07-06 信号明确要求，代码路径已验证）、Excel/JSON 双导入体验不一致（E167，E96 重登记）、deleteBook/deleteQuote 级联数量透明度缺口（E168/E169，E89/E92 重登记）。将 E165 提拔为 OPT-100、E166 提拔为 OPT-101，均有 signal 直接佐证且代码路径完整核实。
 
+## 2026-07-09
+
+### E170 — 分享卡片 canvas 硬编码亮色主题调色板，完全忽略 OS 深色模式 (S-M)
+
+`app.js:2599-2606`：
+```js
+const SHARE_CARD = {
+  W: 1080, PAD: 84,
+  bg: "#f5f0e8", ink: "#3d4a3f", inkSoft: "#5a6a5d", inkMuted: "#8a948a",
+  accent: "#c9a85a", pillBg: "#e7ecdf",
+  ...
+};
+```
+`app.js:2683-2684`（`newShareCanvas()`）：
+```js
+ctx.fillStyle = C.bg;   // 始终使用亮色米白底，不检测 prefers-color-scheme
+ctx.fillRect(0, 0, C.W, height);
+```
+
+三种分享卡片（`renderQuoteShareCard`、`renderConnectionShareCard`、`renderBookShareCard`）全部调用 `newShareCanvas(C, height)`，`C` 恒为同一个 `SHARE_CARD` 对象。代码中无任何 `window.matchMedia('(prefers-color-scheme: dark)')` 调用。OPT-021（PR#21）已通过 CSS `@media` 实现全 UI 深色模式，但 canvas 在 CSS 之外；OPT-087（2026-07-06）上线分享卡片时未补充暗色路径。
+
+**Why it matters:** 深色模式用户点击「分享」时，输出的是 #f5f0e8 米白底卡片——与深色 UI 视觉割裂，发到微信朋友圈/聊天时观感突兀。分享卡片是 app 的对外展示窗口，OPT-087 刚上线即暴露此遗漏。修复方案：新增 `SHARE_CARD_DARK`（深色版调色板），在三个 `renderXShareCard` 入口各查一次 `matchMedia`，根据结果选择调色板传入 `newShareCanvas`。
+
+**Complexity:** S-M — 新增一个常量对象 + 三处各加一行 `matchMedia` 判断，无 API/schema 改动。Touch: `app.js:2599-2606`（新增 `SHARE_CARD_DARK`）、`renderQuoteShareCard`、`renderConnectionShareCard`、`renderBookShareCard` 各入口（各 1 行）。
+
+**Files:** `app.js` — `SHARE_CARD`（line 2599）、`newShareCanvas`（line 2676）、三个 `renderXShareCard` 函数
+
+**northstar:** 中——分享卡片是「让阅读感染他人」的对外接口；深色模式用户输出白底卡片体验割裂，影响分享意愿；OPT-087 刚上线，修暗色路径是该功能的完整度收尾。
+
+---
+
+### E171 — MCP `summary()` 写入 `book.notes` 而非 `book.review`——OPT-098 上线后两条 AI 路径语义分裂 (S)
+
+`reading_mcp_server.py:323`：
+```python
+book["notes"] = ((book.get("notes") or "") + "\n\n" + content).strip()
+```
+工具 docstring（lines 300-306）明确："会把总结内容追加到对应书的 book.notes 字段末尾……这是面向书的『成长记录』"。
+
+OPT-098（2026-07-08 合并）为 AI 生成读后感新增了独立的 `book.review` 字段；in-app `generateBookReview()` 写入 `book.review`，书籍详情页渲染时（`app.js:3374-3379`）将 `book.review` 显示为「我的读后」，将 `book.notes` 显示为「内容简介」。
+
+MCP `summary()` 写入 `book.notes`，导致：
+1. MCP 产生的 AI 摘要在 UI 里被贴「内容简介」标签——语义完全错位。
+2. OPT-101 计划为 `book.review` 追加 `reviewIsAi` 来源标记；MCP 路径永远不会触发该标记，AI 来源区分对 MCP 用户无效。
+3. 两条 AI 摘要路径并存：in-app → `book.review`；MCP → `book.notes`——同一用户操作的双轨分叉难以维护。
+
+**Why it matters:** 2026-07-06 信号「AI 把书的笔记整理成读后感」直接驱动 OPT-098；MCP `summary()` 是同一诉求的另一入口，修复后两条路径才能进入同一字段、共享 OPT-101 的 `reviewIsAi` 标记。S 级 1 行改动。
+
+**Complexity:** S — `reading_mcp_server.py:323` 改 `book["notes"]` → `book["review"]`；更新 docstring（line 296-307）说明目标字段已变更；确认 `sanitize_state()` 已透传 `review` 字段（`app_server.py:699-749` 通过 book 对象原样存取，无需改动）。
+
+**Files:** `reading_mcp_server.py:290-328`（`summary()` 工具；核心改 line 323，更新 docstring）
+
+**northstar:** 中——2026-07-06 信号直接驱动；MCP 路径写入错字段使 OPT-098 对 MCP 用户名存实亡，OPT-101 的来源标记亦无法覆盖；S 修复完成 OPT-098 的跨客户端闭环。→ **提拔为 OPT-103**
+
+---
+
+### E172 — 账户导出 `exportedAt` 使用 `now_iso()`（naive 本地时间，无 Z 后缀），与导出体内所有其他 ISO 字段不一致 (S)
+
+`app_server.py:3938`：
+```python
+export = {
+    "exportFormat": 1,
+    "exportedAt": now_iso(),   # e.g. "2026-07-09T11:30:00"，无时区
+    "user": { ... },
+    "state": state,            # state 内所有 createdAt/updatedAt 均为 UTC+Z
+    ...
+}
+```
+`now_iso()`（`app_server.py:364`）返回 naive 本地时间字符串，无 `Z` 后缀。导出体内书籍/摘抄/会话的 `createdAt`/`updatedAt` 由前端 `new Date().toISOString()` 生成，格式为 UTC+Z（如 `"2026-07-09T03:30:00.000Z"`）。
+
+对比：E36/OPT-024（`ActionExecutor`）、E47/OPT-031（`reading_mcp_server.py`）、E56（`TraceManager`）均已修复或登记同类 `now_iso()` 滥用。E44（`save_state()` 的 `updated_at`）同类未修。本条专指导出端点的元数据字段。
+
+**Why it matters:** `exportedAt` 是导出备份的锚点时间戳；naive 时间与体内 UTC+Z 字段并存，任何解析器须猜测时区。若未来加入"对比两份导出差异"或"分析备份间隔"功能，这里埋的歧义会直接放大。1 行改动，零副作用。
+
+**Complexity:** S — `app_server.py:3938` 改 `now_iso()` → `utc_now_iso()`；`utc_now_iso` 已定义（line 368），无需额外改动。
+
+**Files:** `app_server.py:3936-3938`（export 字典构建）
+
+**northstar:** 弱——数据质量；`exportedAt` 与导出体内其他字段时区不一致，为未来解析路径埋下歧义；S 改动，无 UI 影响。
+
+---
+
+> 本次 run（2026-07-09）在 OPT-098（AI 读后感）和 OPT-087（分享卡片）上线后做后续扫描。新发现 3 条：E170 分享卡片 canvas 不感知深色模式（OPT-087 上线遗漏）、E171 MCP summary() 仍写 book.notes 而非 OPT-098 新增的 book.review（跨客户端语义分裂，S 修复，signal-backed）、E172 账户导出 exportedAt 使用 naive 本地时间（与导出体内 UTC+Z 字段不一致）。将 E171 提拔为 OPT-103（MCP 路径跨客户端闭环，signal-backed）、E170 提拔为 OPT-104（分享卡片暗色路径）。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
