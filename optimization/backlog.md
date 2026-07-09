@@ -901,3 +901,13 @@ Format per item:
 - description: `generateBookReview()`（`app.js:2264-2291`）将 AI 生成内容填入 textarea（`app.js:2281: textarea.value = reply`），但不存任何 AI 来源标记字段。全文件中无 `reviewIsAi`、`aiGenerated`、`review_source` 等字段存在（grep 0 匹配）。书籍详情展示（`app.js:3375`）将 `book.review` 标为「我的读后」，无法区分「AI 草稿」与「手写读后感」。用户不知某段读后感是否是 AI 生成的，无法判断是否需要自己补充。
 - why: 2026-07-06 信号明确要求来源区分，OPT-098 实现了生成功能但未实现标注功能，是信号响应的半成品。AI 草稿 vs 手写读后感的区分在意义上至关重要：前者是起点，后者是终点；混淆会让用户对自己的阅读感悟产生混乱。S 修复完成 OPT-098 的最后一块拼图。
 - how: ① `index.html`（addBook/editBook 对话框 review 区域）新增 `<input type="hidden" name="reviewIsAi" value="false">`，AI 按钮点击时将其设为 `"true"`；② `addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）存取 `reviewIsAi: formData.get("reviewIsAi") === "true"`；③ `generateBookReview()`（`app.js:2280-2282`）填 textarea 后同步将 hidden input 值设为 `"true"`，用户手动修改 textarea 时（`input` 事件）可选重置为 `"false"`；④ 详情页（`app.js:3375`）和分享卡（`app.js:2907`）根据 `book.reviewIsAi` 在「我的读后」标签旁追加 `（AI 草稿）`。约 15–20 行前端，零后端/DB 变更。Touch: `index.html`（addBook/editBook 对话框）；`app.js:2280-2282`（generateBookReview）；`app.js:2316`（addBook）；`app.js:3274`（saveBookEdit）；`app.js:3375`（详情页展示）。
+
+### OPT-102 — 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时
+- status: new
+- area: backend
+- priority: P2
+- size: M
+- northstar: 中——Theme 1「采集顺滑」。2026-07-09 owner 反馈快速识别整体慢，排查确认瓶颈是**手机上传图片**（trace `REQUEST_RECEIVED` 前 ~5s，百度 OCR 本身仅 0.5s；上传方向约 117KB/s）。已先做 OPT 级快修（图质量 0.92→0.80，584KB→~350KB，上传 5s→~3s，commit f14ddbb 已上线）。本项是进一步榨干上传耗时的后续。
+- description: 当前 `POST /api/quotes/ocr` 把图片以 base64 data URL 塞进 JSON body 上传，base64 比原始二进制多占约 33%（350KB 图 → ~466KB 上行）。改成二进制上传（`multipart/form-data` 或 raw body + 头部带 filename/bookId/quoteId）可直接省掉这 33%，上传再快约 1/4。书封面 OCR `/api/books/ocr` 同理。
+- why: 上传吞吐是快速识别的固定大头（尤其手机上行慢 + 隧道场景），base64 膨胀是纯浪费的开销。去掉后上传时间线性下降，且减小服务端读 body 与内存占用。是 OPT 快修（降质量）之后不再牺牲画质就能拿到的下一档提速。
+- how: 后端 `do_POST` 的 `/api/quotes/ocr`（app_server.py ~4810）与 `/api/books/ocr` 增加对 `Content-Type: multipart/form-data` / `application/octet-stream` 的解析分支：从 multipart part 或 raw body 取二进制 + 从 form 字段/自定义头取 `bookId`/`quoteId`/`filename`；`decode_data_url()` 改为可接收「已是二进制」的路径，复用后续 `save_image`/`run_fast_ocr` 不变。前端 `resizeImageToDataUrl` 之外新增「导出 Blob」路径（`canvas.toBlob`），用 `FormData`/`fetch` 直传 Blob，不再 `toDataURL`。**注意兼容**：保留旧 data URL 分支一段时间（老前端/回退），或前后端同发版。测试：新增 multipart/raw 上传的后端解析用例 + 前端 toBlob 路径断言。Touch: `app_server.py`（两个 OCR 端点的 body 解析）、`app.js`（`handleQuoteImageChange`/`runBookOcr` 的上传路径 + 新 blob 导出）。stdlib 无 multipart 解析器，可用 `email.parser`/`cgi`（cgi 3.13 弃用，倾向手写 boundary 拆分或 `email.message`）——评估后选无弃用依赖的方案。
