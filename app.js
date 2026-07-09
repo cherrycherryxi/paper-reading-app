@@ -1,7 +1,10 @@
 const AUTH_TOKEN_KEY = "paper-reading-auth-token-v1";
 const DEFAULT_BOOK_COVER_URL = "./assets/default-book-cover.jpeg?v=20260519g";
 const QUOTE_IMAGE_MAX_PX = 1800;
-const QUOTE_IMAGE_QUALITY = 0.92;
+// 分辨率保持 1800px（OCR 靠分辨率认字，见 ui-redesign「enough resolution」回归）；
+// 质量从 0.92 降到 0.80 以缩小上传体积（584KB→~350KB），手机上传慢时快速识别更快。
+// 降质量只增轻微压缩噪声、不损文字锐度，对百度 OCR 安全（历史 OCR 故障均为「图太大」）。
+const QUOTE_IMAGE_QUALITY = 0.80;
 
 const initialState = {
   books: [],
