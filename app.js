@@ -885,18 +885,21 @@ function renderConnections() {
   }
   if (searchRaw) {
     filtered = filtered.filter((c) => {
-      const getBookTitle = (type, id) => {
+      const getSearchLabel = (type, id) => {
         if (type === "book") return state.books.find((b) => b.id === id)?.title || "";
         if (type === "quote") {
           const q = state.quotes.find((q) => q.id === id);
-          return state.books.find((b) => b.id === q?.bookId)?.title || "";
+          const bookTitle = state.books.find((b) => b.id === q?.bookId)?.title || "";
+          const excerpt = (q?.content || q?.ocrText || "").slice(0, 60);
+          return bookTitle + " " + excerpt;
         }
         return "";
       };
       const haystack = [
-        getBookTitle(c.sourceType, c.sourceId),
-        getBookTitle(c.targetType, c.targetId),
+        getSearchLabel(c.sourceType, c.sourceId),
+        getSearchLabel(c.targetType, c.targetId),
         c.thought || "",
+        ...(c.tags || []),
       ].join(" ").toLowerCase();
       return haystack.includes(searchRaw);
     });
@@ -1197,7 +1200,12 @@ function fuzzyMatch(haystack, needle) {
 
 function matchBooks(query) {
   return state.books.filter(
-    (book) => fuzzyMatch(book.title, query) || fuzzyMatch(book.author || "", query)
+    (book) =>
+      fuzzyMatch(book.title, query) ||
+      fuzzyMatch(book.author || "", query) ||
+      (book.tags || []).some((t) => fuzzyMatch(t, query)) ||
+      fuzzyMatch(book.notes || "", query) ||
+      fuzzyMatch(book.review || "", query)
   );
 }
 
@@ -1569,7 +1577,8 @@ function renderQuotes() {
       const haystack = [
         book?.title || "",
         book?.author || "",
-        item.content || "",
+        item.content || item.ocrText || "",
+        item.reflection || "",
         (item.tags || []).join(" "),
       ].join(" ").toLowerCase();
       return haystack.includes(searchRaw);
