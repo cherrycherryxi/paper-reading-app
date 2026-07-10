@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-09T15:23:46.276Z
-> Files: 244 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-10T14:43:22.503Z
+> Files: 247 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -57,6 +57,7 @@
 - `2026-07-06.md` — 日报 2026-07-06 (~587 tok)
 - `2026-07-08.md` — 日报 2026-07-08 (~456 tok)
 - `2026-07-09.md` — 日报 2026-07-09 (~580 tok)
+- `2026-07-10.md` — 日报 2026-07-10 (~592 tok)
 
 ## ../../.claude/hooks/
 
@@ -96,7 +97,7 @@
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_prod_monitoring.md` (~790 tok)
-- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~2257 tok)
+- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~3024 tok)
 - `reference_weekly_report_email.md` (~530 tok)
 
 ## ../../.claude/scripts/
@@ -122,6 +123,11 @@
 ## ../../.cloudflared/
 
 - `config.yml` (~196 tok)
+
+## ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/
+
+- `Script.js` — Define main function (script entry) (~222 tok)
+- `sTQyI4HBEAhP.js` — Define main function (script entry) (~222 tok)
 
 ## ../../Library/LaunchAgents/
 
@@ -259,7 +265,7 @@
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1939 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~445 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~535 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
 - `triage.md` — Triage (~5019 tok)
 - `triage.md` — Triage (~4313 tok)

@@ -2594,3 +2594,30 @@
 | 23:04 | Session end: 16 writes across 9 files (app.js, share-card.test.js, index.html, book-review-rating.test.js, 2026-07-08.md) | 8 reads | ~152359 tok |
 | 23:15 | Session end: 16 writes across 9 files (app.js, share-card.test.js, index.html, book-review-rating.test.js, 2026-07-08.md) | 8 reads | ~152359 tok |
 | 23:23 | Created ../../.claude/daily-logs/2026-07-09.md | — | ~618 |
+| 23:24 | Session end: 17 writes across 10 files (app.js, share-card.test.js, index.html, book-review-rating.test.js, 2026-07-08.md) | 8 reads | ~153021 tok |
+
+## Session: 2026-07-09 23:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:56 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | expanded (+17 lines) | ~603 |
+| 14:57 | 排查+修复 cloudflared 隧道跟随 Clash 浏览节点绕路; 定位 Verge Merge prepend-rules 是死键/PROCESS-NAME 抓不到 UDP/no-resolve 被跳过; 一键 GUI 修复=🌩️ Cloudflare 组选 DIRECT(实测 argotunnel 全 DIRECT,store-selected 持久) | 记忆reference_remote_access_setup.md + buglog(bug-429) | 已应用并验证,隧道与日本浏览节点解耦 | ~40k |
+| 14:57 | Session end: 1 writes across 1 files (reference_remote_access_setup.md) | 1 reads | ~646 tok |
+| 15:08 | Edited ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/Script.js | added 1 condition(s) | ~77 |
+| 15:08 | Edited ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/sTQyI4HBEAhP.js | added 1 condition(s) | ~77 |
+| 15:09 | Session end: 3 writes across 3 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js) | 3 reads | ~800 tok |
+| 15:37 | Edited ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/Script.js | added 2 condition(s) | ~210 |
+| 15:38 | Edited ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/sTQyI4HBEAhP.js | added 2 condition(s) | ~210 |
+| 15:38 | Session end: 5 writes across 3 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js) | 3 reads | ~1220 tok |
+| 15:42 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | added 2 condition(s) | ~358 |
+| 15:42 | 精细版隧道DIRECT落地: Verge Script注入 domain+IP 双规则(IP splice到订阅CF-IP规则前),实测隧道4/4 DIRECT且Cursor仍走代理; 组保持🔰选择节点 | Verge profiles/Script.js + sTQyI4HBEAhP.js | 闭环,已验证 | ~25k |
+| 15:43 | Session end: 6 writes across 3 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js) | 3 reads | ~1603 tok |
+| 15:46 | Session end: 6 writes across 3 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js) | 3 reads | ~1603 tok |
+| 15:53 | Edited optimization/signals.md | 1→2 lines | ~64 |
+| 15:53 | Session end: 7 writes across 4 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js, signals.md) | 4 reads | ~2117 tok |
+| 16:04 | Session end: 7 writes across 4 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js, signals.md) | 4 reads | ~2117 tok |
+| 16:36 | Session end: 7 writes across 4 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js, signals.md) | 4 reads | ~2117 tok |
+| 18:03 | Session end: 7 writes across 4 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js, signals.md) | 4 reads | ~2117 tok |
+| 18:24 | Session end: 7 writes across 4 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js, signals.md) | 4 reads | ~2117 tok |
+| 18:35 | Session end: 7 writes across 4 files (reference_remote_access_setup.md, Script.js, sTQyI4HBEAhP.js, signals.md) | 4 reads | ~2117 tok |
+| 22:43 | Created ../../.claude/daily-logs/2026-07-10.md | — | ~632 |

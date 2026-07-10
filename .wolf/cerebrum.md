@@ -160,6 +160,8 @@
   
   **测试方法学**：所有外部服务（SMTP/Stripe/boto3）测试都用 monkey-patch 模块级符号或 `sys.modules` 注入 fake module，不引入 mock 库。Webhook 测试必须覆盖：bad signature、stale timestamp、unknown event type、idempotency（重复 event_id）。
 
+- **[2026-07-10] 功能 PR（含指派给 @claude bot 修改的）绝不能带 `.wolf/` bookkeeping 文件。** PR #60 本来 mergeable=CLEAN，让 @claude bot 改完后它把 `.wolf/{anatomy,buglog,memory}` 一起提交了，隔天 feature/agent 上的 buglog.json（并发加了 bug-429）与之尾部追加撞冲突 → PR 变 CONFLICTING/DIRTY，合并被拒。**代码本身零冲突，冲突全在 .wolf。** 教训：① 给 bot 的评论指令里明确写「只改代码与测试，不要碰 .wolf/」；② 自己审查 bot 提交时，`git show <sha> --stat` 若见 .wolf 要提示拆分；③ 若已混入且冲突，最省事的解法=本地 worktree 合并 feature/agent、对 buglog.json 之类 append 型文件 `git checkout --theirs`（保 feature/agent 权威实时状态）、其余自动合并、跑测试后推回 PR 分支再 squash。buglog/memory/signals 这类高频并发追加的文件，跨分支撞车是常态，隔离在独立提交是唯一解。
+
 ## Decision Log
 
 - [2026-06-02] **划线句子提取归 AI 精识别，快路径(百度)不做划线检测。** OPT-016 后用户问"百度能只识别划线句子吗"。结论：传统 OCR(百度/腾讯)不理解"划线"语义、无此接口，整页全识别。App 的划线提取一直由 AI 精识别(Kimi)路径承担——`OCR_PROMPT`(app_server.py:787)指示"只提取用户划线、标记或框选的正文"，无划线时取主段落，`未发现划线文字`为其空结果哨兵。曾评估"给百度快路径加下划线检测(找横线笔画+按行 location 过滤)"以实现"快+只要划线"，但真实照片下下划线检测鲁棒性差(底纹/表格线/页边/倾斜误判)、且稳妥实现要引入 OpenCV 重依赖——故**维持现状**：快路径(百度)=整页快速录入，AI 精识别=划线精准提取。两档分工即产品设计，勿再给快路径加划线检测。

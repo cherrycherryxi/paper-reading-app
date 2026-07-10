@@ -7162,6 +7162,59 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-08T19:16:41.269Z"
+    },
+    {
+      "id": "bug-429",
+      "timestamp": "2026-07-10T14:55:00.000Z",
+      "error_message": "cloudflared 隧道跟随 Clash 浏览节点绕路(慢); GUI Merge 里 prepend-rules 加规则始终不生效",
+      "file": "(基础设施: Clash Verge Rev 2.3.1 / cloudflared paper-tunnel-named)",
+      "root_cause": "订阅 iKuuu 规则 IP-CIDR,198.41.128.0/17→🌩️ Cloudflare 组(默认跟随选择节点)把 argotunnel 隧道端点也代理走了。三个叠加坑: (1) Verge Merge 的 prepend-rules 被原样当顶层键塞进 config, mihomo 只认 rules: 故完全无视; (2) PROCESS-NAME,cloudflared 匹配不到 UDP/QUIC 隧道连接(mihomo 抓不到 UDP 进程名); (3) 带 no-resolve 的 IP-CIDR 规则在只有嗅探域名/无免解析真IP时被跳过。",
+      "fix": "纯 GUI 一键: 代理页把 🌩️ Cloudflare 选择组从「🔰 选择节点」改为 DIRECT(store-selected 持久,扛重生成)。隧道即直连 CF, 与浏览节点(日本)解耦。副作用: 走该组的其它 CF 流量(api3.cursor.sh 等)一并 DIRECT, 本地直连 CF 已验证通,可接受, 一键可回退。精细版(只隧道)需用 Verge Script(JS) config.rules.unshift('DOMAIN-SUFFIX,argotunnel.com,DIRECT')。",
+      "tags": [
+        "clash-verge",
+        "cloudflared",
+        "tunnel",
+        "proxy-routing",
+        "infra",
+        "prepend-rules",
+        "process-name",
+        "no-resolve"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T14:55:00.000Z"
+    },
+    {
+      "id": "bug-430",
+      "timestamp": "2026-07-10T07:37:54.533Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/Script.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→16 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T07:37:54.533Z"
+    },
+    {
+      "id": "bug-431",
+      "timestamp": "2026-07-10T07:38:05.964Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/sTQyI4HBEAhP.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→16 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T07:38:05.964Z"
     }
   ]
 }
