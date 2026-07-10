@@ -926,3 +926,19 @@ Format per item:
 - description: `app.js:2599-2606` 定义 `SHARE_CARD` 常量（`bg: "#f5f0e8"`, `ink: "#3d4a3f"` 等亮色值）；`newShareCanvas()`（line 2676）始终以 `ctx.fillStyle = C.bg` 填充背景，无任何 `matchMedia` 判断。三种卡片（摘抄卡、思想碰撞卡、书卡）均走同一路径，深色模式下统一输出亮色卡片。
 - why: OPT-021 CSS 深色模式已覆盖全 UI，canvas 是唯一遗漏；深色用户分享时视觉割裂为已知痛点，且 OPT-087 刚上线，补暗色路径是该功能的完整度收尾，而非独立改动。
 - how: 新增 `SHARE_CARD_DARK` 常量（深色调色板，如 `bg: "#1a1a1a"`, `ink: "#e8e0d0"`）；在 `renderQuoteShareCard`、`renderConnectionShareCard`、`renderBookShareCard` 各入口顶部各加一行 `const C = window.matchMedia('(prefers-color-scheme: dark)').matches ? SHARE_CARD_DARK : SHARE_CARD;`；`newShareCanvas` 无需改动。Touch: `app.js:2599-2606`（新增 `SHARE_CARD_DARK`）+ 三个 `renderXShareCard` 函数入口（各 1 行）。
+
+### OPT-105 — 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感）— 由 explore E173 提拔 [2026-07-10]
+- status: new
+- area: frontend
+- northstar: 强——四条信号（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求豆瓣导入）驱动；三个目标字段（`book.finishedAt`/`book.rating`/`book.review`）均已就位，补写导入函数即可批量补全；是 OPT-074/099/098 三项已完成字段层建设的最终数据入口；推进 Theme B0「对外可用」用户数据完整度。triage 2026-07-10 明确指示 Agent3 评估并提拔。
+- description: 当前无任何豆瓣导入代码（全文件 grep `douban`/`豆瓣` 零匹配）。豆瓣「我读」CSV 标准列含书名/作者/我的评分（1-5）/阅读状态/我的评论/读完日期，与已存在字段天然对齐：`我的评分` → `book.rating`；`读完日期` → `book.finishedAt`；`我的评论` → `book.review`。导入逻辑：FileReader 读 CSV（注意豆瓣 CSV 为 GBK/GB18030 编码，须 `TextDecoder('gb18030')` 解码）→ 按书名模糊匹配现有书籍（`fuzzyMatch` 已有）→ 命中则 patch 三字段，未命中则新增书籍 → `syncState()` 保存 → `showImportResult()` 展示结果（新增/更新书目数量）。
+- why: 豆瓣是中文读者最主要的历史阅读记录平台，多年数据在那里沉淀；一次导入批量补全三个核心字段，省去逐本手动录入。信号频次最高（4 条），且 OPT-074/099/098 已完成字段层，本项打通数据入口，完成闭环。是 Theme B0 首批外部用户「第一次打开 app 就有内容」的关键路径。
+- how: `app.js` 新增 `importFromDouban()` 函数（约 80-100 行）：`FileReader` + `TextDecoder('gb18030')` 读 CSV → 逐行解析标题行定位列索引 → 按书名/作者 `fuzzyMatch` 匹配现有书籍 → patch `rating`/`finishedAt`/`review` → `syncState()`。`index.html` 在「我的」抽屉导入区加 `<input type="file" accept=".csv">` + 触发按钮 + 可选引导弹窗（说明豆瓣 CSV 导出步骤，复用 `#importExcelModal` 结构）。`showImportResult()` 展示更新/新增书目数。无后端/DB schema 变更（字段均已存在，走 `syncState()`）。Touch: `app.js`（新增 `importFromDouban` + 事件绑定）、`index.html`（导入按钮 + file input）。
+
+### OPT-106 — `deleteQuote()` 确认弹窗不提及将级联删除关联，`getConnectionCount()` 已存在可直接复用 — 由 explore E169 提拔 [2026-07-10]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」的前提是连接网络数据可靠；关联是用户花时间手动建立的意义链接，无声消失最为有害；S 修复让用户在删除前知晓波及的关联数量，防止意外抹去 Theme 2 核心数据；`getConnectionCount()` 已存在，零额外函数成本。
+- description: `app.js:3193-3209`（`deleteQuote()`）：`showConfirmDialog({ message: "确定删除这张摘抄卡片吗？" })`，不提及关联数量；`onConfirm` 回调用 `.filter()` 静默删除所有 `sourceId === quoteId || targetId === quoteId` 的 connections。`getConnectionCount(quoteId)`（`app.js:813`）已存在并返回「该摘抄参与的关联数量」，只需在 message 构建时调用一次即可。
+- why: E169（2026-07-08 首次核实）：connections 是 Theme 2 的核心数据，用户花时间手动建立的思想碰撞关联在删除摘抄时被无声抹去；若用户点下删除时知道「同时删除 3 条关联」，行为决策会有所不同。`getConnectionCount()` 复用零成本，是 OPT-043（导入过载守卫）/OPT-062（deleteBook Escape 守卫）「破坏性操作透明度」系列的对称延伸，S 级，无 API/schema 变更。
+- how: `app.js:3194`：在 `showConfirmDialog` 调用前加 `const connCount = getConnectionCount(quoteId);`；将 `message` 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``。约 3-4 行改动。建议与 E168（deleteBook 级联数量透明度）合并为「破坏性操作透明度」PR，共享一个 PR 讲故事。Touch: `app.js:3193-3199`（showConfirmDialog 调用处）；`app.js:813`（getConnectionCount，已存在，直接复用）。

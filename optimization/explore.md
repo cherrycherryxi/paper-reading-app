@@ -2728,6 +2728,62 @@ export = {
 
 > 本次 run（2026-07-09）在 OPT-098（AI 读后感）和 OPT-087（分享卡片）上线后做后续扫描。新发现 3 条：E170 分享卡片 canvas 不感知深色模式（OPT-087 上线遗漏）、E171 MCP summary() 仍写 book.notes 而非 OPT-098 新增的 book.review（跨客户端语义分裂，S 修复，signal-backed）、E172 账户导出 exportedAt 使用 naive 本地时间（与导出体内 UTC+Z 字段不一致）。将 E171 提拔为 OPT-103（MCP 路径跨客户端闭环，signal-backed）、E170 提拔为 OPT-104（分享卡片暗色路径）。所有断言均基于实际代码读取，已标注 file:line。
 
+---
+
+## 2026-07-10
+
+### E173 — 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感）——四条历史信号汇聚，当前无任何导入路径 (M)
+
+全文件 grep `douban`、`豆瓣` 零匹配：`app.js`、`app_server.py`、`index.html` 均无相关代码。
+
+三个目标字段均已就位：
+- `book.finishedAt`（OPT-074，PR#53）——`sanitize_state()` 透传，书籍详情/编辑对话框均有 date input
+- `book.rating`（OPT-099，2026-07-08）——`app.js:2316`（`addBook`）、`app.js:3274`（`saveBookEdit`）已存储
+- `book.review`（OPT-087/098，2026-07-06/08）——详情、分享、编辑均已展示
+
+豆瓣「我读」导出 CSV 标准列：书名、作者、出版社、出版年、页数、我的评分（1-5）、阅读状态、标签、我的评论、读完日期。列与字段映射：`我的评分` → `book.rating`；`读完日期` → `book.finishedAt`；`我的评论` → `book.review`。
+
+实现范式可复用 `importFromExcel()`（`app.js:4087-4145`）的三步模式：
+1. `FileReader` 读 CSV（注意豆瓣 CSV 可能 GBK 编码，须 `TextDecoder('gb18030')` 解码）→ 逐行解析
+2. 按书名模糊匹配（`fuzzyMatch`，已有）→ 命中则 patch 三字段，未命中则新增书籍
+3. `syncState()` 保存，`showImportResult()` 展示结果（新增/更新书目数量）
+
+**Why it matters:** 四条信号汇聚：2026-06-26（读完日期）、2026-07-06（评分）、2026-07-06（AI 读后感）、2026-07-10（owner 显式请求豆瓣一键导入）；且 triage 2026-07-10 明确指示 Agent3「评估并提拔为新 OPT」。豆瓣是中文读者最主要的历史数据仓库，一次导入批量补全三个字段，无需逐本手动录入；三个目标字段均已存在，导入逻辑可复用已有范式，M 复杂度可控。
+
+**Complexity:** M — 新增 `importFromDouban()` 函数（约 80-100 行：CSV 解析 + 书名匹配 + 三字段 patch）；`index.html` 在「我的」抽屉导入区加隐藏 file input（`accept=".csv"`）+ 触发按钮 + 可选引导弹窗（说明豆瓣 CSV 导出步骤，复用 `#importExcelModal` 结构）；无后端/DB schema 变更（字段均已存在）。
+
+**Files:** `app.js`（新增 `importFromDouban()` + 事件绑定）; `index.html`（导入按钮 + file input + 可选引导弹窗）
+
+**northstar:** 强——四条信号驱动；OPT-074/099/098 三项已完成字段层建设，本项打通数据入口，是「补全历史阅读档案」路径的最终一步；直接推进 Theme B0「对外可用」用户首次使用时的数据完整度。→ **提拔为 OPT-105**
+
+---
+
+### E174 — 书单卡面不展示 `book.rating`，OPT-099 上线后书单页评分对用户不可见 (S)
+
+`app.js:1298-1311`（`buildBookSearchCard()` 卡面渲染末段，实际读取代码）：
+```js
+const tags = (book.tags || [])
+  .map(t => `<span class="book-tag">${escapeHtml(t)}</span>`)
+  .join("");
+// ...
+<div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${qCount} 张${cCount ? ` · 🔗 ${cCount} 关联` : ""}</div>
+<div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
+${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
+```
+无任何 `book.rating` 展示代码。对比：书籍详情对话框（`app.js:3368-3369`）调用 `renderStarRating(book.rating)`；书卡分享图（`app.js:2929`）同样展示星级。OPT-099（2026-07-08）添加了 `book.rating` 字段并在上述两处展示，但 `buildBookSearchCard()` 未同步更新。
+
+**Why it matters:** 书单页是最高频入口；评分在卡面不可见意味着用户浏览书单时无法感知哪些书值得重读或推荐——须点进详情才能看到星级，降低了 OPT-099 的实际信息密度价值。`renderStarRating()` 已存在，S 级 1-2 行改动，无 API/schema 变更。
+
+**Complexity:** S — 在 `buildBookSearchCard()` tag-row 后追加：`${book.rating > 0 ? \`<div class="book-grid-meta">${renderStarRating(book.rating)}</div>\` : ""}` 约 1-2 行；`renderStarRating()` 已存在可直接复用，建议与 OPT-100（Excel 导入 rating 路径）搭车同一 PR 对齐 rating 展示完整性。
+
+**Files:** `app.js:1307-1311`（`buildBookSearchCard` 卡面尾部渲染区域）
+
+**northstar:** 弱-中——OPT-099 的星级评分使书单从纯列表变为可感知价值排序的书库；卡面若不显示评分，则该特性在最高频入口对用户无效；是 OPT-099 完整性的末端收尾。
+
+---
+
+> 本次 run（2026-07-10）响应 triage 2026-07-10 显式指令（豆瓣导入评估）并做 OPT-098/099 上线后的后续扫描。新发现 2 条：E173 豆瓣阅读记录一键导入（四条信号汇聚，M 级，三个目标字段已就位，补写导入函数即可）、E174 书单卡面不展示 `book.rating`（OPT-099 上线遗漏，S 级 1-2 行补渲染）。同时将 2026-07-08 已核实的 E169（`deleteQuote()` 确认弹窗不提及级联删除关联数量，`getConnectionCount()` 已存在可直接复用，Theme 2 核心数据保护，S 级 3-4 行改动）提拔为 OPT-106。将 E173 提拔为 OPT-105（triage 指定 + 四条信号 + 强 northstar）、E169 提拔为 OPT-106（S 级，Theme 2 连接网络数据可靠性）。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
