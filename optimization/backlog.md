@@ -451,7 +451,7 @@ Format per item:
 - how: 在 `syncOpenQuoteFormFromState()`（`app.js:1548-1566`）的 `ocrStatus === "done"` 分支：若识别文本行数 ≥ 3，隐藏 `#quoteContent` textarea，显示新增的「行选择列表」（每行一个 `<div>` + 删除 `✕` 按钮）；用户点删后，剩余行合并写回 textarea，并恢复正常编辑视图。约 40 行 JS + 20 行 CSS。行数 < 3 时跳过，直接填入 textarea（现有行为）。Touch: `app.js:1548-1566`；`index.html:444-486`（quote dialog，可加行列表 UI 占位）；`styles.css`（新增 `.ocr-line-selector` 组件样式）。
 
 ### OPT-056 — 摘抄搜索不包含「我的理解」(reflection) 字段，用户按自己的思考笔记无法检索 — 由 explore E90 提拔
-- status: in-progress (PR #60)
+- status: done (PR #60, merged 2026-07-10)
 - area: frontend
 - northstar: 中——使用户的个人洞察（reflection）变得可检索，直接支撑 Theme 2「回顾有价值」；累积 50+ 张摘抄后 reflection 检索是最自然的二次入口之一；与北极星「第三个数 > 0」（回顾/检索/关联操作次数）正相关。
 - description: `app.js:1411-1416`（`renderQuotes()` 搜索过滤器）构建 haystack 时未包含 `item.reflection`：`[book?.title, book?.author, item.content, (item.tags||[]).join(" ")].join(" ").toLowerCase()`。`index.html:479` 的「我的理解」textarea（`name="reflection"`）内容通过 `state.quotes[n].reflection` 持久化。若用户在「我的理解」里写了"这和笛卡尔二元论有关"，搜索"笛卡尔"什么都找不到。
@@ -705,7 +705,7 @@ Format per item:
 - how: `app.js:1419` 将 `if (searchRaw && sessions.length)` 改为 `if (allSorted.length)`（含搜索词时展示匹配计，无搜索时展示全量统计）；对应 `textContent` 区分两种文案：有搜索时保持「N 次记录 · 共 T 分钟 · 约 P 页」；无搜索时改为「共 N 次 · 累计 T 分钟 · 约 P 页」（含 10 条截断时在 OPT-076 修复后可进一步完善）。Touch: `app.js:1418-1428`。
 
 ### OPT-083 — `renderQuotes()` 搜索 haystack 不含 `ocrText`：AI-OCR 直存摘抄完全不可搜 — 由 explore E136 提拔 [2026-07-01]
-- status: in-progress (PR #60)
+- status: done (PR #60, merged 2026-07-10)
 - area: frontend
 - priority: P1
 - size: S
@@ -763,7 +763,7 @@ Format per item:
 - how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
 
 ### OPT-088 — renderConnections 搜索 haystack 缺少摘抄内容
-- status: in-progress (PR #60)
+- status: done (PR #60, merged 2026-07-10)
 - area: frontend
 - priority: P1
 - size: S
@@ -803,7 +803,7 @@ Format per item:
 - how: `app.js:1439` 将 `(b.date || "").localeCompare(a.date || "")` 改为 `(Date.parse(b.date || "") || 0) - (Date.parse(a.date || "") || 0)`（降序）；参照 `app.js:1026`（OPT-037 修复后）。Touch: `app.js:1439`。
 
 ### OPT-092 — `matchBooks()` 忽略 `book.tags` / `book.notes`，书单按主题/标签搜索零结果 — 由 explore E150 提拔 [2026-07-04]
-- status: in-progress (PR #60)
+- status: done (PR #60, merged 2026-07-10)
 - area: frontend
 - priority: P1
 - size: S
@@ -843,7 +843,7 @@ Format per item:
 - how: 在 `openNewQuoteForBook(bookId)` 内，将 `value = ""` 改为：`const _curPage = state.books.find(b => b.id === bookId)?.currentPage; els.quoteForm.querySelector('[name="page"]').value = _curPage || "";`。约 2–3 行，纯前端。Touch: `app.js:2520`（openNewQuoteForBook）；参照 `app.js:2314`（addSession 回写 currentPage）及 OPT-084 预填逻辑。
 
 ### OPT-096 — `renderConnections()` 搜索 haystack 缺少 `c.tags`，关联标签无法被搜索命中 — 由 explore E135/E161 提拔 [2026-07-06]
-- status: in-progress (PR #60)
+- status: done (PR #60, merged 2026-07-10)
 - area: frontend
 - priority: P2
 - size: S
@@ -853,7 +853,7 @@ Format per item:
 - how: 将 `app.js:862-866` haystack 数组第三项由 `c.thought || ""` 扩展为 `...[c.thought || "", ...(c.tags || [])]`（实际 1–2 行修改）。建议与 OPT-092、OPT-097 合并为「搜索字段补全 bundle」PR。Touch: `app.js:862-866`（renderConnections haystack）。
 
 ### OPT-097 — `matchBooks()` 不搜索 `book.review`，OPT-087 新增字段对搜索路径完全不可见 — 由 explore E158 提拔 [2026-07-06]
-- status: in-progress (PR #60)
+- status: done (PR #60, merged 2026-07-10)
 - area: frontend
 - priority: P2
 - size: S
@@ -912,7 +912,7 @@ Format per item:
 - how: 后端 `do_POST` 的 `/api/quotes/ocr`（app_server.py ~4810）与 `/api/books/ocr` 增加对 `Content-Type: multipart/form-data` / `application/octet-stream` 的解析分支：从 multipart part 或 raw body 取二进制 + 从 form 字段/自定义头取 `bookId`/`quoteId`/`filename`；`decode_data_url()` 改为可接收「已是二进制」的路径，复用后续 `save_image`/`run_fast_ocr` 不变。前端 `resizeImageToDataUrl` 之外新增「导出 Blob」路径（`canvas.toBlob`），用 `FormData`/`fetch` 直传 Blob，不再 `toDataURL`。**注意兼容**：保留旧 data URL 分支一段时间（老前端/回退），或前后端同发版。测试：新增 multipart/raw 上传的后端解析用例 + 前端 toBlob 路径断言。Touch: `app_server.py`（两个 OCR 端点的 body 解析）、`app.js`（`handleQuoteImageChange`/`runBookOcr` 的上传路径 + 新 blob 导出）。stdlib 无 multipart 解析器，可用 `email.parser`/`cgi`（cgi 3.13 弃用，倾向手写 boundary 拆分或 `email.message`）——评估后选无弃用依赖的方案。
 
 ### OPT-103 — MCP `summary()` 写入 `book.notes` 而非 `book.review`，OPT-098 上线后两条 AI 路径语义分裂 — 由 explore E171 提拔 [2026-07-09]
-- status: new
+- status: triaged
 - area: agent
 - northstar: 中——2026-07-06 信号「AI 把书的笔记整理成读后感」直接驱动 OPT-098；MCP `summary()` 是同一诉求的另一入口，写入错字段使 OPT-098 对 MCP 用户名存实亡，OPT-101 的 reviewIsAi 来源标记亦无法覆盖；S 修复完成 OPT-098 的跨客户端闭环。
 - description: `reading_mcp_server.py:323` 将 MCP summary 内容追加至 `book["notes"]`；OPT-098（2026-07-08）新增了独立的 `book.review` 字段供 AI 读后感使用，in-app `generateBookReview()` 已写 `book.review`，但 MCP 路径仍写 `book.notes`。结果：(1) MCP 生成的摘要在 UI 书籍详情页被贴「内容简介」标签（`app.js:3375`），语义完全错位；(2) OPT-101 计划的 `reviewIsAi` 标记永远不会覆盖 MCP 路径产生的内容。
@@ -920,7 +920,7 @@ Format per item:
 - how: `reading_mcp_server.py:323` 改 `book["notes"]` → `book["review"]`（1 行）；更新 docstring（lines 296-307）说明目标字段；`sanitize_state()` 已原样透传 book 对象中的 `review` 字段，无需额外改动。Touch: `reading_mcp_server.py:290-328`。
 
 ### OPT-104 — 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 — 由 explore E170 提拔 [2026-07-09]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——分享卡片是「让阅读感染他人」的对外接口；OPT-087（2026-07-06）上线分享功能但未补充暗色路径，深色模式用户输出米白底卡片与 UI 割裂，影响分享意愿；OPT-021 已做 CSS 深色模式，本项是 canvas 的对称收尾。
 - description: `app.js:2599-2606` 定义 `SHARE_CARD` 常量（`bg: "#f5f0e8"`, `ink: "#3d4a3f"` 等亮色值）；`newShareCanvas()`（line 2676）始终以 `ctx.fillStyle = C.bg` 填充背景，无任何 `matchMedia` 判断。三种卡片（摘抄卡、思想碰撞卡、书卡）均走同一路径，深色模式下统一输出亮色卡片。

@@ -2,7 +2,7 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-09
+Last triaged: 2026-07-10
 
 ## Next up
 
@@ -10,25 +10,22 @@ Last triaged: 2026-07-09
 
 近 7 天 `auto/` PR 共 **4 个**（#54 OPT-059，2026-07-03；#55 OPT-064，2026-07-05；#59 录入修复包，2026-07-07；#60 检索修通 bundle，2026-07-08），预算已满，本次 Agent2 不实施任何实现。
 
-当前在途：PR #60（`auto/opt-092-search-field-bundle`，base=feature/agent）— 状态 **OPEN**，包含 OPT-092/083/056/088/096/097，待 owner 合并。
+**PR #60（`auto/opt-092-search-field-bundle`，base=feature/agent）已于 2026-07-10 合并**，OPT-092/083/056/088/096/097（Theme 2「检索修通」W28 bundle）全部落地，W28 两项焦点均完成。
 
-预算恢复后首选（若 PR #60 已合并）：**OPT-065**（P1, S）— `reading_mcp_server._save_state()` 跳过 `sanitize_state()`，MCP 写路径无状态校验；`reading_mcp_server.py:70-75` 调用前加 `state = sanitize_state(state)`，约 1–2 行，零用户界面改动，data safety 类。
+预算恢复后首选（#54 于 2026-07-10 满 7 天后自动释放 1 槽，约 2026-07-11 起可指派）：**OPT-065**（P1, S）— `reading_mcp_server._save_state()` 跳过 `sanitize_state()`，MCP 写路径无状态校验。`reading_mcp_server.py:70-75` 调用前加 `state = sanitize_state(state)`（直接 `from app_server import sanitize_state`，无循环 import 风险），约 1–2 行，零用户界面改动，data safety 类。该项在数据安全维度与北极星的可靠性前提直接对齐，任何写路径的状态污染都会影响「零丢失」承诺。
+
+> 新信号（2026-07-10）：owner 提出「豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感）」，与 6-26 读完日期、7-06 评分、7-06 AI 读后感三条历史信号天然对齐——暂无对应 backlog 项，请 Agent3 下次 explore 时评估并提拔为新 OPT。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-092 | matchBooks() 忽略 book.tags / book.notes，书单按主题/标签搜索零结果 | P1 | S | in-progress (PR #60) | NEW（explore E150，2026-07-04）；**signal 2026-07-03** 直接佐证（为读书会找书，书单搜「成长」零结果）；roadmap W28 Theme 2「检索修通」第一 PR 显式命名；`app.js:1160-1163` 追加 `(book.tags||[]).some(t => fuzzyMatch(t,query)) \|\| fuzzyMatch(book.notes||"",query)`；2–3 行，纯前端，零后端变更。W28 Item 2 bundle 首项。 |
-| OPT-083 | renderQuotes() 搜索 haystack 不含 ocrText：OCR 未编辑摘抄完全不可搜 | P1 | S | in-progress (PR #60) | explore E136 2026-07-01；**强北极星** Theme 2「回顾有价值」；OCR 摘抄 content="" ocrText=全文，显示正常但搜索完全命中不了，积累越多回顾越失准。`app.js:1498` haystack 追加 `item.ocrText||""`；`app.js:1143` matchQuotes 改 `quote.content||quote.ocrText||""`；2 行，零副作用。W28 Theme 2 bundle 项。 |
-| OPT-088 | renderConnections getBookTitle 仅返回书名，按摘抄内容搜索关联完全命中不了 | P1 | S | in-progress (PR #60) | explore 2026-07-03；**signal 2026-06-29** 佐证；Theme 2「回顾有价值」；`app.js:847-860` `getBookTitle(type,id)` quote 分支追加 `(q?.content||q?.ocrText||"").slice(0,60)`，约 3 行，零后端影响；与 OPT-060 解决同一根问题（OPT-088 从源函数侧改更彻底）。W28 Theme 2 bundle 项。 |
 | OPT-065 | reading_mcp_server._save_state() 跳过 sanitize_state()，MCP 写路径无状态校验 | P1 | S | triaged | northstar「中」；data safety；MCP 写路径是 Claude Desktop 主入口；`reading_mcp_server.py:70-75`（`_save_state` 函数）调用前加 `state = sanitize_state(state)`，直接 `from app_server import sanitize_state`（`__main__` 守卫无循环 import 风险）。 |
 | OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | triaged | NEW（explore E165，2026-07-08）；**signal 2026-07-06** 直接驱动（OPT-099 信号下的遗漏导入路径）；Excel 是书单初始化主通道，修复后历史书单评分才能正确进入 rating 字段；`app.js:4092-4113`（importFromExcel 书籍对象构建段）约 3 行改动，纯前端，零后端/DB 变更。 |
 | OPT-101 | generateBookReview() 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 | P2 | S | triaged | NEW（explore E166，2026-07-08）；**signal 2026-07-06** 明确要求「展示时明确标注『AI 根据笔记整理』」；OPT-098 已上线但缺来源区分；约 15–20 行前端，零后端/DB 变更；Touch: index.html（addBook/editBook）；app.js（generateBookReview, addBook, saveBookEdit, 详情页展示）。 |
+| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | triaged | NEW（explore E171，2026-07-09）；**signal 2026-07-06** 佐证（AI 读后感诉求的 MCP 侧闭环缺口）；`reading_mcp_server.py:323` 改 `book["notes"]` → `book["review"]`，1 行，零 API/schema 变更；与 OPT-101 是同一 signal 的两面，可合并一 PR。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`：无搜索时全量计算并常驻显示，有搜索时展示过滤子集。3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
 | OPT-082 | renderTimeline() sessionStats 仅在搜索时显示，默认视图无累计阅读数据 | P2 | S | triaged | **与 OPT-053 完全重复**（同一代码问题 `app.js:1419`），OPT-053 实现后自动解决，**不另行指派**。 |
-| OPT-056 | 摘抄搜索不包含「我的理解」reflection 字段 | P2 | S | in-progress (PR #60) | northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索。`app.js:1411-1416` haystack 数组末尾追加 `item.reflection || ""`；1 行改动，零后端变更。W28 Theme 2 bundle 项（与 OPT-092/083/088/096/097 合并）。 |
-| OPT-096 | renderConnections() 搜索 haystack 缺少 c.tags，关联标签无法被搜索命中 | P2 | S | in-progress (PR #60) | NEW（explore E135/E161，2026-07-06）；northstar「弱-中」，Theme 2「回顾有价值」；`app.js:862-866` haystack 追加 `...(c.tags||[])`；1–2 行，纯前端；与 OPT-092/083/088/056/097 合并「搜索字段补全 bundle」PR。 |
-| OPT-097 | matchBooks() 不搜索 book.review，OPT-087 新增字段对搜索路径完全不可见 | P2 | S | in-progress (PR #60) | NEW（explore E158，2026-07-06）；northstar「弱-中」，Theme 2；OPT-087 同日上线 review 字段但搜索未同步；`app.js:1165` 末尾追加 `\|\| fuzzyMatch(book.review||"",query)`；1 行；与 OPT-092/083/088/056/096 合并「搜索字段补全 bundle」PR。 |
 | OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | NEW（explore E147，2026-07-04）；northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`（deleteSession）增加剩余 session 扫描后回写 currentPage/lastReadAt；约 10–15 行，纯前端。 |
 | OPT-094 | addSession() pagesRead 计算差一，统计数据永远少计一页 | P2 | S | triaged | NEW（explore E148，2026-07-05）；northstar 弱（数据准确性）；三处均漏 `+1`：`app.js:2311`（addSession）、`app.js:2318`（editSession）、`app.js:1456`（统计栏汇总）；纯前端 3 行，无 DB/后端变更。 |
 | OPT-095 | 新建摘抄对话框页码字段从不预填 book.currentPage | P2 | S | triaged | NEW（explore E155，2026-07-05）；northstar 弱-中，Theme 1 小摩擦消除；`app.js:2520`（openNewQuoteForBook）将 `value=""` 改为读取 `state.books.find(b=>b.id===bookId)?.currentPage`；2–3 行，纯前端。 |
@@ -40,12 +37,13 @@ Last triaged: 2026-07-09
 | OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | P2 | S | triaged | northstar「弱→中」；`app.js:274-279`（contextFromHistoryKey）处理 `book:` 但 `quote:` fallthrough 错误解析为 bookId；后端 `app_server.py:617-625` 正确处理。1 行修复。 |
 | OPT-089 | clearSampleData 不清理 chatHistories/chatContexts，孤儿聊天历史随 syncState 写回 | P2 | S | triaged | northstar「弱-中」；onboarding「示例→清除→空白起步」是新用户留存路径；`app.js:1729-1744`：遍历示例书/摘抄 id 逐一 delete chatHistories/chatContexts；补 `tests/frontend/sample-onboarding.test.js` 断言。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | `app_server.py:676`（ensure_user_state INSERT）、`app_server.py:4057, 4061`（register handler created_at + terms_accepted_at）→ 各换 `utc_now_iso()`。OPT-014 UTC 系列最后一块；northstar「中」。 |
-| OPT-060 | 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 | P2 | S | triaged | northstar「中」，Theme 2；`app.js:740-756` haystack 对 quote 类型 side 追加 `state.quotes.find()` 的 `.content`；**注：OPT-088 从上游函数 `getBookTitle` 侧修复同一问题更彻底；若 OPT-088 先落，本项可降 P3 或合并 PR**。 |
+| OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | triaged | NEW（explore E170，2026-07-09）；northstar「中」；OPT-021 CSS 深色模式已全覆盖 UI，canvas 是唯一遗漏；OPT-087 刚上线分享功能，补暗色路径是完整度收尾；`app.js:2599-2606` 新增 `SHARE_CARD_DARK` 常量 + 三个 `renderXShareCard` 函数顶部各加 1 行 `matchMedia` 判断，约 5 行。 |
 | OPT-102 | 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时 | P2 | M | triaged | NEW（2026-07-09）；Theme 1「采集顺滑」；base64→multipart/binary 节省 33% 上行流量；Touch: `app_server.py`（OCR 端点 body 解析）、`app.js`（toBlob 上传路径）；M 复杂度，保留旧 dataURL 分支兼容。 |
 | OPT-076 | renderTimeline() 硬上限 10 条且无告知，阅读历史超 10 次后早期记录不可见 | P2 | M | triaged | northstar「中」，Theme 2「回顾有价值」；`app.js:1337`：`allSorted.slice(0, 10)` 硬截断，无分页/load-more；方案：`displayLimit` 模块变量 + 「加载更多（共 N 条）」按钮；可与 OPT-057 合并一 PR。 |
 | OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | northstar「中」，Theme 2；与 OPT-076 同类，建议合并一 PR 处理（OPT-076 是 M 复杂度的完整方案）。 |
 | OPT-077 | renderTimeline() 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 | P2 | M | triaged | OPT-074 数据已到位，展示层闭环；northstar「中」，Theme 2「回顾有价值」。从 `state.books` 提取有 `startedAt`/`finishedAt` 的里程碑事件与 sessions 合并排序，专属卡片模板（📖/✅）；Touch: `app.js:1321-1399` + `styles.css`（少量新增）。 |
 | OPT-081 | Organize/Candidates 批量采集激活，前端实现沉睡，无 HTML/调用者/后端端点 | P2 | M | triaged | northstar「中/强(如激活)」，Theme 1「采集顺滑」文字粘贴路径；无 signal 佐证；需 `<dialog id="organizeDialog/candidatesDialog">` + `POST /api/organize/parse` + JS 入口三层补全；M 复杂度，预算充裕周再排期。 |
+| OPT-060 | 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 | P3 | S | triaged | P3 parked：**OPT-088（PR #60，2026-07-10 合并）已从上游函数 `getBookTitle` 侧修复同一问题，覆盖更彻底**；本项已被 OPT-088 完全覆盖，降 P3 归档，不另行指派。 |
 | OPT-051 | 添加 Web App Manifest，支持 Android/Chrome PWA 安装 | P3 | S | triaged | P3 parked（定位 A 下唯一用户不用 Android；升级到 B 当周再做即可）。 |
 | OPT-048 | #chatMessages 缺少 role="log" live region（WCAG 4.1.3 AA） | P3 | S | triaged | P3 parked（定位 A 唯一用户=owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。 |
 | OPT-046 | Tab 导航缺少 ARIA role/aria-selected（WCAG 4.1.2 Level A） | P3 | S | triaged | P3 parked（与 OPT-048 同逻辑；定位 A 唯一用户=owner 本人）。 |
@@ -54,7 +52,13 @@ Last triaged: 2026-07-09
 | OPT-035 | TraceManager 三处 now_iso() → utc_now_iso() | P3 | S | triaged | P3 parked（纯内部观测时间戳，用户不可见，无北极星贡献）。 |
 | OPT-044 | payments 表时间戳 UTC 修复 | P3 | S | triaged | P3 parked（billing 已按 roadmap §1 冻结，财务表时间戳无用户价值，直至项目定位升级到 C）。 |
 | OPT-098 | AI 一键生成读后感草稿 + 书籍 1-5 星评分 | P2 | M | done (2026-07-08，与 OPT-099 同 PR) | NEW（signal 2026-07-06 双项：「AI 把书的笔记整理成读后感」+ 「喜欢程度独立字段」）；index.html 两表单加 star-rating 组件 + editBook 加 AI 起草按钮；styles.css 加 .star-rating/.star-btn/.ai-review-btn；app.js 加 generateBookReview + 星级存取展示；tests/frontend/book-review-rating.test.js 11 例。 |
-| OPT-099 | 书籍增加独立 1-5 星评分字段 | P2 | M | done (2026-07-08，合并至 OPT-098 同 PR) | signal 2026-07-06「喜欢程度现在被混进内容简介里，希望拆成独立字段」；已随 OPT-098 实现，不另行指派。 |
+| OPT-099 | 书籍增加独立 1-5 星评分字段 | P2 | M | done (2026-07-08，合并至 OPT-098 同 PR 实现) | signal 2026-07-06「喜欢程度现在被混进内容简介里，希望拆成独立字段」；已随 OPT-098 实现，不另行指派。 |
+| OPT-092 | matchBooks() 忽略 book.tags / book.notes，书单按主题/标签搜索零结果 | P1 | S | done (PR #60, merged 2026-07-10) | **signal 2026-07-03** 直接佐证（为读书会找书，书单搜「成长」零结果）；roadmap W28 Theme 2「检索修通」第一 PR 显式命名；`app.js:1160-1163` 追加 tags/notes fuzzyMatch；W28 Item 2 bundle 首项。 |
+| OPT-083 | renderQuotes() 搜索 haystack 不含 ocrText：OCR 未编辑摘抄完全不可搜 | P1 | S | done (PR #60, merged 2026-07-10) | explore E136 2026-07-01；**强北极星** Theme 2「回顾有价值」；OCR 摘抄 content="" ocrText=全文，显示正常但搜索完全命中不了；W28 Theme 2 bundle 项。 |
+| OPT-088 | renderConnections getBookTitle 仅返回书名，按摘抄内容搜索关联完全命中不了 | P1 | S | done (PR #60, merged 2026-07-10) | explore 2026-07-03；**signal 2026-06-29** 佐证；Theme 2「回顾有价值」；W28 Theme 2 bundle 项。 |
+| OPT-056 | 摘抄搜索不包含「我的理解」reflection 字段 | P2 | S | done (PR #60, merged 2026-07-10) | northstar「中」，Theme 2「回顾有价值」直接让 reflection 可检索；W28 Theme 2 bundle 项。 |
+| OPT-096 | renderConnections() 搜索 haystack 缺少 c.tags，关联标签无法被搜索命中 | P2 | S | done (PR #60, merged 2026-07-10) | NEW（explore E135/E161，2026-07-06）；northstar「弱-中」，Theme 2「回顾有价值」；W28 Theme 2 bundle 项。 |
+| OPT-097 | matchBooks() 不搜索 book.review，OPT-087 新增字段对搜索路径完全不可见 | P2 | S | done (PR #60, merged 2026-07-10) | NEW（explore E158，2026-07-06）；northstar「弱-中」，Theme 2；OPT-087 同日上线 review 字段但搜索未同步；W28 Theme 2 bundle 项。 |
 | OPT-087 | 摘抄/书/思想碰撞「一键生成分享图」(内容卡自传播增长引擎) | P2 | L | done (2026-07-06 — 三版式全部落地，代码已合入 feature/agent) | northstar「强」；owner 2026-07-02 为读书会主动提出。三版式（摘抄卡/思想碰撞卡/书卡）纯 Canvas 绘制，各入口→shareCardDialog 预览/下载；headless Chrome 真渲染验收；share-card.test.js 9 例。**剩余**：真机 QC + 分享埋点。 |
 | OPT-086 | 前端静态资源 no-store，每次刷新重下 ~330KB JS/CSS/HTML | P1 | M | done (commit 239e6e9, 2026-07-02 — 直接合入 feature/agent) | `app_server.py` `_STATIC` 改 `max-age=31536000,immutable`；index.html 里 app.js/chat.js/styles.css 引用加自动版本串；owner 直接提交，不计 auto/ 预算。 |
 | OPT-085 | 书封面上传未压缩（单张可达 4.6MB），拖慢移动端书单加载 | P1 | M | done (2026-07-06) | **重定范围**：前端压缩早已实现（三路径 1200px/q0.85）；本次实际做历史存量清理 `generate_thumbnails.py --recompress-originals`，dev 12 张 36MB→4.6MB；测试 `recompress_originals_test.py` 6 例；**prod 待各跑一次**。 |
