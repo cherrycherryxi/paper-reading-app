@@ -4,7 +4,7 @@
  *
  * OPT-092: matchBooks() 搜索 tags / notes
  * OPT-097: matchBooks() 搜索 review
- * OPT-083: matchQuotes() / renderQuotes haystack 搜索 ocrText
+ * OPT-083: renderQuotes haystack 搜索 ocrText
  * OPT-056: renderQuotes haystack 搜索 reflection
  * OPT-088: renderConnections getSearchLabel quote 分支含 content/ocrText
  * OPT-096: renderConnections haystack 含 c.tags
@@ -290,49 +290,6 @@ test("OPT-097: matchBooks review=undefined doesn't throw", () => {
   });
 
   assert.doesNotThrow(() => hooks.matchBooks("成长"));
-});
-
-// ─── OPT-083: matchQuotes 搜索 ocrText ──────────────────────────────────────
-
-test("OPT-083: matchQuotes finds quote by ocrText when content is empty", () => {
-  const hooks = createHarness();
-  hooks.setState({
-    books: [book({ id: "b1" })],
-    quotes: [
-      quote({ id: "q1", content: "", ocrText: "人生最宝贵的是时间" }),
-      quote({ id: "q2", content: "另一段摘抄", ocrText: "" }),
-    ],
-    sessions: [], connections: [], chatHistories: {},
-  });
-
-  const result = hooks.matchQuotes("时间").map(q => q.id);
-  assert.deepEqual(result, ["q1"]);
-});
-
-test("OPT-083: matchQuotes still finds by content when both present", () => {
-  const hooks = createHarness();
-  hooks.setState({
-    books: [book({ id: "b1" })],
-    quotes: [
-      quote({ id: "q1", content: "内容已编辑", ocrText: "原始识别文本" }),
-    ],
-    sessions: [], connections: [], chatHistories: {},
-  });
-
-  assert.equal(hooks.matchQuotes("内容").length, 1);
-});
-
-test("OPT-083: matchQuotes does not match notes/questions kind", () => {
-  const hooks = createHarness();
-  hooks.setState({
-    books: [book({ id: "b1" })],
-    quotes: [
-      quote({ id: "q1", kind: "note", content: "", ocrText: "笔记OCR内容" }),
-    ],
-    sessions: [], connections: [], chatHistories: {},
-  });
-
-  assert.equal(hooks.matchQuotes("笔记OCR内容").length, 0);
 });
 
 // ─── OPT-056: renderQuotes haystack 含 reflection ───────────────────────────

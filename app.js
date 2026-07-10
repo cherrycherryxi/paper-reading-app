@@ -1208,7 +1208,7 @@ function matchBooks(query) {
 
 // Used by book-detail and quote-tab filtering only. Intentionally NOT wired into globalSearch().
 function matchQuotes(query) {
-  return state.quotes.filter((quote) => isRegularQuote(quote) && fuzzyMatch(quote.content || quote.ocrText || "", query));
+  return state.quotes.filter((quote) => isRegularQuote(quote) && fuzzyMatch(quote.content || "", query));
 }
 
 function compareBooksForList(a, b) {

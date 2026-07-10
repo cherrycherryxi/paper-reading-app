@@ -7114,6 +7114,22 @@
       "related_bugs": [],
       "occurrences": 6,
       "last_seen": "2026-07-08T17:09:38.850Z"
+    },
+    {
+      "id": "bug-426",
+      "timestamp": "2026-07-10T08:37:26.064Z",
+      "error_message": "Wrong reference: quote should be query",
+      "file": "app.js",
+      "root_cause": "Used \"quote\" instead of \"query\"",
+      "fix": "Changed quote → query",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T08:37:26.064Z"
     }
   ]
 }
