@@ -22,7 +22,7 @@ Last triaged: 2026-07-11
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-065 | reading_mcp_server._save_state() 跳过 sanitize_state()，MCP 写路径无状态校验 | P1 | S | triaged | northstar「中」；data safety；MCP 写路径是 Claude Desktop 主入口；`reading_mcp_server.py:70-75` 加 `state = sanitize_state(state)` 1–2 行，零 UI/API/DB 变更。**本次 Next up。** |
+| OPT-065 | reading_mcp_server._save_state() 跳过 sanitize_state()，MCP 写路径无状态校验 | P1 | S | in-progress | PR #61 (auto/opt-065-mcp-sanitize-state)；363 Python tests pass，0 JS failures。 |
 | OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | triaged | NEW（explore E173，2026-07-10）；**4 × signal boost**（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求豆瓣导入）；OPT-074/099/098 字段层已完成，本项打通数据入口；Theme B0「对外可用」对齐；`app.js`（新增 `importFromDouban` ~80-100 行）+ `index.html`（导入按钮 + file input）；零后端/DB 变更；M 复杂度，下一预算槽首选。 |
 | OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | triaged | **signal 2026-07-06** 直接驱动（OPT-099 信号下的遗漏导入路径）；`app.js:4092-4113`（importFromExcel 书籍对象构建段）约 3 行改动，纯前端，零后端/DB 变更。 |
 | OPT-101 | generateBookReview() 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 | P2 | S | triaged | **signal 2026-07-06**「展示时明确标注『AI 根据笔记整理』」；OPT-098 已上线但缺来源区分；约 15–20 行前端，零后端/DB 变更；Touch: index.html（addBook/editBook）；app.js（generateBookReview, addBook, saveBookEdit, 详情页展示）。 |
