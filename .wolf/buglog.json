@@ -7473,6 +7473,44 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-12"
+    },
+    {
+      "id": "bug-448",
+      "timestamp": "2026-07-11T23:07:01.389Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/paper-pick-reader.py",
+      "root_cause": "Had \"HEADER\"",
+      "fix": "Changed to \"SUBJECT\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T23:07:01.389Z"
+    },
+    {
+      "id": "bug-448",
+      "timestamp": "2026-07-12",
+      "error_message": "paper-pick-reader.py 读不到 owner 的邮件回复（选择恒为空）",
+      "file": "~/.claude/scripts/paper-pick-reader.py",
+      "root_cause": "两处 IMAP 搜索错误：① 用 HEADER SUBJECT 搜——中文主题是 RFC2047 base64 编码，token 不在原始头字节里，搜不到（应用 SUBJECT，Gmail 会先 MIME 解码再匹配）；② 加了 UNSEEN——自我会话(自己发给自己)里 owner 一在 Gmail 查看/回复就被标 \\Seen，UNSEEN 直接漏掉回信。",
+      "fix": "改用 M.search(None,'SUBJECT',token) 且去掉 UNSEEN；readonly select 纯读不改状态；去重改靠调用方 STATUS(WAITING→IMPLEMENTING) 翻转，命中一次即不再处理。",
+      "tags": [
+        "imap",
+        "gmail",
+        "mime",
+        "rfc2047",
+        "unseen",
+        "self-conversation",
+        "paper-loop"
+      ],
+      "related_bugs": [
+        "bug-447"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-12"
     }
   ]
 }

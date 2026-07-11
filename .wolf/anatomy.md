@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-11T22:54:50.422Z
-> Files: 260 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-11T23:14:15.944Z
+> Files: 261 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -95,8 +95,9 @@
 - `feedback_pr_target_feature_agent.md` (~223 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~496 tok)
+- `MEMORY.md` (~548 tok)
 - `project_brand_share_kit.md` (~327 tok)
+- `project_daily_loop_automation.md` (~436 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
@@ -114,7 +115,7 @@
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~590 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1112 tok)
-- `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~942 tok)
+- `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~415 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)

@@ -2784,3 +2784,9 @@
 | 06:48 | Session end: 1 writes across 1 files (review-2026-07-12.md) | 1 reads | ~98 tok |
 | 06:54 | Edited ../../.claude/scripts/paper-morning.sh | 1→4 lines | ~58 |
 | 06:56 | 搭建每日 10:00 无人值守 loop（晨间审PR+闸门合并/选题邮件、IMAP回复→轮询实现、23:30有条件收工、SessionStart兜底/loop）；试跑修 3 bug（bug-445/446/447） | ~/.claude/scripts/paper-*.sh, LaunchAgents/*, settings.json | 试跑全绿 exit0，PR#61已按闸门自动合并 | ~9k |
+| 06:57 | Created ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | — | ~444 |
+| 06:57 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | 1→2 lines | ~110 |
+| 06:57 | Session end: 4 writes across 4 files (review-2026-07-12.md, paper-morning.sh, project_daily_loop_automation.md, MEMORY.md) | 2 reads | ~753 tok |
+| 07:07 | Edited ../../.claude/scripts/paper-pick-reader.py | 1→3 lines | ~53 |
+| 07:14 | Edited ../../.claude/scripts/paper-pick-reader.py | store() → STATUS() | ~271 |
+| 07:15 | Session end: 6 writes across 5 files (review-2026-07-12.md, paper-morning.sh, project_daily_loop_automation.md, MEMORY.md, paper-pick-reader.py) | 3 reads | ~1077 tok |
