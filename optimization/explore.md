@@ -2784,6 +2784,104 @@ ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
 
 > 本次 run（2026-07-10）响应 triage 2026-07-10 显式指令（豆瓣导入评估）并做 OPT-098/099 上线后的后续扫描。新发现 2 条：E173 豆瓣阅读记录一键导入（四条信号汇聚，M 级，三个目标字段已就位，补写导入函数即可）、E174 书单卡面不展示 `book.rating`（OPT-099 上线遗漏，S 级 1-2 行补渲染）。同时将 2026-07-08 已核实的 E169（`deleteQuote()` 确认弹窗不提及级联删除关联数量，`getConnectionCount()` 已存在可直接复用，Theme 2 核心数据保护，S 级 3-4 行改动）提拔为 OPT-106。将 E173 提拔为 OPT-105（triage 指定 + 四条信号 + 强 northstar）、E169 提拔为 OPT-106（S 级，Theme 2 连接网络数据可靠性）。所有断言均基于实际代码读取，已标注 file:line。
 
+## 2026-07-11
+
+> 本次 run 聚焦：2026-07-11 信号直接驱动的三条方向（AI 读后感截断错配、书单多维筛选无统一清除、关联对话框 OCR 摘抄标签空白）。所有断言均经代码 Read 验证，file:line 已标注。
+> 提拔：E176（书单多维筛选无统一「清除全部」）→ OPT-107；E175（AI 读后感字数与分享卡截断错配）→ OPT-108。
+
+### E175 — `generateBookReview()` 提示词要求 100-200 字，但分享卡在 150 字处截断——AI 读后感可能总被截断 (S)
+
+**What (verified):** `app.js:2317`（`generateBookReview()` 发送给 LLM 的 message）：
+
+```js
+message: "请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-200字），包含你对这本书的个人感受和评价。",
+```
+
+`app.js:2950`（`renderBookShareCard()` 书卡内容截断）：
+
+```js
+const notes = truncateForShare(review || book.notes || "", 150);
+```
+
+`truncateForShare()`（`app.js:2690-2693`）在 150 字处切断并追加"…"。若 AI 生成 151-200 字的读后感（提示词允许上限 200 字），分享卡将展示被截断版本——正是 2026-07-11 owner 报告的问题。修复：把提示词字数上限从「200 字」改为「120 字」（为"…"留余量），使 AI 输出保证在截断门槛以内。
+
+**Why it matters:** 2026-07-11 信号：「AI 生成读后感时限制字数，篇幅最好正好适合在书卡分享图里全文展示（不被截断、也不留大片空白）」。OPT-098（AI 读后感生成）和 OPT-087（分享卡）均已上线，但两者字数约束未对齐，导致新功能在分享时仍出现截断。提示词字数调整是最小代价的闭环。
+
+**Complexity:** S — `app.js:2317`：将「100-200字」改为「80-120字」（确保 AI 输出落在 `truncateForShare` 150 字门槛以内）；零后端/HTML/schema 改动。Touch: `app.js:2317`（generateBookReview message 字段）；参照 `app.js:2950`（书卡截断门槛）。
+
+**Files:** `app.js:2317`（generateBookReview LLM message）；`app.js:2950`（truncateForShare 截断门槛，参照）
+
+**northstar:** 中——OPT-098（AI 读后感）和 OPT-087（分享卡）是 Theme 2「让阅读感染他人」路径的两块积木；字数不对齐使分享时读后感总被截断，降低分享意愿；S 修复完成两个已上线功能的最后一块拼图。→ **提拔为 OPT-108**
+
+---
+
+### E176 — 书单三个过滤维度（文字搜索 + 状态筛选 + 标签筛选）无统一「一键清除」，`restoreDefaultView()` 只重置文字搜索而不重置 chip 状态 (S-M)
+
+**What (verified):** 书单 Tab 有三个独立的过滤维度：
+
+1. 文字搜索（`#booksSearchInput`，`index.html:89`，`type="search"`）
+2. 状态筛选 chip（`selectedStatusFilter`，`app.js:195`，默认 `"all"`）
+3. 标签筛选 chip（`selectedTagFilter`，`app.js:196`，默认 `""`）
+
+`app.js:1408-1418`（`restoreDefaultView()`）：
+
+```js
+function restoreDefaultView() {
+  searchQuery = "";
+  if (els.statusFilterChips) {
+    els.statusFilterChips.style.display = "";  // ← 只让 chip 条可见，不重置选中状态
+  }
+  const tagStrip = document.querySelector("#tagFilterStrip");
+  if (tagStrip) {
+    tagStrip.style.display = "";               // ← 同上，只让标签条可见
+  }
+  renderBooks();                               // ← selectedStatusFilter / selectedTagFilter 未被重置
+}
+```
+
+`globalSearch("")`（清空搜索时）调用 `restoreDefaultView()`，使 chip 条重新可见，但 `selectedStatusFilter` 和 `selectedTagFilter` 模块变量保持上次用户选中的值不变。`renderBooks()`（`app.js:1450-1456`）仍以旧 chip 值过滤结果，用户以为「已清除」，实际仍在筛选状态中。
+
+**Why it matters:** 2026-07-11 信号：「用关键词搜索/筛选后，希望有一个『快速清除筛选』的按钮（如搜索框内的 ✕ 或一键清空），一下回到全部，不用手动逐字删关键词。书单/摘抄/关联各搜索框都适用」。书单 `type="search"` 输入自带浏览器原生 ✕ 按钮，但只清除文字、不重置 chip——行为与「一下回到全部」预期不符。修复：`restoreDefaultView()` 内追加 `selectedStatusFilter = "all"; selectedTagFilter = "";` 并同步更新 chip 的 active CSS 状态。
+
+**Complexity:** S-M — `app.js:1408-1418`（`restoreDefaultView()`）：追加变量重置 + 同步更新 chip active 状态（参照 `app.js:5178-5182` 的更新模式）；可选在 `index.html:89-97` 区域插入显式「清除全部」按钮（仅过滤激活时可见）。约 10-15 行改动，无后端/schema 变更。
+
+**Files:** `app.js:1408-1418`（restoreDefaultView）；`app.js:195-196`（selectedStatusFilter/selectedTagFilter 定义）；`app.js:5178-5182`（chip active 状态更新参照）；可选 `index.html:89-97`（搜索框 + chip strip 区域）
+
+**northstar:** 中——W28「检索修通」的可用性前提：多维筛选后无法一键复位违反最小惊讶原则，降低筛选功能信任度；2026-07-11 信号明确驱动，是 Theme 2「回顾有价值→能找到」路径的基础流畅度保障。→ **提拔为 OPT-107**
+
+---
+
+### E177 — `quoteLabel()` 在关联对话框摘抄下拉中不回落 `ocrText`，OCR 摘抄在目标选择列表中全部显示为「书名 · 」空白标签 (S)
+
+**What (verified):** `initQuoteCombobox()`（`app.js:4593-4597`）构建每条摘抄的显示标签：
+
+```js
+function quoteLabel(q) {
+  const book = state.books.find((b) => b.id === q.bookId);
+  const bookName = book ? book.title : "未知书籍";
+  const content = (q.content || "").slice(0, 70) + (q.content?.length > 70 ? "…" : "");
+  return `${bookName} · ${content}`;
+}
+```
+
+`content` 回落链为 `(q.content || "").slice(0, 70)`——当 `q.content` 为空字符串时（快速 OCR 直接保存、未手动编辑的摘抄），`content` 为空，标签退化为 `"书名 · "`，无任何可辨识内容。
+
+对比同文件已有的正确回落模式：`renderQuotes()`（`app.js:1519`）以 `quote.content || quote.ocrText` 显示摘抄原文；用户在摘抄列表 Tab 看到完整 OCR 文本，而在关联对话框同一张摘抄的标签变为空白。来自同一本书的多张 OCR 摘抄在下拉中全部显示相同的 `"书名 · "` 空标签，用户无法区分。
+
+`filteredQuotes()`（`app.js:4600-4607`）的关键词搜索同样只检索 `item.content`（`app.js:4605`），不含 `item.ocrText`，OCR 摘抄也无法被搜索到。
+
+**Why it matters:** 2026-07-11 信号：「目标若选摘抄，关键词搜索后每条摘抄显示不完整（被截断），看不清内容、找不到想关联的那一条」。快速 OCR 是最高频采集路径，OCR-only 摘抄占比随使用积累快速上升。这些摘抄在关联目标选择框中对用户完全不可辨识，严重阻碍 Theme 2「建立关联」场景。修复：`quoteLabel()` 的 `content` 改为 `(q.content || q.ocrText || "").slice(0, 70)`，同步修复 `filteredQuotes()` 的搜索加 `ocrText` 列，共约 2 行。
+
+**Complexity:** S — `app.js:4596`：将 `(q.content || "").slice(0, 70)` 改为 `(q.content || q.ocrText || "").slice(0, 70)`（1 行）；`app.js:4605`：搜索加 `|| (item.ocrText || "").toLowerCase().includes(lower)` 分支（1 行）；零副作用，无 HTML/后端/schema 改动。
+
+**Files:** `app.js:4584-4690`（`initQuoteCombobox`，含 `quoteLabel:4593`、`filteredQuotes:4600-4607`）；参照 `app.js:1519`（renderQuotes 中已有 content || ocrText 回落模式）
+
+**northstar:** 中——Theme 2「建立关联」的可操作性直接前提：若用户无法在目标选择框中识别 OCR 摘抄，整个连接建立流程对 OCR 存量高的用户形同瘫痪；S 级 2 行修复，与 2026-07-11 信号直接对应。
+
+---
+
+> 本次 run（2026-07-11）响应 2026-07-11 信号三条方向：AI 读后感字数与分享卡截断错配（E175，S 级，`app.js:2317` vs `app.js:2950`）、书单三维过滤无统一「一键清除」（E176，S-M 级，`app.js:1408-1418` restoreDefaultView 未重置 selectedStatusFilter/selectedTagFilter）、关联对话框 OCR 摘抄标签空白（E177，S 级，`app.js:4596` quoteLabel 缺 ocrText 回落）。将 E176 提拔为 OPT-107，E175 提拔为 OPT-108。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
