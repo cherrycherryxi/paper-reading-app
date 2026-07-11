@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-11T12:50:59.334Z
 > Files: 250 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-10T20:31:29.465Z
+> Files: 249 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -259,16 +261,16 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~25948 tok)
+- `backlog.md` — Optimization Backlog (~26597 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~45255 tok)
+- `explore.md` — Exploration — new optimization directions (~46043 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~1939 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~613 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~4931 tok)
+- `triage.md` — Triage (~4994 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/

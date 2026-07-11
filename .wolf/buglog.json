@@ -7213,19 +7213,19 @@
     },
     {
       "id": "bug-432",
-      "timestamp": "2026-07-11T11:46:48.244Z",
-      "error_message": "CSS fix: background",
-      "file": "styles.css",
-      "root_cause": "background: var(--color-border) → var(--color-accent)",
-      "fix": "Changed background: var(--color-border) → var(--color-accent)",
+      "timestamp": "2026-07-10T17:10:54.655Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
       "tags": [
         "auto-detected",
-        "style-fix",
-        "css"
+        "wrong-reference",
+        "md"
       ],
       "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-11T11:46:48.244Z"
+      "occurrences": 2,
+      "last_seen": "2026-07-10T17:10:58.183Z"
     },
     {
       "id": "bug-433",
