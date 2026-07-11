@@ -153,6 +153,8 @@ const els = {
   quoteDialog: document.querySelector("#quoteDialog"),
   openBookDialogBtn: document.querySelector("#openBookDialogBtn"),
   sampleBanner: document.querySelector("#sampleBanner"),
+  sampleBannerText: document.querySelector("#sampleBanner .sample-banner-text"),
+  demoLoginBtn: document.querySelector("#demoLoginBtn"),
   clearSampleBtn: document.querySelector("#clearSampleBtn"),
   openSessionDialogBtn: document.querySelector("#openSessionDialogBtn"),
   openQuoteDialogBtn: document.querySelector("#openQuoteDialogBtn"),
@@ -964,6 +966,21 @@ async function syncState() {
   }
 }
 
+// 未登录访客：载入示例内容供「先看看」预览。纯前端展示——syncState 对未登录早退、
+// requireAuth 拦所有写操作，示例永不落库；登录后 loadSession/loginSuccess 用真实 state 覆盖。
+async function loadDemoPreview() {
+  if (currentUser?.id) return; // 已登录不需要预览
+  try {
+    const data = await apiFetch("/api/sample-state", {}, false);
+    if (currentUser?.id) return; // 拉取期间登录了，别覆盖真实 state
+    state = normalizeStateShape(data.sample || {});
+    render();
+    window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
+  } catch {
+    /* 预览是锦上添花，失败就保持空状态 */
+  }
+}
+
 async function loadSession() {
   if (!authToken) {
     currentUser = null;
@@ -971,6 +988,7 @@ async function loadSession() {
     remoteLogs = [];
     render();
     maybeHandleSignupIntent();
+    loadDemoPreview(); // 未登录：异步载入示例供预览（不阻塞）
     return;
   }
 
@@ -1421,7 +1439,7 @@ function globalSearch(query) {
 }
 
 function renderBooks() {
-  if (!currentUser?.id) {
+  if (!currentUser?.id && !hasSampleData()) {
     els.booksList.className = "book-list empty-state";
     els.booksList.textContent = "登录后开始建立你的书单。";
     els.booksResultCount.textContent = "共 0 本";
@@ -1480,7 +1498,7 @@ function renderBooks() {
 }
 
 function renderTimeline() {
-  if (!currentUser?.id) {
+  if (!currentUser?.id && !hasSampleData()) {
     els.timeline.className = "timeline empty-state";
     els.timeline.textContent = "登录后，这里会显示最近阅读情况。";
     if (els.sessionStats) els.sessionStats.classList.add("is-hidden");
@@ -1560,7 +1578,7 @@ function renderTimeline() {
 }
 
 function renderQuotes() {
-  if (!currentUser?.id) {
+  if (!currentUser?.id && !hasSampleData()) {
     els.quotesList.className = "quote-list empty-state";
     els.quotesList.textContent = "登录后，这里会显示你的摘抄卡片墙。";
     return;
@@ -1782,7 +1800,18 @@ function renderSampleBanner() {
   const onChatTab = document
     .querySelector('.layout [data-tab-section="chat"]')
     ?.classList.contains("tab-active");
-  els.sampleBanner.hidden = onChatTab || !(currentUser?.id && hasSampleData());
+  // 双模式：未登录=浏览示例预览(提示登录后保存)；已登录且有示例=可一键清除。
+  const demoMode = !currentUser?.id;
+  const sampleMode = Boolean(currentUser?.id && hasSampleData());
+  els.sampleBanner.hidden = onChatTab || !(demoMode || sampleMode);
+  els.sampleBanner.classList.toggle("is-demo", demoMode);
+  if (els.sampleBannerText) {
+    els.sampleBannerText.textContent = demoMode
+      ? "👋 你正在浏览示例内容，登录后即可保存你自己的书单"
+      : "🌱 这些是帮你上手的示例内容";
+  }
+  if (els.demoLoginBtn) els.demoLoginBtn.hidden = !demoMode;
+  if (els.clearSampleBtn) els.clearSampleBtn.hidden = demoMode;
 }
 
 // 一键清除示例:剔除所有 isSample 条目并同步。
@@ -2072,6 +2101,7 @@ async function logout() {
   render();
   dispatchUserChange();
   activateTab("me");
+  loadDemoPreview(); // 退出后回到示例预览，与新访客一致
 }
 
 function logoutAllDevices() {
@@ -4822,6 +4852,9 @@ function bindEvents() {
     if (window.confirm("清除所有示例内容？你自己添加的书和摘抄不受影响。")) {
       clearSampleData();
     }
+  });
+  els.demoLoginBtn?.addEventListener("click", () => {
+    openMeDrawer(); // 直接弹出登录/注册抽屉
   });
   els.openSessionDialogBtn?.addEventListener("click", () => {
     if (!requireAuth("记录阅读")) return;

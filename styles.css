@@ -3829,6 +3829,29 @@ body.is-admin .admin-only { display: revert; }
   background: var(--color-border);
 }
 
+/* 未登录 demo 模式的登录 CTA：填充强调色，更醒目 */
+.sample-banner-login {
+  flex-shrink: 0;
+  padding: 5px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-surface);
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.sample-banner-login:hover {
+  opacity: 0.9;
+}
+
+/* flex 子按钮的 [hidden] 显式恢复 display:none（防被 flex 布局压过） */
+.sample-banner-login[hidden],
+.sample-banner-clear[hidden] {
+  display: none;
+}
+
 /* 空状态里的文字链接按钮(如「载入示例看看」) */
 .link-btn {
   padding: 0;
