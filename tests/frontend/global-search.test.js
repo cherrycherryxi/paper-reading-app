@@ -417,8 +417,13 @@ test("property: search results render direct book cards without quote sections",
     hooks.setCurrentUser({ id: "user-1" });
     hooks.setState({ books, quotes, sessions: [], chatHistories: {} });
     hooks.renderSearchResults(books, quotes);
-    assert.equal(hooks.els.booksList.children.length, 1);
-    assert.deepEqual(Array.from(hooks.getSectionHeaders()), [""]);
+    // 书卡直接是 .book-list 网格的子元素（不再套 .search-book-list 单列包裹）。
+    assert.equal(hooks.els.booksList.children.length, books.length);
+    // 纯书卡、无摘抄分区标题。
+    assert.ok(
+      Array.from(hooks.getSectionHeaders()).every((h) => h === ""),
+      "搜索结果不应出现区块标题（纯书卡）"
+    );
   }
 });
 
@@ -497,4 +502,15 @@ test("property: restoreDefaultView matches renderBooks output under active filte
 
     assert.deepEqual(restoredTitles, baselineTitles);
   }
+});
+
+test("回归：搜索结果卡片直接进 .book-list 网格，不套 .search-book-list 单列包裹", () => {
+  const start = appSource.indexOf("function renderSearchResults");
+  const end = appSource.indexOf("function restoreDefaultView");
+  const fn = appSource.slice(start, end);
+  assert.ok(start >= 0 && end > start, "应能定位 renderSearchResults 函数体");
+  assert.doesNotMatch(fn, /className = "search-book-list"/,
+    "renderSearchResults 不应再创建 .search-book-list 包裹层（其 grid 无列数=单列）");
+  assert.match(fn, /els\.booksList\.appendChild\(buildBookSearchCard/,
+    "搜索卡片应直接 append 到 els.booksList，继承书单的响应式网格（2 列/auto-fill）");
 });

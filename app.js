@@ -1395,15 +1395,14 @@ function renderSearchResults(matchedBooks) {
     return;
   }
 
+  // 卡片直接进 .book-list 网格（不再套一层 .search-book-list，那层 grid 无列数=单列）。
+  // 这样搜索结果与正常书单共用同一套响应式网格（2 列 / auto-fill）。
   els.booksList.className = "book-list search-results";
   els.booksList.innerHTML = "";
 
-  const booksList = document.createElement("div");
-  booksList.className = "search-book-list";
   matchedBooks.forEach((book) => {
-    booksList.appendChild(buildBookSearchCard(book));
+    els.booksList.appendChild(buildBookSearchCard(book));
   });
-  els.booksList.appendChild(booksList);
 }
 
 function restoreDefaultView() {
