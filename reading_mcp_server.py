@@ -24,6 +24,8 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
+from app_server import sanitize_state
+
 BASE_DIR = Path(__file__).resolve().parent
 # DB 与端口可用环境变量覆盖，让 prod 能起独立 MCP 实例指向 prod 库(否则 prod 的 agent
 # 动作会派发到默认 8788 的 dev-库 MCP，导致「user_state not found」或写错库)。
@@ -71,6 +73,7 @@ def _load_state(conn: sqlite3.Connection, user_id: str) -> dict:
 
 
 def _save_state(conn: sqlite3.Connection, user_id: str, state: dict) -> None:
+    state = sanitize_state(state)
     conn.execute(
         "UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?",
         (json.dumps(state, ensure_ascii=False), _now_iso(), user_id),

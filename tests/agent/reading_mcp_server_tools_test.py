@@ -241,6 +241,34 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("user_state not found for user_id=missing-user", result["error"])
 
+    def test_save_state_sanitizes_before_writing(self):
+        # OPT-065: _save_state must run sanitize_state so dirty fields are cleaned.
+        # A state with missing top-level keys (no 'sessions', no 'connections') should
+        # gain them on write; an unknown stray key should not survive.
+        dirty_state = {
+            "books": [{"id": "book-1", "title": "三体"}],
+            "quotes": [],
+            # 'sessions' and 'connections' intentionally missing
+            "stray_key": "should_not_persist",
+        }
+        conn = reading_mcp_server._get_conn()
+        try:
+            reading_mcp_server._save_state(conn, self.user_id, dirty_state)
+        finally:
+            conn.close()
+
+        stored = self._load_state()
+        # Core keys must be present after sanitization
+        self.assertIn("sessions", stored)
+        self.assertIn("connections", stored)
+        self.assertIn("chatHistories", stored)
+        self.assertIn("chatContexts", stored)
+        self.assertIn("customQuoteTags", stored)
+        # Stray key must not survive
+        self.assertNotIn("stray_key", stored)
+        # Existing data must be preserved
+        self.assertEqual(stored["books"][0]["id"], "book-1")
+
     def test_now_iso_returns_utc_z_suffix(self):
         # OPT-031: _now_iso() must emit UTC timestamps (ending with Z) so that
         # MCP-path records sort consistently with frontend records (also UTC+Z).
