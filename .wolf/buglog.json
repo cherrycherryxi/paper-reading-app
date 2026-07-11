@@ -7354,6 +7354,125 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-11T19:21:07.648Z"
+    },
+    {
+      "id": "bug-441",
+      "timestamp": "2026-07-11T22:31:24.752Z",
+      "error_message": "Wrong reference: $REVIEW_SUMMARY should be $",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "Used \"$REVIEW_SUMMARY\" instead of \"$\"",
+      "fix": "Changed $REVIEW_SUMMARY → $",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-11T22:31:43.339Z"
+    },
+    {
+      "id": "bug-442",
+      "timestamp": "2026-07-11T22:40:06.419Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "Had \"今日选题 · $TODAY · paper-reading-app｜回复 1 / 2 / both",
+      "fix": "Changed to \"今日选题 · ${TODAY} · paper-reading-app｜回复 1 / 2 / bo",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:40:06.419Z"
+    },
+    {
+      "id": "bug-443",
+      "timestamp": "2026-07-11T22:40:11.850Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/paper-implement-poll.sh",
+      "root_cause": "Had \"[$(date)] 收到选择: $CHOICE，开始实现\"",
+      "fix": "Changed to \"[$(date)] 收到选择: ${CHOICE}，开始实现\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-11T22:40:18.919Z"
+    },
+    {
+      "id": "bug-444",
+      "timestamp": "2026-07-11T22:46:07.006Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "Had \"今日选题 · ${TODAY} · paper-reading-app｜回复 1 / 2 / bo",
+      "fix": "Changed to \"今日选题 · ${TODAY} · paper-reading-app｜回复 1 / 2 / bo",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:46:07.006Z"
+    },
+    {
+      "id": "bug-445",
+      "timestamp": "2026-07-12",
+      "error_message": "paper-morning.sh: line 31/102: REVIEW_SUMMARY� / TOKEN�: unbound variable（launchd/后台 C locale 下）",
+      "file": "~/.claude/scripts/paper-morning.sh, paper-implement-poll.sh",
+      "root_cause": "set -u + C locale（launchd 默认 LANG 未设）下，bash 把紧跟 $VAR 的中文/全角标点首字节吞进变量名，得到未定义变量而致命退出。交互式 UTF-8 shell 不复现。脚本内 export LANG 也不可靠（bash 解析期 locale 已定）。",
+      "fix": "所有紧挨非 ASCII 字符的 $VAR 一律改 ${VAR} 花括号界定（真正的修复；export LANG 仅作兜底）。",
+      "tags": [
+        "bash",
+        "locale",
+        "launchd",
+        "set-u",
+        "unbound-variable",
+        "cjk"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-12"
+    },
+    {
+      "id": "bug-446",
+      "timestamp": "2026-07-12",
+      "error_message": "paper-wrapup.sh 收工检测永远误判『在工作中』，从不自动写日报",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "pgrep -fl claude 把常驻的 Claude 桌面 App（Claude.app / Claude Helper 一堆进程）也匹配进来，被当成活跃交互式 CLI 会话。",
+      "fix": "检测时 grep -vi 'Claude.app' 且 grep -vi 'Claude Helper'，只认真正的 CLI claude 进程（且排除 -p headless 与脚本自身）。",
+      "tags": [
+        "pgrep",
+        "macos",
+        "claude-desktop",
+        "false-positive",
+        "launchd"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12"
+    },
+    {
+      "id": "bug-447",
+      "timestamp": "2026-07-12",
+      "error_message": "晨间邮件 token 与 today-pick.md 不一致，回复邮件无法被 reader 匹配",
+      "file": "~/.claude/scripts/paper-morning.sh",
+      "root_cause": "TOKEN 每次运行 openssl 重新生成；Phase2 幂等跳过（当日卡片已存在）时 pick 文件保留旧 token，而邮件用新 token → reader 按 pick 的旧 token 搜索永远搜不到你的回信。",
+      "fix": "邮件 token 改为从 today-pick.md 的 TOKEN 行读取（EMAIL_TOKEN），pick 文件作单一真源，保证邮件/reader 一致。",
+      "tags": [
+        "email",
+        "imap",
+        "token",
+        "idempotency",
+        "paper-loop"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12"
     }
   ]
 }
