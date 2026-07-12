@@ -459,7 +459,7 @@ Format per item:
 - how: `app.js:1411-1416`，在 haystack 数组末尾追加 `item.reflection || ""`。可同时在 `tests/frontend/` 追加一条断言覆盖 reflection 命中场景。Touch: `app.js:1411-1416`。
 
 ### OPT-057 — 「动态」Tab 时间线硬限 10 条，积累大量摘抄后无法看到更多历史条目 — 由 explore E84 提拔
-- status: triaged
+- status: done (2026-07-12, duplicate of OPT-076；描述已过时——当前 renderTimeline 仅用 state.sessions，非 books+quotes 合并；同一「硬限 10 条」bug 已由 OPT-076「加载更多」一并解决)
 - area: frontend
 - northstar: 中——「动态」Tab 是 Theme 2「回顾有价值」的主要入口之一；硬限 10 条使有价值的历史动态不可见，与「让积累的摘抄回流到阅读生活」直接冲突；积累 20+ 条目后用户无法看到自己的阅读轨迹全貌。
 - description: `app.js:1332`（`renderTimeline()` 内）：`const visible = allSorted.slice(0, 10);`——无论实际条目数量，始终只渲染最新 10 条，无「加载更多」入口。`allSorted` 由 books（added）、sessions、quotes 时间戳合并排序组成（`app.js:1295-1329`）。用户持续使用后条目快速超过 10 条，更早的阅读里程碑（某本书的第一张摘抄、某次长时阅读）永远不可见。
@@ -635,7 +635,7 @@ Format per item:
 - how: 在 `app.js:2494`（`startedAt` 写入块结束处）追加：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。可选在 `tests/frontend/book-detail-ux.test.js` 或新增测试文件加回归用例：模拟无 `totalPages` 的书被 `saveBookEdit()` 标为 "finished"，断言 `book.finishedAt` 不为 null。Touch: `app.js:2490-2501`。
 
 ### OPT-076 — `renderTimeline()` 硬上限 10 条且无任何告知，阅读历史超 10 次后早期记录不可见 — 由 explore E124 提拔 [2026-06-27]
-- status: triaged
+- status: done (2026-07-12, PR base feature/agent；方案 B：模块级 sessionDisplayLimit=10 + 「加载更多（还有 N 条，共 M 条）」按钮，同时修复截断与「无告知」；一并关闭重复项 OPT-057)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」依赖能翻到早期阅读记录；当前 10 条上限在真实使用 2-3 个月后触发，是 Theme 2 验收期前需修复的前置缺陷。
 - priority: P2

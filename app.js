@@ -202,6 +202,9 @@ let _candidatesCurrentBookId = "";
 let searchDebounceTimer = null;
 let ocrRefreshTimer = null;
 let remoteLogs = [];
+// OPT-076: 时间线分页展示上限（无搜索时），点「加载更多」递增；模块级以在重渲间保留展开状态。
+const SESSION_PAGE_SIZE = 10;
+let sessionDisplayLimit = SESSION_PAGE_SIZE;
 
 function isTabActive(tabName) {
   return document.querySelector(`.layout [data-tab-section="${tabName}"]`)?.classList.contains("tab-active") || false;
@@ -1512,7 +1515,7 @@ function renderTimeline() {
         const haystack = [book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase();
         return haystack.includes(searchRaw);
       })
-    : allSorted.slice(0, 10);
+    : allSorted.slice(0, sessionDisplayLimit);
 
   // Stats bar
   if (els.sessionStats) {
@@ -1574,6 +1577,20 @@ function renderTimeline() {
     });
     els.timeline.appendChild(article);
   });
+
+  // OPT-076: 无搜索且仍有未展示的更早记录时，追加「加载更多」入口（同时告知总数，修复静默截断）。
+  if (!searchRaw && allSorted.length > sessionDisplayLimit) {
+    const remaining = allSorted.length - sessionDisplayLimit;
+    const moreBtn = document.createElement("button");
+    moreBtn.type = "button";
+    moreBtn.className = "timeline-load-more";
+    moreBtn.textContent = `加载更多（还有 ${remaining} 条，共 ${allSorted.length} 条）`;
+    moreBtn.addEventListener("click", () => {
+      sessionDisplayLimit += SESSION_PAGE_SIZE;
+      renderTimeline();
+    });
+    els.timeline.appendChild(moreBtn);
+  }
 }
 
 function renderQuotes() {
