@@ -7511,6 +7511,43 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-12"
+    },
+    {
+      "id": "bug-450",
+      "timestamp": "2026-07-12T04:41:55.603Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 5→11 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T04:41:55.603Z"
+    },
+    {
+      "id": "bug-449",
+      "timestamp": "2026-07-12",
+      "error_message": "paper-morning 10:00 launchd 运行：SMTPServerDisconnected: Connection unexpectedly closed，当日选题邮件丢失",
+      "file": "~/.claude/scripts/paper-morning.sh",
+      "root_cause": "send-email.py 单次 SMTP 连接偶发被断开（网络抖动，同日其它时刻发信均成功=瞬时故障）；而 morning 脚本发一次失败即放弃，导致整封选题邮件丢失。次要诱因：我先前手动试跑把 today-pick.md 写成当天日期，10:00 launchd 跑到 Phase2 因幂等跳过卡片生成（正常日期每天不同则无此问题）。",
+      "fix": "morning 发信改为最多重试 3 次（间隔 15s）；幂等属预期行为，正常运行日期天然不同故不改。",
+      "tags": [
+        "smtp",
+        "email",
+        "launchd",
+        "transient",
+        "retry",
+        "paper-loop"
+      ],
+      "related_bugs": [
+        "bug-447"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-12"
     }
   ]
 }

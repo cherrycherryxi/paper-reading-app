@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-11T23:14:15.944Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-12T04:41:55.442Z
 > Files: 261 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -68,7 +68,7 @@
 ## ../../.claude/paper-loop/
 
 - `cards-2026-07-12.md` — 卡片① (~71 tok)
-- `review-2026-07-12.md` — 夜间 PR 审查结论 — 2026-07-12 (~86 tok)
+- `review-2026-07-12.md` — PR 夜审结论 — 2026-07-12 (~73 tok)
 
 ## ../../.claude/plans/
 
@@ -114,7 +114,7 @@
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~590 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1112 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1179 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~415 tok)
