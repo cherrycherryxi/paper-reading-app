@@ -951,6 +951,26 @@ Format per item:
 - why: 2026-07-11 信号「AI 生成读后感时限制字数，篇幅最好正好适合在书卡分享图里全文展示」直接驱动；OPT-098/087 刚上线，字数未对齐是这两个功能的末端收尾缺口；S 修复，零后端/schema 变更。
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
 
+### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
+- status: new
+- area: frontend
+- priority: P2
+- size: M
+- northstar: 中-高——Theme 1「采集顺滑」核心场景；跨页摘抄（竖排书、诗文、长段引用）是采集管线的长尾痛点，强制单张导致「摘抄不完整」或手动拼接，与「拍照摘抄不假思索」北极星直接冲突；2026-07-03 信号明确，候选蓄水 8 天。
+- description: `app.js:4229-4280`（`runOcrFromImage()`）请求体仅含单张 `imageDataUrl`/`imageUrl`；前端 file input 无 `multiple` 属性；后端 `/api/quotes/ocr` 端点解析单个图片，无多图合并逻辑。Phase 1 可纯前端实现：允许选两张图，串行调两次 OCR，按顺序拼接结果（`\n\n` 分隔）写入 textarea，quote 存储结构不变。Phase 2（Kimi multi-image API）可选扩展。
+- why: 2026-07-03 signal：「一段摘抄有可能跨页……现在加摘抄只能拍一张，跨页的句子拍不全 → 希望能拍 2 张照片一起 OCR，拼成同一条摘抄」。竖排书和诗文跨页高频；强制单张直接拦截了「拍了也不完整」的摘抄。
+- how: Phase 1：`app.js` addQuote file input 改为 `accept="image/*" multiple`；`handleQuoteImageChange()` 改为处理 FileList（≤2 张）；`runOcrFromImage()` 改为顺序调两次上传+识别，结果拼接写入 textarea。约 30–40 行，零后端/schema 变更。Phase 2 可在 `/api/quotes/ocr` 端点增加 `imageDataUrl2` 字段支持 Kimi multi-image payload。Touch: `app.js`（addQuote file input、`handleQuoteImageChange`、`runOcrFromImage`）；Phase 2 可选 `app_server.py`（OCR 端点）。
+
+### OPT-110 — Excel 导入模板无「读后感」列，`importExcel()` 不写 `book.review`——OPT-100（rating）的对称遗漏 — 由 explore E180 提拔 [2026-07-12]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——Excel 批量导入是新用户书单初始化主通道；OPT-100 修 rating、本项修 review，合并后 Excel 路径与豆瓣 CSV（OPT-105）在「评分+读后感」完整度上对齐；S 级 3 行，纯前端，与 OPT-100 对称改动。
+- description: `app.js:4083`（`downloadExcelTemplate()` 模板列）：`["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"]`，无「读后感」列。`importExcel()`（`app.js:4130-4153`）解析行时不提取 review 数据，构建的 book 对象无 `review` 字段。OPT-098（book.review 字段）和 OPT-105（豆瓣 CSV 导入 review）已分别上线/triaged，Excel 路径是唯一剩余遗漏的导入通道。
+- why: 用户自制 Excel（含手写读后感列）导入后，review 被忽略，无法进入 `book.review` 独立展示；OPT-101（reviewIsAi 标注）也因此无法区分 Excel 路径的内容。OPT-100 已处理 rating 遗漏，本项为完全对称续集，`getRowField()` 模式已有，改动成本极低。
+- how: ① `app.js:4083`：headers 末尾加 `"读后感"`；② `app.js:4130-4136` 区加 `const review = String(getRowField(row, ["读后感", "review", "我的评论"])).trim()`；③ book 对象（`app.js:4139`）补 `review: review || ""`。共约 3 行改动，纯前端，零后端/DB 变更，复用 `getRowField()` 已有模式。建议与 OPT-100 合并一 PR（同文件同区域同类改动）。Touch: `app.js:4083`（模板 headers）；`app.js:4130-4153`（解析+book 对象构建段）。
+
 ### OPT-106 — `deleteQuote()` 确认弹窗不提及将级联删除关联，`getConnectionCount()` 已存在可直接复用 — 由 explore E169 提拔 [2026-07-10]
 - status: triaged
 - area: frontend
