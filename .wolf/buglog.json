@@ -7564,6 +7564,22 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-07-12T17:09:01.971Z"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-07-12T19:29:01.496Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T19:29:01.496Z"
     }
   ]
 }
