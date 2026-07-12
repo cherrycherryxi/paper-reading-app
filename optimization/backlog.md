@@ -527,7 +527,7 @@ Format per item:
 - how: 在 `build_chat_prompt()`（`app_server.py:2312-2345`）中对 `quotes` 列表做 dict comprehension 白名单过滤，保留 `id, bookId, content, kind, tags, page, createdAt, reflection`；对 `focused_quote` 同理；对 `book` 对象去掉 `coverImageUrl`。无 API/DB schema 变更，无前端变更。Touch: `app_server.py:2312-2345`（`build_chat_prompt` 方法）。
 
 ### OPT-065 — `reading_mcp_server.py:_save_state()` 跳过 `sanitize_state()` 验证，MCP 写路径无状态校验 — 由 explore E103 提拔
-- status: triaged
+- status: done (PR #61, merged 2026-07-11)
 - area: backend
 - northstar: 中——MCP 写路径是 Claude Desktop 的主要数据入口；绕过 `sanitize_state()` 可静默写入 chatHistories legacy 格式或 books 非 list，导致下次 HTTP 请求时自动清空对应数据；数据安全边界，S 修复。
 - description: `reading_mcp_server.py:_save_state()`（第 70–75 行）直接 `UPDATE user_state SET state_json = ?` 并 `commit()`，没有调用 `sanitize_state()`。对比 `app_server.py:save_state()`（第 699–706 行）：先 `sanitized = sanitize_state(state)` 再写入。`sanitize_state()`（`app_server.py:633–667`）职责：① chatHistories 旧格式迁移；② chatContexts 结构规整；③ books/sessions/quotes/connections 必须为 list；④ 只保留已知顶级键。6 个 MCP 工具（add_note、add_book、summary、question、tag、link_thought）均通过 `_save_state()` 写入，全部绕过验证。注意与 OPT-029 的区别：OPT-029 解决并发读改写竞争（BEGIN IMMEDIATE），本项解决写入前缺少 schema 验证。
@@ -635,7 +635,7 @@ Format per item:
 - how: 在 `app.js:2494`（`startedAt` 写入块结束处）追加：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。可选在 `tests/frontend/book-detail-ux.test.js` 或新增测试文件加回归用例：模拟无 `totalPages` 的书被 `saveBookEdit()` 标为 "finished"，断言 `book.finishedAt` 不为 null。Touch: `app.js:2490-2501`。
 
 ### OPT-076 — `renderTimeline()` 硬上限 10 条且无任何告知，阅读历史超 10 次后早期记录不可见 — 由 explore E124 提拔 [2026-06-27]
-- status: triaged
+- status: in-progress (PR #62 open, opt-076-timeline-load-more)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」依赖能翻到早期阅读记录；当前 10 条上限在真实使用 2-3 个月后触发，是 Theme 2 验收期前需修复的前置缺陷。
 - priority: P2
@@ -936,7 +936,7 @@ Format per item:
 - how: `app.js` 新增 `importFromDouban()` 函数（约 80-100 行）：`FileReader` + `TextDecoder('gb18030')` 读 CSV → 逐行解析标题行定位列索引 → 按书名/作者 `fuzzyMatch` 匹配现有书籍 → patch `rating`/`finishedAt`/`review` → `syncState()`。`index.html` 在「我的」抽屉导入区加 `<input type="file" accept=".csv">` + 触发按钮 + 可选引导弹窗（说明豆瓣 CSV 导出步骤，复用 `#importExcelModal` 结构）。`showImportResult()` 展示更新/新增书目数。无后端/DB schema 变更（字段均已存在，走 `syncState()`）。Touch: `app.js`（新增 `importFromDouban` + 事件绑定）、`index.html`（导入按钮 + file input）。
 
 ### OPT-107 — 书单多维过滤无统一「清除全部」——`restoreDefaultView()` 重置文字搜索但不重置状态/标签 chip — 由 explore E176 提拔 [2026-07-11]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——W28「检索修通」可用性前提；三维过滤无统一清除违反最小惊讶原则，降低筛选信任度；2026-07-11 信号明确驱动；Theme 2「回顾有价值→能找到」路径基础流畅度。
 - description: 书单 Tab 有文字搜索（`#booksSearchInput`）、状态 chip（`selectedStatusFilter`，`app.js:195`）、标签 chip（`selectedTagFilter`，`app.js:196`）三个独立过滤维度。清除文字搜索时 `restoreDefaultView()`（`app.js:1408-1418`）只重置 `searchQuery` 并让 chip 条可见，不重置 `selectedStatusFilter`/`selectedTagFilter`。`renderBooks()`（`app.js:1450-1456`）仍以上次 chip 选择过滤结果，用户以为「已清除」，实际仍在筛选状态。
@@ -944,7 +944,7 @@ Format per item:
 - how: ① `app.js:1408-1418`（`restoreDefaultView()`）追加 `selectedStatusFilter = "all"; selectedTagFilter = "";` + 同步更新 chip 的 active 状态（参照 `app.js:5178-5182` 的更新模式）；② 可选：`index.html:89-97` 区域在搜索框旁插入显式「清除全部」按钮（仅在有过滤激活时可见），点击后调用 `restoreDefaultView()` 并清空 `booksSearchInput.value`。Touch: `app.js:1408-1418`；`app.js:5178-5182`（参照）；可选 `index.html:89-97`。
 
 ### OPT-108 — `generateBookReview()` 提示词字数上限（200 字）与分享卡截断门槛（150 字）未对齐，AI 读后感可能总被截断 — 由 explore E175 提拔 [2026-07-11]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——OPT-098（AI 读后感生成）和 OPT-087（分享卡片）是「让阅读感染他人」路径的两块积木；字数不对齐使读后感在分享卡中被截断带省略号，降低分享意愿；S 级 1 行修复完成两个已上线功能的最后一块拼图。
 - description: `generateBookReview()`（`app.js:2317`）发给 LLM 的提示词要求「100-200字」，AI 生成上限为 200 字；`renderBookShareCard()`（`app.js:2950`）调用 `truncateForShare(review || book.notes || "", 150)`，150 字以上追加「…」截断。151-200 字区间的 AI 读后感在分享卡中必定被截断，与 2026-07-11 信号诉求「不被截断、也不留大片空白」直接矛盾。
