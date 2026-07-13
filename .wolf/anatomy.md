@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-12T04:41:55.442Z
-> Files: 261 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T01:05:57.226Z
+> Files: 263 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -30,7 +30,7 @@
 
 - `bark-key.txt` (~6 tok)
 - `CLAUDE.md` — 全局工作约定（跨项目） (~421 tok)
-- `product-owner-latest.md` — 产品负责人周一焦点 — 2026-W28（2026-07-06） (~189 tok)
+- `product-owner-latest.md` — 产品负责人周报 — 2026-W29(7/13 周一仪式) (~234 tok)
 - `settings.json` (~1484 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
@@ -68,7 +68,8 @@
 ## ../../.claude/paper-loop/
 
 - `cards-2026-07-12.md` — 卡片① (~71 tok)
-- `review-2026-07-12.md` — PR 夜审结论 — 2026-07-12 (~73 tok)
+- `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
+- `today-pick.md` — 卡片① (~95 tok)
 
 ## ../../.claude/plans/
 
@@ -97,7 +98,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~548 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~436 tok)
+- `project_daily_loop_automation.md` (~604 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_global_playbook.md` (~332 tok)
@@ -161,7 +162,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57522 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 3 more (~57723 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -180,7 +181,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary (~4373 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~23487 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~23599 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -272,16 +273,17 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~27080 tok)
+- `backlog.md` — Optimization Backlog (~27731 tok)
+- `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~47333 tok)
+- `explore.md` — Exploration — new optimization directions (~48458 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~1939 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~2040 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~671 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~720 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~2155 tok)
+- `triage.md` — Triage (~1746 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -367,7 +369,7 @@
 - `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2729 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~3886 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~4258 tok)
-- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~2616 tok)
+- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~3047 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~3593 tok)

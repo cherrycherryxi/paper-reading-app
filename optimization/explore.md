@@ -2882,6 +2882,88 @@ function quoteLabel(q) {
 
 > 本次 run（2026-07-11）响应 2026-07-11 信号三条方向：AI 读后感字数与分享卡截断错配（E175，S 级，`app.js:2317` vs `app.js:2950`）、书单三维过滤无统一「一键清除」（E176，S-M 级，`app.js:1408-1418` restoreDefaultView 未重置 selectedStatusFilter/selectedTagFilter）、关联对话框 OCR 摘抄标签空白（E177，S 级，`app.js:4596` quoteLabel 缺 ocrText 回落）。将 E176 提拔为 OPT-107，E175 提拔为 OPT-108。所有断言均基于实际代码读取，已标注 file:line。
 
+## 2026-07-12
+
+### E178 — `renderTimeline()` 搜索 haystack 不含 `s.date`，用户无法按时间段（"6月"、"2026-07"）搜索动态记录
+
+**What (verified):** `app.js:1512`：
+```js
+const haystack = [book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase();
+```
+`s.date` 为 ISO 字符串（如 `"2026-06-01T00:00:00.000Z"`），未被拼入 haystack。用户在动态 Tab 搜索「6月」、「2026-07」或具体日期时，即便有匹配 session，搜索也返回零结果。
+
+**Why it matters:** Theme 2「回顾有价值」的核心场景之一是「按时间段回顾：这个月读了什么 / 去年某月读了什么」。「动态」Tab 是专为时序阅读记录设计的界面，但不支持按日期搜索，与设计初衷背道而驰。只需将 `s.date?.slice(0, 7) || ""` 拼入 haystack（截取年月前缀 `"2026-06"`），搜「2026-06」即可命中该月所有记录，1 行改动，且与 OPT-076（时间线加载更多，PR #62 in-progress）天然搭车。
+
+**Complexity:** S — `app.js:1512`：haystack 数组末尾加 `s.date?.slice(0, 7) || ""`，1 行，零副作用，无 HTML/后端/schema 改动。
+
+**Files:** `app.js:1512`（`renderTimeline` haystack 构建）
+
+**northstar:** 中——Theme 2「回顾有价值」直接命中；动态 Tab 是时序浏览的唯一界面，缺少日期搜索是功能完整度缺口；S 级 1 行修复，建议搭车 OPT-076（PR #62）。
+
+---
+
+### E179 — `addSession()` 仅在 `book.startedAt` 为空时写入；补录更早记录后开始日期不更新
+
+**What (verified):** `app.js:2447`：
+```js
+if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;
+```
+条件 `!book.startedAt` 只在字段为空时才写入。若用户先记了 2026-06-15 的 session（`book.startedAt = "2026-06-15"`），后来补录 2026-06-01 更早的起点，`addSession()` 因 `!book.startedAt` 为 false 直接跳过，`book.startedAt` 停留在 `"2026-06-15"`，OPT-074（PR #53）书卡展示的「开始日期」永远不会更正为实际更早日期。
+
+**Why it matters:** OPT-074 已上线「开始/读完日期」书卡展示，开始日期现在对用户可见。补录历史 session 后，`startedAt` 停在错误值，书卡时间跨度失真；与 OPT-093（`deleteSession()` 不回写 `currentPage`）属同类数据准确性问题。修复将条件改为 `(!book.startedAt || date < book.startedAt)` 即可，与 OPT-093 搭车成本最低。
+
+**Complexity:** S — `app.js:2447`：将 `if (!book.startedAt && ...)` 改为 `if ((!book.startedAt || date < book.startedAt) && ...)`，1 行，纯前端，零后端/DB 改动。
+
+**Files:** `app.js:2447`（`addSession` `startedAt` 写入条件）
+
+**northstar:** 弱-中——OPT-074 上线后的数据准确性收尾；补录早期记录场景不高频，但错误展示已出现在 UI；建议与 OPT-093（deleteSession 不回写进度）合并一 PR。
+
+---
+
+### E180 — Excel 导入模板无「读后感」列，`importExcel()` 不写入 `book.review`——与 OPT-100（rating）的对称遗漏
+
+**What (verified):** `app.js:4083`（`downloadExcelTemplate()` 模板列定义）：
+```js
+const headers = ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"];
+```
+列表中无「读后感」。`importExcel()`（`app.js:4130-4153`）解析行时不提取 review 数据，构建的 book 对象（`app.js:4139`）无 `review` 字段。OPT-098（AI 读后感 `book.review` 字段）和 OPT-105（豆瓣 CSV 导入，将解析 `我的评论` → `book.review`）已分别上线/triaged，但 Excel 路径（最老、最常用的批量导入通道）尚未补齐这一对称改动。
+
+**Why it matters:** OPT-100（2026-07-08，已 triaged）已修 Excel `喜欢程度 → book.rating`；本项是同批遗漏的对称续集。用户自制 Excel（来自 Notion/Sheets/书单导出）如含手写读后感，导入时只能写入 `notes` 混合字段，无法进入 `review` 独立展示；OPT-101 的 `reviewIsAi` 标记也因此无从区分。S 修复与 OPT-100 改动完全对称，`getRowField()` 模式已有，约 3 行。
+
+**Complexity:** S — ① `app.js:4083`：headers 末尾加 `"读后感"`；② `app.js:4130-4136` 区附近加 `const review = String(getRowField(row, ["读后感", "review", "我的评论"])).trim()`；③ book 对象（`app.js:4139`）补 `review: review || ""`；共约 3 行，纯前端，零后端/DB 变更，复用已有 `getRowField()` 模式。
+
+**Files:** `app.js:4083`（模板 headers）；`app.js:4130-4153`（`importExcel` 解析 + book 对象构建段）
+
+**northstar:** 弱-中——Excel 批量导入是新用户书单初始化主通道；OPT-100 修 rating、本项修 review，合并后 Excel 路径与豆瓣 CSV（OPT-105）在数据完整度上对齐；S 级，与 OPT-100 对称改动，可合并一 PR。
+
+---
+
+### E181 — 跨页 OCR：E151（2026-07-04 候选登记）蓄水 8 天，2026-07-03 信号明确，正式提拔
+
+> 此条为 E151（2026-07-04 蓄水池）的提拔记录；`runOcrFromImage()` 单图限制的完整发现见 E151。
+
+**What (verified):** `app.js:4229-4280`（`runOcrFromImage()`）请求体：
+```js
+body: JSON.stringify({
+  imageDataUrl: dataUrl,      // 单张图片 data URL
+  imageUrl: savedImageUrl,    // 单张图片 URL
+  filename: pendingQuoteImage?.name || "quote-image",
+}),
+```
+前端 file input 为单选（无 `multiple`），后端 `/api/quotes/ocr` 端点解析单个 `imageDataUrl`（`app_server.py` OCR 路由），无多图合并逻辑。
+
+**Why it matters:** 2026-07-03 signal（蓄水 8 天）：「一段摘抄有可能跨页……现在加摘抄只能拍一张，跨页的句子拍不全 → 希望能拍 2 张照片一起 OCR，拼成同一条摘抄」。竖排书、诗文、长段引用跨页高频出现；强制单张导致「摘抄不完整」或「手动拼接」，与北极星「拍照摘抄不假思索」直接冲突。Phase 1（前端串行调两次 OCR、按顺序拼接至同一文本框）可独立实现，不需后端结构变更。
+
+**Complexity:** M — Phase 1：`<input multiple>`，前端顺序 OCR 两张图，结果拼接（`\n\n` 分隔）写入 textarea，约 30–40 行前端改动，后端无变更。Phase 2（Kimi multi-image API）可选扩展，需评估 `/api/quotes/ocr` 端点 payload 格式。quote 存储结构不变。
+
+**Files:** `app.js`（addQuote file input + `runOcrFromImage` 调用逻辑）；`app_server.py`（`/api/quotes/ocr` 端点，Phase 2 可选扩展）
+
+**northstar:** 中-高——Theme 1「采集顺滑」核心场景；信号明确、蓄水 8 天，正式提拔为 OPT-109。
+
+---
+
+> 本次 run（2026-07-12）新增四条方向：E178（时间线 haystack 缺 date 字段，S，搭车 PR #62）、E179（addSession retroactive startedAt 不更新，S，搭车 OPT-093）、E180（Excel 导入缺「读后感」列，S，与 OPT-100 对称）、E181（跨页 OCR，M，E151 蓄水 8 天正式提拔）。将 E181（E151 原候选）提拔为 OPT-109，E180 提拔为 OPT-110。E178/E179 作为候选登记，建议分别搭车 OPT-076 和 OPT-093。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。

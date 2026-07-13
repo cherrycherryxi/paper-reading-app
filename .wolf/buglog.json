@@ -7548,6 +7548,122 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-12"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-07-12T06:11:41.988Z",
+      "error_message": "Wrong reference: WAITING should be PICKED",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"WAITING\" instead of \"PICKED\"",
+      "fix": "Changed WAITING → PICKED",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T06:11:41.988Z"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-07-12T06:23:26.803Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/session-crud.test.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→43 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T06:23:26.803Z"
+    },
+    {
+      "id": "bug-454",
+      "timestamp": "2026-07-12T06:24:18.035Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-12T06:24:25.872Z"
+    },
+    {
+      "id": "bug-455",
+      "timestamp": "2026-07-12T06:25:39.947Z",
+      "error_message": "Wrong reference: PICKED should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"PICKED\" instead of \"DONE\"",
+      "fix": "Changed PICKED → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T06:25:39.947Z"
+    },
+    {
+      "id": "bug-456",
+      "timestamp": "2026-07-12T17:08:45.799Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [
+        "bug-454"
+      ],
+      "occurrences": 4,
+      "last_seen": "2026-07-12T17:09:01.971Z"
+    },
+    {
+      "id": "bug-457",
+      "timestamp": "2026-07-12T19:29:01.496Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T19:29:01.496Z"
+    },
+    {
+      "id": "bug-458",
+      "timestamp": "2026-07-13T00:00:00Z",
+      "error_message": "周日北极星周记行(2026-07-12)未出现在 feature/agent 的 optimization/signals.md 里",
+      "file": "optimization/signals.md",
+      "root_cause": "周日 18:00 自动统计脚本在当时 checkout 的分支上直接 commit,而本机仓库当时停在 PR #62 的 opt-076-timeline-load-more 分支 → commit 4100728 落在特性分支上,从未进入 feature/agent。脚本未固定目标分支。",
+      "fix": "周一 PO 仪式手工把该行补回 feature/agent 的 signals.md;脚本侧待加固:提交前先 checkout feature/agent(或用 git commit 指定分支/worktree),不要依赖仓库当前所在分支。",
+      "tags": [
+        "signals",
+        "automation",
+        "git-branch",
+        "north-star",
+        "paper-loop"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
     }
   ]
 }
