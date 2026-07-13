@@ -7664,6 +7664,25 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-459",
+      "timestamp": "2026-07-13T02:05:00Z",
+      "error_message": "OPT-076「加载更多」按钮在 ≥431px 视口下不居中于时间线下方，而是挤在最后一张卡片旁边的空网格格子里",
+      "file": "styles.css",
+      "root_cause": ".timeline 默认单列（iPhone 12 上正常），但在 @media (min-width:431px) 下是 repeat(auto-fill, minmax(160px,1fr)) 多列网格（styles.css:3452），@media 另一处为 2 列。按钮以普通 grid item 追加，只占一个格子；仅 justify-self:center 无法跨列。PR 里的注释已写「作为 .timeline 网格的整行项」但没实现跨列，手机端自测看不出来。",
+      "fix": "给 .timeline-load-more 加 grid-column: 1 / -1，使其跨满所有列后再 justify-self:center。",
+      "tags": [
+        "css",
+        "grid",
+        "responsive",
+        "timeline",
+        "OPT-076",
+        "pr-review"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T02:05:00Z"
     }
   ]
 }
