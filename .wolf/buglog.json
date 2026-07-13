@@ -7548,6 +7548,70 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-12"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-07-12T06:11:41.988Z",
+      "error_message": "Wrong reference: WAITING should be PICKED",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"WAITING\" instead of \"PICKED\"",
+      "fix": "Changed WAITING → PICKED",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T06:11:41.988Z"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-07-12T06:23:26.803Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/session-crud.test.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→43 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T06:23:26.803Z"
+    },
+    {
+      "id": "bug-454",
+      "timestamp": "2026-07-12T06:24:18.035Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-12T06:24:25.872Z"
+    },
+    {
+      "id": "bug-455",
+      "timestamp": "2026-07-12T06:25:39.947Z",
+      "error_message": "Wrong reference: PICKED should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"PICKED\" instead of \"DONE\"",
+      "fix": "Changed PICKED → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T06:25:39.947Z"
     }
   ]
 }
