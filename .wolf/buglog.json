@@ -7546,8 +7546,8 @@
       "related_bugs": [
         "bug-447"
       ],
-      "occurrences": 1,
-      "last_seen": "2026-07-12"
+      "occurrences": 2,
+      "last_seen": "2026-07-13"
     },
     {
       "id": "bug-452",
@@ -7791,6 +7791,60 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-466",
+      "timestamp": "2026-07-13T06:06:37.213Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:06:37.213Z"
+    },
+    {
+      "id": "bug-467",
+      "timestamp": "2026-07-13T06:19:34.520Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 11→6 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:19:34.520Z"
+    },
+    {
+      "id": "bug-451",
+      "timestamp": "2026-07-13",
+      "error_message": "周一产品负责人焦点邮件没收到（09:06 SMTPServerDisconnected，与 bug-449 同因复发，两天两次晨间）",
+      "file": "~/.claude/scripts/send-email.py（根因，共用发信工具）",
+      "root_cause": "send-email.py 单次 SMTP 连接偶发被断开（晨间尤甚，疑与 Clash 代理/网络抖动有关），且发一次失败即抛异常无重试 → 所有定时任务(PO 仪式/周报/prod 摘要/paper-loop)的邮件都可能因一次瞬时故障丢失。PO 仪式的活其实全干完了、摘要已生成，只是最后一步发信失败。",
+      "fix": "把重试直接加进共用的 send-email.py（重试 4 次、线性退避 5/10/15s，捕获 SMTPException/OSError），所有调用方自动受益；同时删掉 paper-morning.sh 昨天加的外层冗余重试。今天焦点邮件已从 product-owner-latest.md 手工补发。",
+      "tags": [
+        "smtp",
+        "email",
+        "retry",
+        "product-owner",
+        "launchd",
+        "transient",
+        "shared-infra"
+      ],
+      "related_bugs": [
+        "bug-449"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
     }
   ]
 }

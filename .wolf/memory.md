@@ -2917,3 +2917,8 @@
 - OPT-107（PR #63）书单「清除全部筛选」：新增 `hasActiveBookFilters()` / `clearAllBookFilters()` / `syncStatusFilterChips()` / `renderClearBookFiltersBtn()`，books-meta-row 加「✕ 清除全部筛选」按钮；未改 `restoreDefaultView()` 语义（既有测试在锁）。新增 tests/frontend/book-filter-clear-all.test.js（7 例）。
 - OPT-108（PR #64）AI 读后感字数对齐：抽出 `BOOK_REVIEW_MAX_CHARS = 200`，提示词与书卡截断共用；notes 回落仍 150。share-card.test.js +2 例。记 bug-465。
 - 测试：`node --test tests/frontend/*.test.js` 331 pass（OPT-107 分支）/ 326 pass（OPT-108 分支）；`.venv/bin/python -m pytest tests/ -q` 363 pass。两 PR base 均为 feature/agent，未发 prod。
+| 14:06 | Edited ../../.claude/paper-loop/today-pick.md | inline fix | ~4 |
+| 14:07 | Session end: 18 writes across 7 files (index.html, app.js, styles.css, book-filter-clear-all.test.js, share-card.test.js) | 4 reads | ~69755 tok |
+| 14:17 | Edited ../../.claude/scripts/send-email.py | added 1 import(s) | ~38 |
+| 14:17 | Edited ../../.claude/scripts/send-email.py | modified range() | ~283 |
+| 14:19 | Edited ../../.claude/scripts/paper-morning.sh | 11→6 lines | ~94 |
