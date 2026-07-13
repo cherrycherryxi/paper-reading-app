@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T02:07:09.111Z
-> Files: 264 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T02:09:13.504Z
+> Files: 265 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -68,6 +68,7 @@
 ## ../../.claude/paper-loop/
 
 - `cards-2026-07-12.md` — 卡片① (~71 tok)
+- `cards-2026-07-13.md` — 卡片① (~117 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `today-pick.md` — 卡片① (~95 tok)

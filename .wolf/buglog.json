@@ -7683,6 +7683,28 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-13T02:05:00Z"
+    },
+    {
+      "id": "bug-450",
+      "timestamp": "2026-07-13",
+      "error_message": "SessionStart 钩子每次会话启动报 'STATUS:: command not found' 并污染注入内容",
+      "file": "~/.claude/settings.json (hooks.SessionStart[3])",
+      "root_cause": "用 jq -n --arg c \"<json.dumps 双引号字符串>\" 传注入文案，文案里的反引号(`STATUS: IMPLEMENTING` 等)落在 shell 双引号内 → 被当命令替换执行 → 报错且把反引号段替换成空，破坏 additionalContext。",
+      "fix": "改回单引号内联 jq -n '<完整JSON>'（反引号在单引号里是字面量）；并把状态名反引号换成「」，确保文案无 shell/JSON 危险字符(反引号/单双引号/反斜杠)。",
+      "tags": [
+        "bash",
+        "jq",
+        "hook",
+        "session-start",
+        "backtick",
+        "command-substitution",
+        "quoting"
+      ],
+      "related_bugs": [
+        "bug-445"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
     }
   ]
 }
