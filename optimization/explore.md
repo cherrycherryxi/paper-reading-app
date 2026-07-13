@@ -2964,6 +2964,78 @@ body: JSON.stringify({
 
 > 本次 run（2026-07-12）新增四条方向：E178（时间线 haystack 缺 date 字段，S，搭车 PR #62）、E179（addSession retroactive startedAt 不更新，S，搭车 OPT-093）、E180（Excel 导入缺「读后感」列，S，与 OPT-100 对称）、E181（跨页 OCR，M，E151 蓄水 8 天正式提拔）。将 E181（E151 原候选）提拔为 OPT-109，E180 提拔为 OPT-110。E178/E179 作为候选登记，建议分别搭车 OPT-076 和 OPT-093。所有断言均基于实际代码读取，已标注 file:line。
 
+## 2026-07-13
+
+### E182 — `PromptBuilder.build_chat_prompt()` 的 `all_books_summary` 缺少 `rating` 和 `finishedAt`——AI 无法回答「评分最高的书」或「去年读完的书」类跨书查询 (S)
+
+**What (verified):** `app_server.py:2432-2434`（`all_books_summary` 构建段）：
+```python
+"all_books_summary": [
+    {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""), "status": b.get("status", "")}
+    for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:50]
+],
+```
+`all_books_summary` 只含 4 个字段（id/title/author/status），不含 `rating`（OPT-099，2026-07-08 上线）和 `finishedAt`（OPT-074，2026-06 上线）。对比：focused `book` 对象（`app_server.py:2421`）注入全量字段，但只覆盖当前上下文书籍；`all_books_summary` 是 AI 跨书查询的唯一数据来源。
+
+**Why it matters:** OPT-099 加了 1-5 星评分、OPT-074 加了读完日期，两者的核心价值在于「跨书回顾」——用户最可能对 AI 问的正是「帮我找评分最高的书」「去年我读了哪些书」「有没有适合分享的 5 星书」。这些问题直接依赖 `all_books_summary` 里的 `rating` 和 `finishedAt`，但两个字段当前均不在 payload 里，AI 只能凭书名猜测。S 级 2 行修复，token 开销极低（50 本 × ~15 字符 ≈ 750 tokens，远低于 OPT-020 节省的额度）。
+
+**Complexity:** S — `app_server.py:2433`：dict 末尾追加 `"rating": b.get("rating", 0), "finishedAt": (b.get("finishedAt") or "")[:10]`（截 ISO 到 YYYY-MM-DD 节省 token）。无 schema/接口/测试变更。
+
+**Files:** `app_server.py:2432-2434`（`all_books_summary` 构建段）
+
+**northstar:** 中——Theme 2「回顾有价值」AI 查询层；OPT-099/074 两个已上线字段对 AI 跨书问答完全不可见，本修复使「最近读完」「评分最高」两类高频回顾询问可被 AI 正确处理。
+
+---
+
+### E183 — `compareBooksForList()` 二级排序用 `createdAt`——OPT-105 豆瓣导入后「已读完」组书籍排序语义错乱 (S)
+
+**What (verified):** `app.js:1238-1246`（`compareBooksForList()`）：
+```js
+function compareBooksForList(a, b) {
+  const statusDelta = (bookStatusOrder[a.status] ?? 99) - (bookStatusOrder[b.status] ?? 99);
+  if (statusDelta !== 0) return statusDelta;
+  return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
+}
+```
+二级排序键为 `createdAt`（书籍入库时间）。批量导入路径（`importExcel()`，`app.js:4155`：`const now = new Date().toISOString(); ... createdAt: now`）——同一次导入的所有书籍 `createdAt` 相同，同一状态组内的相对顺序退化为原始数组顺序（CSV 行序），无语义。OPT-105 豆瓣导入（本周焦点）预期写入大量具有有效 `finishedAt` 的"已读完"书，若不切换二级排序键，"已读完"过滤视图内书籍将以随机顺序展示。
+
+对于语义上更合理的二级键：`"finished"` 状态组 → `finishedAt` desc（最近读完的先出现）；`"reading"` 状态组 → `lastReadAt` desc（最近打开的先出现）；`"wishlist"` 状态组 → `createdAt` desc（保持现状）。
+
+**Why it matters:** 「最近读完了哪些书」是「回顾」场景最基础的查询，Douban 导入后「已读完」列表有语义时间轴但显示为随机顺序，Theme 2 验收的「回顾操作次数」路径直接受损。S 修复：用 status-aware 三分支替换当前单一二级键，纯前端，无 HTML/后端/schema 变更。
+
+**Complexity:** S — `app.js:1239-1245`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支（`finished` → finishedAt，`reading` → lastReadAt，其余 → createdAt），约 5-8 行，无测试变更。
+
+**Files:** `app.js:1238-1246`（`compareBooksForList`）；`app.js:4155`（importExcel `createdAt: now` 证明同批同时间戳）
+
+**northstar:** 中——Theme 2「回顾有价值」的浏览层前提；OPT-105 Douban 导入后「按时序浏览已读完书单」是核心回顾场景，当前排序使该场景失效；S 级，建议搭车 OPT-105 PR 或紧随其后。
+
+---
+
+### E184 — 「已读完」书卡展示阅读进度（"100% · X/X 页"），不展示 `finishedAt`——OPT-074 字段仅在详情层可见 (S)
+
+**What (verified):** `app.js:1296-1299`（`buildBookSearchCard` progressText 构建段）：
+```js
+const progressText =
+  progress === null
+    ? `已读到第 ${book.currentPage || 0} 页`
+    : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
+```
+`book.status === "finished"` 的书若有 `totalPages` 则显示"100% · X/X 页"（永远如此）；若无 `totalPages` 则显示"已读到第 X 页"（对已读完书完全无意义）。两种情况均不展示 `book.finishedAt`。
+
+对比：书籍详情（`app.js:3423`）已展示 `读完 ${formatDate(book.finishedAt)}`；书卡是用户浏览书单时的唯一信息层，不打开详情就看不到读完日期。`formatDate` 已存在（`app.js` 全局），直接复用。
+
+**Why it matters:** 「已读完」书卡的核心使用场景是浏览阅读史，「什么时候读的」是第一问，而非「读了多少页」（100% 无新增价值）。OPT-074 上线后书卡缺失读完日期，意味着浏览「已读完」列表时缺少时间维度，与 Theme 2「让阅读史可被回顾」直接冲突。OPT-105 Douban 导入将为大量书籍填入有效 `finishedAt`，此时修复收益最大。
+
+**Complexity:** S — `app.js:1296-1299`：对 `book.status === "finished"` 分支单独输出 `` `读完 ${formatDate(book.finishedAt) || "日期未记录"}` ``（约 3-4 行）；`formatDate` 已存在，零新依赖。建议与 E183（compareBooksForList 排序）合并一 PR，共同构成「已读完」书单时序体验闭环。
+
+**Files:** `app.js:1296-1299`（`buildBookSearchCard` progressText 段）；`app.js:3423`（书籍详情 finishedAt 展示参照）
+
+**northstar:** 中——Theme 2「回顾有价值」直接命中；已读完书单是阅读史的核心视图，书卡缺少时间锚点使逐本回顾必须点开详情，摩擦大；S 修复，OPT-105 导入后 finishedAt 数量暴增时价值最大。
+
+---
+
+> 本次 run（2026-07-13）聚焦 OPT-105（豆瓣导入，本周焦点）合并后的「已读完」书单体验影响扫描，以及 E177/E178 的正式提拔。新发现 3 条：E182（PromptBuilder all_books_summary 缺 rating/finishedAt，S，AI 跨书回顾能力残缺）、E183（compareBooksForList 二级排序用 createdAt，批量导入后状态组排序语义错乱，S）、E184（已读完书卡不展示 finishedAt，OPT-074 字段未达卡面层，S）。将 E177（quoteLabel ocrText 回落缺失，2026-07-11 核实）提拔为 OPT-111；将 E178（时间线 haystack 缺 date 字段，2026-07-12 核实）提拔为 OPT-112。E174（书卡不展 rating）、E179（addSession startedAt 不溯更新）为已核实未提拔候选，建议分别与 OPT-100 和 OPT-093 搭车。所有本次新发现均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
