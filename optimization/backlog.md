@@ -527,7 +527,7 @@ Format per item:
 - how: 在 `build_chat_prompt()`（`app_server.py:2312-2345`）中对 `quotes` 列表做 dict comprehension 白名单过滤，保留 `id, bookId, content, kind, tags, page, createdAt, reflection`；对 `focused_quote` 同理；对 `book` 对象去掉 `coverImageUrl`。无 API/DB schema 变更，无前端变更。Touch: `app_server.py:2312-2345`（`build_chat_prompt` 方法）。
 
 ### OPT-065 — `reading_mcp_server.py:_save_state()` 跳过 `sanitize_state()` 验证，MCP 写路径无状态校验 — 由 explore E103 提拔
-- status: triaged
+- status: done (PR #61, merged 2026-07-11)
 - area: backend
 - northstar: 中——MCP 写路径是 Claude Desktop 的主要数据入口；绕过 `sanitize_state()` 可静默写入 chatHistories legacy 格式或 books 非 list，导致下次 HTTP 请求时自动清空对应数据；数据安全边界，S 修复。
 - description: `reading_mcp_server.py:_save_state()`（第 70–75 行）直接 `UPDATE user_state SET state_json = ?` 并 `commit()`，没有调用 `sanitize_state()`。对比 `app_server.py:save_state()`（第 699–706 行）：先 `sanitized = sanitize_state(state)` 再写入。`sanitize_state()`（`app_server.py:633–667`）职责：① chatHistories 旧格式迁移；② chatContexts 结构规整；③ books/sessions/quotes/connections 必须为 list；④ 只保留已知顶级键。6 个 MCP 工具（add_note、add_book、summary、question、tag、link_thought）均通过 `_save_state()` 写入，全部绕过验证。注意与 OPT-029 的区别：OPT-029 解决并发读改写竞争（BEGIN IMMEDIATE），本项解决写入前缺少 schema 验证。
@@ -635,7 +635,7 @@ Format per item:
 - how: 在 `app.js:2494`（`startedAt` 写入块结束处）追加：`if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.lastReadAt; }`。可选在 `tests/frontend/book-detail-ux.test.js` 或新增测试文件加回归用例：模拟无 `totalPages` 的书被 `saveBookEdit()` 标为 "finished"，断言 `book.finishedAt` 不为 null。Touch: `app.js:2490-2501`。
 
 ### OPT-076 — `renderTimeline()` 硬上限 10 条且无任何告知，阅读历史超 10 次后早期记录不可见 — 由 explore E124 提拔 [2026-06-27]
-- status: triaged
+- status: in-progress (PR #62 open, opt-076-timeline-load-more)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」北极星代理指标「本周回顾操作次数」依赖能翻到早期阅读记录；当前 10 条上限在真实使用 2-3 个月后触发，是 Theme 2 验收期前需修复的前置缺陷。
 - priority: P2
@@ -687,7 +687,8 @@ Format per item:
 ### OPT-081 — Organize/Candidates 批量采集功能全链路失活：前端完整实现但 HTML Dialog 不存在、无调用者、后端无 `/api/organize/parse` 端点 — 由 explore E133 提拔 [2026-06-30]
 - status: triaged
 - area: frontend, backend
-- priority: P2
+- priority: P3 parked (2026-07-13 周一 PO 仪式)
+- park 理由: 零 signal 佐证（自 6/30 提拔以来 signals.md 无任何相关摩擦记录）；Theme 1「采集顺滑」已收尾，真机录入摩擦项已清空（PR #59/#60）；用 M 复杂度（前端 dialog + 后端新端点）去激活一条从没人要过的「文字粘贴批量采集」路径，对北极星无贡献（roadmap §5 北极星税）。代码保留不删，若未来出现「手里有一段电子书文字想批量入库」的真实 signal 再解冻。
 - size: M
 - northstar: 中/强（如激活）——批量从粘贴文字中提取摘抄候选、AI 拆分 + 审批入库，直接支撑 Theme 1「采集顺滑」；现有 OCR 路径仅支持逐图识别，文字粘贴批量路径覆盖「书中已有电子文字」「读书笔记 App 导出」等场景，是一条沉睡的高价值采集通道。
 - description: `app.js:114-127` 共 11 个 `els.*` 引用（`els.organizeDialog`/`els.candidatesDialog` 等）全部指向**不存在于 `index.html` 的 DOM 元素**，运行时返回 `null`。`index.html` 全文无 `id="organizeDialog"` 或 `id="candidatesDialog"` 定义。`openOrganizeDialog()`（`app.js:2808`）在整个代码库无任何调用者。前端 `submitOrganizePaste()` 调用 `/api/organize/parse`（`app.js:2862`），但 `app_server.py` 无此端点。功能实现代码约 150 行（`app.js:2808-2914`：`openOrganizeDialog`、`switchOrganizeTab`、`handleOrganizeImageSelect`、`submitOrganizePaste`、`openCandidatesDialog`、`approveCandidateItem`、`ignoreCandidateItem`），三层均失活。
@@ -928,7 +929,7 @@ Format per item:
 - how: 新增 `SHARE_CARD_DARK` 常量（深色调色板，如 `bg: "#1a1a1a"`, `ink: "#e8e0d0"`）；在 `renderQuoteShareCard`、`renderConnectionShareCard`、`renderBookShareCard` 各入口顶部各加一行 `const C = window.matchMedia('(prefers-color-scheme: dark)').matches ? SHARE_CARD_DARK : SHARE_CARD;`；`newShareCanvas` 无需改动。Touch: `app.js:2599-2606`（新增 `SHARE_CARD_DARK`）+ 三个 `renderXShareCard` 函数入口（各 1 行）。
 
 ### OPT-105 — 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感）— 由 explore E173 提拔 [2026-07-10]
-- status: triaged
+- status: in-progress (2026-07-13 周一 PO 仪式定为 **W29 唯一焦点**，由 owner 白天功能轨亲自实现 — **夜间 implement agent 请勿指派本项**，防撞单)
 - area: frontend
 - northstar: 强——四条信号（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求豆瓣导入）驱动；三个目标字段（`book.finishedAt`/`book.rating`/`book.review`）均已就位，补写导入函数即可批量补全；是 OPT-074/099/098 三项已完成字段层建设的最终数据入口；推进 Theme B0「对外可用」用户数据完整度。triage 2026-07-10 明确指示 Agent3 评估并提拔。
 - description: 当前无任何豆瓣导入代码（全文件 grep `douban`/`豆瓣` 零匹配）。豆瓣「我读」CSV 标准列含书名/作者/我的评分（1-5）/阅读状态/我的评论/读完日期，与已存在字段天然对齐：`我的评分` → `book.rating`；`读完日期` → `book.finishedAt`；`我的评论` → `book.review`。导入逻辑：FileReader 读 CSV（注意豆瓣 CSV 为 GBK/GB18030 编码，须 `TextDecoder('gb18030')` 解码）→ 按书名模糊匹配现有书籍（`fuzzyMatch` 已有）→ 命中则 patch 三字段，未命中则新增书籍 → `syncState()` 保存 → `showImportResult()` 展示结果（新增/更新书目数量）。
@@ -936,7 +937,7 @@ Format per item:
 - how: `app.js` 新增 `importFromDouban()` 函数（约 80-100 行）：`FileReader` + `TextDecoder('gb18030')` 读 CSV → 逐行解析标题行定位列索引 → 按书名/作者 `fuzzyMatch` 匹配现有书籍 → patch `rating`/`finishedAt`/`review` → `syncState()`。`index.html` 在「我的」抽屉导入区加 `<input type="file" accept=".csv">` + 触发按钮 + 可选引导弹窗（说明豆瓣 CSV 导出步骤，复用 `#importExcelModal` 结构）。`showImportResult()` 展示更新/新增书目数。无后端/DB schema 变更（字段均已存在，走 `syncState()`）。Touch: `app.js`（新增 `importFromDouban` + 事件绑定）、`index.html`（导入按钮 + file input）。
 
 ### OPT-107 — 书单多维过滤无统一「清除全部」——`restoreDefaultView()` 重置文字搜索但不重置状态/标签 chip — 由 explore E176 提拔 [2026-07-11]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——W28「检索修通」可用性前提；三维过滤无统一清除违反最小惊讶原则，降低筛选信任度；2026-07-11 信号明确驱动；Theme 2「回顾有价值→能找到」路径基础流畅度。
 - description: 书单 Tab 有文字搜索（`#booksSearchInput`）、状态 chip（`selectedStatusFilter`，`app.js:195`）、标签 chip（`selectedTagFilter`，`app.js:196`）三个独立过滤维度。清除文字搜索时 `restoreDefaultView()`（`app.js:1408-1418`）只重置 `searchQuery` 并让 chip 条可见，不重置 `selectedStatusFilter`/`selectedTagFilter`。`renderBooks()`（`app.js:1450-1456`）仍以上次 chip 选择过滤结果，用户以为「已清除」，实际仍在筛选状态。
@@ -944,12 +945,32 @@ Format per item:
 - how: ① `app.js:1408-1418`（`restoreDefaultView()`）追加 `selectedStatusFilter = "all"; selectedTagFilter = "";` + 同步更新 chip 的 active 状态（参照 `app.js:5178-5182` 的更新模式）；② 可选：`index.html:89-97` 区域在搜索框旁插入显式「清除全部」按钮（仅在有过滤激活时可见），点击后调用 `restoreDefaultView()` 并清空 `booksSearchInput.value`。Touch: `app.js:1408-1418`；`app.js:5178-5182`（参照）；可选 `index.html:89-97`。
 
 ### OPT-108 — `generateBookReview()` 提示词字数上限（200 字）与分享卡截断门槛（150 字）未对齐，AI 读后感可能总被截断 — 由 explore E175 提拔 [2026-07-11]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——OPT-098（AI 读后感生成）和 OPT-087（分享卡片）是「让阅读感染他人」路径的两块积木；字数不对齐使读后感在分享卡中被截断带省略号，降低分享意愿；S 级 1 行修复完成两个已上线功能的最后一块拼图。
 - description: `generateBookReview()`（`app.js:2317`）发给 LLM 的提示词要求「100-200字」，AI 生成上限为 200 字；`renderBookShareCard()`（`app.js:2950`）调用 `truncateForShare(review || book.notes || "", 150)`，150 字以上追加「…」截断。151-200 字区间的 AI 读后感在分享卡中必定被截断，与 2026-07-11 信号诉求「不被截断、也不留大片空白」直接矛盾。
 - why: 2026-07-11 信号「AI 生成读后感时限制字数，篇幅最好正好适合在书卡分享图里全文展示」直接驱动；OPT-098/087 刚上线，字数未对齐是这两个功能的末端收尾缺口；S 修复，零后端/schema 变更。
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
+
+### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
+- status: new
+- area: frontend
+- priority: P2
+- size: M
+- northstar: 中-高——Theme 1「采集顺滑」核心场景；跨页摘抄（竖排书、诗文、长段引用）是采集管线的长尾痛点，强制单张导致「摘抄不完整」或手动拼接，与「拍照摘抄不假思索」北极星直接冲突；2026-07-03 信号明确，候选蓄水 8 天。
+- description: `app.js:4229-4280`（`runOcrFromImage()`）请求体仅含单张 `imageDataUrl`/`imageUrl`；前端 file input 无 `multiple` 属性；后端 `/api/quotes/ocr` 端点解析单个图片，无多图合并逻辑。Phase 1 可纯前端实现：允许选两张图，串行调两次 OCR，按顺序拼接结果（`\n\n` 分隔）写入 textarea，quote 存储结构不变。Phase 2（Kimi multi-image API）可选扩展。
+- why: 2026-07-03 signal：「一段摘抄有可能跨页……现在加摘抄只能拍一张，跨页的句子拍不全 → 希望能拍 2 张照片一起 OCR，拼成同一条摘抄」。竖排书和诗文跨页高频；强制单张直接拦截了「拍了也不完整」的摘抄。
+- how: Phase 1：`app.js` addQuote file input 改为 `accept="image/*" multiple`；`handleQuoteImageChange()` 改为处理 FileList（≤2 张）；`runOcrFromImage()` 改为顺序调两次上传+识别，结果拼接写入 textarea。约 30–40 行，零后端/schema 变更。Phase 2 可在 `/api/quotes/ocr` 端点增加 `imageDataUrl2` 字段支持 Kimi multi-image payload。Touch: `app.js`（addQuote file input、`handleQuoteImageChange`、`runOcrFromImage`）；Phase 2 可选 `app_server.py`（OCR 端点）。
+
+### OPT-110 — Excel 导入模板无「读后感」列，`importExcel()` 不写 `book.review`——OPT-100（rating）的对称遗漏 — 由 explore E180 提拔 [2026-07-12]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 弱-中——Excel 批量导入是新用户书单初始化主通道；OPT-100 修 rating、本项修 review，合并后 Excel 路径与豆瓣 CSV（OPT-105）在「评分+读后感」完整度上对齐；S 级 3 行，纯前端，与 OPT-100 对称改动。
+- description: `app.js:4083`（`downloadExcelTemplate()` 模板列）：`["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"]`，无「读后感」列。`importExcel()`（`app.js:4130-4153`）解析行时不提取 review 数据，构建的 book 对象无 `review` 字段。OPT-098（book.review 字段）和 OPT-105（豆瓣 CSV 导入 review）已分别上线/triaged，Excel 路径是唯一剩余遗漏的导入通道。
+- why: 用户自制 Excel（含手写读后感列）导入后，review 被忽略，无法进入 `book.review` 独立展示；OPT-101（reviewIsAi 标注）也因此无法区分 Excel 路径的内容。OPT-100 已处理 rating 遗漏，本项为完全对称续集，`getRowField()` 模式已有，改动成本极低。
+- how: ① `app.js:4083`：headers 末尾加 `"读后感"`；② `app.js:4130-4136` 区加 `const review = String(getRowField(row, ["读后感", "review", "我的评论"])).trim()`；③ book 对象（`app.js:4139`）补 `review: review || ""`。共约 3 行改动，纯前端，零后端/DB 变更，复用 `getRowField()` 已有模式。建议与 OPT-100 合并一 PR（同文件同区域同类改动）。Touch: `app.js:4083`（模板 headers）；`app.js:4130-4153`（解析+book 对象构建段）。
 
 ### OPT-106 — `deleteQuote()` 确认弹窗不提及将级联删除关联，`getConnectionCount()` 已存在可直接复用 — 由 explore E169 提拔 [2026-07-10]
 - status: triaged
