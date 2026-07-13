@@ -953,7 +953,7 @@ Format per item:
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
 
 ### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: M
@@ -963,7 +963,7 @@ Format per item:
 - how: Phase 1：`app.js` addQuote file input 改为 `accept="image/*" multiple`；`handleQuoteImageChange()` 改为处理 FileList（≤2 张）；`runOcrFromImage()` 改为顺序调两次上传+识别，结果拼接写入 textarea。约 30–40 行，零后端/schema 变更。Phase 2 可在 `/api/quotes/ocr` 端点增加 `imageDataUrl2` 字段支持 Kimi multi-image payload。Touch: `app.js`（addQuote file input、`handleQuoteImageChange`、`runOcrFromImage`）；Phase 2 可选 `app_server.py`（OCR 端点）。
 
 ### OPT-110 — Excel 导入模板无「读后感」列，`importExcel()` 不写 `book.review`——OPT-100（rating）的对称遗漏 — 由 explore E180 提拔 [2026-07-12]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
