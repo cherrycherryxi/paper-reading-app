@@ -7845,6 +7845,27 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-07-13",
+      "error_message": "paper-wrapup 昨晚(07-12 23:30)没自动写日报，用户晚上已停止工作",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "'是否还在工作' 用 pgrep 检测有没有 claude CLI 进程存在。但用户晚上离开时留着几个 claude 终端窗口开着没关(空闲挂在提示符)，进程仍在 → 被误判为「活跃会话·在工作」→ 跳过收工。开着但空闲的窗口 != 在工作。",
+      "fix": "改为活动检测：看 ~/.claude/projects 下 *.jsonl 会话 transcript 最近 30 分钟内有没有被更新(find -mmin -30)。空闲窗口不写 transcript，故不再误判；有真实交互才算在工作。",
+      "tags": [
+        "pgrep",
+        "idle-detection",
+        "launchd",
+        "wrapup",
+        "transcript",
+        "false-positive"
+      ],
+      "related_bugs": [
+        "bug-446"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
     }
   ]
 }

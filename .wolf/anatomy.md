@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T06:19:34.481Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T06:24:02.769Z
 > Files: 266 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
@@ -120,7 +120,7 @@
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1132 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~415 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~398 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~838 tok)
