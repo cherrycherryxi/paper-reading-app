@@ -171,7 +171,7 @@ test("OPT-045: renderTimeline shows an empty state with no sessions", () => {
   assert.match(h.els.timeline.textContent, /还没有阅读会话/);
 });
 
-test("OPT-045: renderTimeline renders one card per recent session (capped at 10)", () => {
+test("OPT-076: renderTimeline shows 10 cards + a 加载更多 button when more remain", () => {
   const h = createHarness();
   const sessions = Array.from({ length: 12 }, (_, i) => ({
     id: `s${i}`, bookId: "b1", startPage: i * 10, endPage: i * 10 + 5, minutes: 15,
@@ -180,7 +180,39 @@ test("OPT-045: renderTimeline renders one card per recent session (capped at 10)
   loggedIn(h, { ...emptyState(), books: [{ id: "b1", title: "三体" }], sessions });
   h.renderTimeline();
   assert.equal(h.els.timeline.className, "timeline");
-  assert.equal(h.els.timeline.children.length, 10, "timeline caps at 10 most-recent sessions");
+  // 10 session cards + 1 load-more button (no longer silently truncated)
+  assert.equal(h.els.timeline.children.length, 11, "10 cards plus a 加载更多 button");
+  const moreBtn = h.els.timeline.children[10];
+  assert.equal(moreBtn.className, "timeline-load-more");
+  assert.match(moreBtn.textContent, /加载更多.*还有 2 条.*共 12 条/);
+});
+
+test("OPT-076: 加载更多 reveals the next page of earlier sessions", () => {
+  const h = createHarness();
+  const sessions = Array.from({ length: 12 }, (_, i) => ({
+    id: `s${i}`, bookId: "b1", startPage: i * 10, endPage: i * 10 + 5, minutes: 15,
+    note: `n${i}`, date: `2026-06-${String(i + 1).padStart(2, "0")}T12:00:00.000Z`,
+  }));
+  loggedIn(h, { ...emptyState(), books: [{ id: "b1", title: "三体" }], sessions });
+  h.renderTimeline();
+  h.els.timeline.children[10]._click(); // click 加载更多
+  // limit now 20 >= 12 total → all 12 cards, no more button
+  assert.equal(h.els.timeline.children.length, 12, "all sessions shown after expanding");
+  assert.ok(
+    !h.els.timeline.children.some((c) => c.className === "timeline-load-more"),
+    "load-more button disappears once everything is visible",
+  );
+});
+
+test("OPT-076: no 加载更多 button when 10 or fewer sessions", () => {
+  const h = createHarness();
+  const sessions = Array.from({ length: 8 }, (_, i) => ({
+    id: `s${i}`, bookId: "b1", startPage: i, endPage: i + 1, minutes: 5,
+    note: "", date: `2026-06-0${i + 1}T12:00:00.000Z`,
+  }));
+  loggedIn(h, { ...emptyState(), books: [{ id: "b1", title: "三体" }], sessions });
+  h.renderTimeline();
+  assert.equal(h.els.timeline.children.length, 8, "all cards, no load-more");
 });
 
 test("OPT-045: renderTimeline filters by search and shows a stats bar", () => {

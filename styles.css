@@ -854,6 +854,24 @@ textarea {
   gap: 14px;
 }
 
+/* OPT-076: 时间线「加载更多」按钮，作为 .timeline 网格的整行项 */
+.timeline-load-more {
+  /* .timeline 在 ≥431px 是多列网格，不跨列会挤在最后一张卡片旁边 */
+  grid-column: 1 / -1;
+  justify-self: center;
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.timeline-load-more:active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
 .book-list,
 .timeline,
 .quote-list {
