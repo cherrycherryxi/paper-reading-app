@@ -937,7 +937,7 @@ Format per item:
 - how: `app.js` 新增 `importFromDouban()` 函数（约 80-100 行）：`FileReader` + `TextDecoder('gb18030')` 读 CSV → 逐行解析标题行定位列索引 → 按书名/作者 `fuzzyMatch` 匹配现有书籍 → patch `rating`/`finishedAt`/`review` → `syncState()`。`index.html` 在「我的」抽屉导入区加 `<input type="file" accept=".csv">` + 触发按钮 + 可选引导弹窗（说明豆瓣 CSV 导出步骤，复用 `#importExcelModal` 结构）。`showImportResult()` 展示更新/新增书目数。无后端/DB schema 变更（字段均已存在，走 `syncState()`）。Touch: `app.js`（新增 `importFromDouban` + 事件绑定）、`index.html`（导入按钮 + file input）。
 
 ### OPT-107 — 书单多维过滤无统一「清除全部」——`restoreDefaultView()` 重置文字搜索但不重置状态/标签 chip — 由 explore E176 提拔 [2026-07-11]
-- status: triaged
+- status: done (PR #63, 2026-07-13 — 未改 `restoreDefaultView()` 语义：它「只清搜索词、保留状态/标签」是有意的，`tests/frontend/global-search.test.js:458` 在锁这个行为；改为新增 `clearAllBookFilters()` + books-meta-row 的「✕ 清除全部筛选」按钮（仅在有活跃筛选时显示），筛选空结果的空状态也接同一入口)
 - area: frontend
 - northstar: 中——W28「检索修通」可用性前提；三维过滤无统一清除违反最小惊讶原则，降低筛选信任度；2026-07-11 信号明确驱动；Theme 2「回顾有价值→能找到」路径基础流畅度。
 - description: 书单 Tab 有文字搜索（`#booksSearchInput`）、状态 chip（`selectedStatusFilter`，`app.js:195`）、标签 chip（`selectedTagFilter`，`app.js:196`）三个独立过滤维度。清除文字搜索时 `restoreDefaultView()`（`app.js:1408-1418`）只重置 `searchQuery` 并让 chip 条可见，不重置 `selectedStatusFilter`/`selectedTagFilter`。`renderBooks()`（`app.js:1450-1456`）仍以上次 chip 选择过滤结果，用户以为「已清除」，实际仍在筛选状态。
@@ -945,7 +945,7 @@ Format per item:
 - how: ① `app.js:1408-1418`（`restoreDefaultView()`）追加 `selectedStatusFilter = "all"; selectedTagFilter = "";` + 同步更新 chip 的 active 状态（参照 `app.js:5178-5182` 的更新模式）；② 可选：`index.html:89-97` 区域在搜索框旁插入显式「清除全部」按钮（仅在有过滤激活时可见），点击后调用 `restoreDefaultView()` 并清空 `booksSearchInput.value`。Touch: `app.js:1408-1418`；`app.js:5178-5182`（参照）；可选 `index.html:89-97`。
 
 ### OPT-108 — `generateBookReview()` 提示词字数上限（200 字）与分享卡截断门槛（150 字）未对齐，AI 读后感可能总被截断 — 由 explore E175 提拔 [2026-07-11]
-- status: triaged
+- status: done (PR #64, 2026-07-13 — 取了与 how 相反的方向：不压提示词到 80-120，而是把书卡截断门槛提到 200，两处共用新常量 `BOOK_REVIEW_MAX_CHARS`。理由：读后感在书详情页是全文展示的，为迁就海报压模型输出会连带降低详情页质量；书卡高度本就按 `notesLines.length` 动态算，加长只是卡片变高不会溢出版式。无读后感时回落的 `book.notes` 仍保持 150 字预算)
 - area: frontend
 - northstar: 中——OPT-098（AI 读后感生成）和 OPT-087（分享卡片）是「让阅读感染他人」路径的两块积木；字数不对齐使读后感在分享卡中被截断带省略号，降低分享意愿；S 级 1 行修复完成两个已上线功能的最后一块拼图。
 - description: `generateBookReview()`（`app.js:2317`）发给 LLM 的提示词要求「100-200字」，AI 生成上限为 200 字；`renderBookShareCard()`（`app.js:2950`）调用 `truncateForShare(review || book.notes || "", 150)`，150 字以上追加「…」截断。151-200 字区间的 AI 读后感在分享卡中必定被截断，与 2026-07-11 信号诉求「不被截断、也不留大片空白」直接矛盾。

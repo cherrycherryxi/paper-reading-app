@@ -7705,6 +7705,92 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-461",
+      "timestamp": "2026-07-13T05:58:58.853Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: els.booksList.innerHTML =; '没有匹配的书籍，<button type=\"button\" class=\"link-btn\" id=\"clearFil",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-13T05:59:15.489Z"
+    },
+    {
+      "id": "bug-462",
+      "timestamp": "2026-07-13T06:03:01.557Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-200字），包含你对这本书的个人感受",
+      "fix": "Changed to `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_MAX_",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:03:01.557Z"
+    },
+    {
+      "id": "bug-463",
+      "timestamp": "2026-07-13T06:03:43.299Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/share-card.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:03:43.299Z"
+    },
+    {
+      "id": "bug-464",
+      "timestamp": "2026-07-13T06:05:30.209Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-13T06:05:38.200Z"
+    },
+    {
+      "id": "bug-465",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "AI 起草的读后感在书卡分享图里被切尾：提示词上限 200 字 vs 截断门槛 150 字",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "fixed_at": "2026-07-13T00:00:00.000Z",
+      "error_message": "AI 生成的读后感（100-200字）生成分享图后结尾变成「…」，句子没写完",
+      "file": "app.js",
+      "root_cause": "generateBookReview() 的提示词让模型写 100-200 字，renderBookShareCard() 却 truncateForShare(review, 150)。两个上限各写各的字面量，OPT-098 与 OPT-087 分别上线时没对口径，151-200 字区间必被截断。",
+      "fix": "抽出 const BOOK_REVIEW_MAX_CHARS = 200，提示词与书卡截断共用同一个数；书卡高度本就按 notesLines.length 动态算，加长不溢出版式。无读后感时回落的 book.notes 仍保持 150 字海报预算。PR #64。",
+      "tags": [
+        "share-card",
+        "ai-review",
+        "opt-108",
+        "constant-drift",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T00:00:00.000Z"
     }
   ]
 }
