@@ -109,9 +109,10 @@ test("OPT-079: connect 分支以 sourceType:quote 打开关联对话框（来源
 
 test("OPT-080: quoteLabel 截断阈值放宽（32 → 70 字）", () => {
   // quoteLabel 是 combobox init 内的嵌套函数，源码级断言其阈值已放宽。
-  assert.doesNotMatch(appSource, /\.slice\(0,\s*32\)\s*\+\s*\(q\.content\?\.length\s*>\s*32/,
+  // 截断行为本身由 quote-combobox-ocr-label.test.js 真跑 initQuoteCombobox 断言（含 OCR 回落）。
+  assert.doesNotMatch(appSource, /\.slice\(0,\s*32\)/,
     "旧的 32 字截断必须已移除");
-  assert.match(appSource, /\.slice\(0,\s*70\)\s*\+\s*\(q\.content\?\.length\s*>\s*70/,
+  assert.match(appSource, /const content = text\.slice\(0, 70\) \+ \(text\.length > 70 \? "…" : ""\)/,
     "quoteLabel 应截断至 70 字（两行封顶下更贴合）");
 });
 

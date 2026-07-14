@@ -4664,10 +4664,17 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   let allQuotes = [];
   let isOpen = false;
 
+  // OCR 摘抄正文只存在 ocrText 里（content 为空），回落后标签才不会退化成「书名 · 」，
+  // 搜索也才命中得到（OPT-111，与列表/详情/分享卡的 content || ocrText 口径一致）。
+  function quoteText(q) {
+    return q.content || q.ocrText || "";
+  }
+
   function quoteLabel(q) {
     const book = state.books.find((b) => b.id === q.bookId);
     const bookName = book ? book.title : "未知书籍";
-    const content = (q.content || "").slice(0, 70) + (q.content?.length > 70 ? "…" : "");
+    const text = quoteText(q);
+    const content = text.slice(0, 70) + (text.length > 70 ? "…" : "");
     return `${bookName} · ${content}`;
   }
 
@@ -4676,7 +4683,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
     const lower = q.toLowerCase();
     return allQuotes.filter((item) => {
       const book = state.books.find((b) => b.id === item.bookId);
-      return (item.content || "").toLowerCase().includes(lower) ||
+      return quoteText(item).toLowerCase().includes(lower) ||
         (book?.title || "").toLowerCase().includes(lower);
     }).slice(0, 30);
   }
