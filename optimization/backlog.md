@@ -981,7 +981,7 @@ Format per item:
 - how: `app.js:3194`：在 `showConfirmDialog` 调用前加 `const connCount = getConnectionCount(quoteId);`；将 `message` 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``。约 3-4 行改动。建议与 E168（deleteBook 级联数量透明度）合并为「破坏性操作透明度」PR，共享一个 PR 讲故事。Touch: `app.js:3193-3199`（showConfirmDialog 调用处）；`app.js:813`（getConnectionCount，已存在，直接复用）。
 
 ### OPT-111 — `quoteLabel()` 在关联对话框摘抄下拉中不回落 `ocrText`，OCR 摘抄全部显示「书名 · 」空白标签 — 由 explore E177 提拔 [2026-07-13]
-- status: new
+- status: in-progress (2026-07-14, 分支 opt-111-quote-label-ocr-fallback — 按 how 实现，但把回落抽成 combobox 内的 quoteText(q) 共享给 quoteLabel/filteredQuotes，避免同一口径写两遍)
 - area: frontend
 - northstar: 中——Theme 2「建立关联」可操作性直接前提；快速 OCR 是最高频采集路径，OCR-only 摘抄在关联目标选择框中对用户完全不可辨识，阻碍 Theme 2「关联」场景；S 级 2 行修复，2026-07-11 信号直接对应
 - description: `quoteLabel()`（`app.js:4613`）：`(q.content || "").slice(0, 70)`，q.content 为空时标签退化为「书名 · 」；`filteredQuotes()`（`app.js:4622`）搜索只检索 `item.content`，OCR 摘抄无法被搜索命中
