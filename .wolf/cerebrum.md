@@ -79,6 +79,8 @@
 
 - **[2026-06-03] 模态 dialog 打开时 toast 会被遮挡（top layer）。** `<dialog>.showModal()` 渲染在浏览器 top layer，凌驾于所有 z-index 之上；body 级的 `#toast`（z-index:1200）被画在弹窗下方，弹窗关闭后才显现（用户体验：点保存「没反应」，关弹窗才看到提示）。`showToast()` 已修复为：检测 `document.querySelectorAll("dialog[open]")`，有打开弹窗就把 toast 节点 append 进最上层弹窗（随之进入 top layer），否则挂回 body。toast 是 `position:fixed` 且 dialog 无 `transform`，相对视口定位不变。用 `dialog[open]` 而非 `:modal` 伪类（旧 iOS Safari 不支持 `:modal`，querySelectorAll 会抛错）。
 
+- **[2026-07-14] 改 app.js 里被「源码级正则测试」盯着的函数时，先 grep 一遍 tests/ 里有没有匹配你要改的那行字面量。** 仓库里有一批测试因为目标是 combobox init / bindEvents 内的**嵌套函数**（hook 直达不了），退而用 `assert.match(appSource, /字面表达式/)`。这类断言**耦合的是表达式的写法而不是行为**：本次 OPT-111 把 `(q.content || "").slice(0, 70) + (q.content?.length > 70 ...)` 抽成 `quoteText(q)` 后，`connection-entry-ux.test.js` 的 OPT-080 断言直接误红；OPT-101 把 `book.review = String(formData.get("review"))` 拆成两句后，`share-card.test.js` 同样误红。两处都**不是真回归**，但会让「全绿」变红、误导人以为改坏了。做法：① 改动前 `grep -rn "你要改的片段" tests/`；② 修的时候优先**把该断言换成真跑**——嵌套函数照样能驱动，只要把外层 init（如 `initQuoteCombobox`）挂进 `__hooks`，用 stub 元素装起来再 dispatch focus/input 事件读渲染结果（见 `quote-combobox-ocr-label.test.js` / `ai-review-source-badge.test.js` 的 harness）；实在要留正则，就锚定**意图**（阈值 70、字段名）别锚定整行写法。
+
 - **[2026-05-13] 静态文件必须带 `Cache-Control: no-store` 响应头。** iPhone Safari 极度激进地缓存 JS 文件，不带缓存控制头时即使服务器重启也继续用旧版本。`log_server.py` 的静态文件路由要加 `Cache-Control: no-store, no-cache, must-revalidate` 和 `Pragma: no-cache`。同时在 `index.html` 的 `<script src="./app.js?v=YYYYMMDD">` 加版本号作为双重保险。
 
 ## Do-Not-Repeat

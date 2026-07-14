@@ -2960,3 +2960,24 @@
 |------|--------|---------|---------|--------|
 | 10:07 | Created ../../.claude/paper-loop/review-2026-07-14.md | — | ~567 |
 | 02:07 | 夜间 PR 审查：#63(OPT-107 清除全部筛选)、#64(OPT-108 读后感字数上限对齐) 审查通过并 squash 合并；先解了上个 session 遗留的 buglog 撞号冲突(本地 bug-470→473) | app.js, index.html, styles.css, .wolf/buglog.json | 合并后 feature/agent 全绿：py 363 passed / js 333 passed；main 未动 | ~45k |
+| 12:40 | Edited app.js | modified quoteText() | ~239 |
+| 12:41 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~1661 |
+| 12:42 | Edited tests/frontend/connection-entry-ux.test.js | 7→8 lines | ~118 |
+| 12:42 | Edited tests/frontend/quote-combobox-ocr-label.test.js | expanded (+13 lines) | ~221 |
+| 12:42 | Edited optimization/backlog.md | 2→2 lines | ~71 |
+| 12:43 | Edited app.js | 2→5 lines | ~56 |
+| 12:43 | Edited app.js | modified if() | ~64 |
+| 12:43 | Edited app.js | modified resetBookEditDraft() | ~35 |
+| 12:43 | Edited app.js | 3→5 lines | ~74 |
+| 12:44 | Edited app.js | added 2 condition(s) | ~137 |
+| 12:44 | Edited app.js | 3→4 lines | ~63 |
+| 12:44 | Edited app.js | modified if() | ~129 |
+| 12:44 | Edited app.js | 2→2 lines | ~37 |
+| 12:44 | Edited app.js | 1→3 lines | ~37 |
+| 12:44 | Edited styles.css | expanded (+9 lines) | ~112 |
+| 12:44 | Edited styles.css | 7→7 lines | ~50 |
+| 12:46 | Created tests/frontend/ai-review-source-badge.test.js | — | ~3120 |
+| 12:47 | Edited tests/frontend/share-card.test.js | 3→6 lines | ~122 |
+| 12:47 | Edited optimization/backlog.md | 2→2 lines | ~71 |
+| 12:55 | OPT-111 PR #65（quoteLabel/filteredQuotes 回落 ocrText）+ OPT-101 PR #66（book.reviewIsAi 来源标注），base 均 feature/agent | app.js, styles.css, tests/frontend/{quote-combobox-ocr-label,ai-review-source-badge}.test.js, optimization/backlog.md | 两 PR 已开；pytest 363 passed，node --test 39 文件 343 pass/0 fail | ~52000 |
+| 12:55 | 记 cerebrum：源码级正则测试锚定字面表达式，重构必误红（今日撞两次：OPT-080/share-card） | .wolf/cerebrum.md | 已记 Key Learning | ~600 |

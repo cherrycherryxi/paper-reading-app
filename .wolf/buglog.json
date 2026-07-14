@@ -7930,6 +7930,118 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-13T16:46:47.923Z"
+    },
+    {
+      "id": "bug-474",
+      "timestamp": "2026-07-14T04:40:12.490Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 16→23 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:40:12.490Z"
+    },
+    {
+      "id": "bug-475",
+      "timestamp": "2026-07-14T04:42:26.442Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/quote-combobox-ocr-label.test.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→20 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:42:26.443Z"
+    },
+    {
+      "id": "bug-476",
+      "timestamp": "2026-07-14T04:42:48.803Z",
+      "error_message": "Wrong reference: new should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"in\"",
+      "fix": "Changed new → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:42:48.803Z"
+    },
+    {
+      "id": "bug-477",
+      "timestamp": "2026-07-14T04:44:07.196Z",
+      "error_message": "Missing guard clause",
+      "file": "app.js",
+      "root_cause": "No early return/throw for edge case: !nextReview",
+      "fix": "Added guard clause: if (!nextReview)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:44:07.196Z"
+    },
+    {
+      "id": "bug-478",
+      "timestamp": "2026-07-14T04:44:23.076Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \").trim();\n  const notesLabel = review ? \"",
+      "fix": "Changed to \").trim();\n  const notesLabel = review ? (book.rev",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:44:23.076Z"
+    },
+    {
+      "id": "bug-479",
+      "timestamp": "2026-07-14T04:44:49.492Z",
+      "error_message": "CSS fix: color, background",
+      "file": "styles.css",
+      "root_cause": "color: var(--color-accent-strong, var(--color-ink-muted)) → var(--color-yellow-dark); background: var(--color-surface-muted, rgba(0, 0, 0, 0.04)) → var(--color-accent-soft)",
+      "fix": "Changed color: var(--color-accent-strong, var(--color-ink-muted)) → var(--color-yellow-dark); background: var(--color-surface-muted, rgba(0, 0, 0, 0.04)) → var(--color-accent-soft)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:44:49.492Z"
+    },
+    {
+      "id": "bug-480",
+      "timestamp": "2026-07-14T04:47:54.938Z",
+      "error_message": "Wrong reference: triaged should be in",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"in\"",
+      "fix": "Changed triaged → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T04:47:54.938Z"
     }
   ]
 }
