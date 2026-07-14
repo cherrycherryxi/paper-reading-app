@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T06:28:35.094Z
-> Files: 267 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T16:46:47.634Z
+> Files: 271 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -99,11 +99,12 @@
 - `feedback_pr_target_feature_agent.md` (~223 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~548 tok)
+- `MEMORY.md` (~609 tok)
 - `project_brand_share_kit.md` (~327 tok)
 - `project_daily_loop_automation.md` (~604 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
+- `reference_dotfiles_repo.md` (~227 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_prod_monitoring.md` (~790 tok)
@@ -112,6 +113,7 @@
 
 ## ../../.claude/scripts/
 
+- `.gitignore` — Git ignore rules (~10 tok)
 - `bark-push.sh` — 可复用 Bark 推送(跨项目个人基建)。key 从 ~/.claude/bark-key.txt 读,不硬编码。 (~206 tok)
 - `email-cheatsheet.sh` — email-cheatsheet — 把全局共享工具 / 常用命令速查发到邮箱。 (~473 tok)
 - `focus-midweek-check.sh` — 焦点中期检查(每周四 21:00,launchd com.huangnanqi.focus-midweek-check)。 (~562 tok)
@@ -121,12 +123,14 @@
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1132 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~398 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~634 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~838 tok)
+- `README.md` — Project documentation (~274 tok)
 - `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~1100 tok)
+- `sync-configs.sh` — 把散落在系统各处的个人配置快照进本仓库 configs/，供备份+版本历史。 (~271 tok)
 - `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
 - `weekly-report.sh` (~897 tok)
 

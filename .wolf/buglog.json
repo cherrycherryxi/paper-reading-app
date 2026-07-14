@@ -7866,6 +7866,22 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-470",
+      "timestamp": "2026-07-13T16:46:47.923Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-wrapup.sh",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→38 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T16:46:47.923Z"
     }
   ]
 }
