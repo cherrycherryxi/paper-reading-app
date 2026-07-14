@@ -8042,6 +8042,27 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-14T04:47:54.938Z"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-07-14",
+      "error_message": "paper-wrapup 07-13 23:30 又没写日报（昨天刚改的 mtime 活动检测被假活动骗过）",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "昨天(bug-452)把'在工作'判断从 pgrep 改成看 transcript 文件 mtime（find -mmin -30）。但旧会话 .jsonl 被 resume/后台维护 touch 时 mtime 会变新、内容却停在前一天——501fa235(内容截至 07-12 14:29)的 mtime 被 07-13 23:57 更新，wrapup 23:30 据此误判'在工作'跳过。文件 mtime 不等于真实活动。",
+      "fix": "改为读 transcript【最后一条消息的真实 timestamp】(解析 jsonl 尾部)，只有近 30 分钟内真有新消息才算在工作；文件 mtime 仅用作预筛省 IO。实测能正确忽略 mtime 被摸新但内容陈旧的会话。",
+      "tags": [
+        "mtime",
+        "timestamp",
+        "transcript",
+        "wrapup",
+        "idle-detection",
+        "false-positive"
+      ],
+      "related_bugs": [
+        "bug-452"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-14"
     }
   ]
 }
