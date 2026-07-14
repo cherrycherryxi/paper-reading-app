@@ -59,6 +59,8 @@ const els = {
   quoteTypeChips: document.querySelector("#quoteTypeChips"),
   quoteSearch: document.querySelector("#quoteSearch"),
   statusFilterChips: document.querySelector("#statusFilterChips"),
+  booksSearchInput: document.querySelector("#booksSearchInput"),
+  clearBookFiltersBtn: document.querySelector("#clearBookFiltersBtn"),
   booksResultCount: document.querySelector("#booksResultCount"),
   importInput: document.querySelector("#importInput"),
   importResultDialog: document.querySelector("#importResultDialog"),
@@ -191,6 +193,9 @@ let quoteDialogIsNew = false;
 let ocrProvisionalQuoteId = "";
 let selectedQuoteTags = [];
 const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
+// AI 读后感的字数上限：既是给模型的提示词上限，也是书卡分享图的截断门槛。
+// 两处必须同一个数，否则模型写满就会在分享图里被切尾（OPT-108）。
+const BOOK_REVIEW_MAX_CHARS = 200;
 let toastTimer = null;
 let selectedStatusFilter = "all";
 let selectedTagFilter = "";
@@ -1391,6 +1396,7 @@ function buildQuoteSearchCard(quote) {
 
 function renderSearchResults(matchedBooks) {
   els.booksResultCount.textContent = `找到 ${matchedBooks.length} 本书籍`;
+  renderClearBookFiltersBtn();
 
   if (!matchedBooks.length) {
     els.booksList.className = "book-list empty-state";
@@ -1406,6 +1412,31 @@ function renderSearchResults(matchedBooks) {
   matchedBooks.forEach((book) => {
     els.booksList.appendChild(buildBookSearchCard(book));
   });
+}
+
+// 书单有三个独立的筛选维度：搜索词、状态 chip、标签 chip。
+function hasActiveBookFilters() {
+  return Boolean(searchQuery) || selectedStatusFilter !== "all" || Boolean(selectedTagFilter);
+}
+
+function syncStatusFilterChips() {
+  els.statusFilterChips?.querySelectorAll("[data-status-filter]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.statusFilter === selectedStatusFilter);
+  });
+}
+
+function renderClearBookFiltersBtn() {
+  els.clearBookFiltersBtn?.classList.toggle("is-hidden", !hasActiveBookFilters());
+}
+
+// 一键回到「全部」：三个维度一起清。只清搜索词仍走 restoreDefaultView()，
+// 那条路径要保留用户已选的状态/标签筛选。
+function clearAllBookFilters() {
+  selectedStatusFilter = "all";
+  selectedTagFilter = "";
+  if (els.booksSearchInput) els.booksSearchInput.value = "";
+  syncStatusFilterChips();
+  restoreDefaultView();
 }
 
 function restoreDefaultView() {
@@ -1449,6 +1480,7 @@ function renderBooks() {
   }
 
   renderTagFilterChips();
+  renderClearBookFiltersBtn();
 
   const books = [...state.books]
     .filter((book) => selectedStatusFilter === "all" || book.status === selectedStatusFilter)
@@ -1467,9 +1499,9 @@ function renderBooks() {
         '还没有书，点左上角 <b>+</b> 添加你在读的书，或 <button type="button" class="link-btn" id="loadSampleBtn">载入示例看看</button>。';
       els.booksList.querySelector("#loadSampleBtn")?.addEventListener("click", loadSampleData);
     } else {
-      els.booksList.textContent = selectedTagFilter
-        ? "没有匹配的书籍，试试清除搜索条件。"
-        : "还没有匹配的书籍，点左上角加号新增一本。";
+      els.booksList.innerHTML =
+        '没有匹配的书籍，<button type="button" class="link-btn" id="clearFiltersEmptyBtn">清除全部筛选</button>回到全部，或点左上角加号新增一本。';
+      els.booksList.querySelector("#clearFiltersEmptyBtn")?.addEventListener("click", clearAllBookFilters);
     }
     return;
   }
@@ -2331,7 +2363,7 @@ async function generateBookReview(bookId, textarea) {
       body: JSON.stringify({
         context: { type: "book", bookId },
         bookId,
-        message: "请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-200字），包含你对这本书的个人感受和评价。",
+        message: `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_MAX_CHARS}字），包含你对这本书的个人感受和评价。`,
       }),
     });
     const reply = (data?.reply || "").trim();
@@ -2964,7 +2996,10 @@ async function renderBookShareCard(book) {
   // 有读后感优先展示读后感，否则回落内容简介；标签随内容语义变化。
   const review = (book.review || "").trim();
   const notesLabel = review ? "我的读后" : "内容简介";
-  const notes = truncateForShare(review || book.notes || "", 150);
+  // 读后感按提示词上限截断（写满也不切尾）；内容简介是任意长度的用户文本，仍用较紧的海报预算。
+  const notes = review
+    ? truncateForShare(review, BOOK_REVIEW_MAX_CHARS)
+    : truncateForShare(book.notes || "", 150);
   const tags = book.tags || [];
   const statusLabel = statusMap[book.status] || book.status || "";
   const pills = [];
@@ -5195,11 +5230,11 @@ function bindEvents() {
     const button = event.target.closest("[data-status-filter]");
     if (!button) return;
     selectedStatusFilter = button.dataset.statusFilter;
-    els.statusFilterChips.querySelectorAll("[data-status-filter]").forEach((item) => {
-      item.classList.toggle("active", item.dataset.statusFilter === selectedStatusFilter);
-    });
+    syncStatusFilterChips();
     renderBooks();
   });
+
+  els.clearBookFiltersBtn?.addEventListener("click", clearAllBookFilters);
 
   document.querySelector("#booksSearchInput")?.addEventListener("input", (event) => {
     window.clearTimeout(searchDebounceTimer);
