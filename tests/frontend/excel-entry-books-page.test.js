@@ -61,7 +61,7 @@ test("OPT-001: template generator headers match what importExcel() reads", () =>
   const fn = appJs.match(/function downloadExcelTemplate\(\)[\s\S]*?\n\}/m);
   assert.ok(fn, "downloadExcelTemplate must exist");
   // Every template header must be an alias importExcel() actually looks up.
-  for (const header of ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"]) {
+  for (const header of ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度", "读后感"]) {
     assert.match(fn[0], new RegExp(`"${header}"`), `template must include ${header} column`);
     assert.match(appJs, new RegExp(`getRowField\\(row, \\[[^\\]]*"${header}"`), `importExcel must read the ${header} column`);
   }
@@ -72,4 +72,27 @@ test("OPT-001: importExcel skips the template's example row", () => {
   assert.match(appJs, /title\.startsWith\("示例："\)/, "example row guard must exist");
   const fn = appJs.match(/function downloadExcelTemplate\(\)[\s\S]*?\n\}/m);
   assert.match(fn[0], /"示例：/, "example row title must carry the 示例： prefix the guard skips");
+});
+
+// OPT-100: 「喜欢程度」must write to book.rating (number) not into notes text
+test("OPT-100: importExcel writes 喜欢程度 to book.rating as a number, not into notes", () => {
+  const fn = appJs.match(/async function importExcel\(file\)[\s\S]*?\n\}/m);
+  assert.ok(fn, "importExcel must exist");
+  // rating must be parsed as a number clamped 0-5
+  assert.match(fn[0], /rating.*Math\.min.*Math\.max.*Math\.round.*Number/, "rating must be clamped to 0-5 integer");
+  // rating must appear in the book object literal
+  assert.match(fn[0], /rating,/, "rating must be set on the book object");
+  // notes must NOT include 喜欢程度 text concatenation
+  assert.doesNotMatch(fn[0], /喜欢程度：/, "喜欢程度 must not be concatenated into notes text");
+});
+
+// OPT-110: 「读后感」column in template + importExcel writes to book.review
+test("OPT-110: importExcel writes 读后感 column to book.review with reviewIsAi false", () => {
+  const fn = appJs.match(/async function importExcel\(file\)[\s\S]*?\n\}/m);
+  assert.ok(fn, "importExcel must exist");
+  // review field must be extracted from the row
+  assert.match(fn[0], /getRowField\(row, \["读后感"/, "importExcel must read 读后感 column");
+  // review and reviewIsAi must be set on the book object
+  assert.match(fn[0], /review,/, "review must be set on the imported book");
+  assert.match(fn[0], /reviewIsAi: false/, "reviewIsAi must be false for Excel-imported reviews");
 });

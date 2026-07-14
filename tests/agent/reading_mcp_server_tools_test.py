@@ -133,15 +133,30 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         self.assertEqual(result, {"ok": False, "error": "title is required"})
         self.assertEqual(self._load_state(), self.initial_state)
 
-    def test_summary_appends_to_existing_book_notes(self):
+    def test_summary_appends_to_book_review_not_notes(self):
+        # OPT-103: summary() must write to book.review, not book.notes.
+        # This prevents AI summaries from overwriting hand-written notes (内容简介).
         result = reading_mcp_server.summary(self.user_id, "阶段性总结", "book-1")
 
         self.assertTrue(result["ok"])
         self.assertEqual(result["updated"], {"bookId": "book-1"})
         state = self._load_state()
         book = next(item for item in state["books"] if item["id"] == "book-1")
-        self.assertEqual(book["notes"], "初始笔记\n\n阶段性总结")
+        # The summary must land in book.review, NOT book.notes
+        self.assertIn("阶段性总结", book.get("review", ""))
+        # book.notes must be left untouched
+        self.assertEqual(book["notes"], "初始笔记")
         self.assertIn("updatedAt", book)
+
+    def test_summary_appends_to_existing_review(self):
+        # OPT-103: consecutive summary() calls accumulate in book.review
+        reading_mcp_server.summary(self.user_id, "第一段总结", "book-1")
+        reading_mcp_server.summary(self.user_id, "第二段总结", "book-1")
+
+        state = self._load_state()
+        book = next(item for item in state["books"] if item["id"] == "book-1")
+        self.assertIn("第一段总结", book["review"])
+        self.assertIn("第二段总结", book["review"])
 
     def test_summary_rejects_missing_book(self):
         result = reading_mcp_server.summary(self.user_id, "阶段性总结", "missing-book")
