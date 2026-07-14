@@ -953,7 +953,7 @@ Format per item:
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
 
 ### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: M
@@ -963,7 +963,7 @@ Format per item:
 - how: Phase 1：`app.js` addQuote file input 改为 `accept="image/*" multiple`；`handleQuoteImageChange()` 改为处理 FileList（≤2 张）；`runOcrFromImage()` 改为顺序调两次上传+识别，结果拼接写入 textarea。约 30–40 行，零后端/schema 变更。Phase 2 可在 `/api/quotes/ocr` 端点增加 `imageDataUrl2` 字段支持 Kimi multi-image payload。Touch: `app.js`（addQuote file input、`handleQuoteImageChange`、`runOcrFromImage`）；Phase 2 可选 `app_server.py`（OCR 端点）。
 
 ### OPT-110 — Excel 导入模板无「读后感」列，`importExcel()` 不写 `book.review`——OPT-100（rating）的对称遗漏 — 由 explore E180 提拔 [2026-07-12]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -979,3 +979,19 @@ Format per item:
 - description: `app.js:3193-3209`（`deleteQuote()`）：`showConfirmDialog({ message: "确定删除这张摘抄卡片吗？" })`，不提及关联数量；`onConfirm` 回调用 `.filter()` 静默删除所有 `sourceId === quoteId || targetId === quoteId` 的 connections。`getConnectionCount(quoteId)`（`app.js:813`）已存在并返回「该摘抄参与的关联数量」，只需在 message 构建时调用一次即可。
 - why: E169（2026-07-08 首次核实）：connections 是 Theme 2 的核心数据，用户花时间手动建立的思想碰撞关联在删除摘抄时被无声抹去；若用户点下删除时知道「同时删除 3 条关联」，行为决策会有所不同。`getConnectionCount()` 复用零成本，是 OPT-043（导入过载守卫）/OPT-062（deleteBook Escape 守卫）「破坏性操作透明度」系列的对称延伸，S 级，无 API/schema 变更。
 - how: `app.js:3194`：在 `showConfirmDialog` 调用前加 `const connCount = getConnectionCount(quoteId);`；将 `message` 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``。约 3-4 行改动。建议与 E168（deleteBook 级联数量透明度）合并为「破坏性操作透明度」PR，共享一个 PR 讲故事。Touch: `app.js:3193-3199`（showConfirmDialog 调用处）；`app.js:813`（getConnectionCount，已存在，直接复用）。
+
+### OPT-111 — `quoteLabel()` 在关联对话框摘抄下拉中不回落 `ocrText`，OCR 摘抄全部显示「书名 · 」空白标签 — 由 explore E177 提拔 [2026-07-13]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「建立关联」可操作性直接前提；快速 OCR 是最高频采集路径，OCR-only 摘抄在关联目标选择框中对用户完全不可辨识，阻碍 Theme 2「关联」场景；S 级 2 行修复，2026-07-11 信号直接对应
+- description: `quoteLabel()`（`app.js:4613`）：`(q.content || "").slice(0, 70)`，q.content 为空时标签退化为「书名 · 」；`filteredQuotes()`（`app.js:4622`）搜索只检索 `item.content`，OCR 摘抄无法被搜索命中
+- why: OCR-only 摘抄在关联目标选择列表中完全不可辨识，来自同一本书的多张 OCR 摘抄全部显示相同空标签；`renderConnections()`（`app.js:898`）已正确使用 `q?.content || q?.ocrText` 回落，quoteLabel 是唯一遗漏；2026-07-11 signal「建立关联时来源没自动填入当前摘抄……目标若选摘抄，关键词搜索后每条摘抄显示不完整（被截断），看不清内容」直接对应
+- how: ① `app.js:4613`：`(q.content || "").slice(0, 70)` → `(q.content || q.ocrText || "").slice(0, 70)`（1 行）；② `app.js:4622`：搜索加 `|| (item.ocrText || "").toLowerCase().includes(lower)` 分支（1 行）。Touch: `app.js:4613`（quoteLabel）、`app.js:4622`（filteredQuotes）
+
+### OPT-112 — `renderTimeline()` 搜索 haystack 不含 `s.date`，用户无法按时间段（"6月"、"2026-07"）搜索阅读动态 — 由 explore E178 提拔 [2026-07-13]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」核心场景；「动态」Tab 是时序阅读记录的专用界面，按时间段回顾是自然需求，当前 haystack 不含日期字段使此路径完全阻断；S 级 1 行修复
+- description: `renderTimeline()`（`app.js:1515`）haystack：`[book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase()`，`s.date` 未被拼入；搜索「6月」「2026-07」时即便有匹配 session 也返回零结果
+- why: 「动态」Tab 设计初衷是时序阅读记录浏览，不支持按日期搜索与设计语义矛盾；OPT-076（PR #62，2026-07-13 合并）已做「加载更多」，搭车窗口已关，本项单独一行修复
+- how: `app.js:1515`：haystack 数组末尾加 `s.date?.slice(0, 7) || ""`（截取年月前缀 `"2026-06"`），1 行，零副作用，无 HTML/后端/schema 改动。Touch: `app.js:1515`（renderTimeline haystack 构建）

@@ -2,30 +2,27 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-12
+Last triaged: 2026-07-13
 
 ## Next up
 
 本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派
 
-> ⚠️ **2026-07-13 周一 PO 仪式手工修正（owner 认领，非 agent 错误）**：**OPT-105 已被 owner 认领为 W29 白天唯一焦点，status → in-progress，夜间 implement agent 请勿指派**（防撞单，OPT-074→PR #53 教训）。开槽后请改选其他项。**OPT-081 → P3 parked**（零 signal 佐证 + Theme 1 已收尾，见 backlog park 理由），已从本表 P2 区移入 P3 区。
->
 > 近 7 天 auto/ PR 明细：#61 auto/opt-065-mcp-sanitize-state（2026-07-11）、#60 auto/opt-092-search-field-bundle（2026-07-08）、#59 auto/opt-058-061-066-090-084-091-entry-bundle（2026-07-07）、#55 auto/opt-064-promptbuilder-strip-ocr-fields（2026-07-05）。
 >
-> **预算开槽首选（下次 triage 可指派，OPT-105 已被 owner 认领后重选）**：OPT-107（搜索一键清除筛选，P2/S，signal 2026-07-11，Theme 2 对齐）或 OPT-100+OPT-101+OPT-103（7/06 评分/AI 读后感 signal 的三个收尾缺口，均 S 级，可合并一 PR）。
+> **预算开槽首选（下次 triage 可指派，OPT-105 owner 白天认领中）**：OPT-100+OPT-101+OPT-103+OPT-110（同属 2026-07-06 评分/AI读后感/Excel 导入 signal cluster，均 S 级，约 25 行前端+1 行 MCP，可合并一 PR，与 owner OPT-105 无文件冲突）。
 >
-> **状态更新（本次 triage）**：OPT-065 per git log（commit f6e2dbc，#61 landed 2026-07-11）已标 done，从表中移出；OPT-076 per PR #62 open（opt-076-timeline-load-more）已标 in-progress；OPT-107/108 new → triaged 并入表。
->
-> 新信号（2026-07-11）已落 OPT：① 搜索快速清除筛选 → OPT-107（P2/S）；② AI 读后感字数适配分享图 → OPT-108（P2/S）。③ 登录墙产品决策（示例 demo vs 硬登录墙）—— 排查结论：非安全漏洞，待 owner 拍板后立 OPT。
+> **状态更新（本次 triage）**：OPT-076 per git log（PR #62 merged 2026-07-13T02:05Z）已标 done，从表中移出；OPT-057（OPT-076 重复项）同步 done，移出；OPT-107 per PR #63 open（opt-107-clear-all-filters）已标 in-progress；OPT-108 per PR #64 open（opt-108-review-length）已标 in-progress；OPT-109/110 new → triaged 并入表。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **in-progress** | 🔒 **W29 唯一焦点，owner 白天亲自做，夜间 agent 勿指派**（2026-07-13 PO 仪式）。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
-| OPT-107 | 书单多维过滤无统一「清除全部」——restoreDefaultView() 不重置状态/标签 chip | P2 | S | triaged | **signal 2026-07-11**「一键清空搜索/筛选，回到全部，不用逐字删」；Theme 2「回顾有价值→能找到」；`app.js:1408-1418` + 可选 `index.html:89-97`。 |
-| OPT-108 | generateBookReview() 提示词字数上限（200字）与分享卡截断门槛（150字）未对齐 | P2 | S | triaged | **signal 2026-07-11**「AI 读后感限制字数适配分享图」；OPT-098+087 两个已上线功能的完整度收尾；约 1 行改动。 |
+| OPT-107 | 书单多维过滤无统一「清除全部」——restoreDefaultView() 不重置状态/标签 chip | P2 | S | **in-progress** | PR #63 open（opt-107-clear-all-filters）；**signal 2026-07-11**「一键清空搜索/筛选，回到全部，不用逐字删」；Theme 2「回顾有价值→能找到」；`app.js:1408-1418` + 可选 `index.html:89-97`。 |
+| OPT-108 | generateBookReview() 提示词字数上限（200字）与分享卡截断门槛（150字）未对齐 | P2 | S | **in-progress** | PR #64 open（opt-108-review-length）；**signal 2026-07-11**「AI 读后感限制字数适配分享图」；OPT-098+087 两个已上线功能的完整度收尾；约 1 行改动。 |
 | OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | triaged | **signal 2026-07-06** 直接驱动；`app.js:4092-4113`，约 3 行，纯前端，零后端/DB 变更。 |
+| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | triaged | 对称于 OPT-100（同一 importFromExcel 路径）；`app.js:4083` header 解析 + `app.js:4130-4153` 字段赋值，约 3 行；OPT-105 豆瓣导入同期上线后两入口需对称；与 OPT-100 合并一 PR 共享 story。 |
 | OPT-101 | generateBookReview() 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 | P2 | S | triaged | **signal 2026-07-06**「展示时明确标注『AI 根据笔记整理』」；`index.html`（addBook/editBook）+ `app.js`（generateBookReview/addBook/saveBookEdit/详情展示）；约 15-20 行前端。 |
 | OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | triaged | **signal 2026-07-06** 佐证（AI 读后感诉求 MCP 侧闭环缺口）；`reading_mcp_server.py:323`，1 行修复；与 OPT-101 是同一 signal 的两面，可合并一 PR。 |
 | OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | triaged | OPT-021（CSS 深色模式）+ OPT-087（分享卡）闭环唯一缺口；`app.js:2599-2606`，约 5 行。 |
@@ -43,10 +40,9 @@ Last triaged: 2026-07-12
 | OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | P2 | S | triaged | northstar「弱→中」；`app.js:274-279`，处理 book: 但 quote: fallthrough 错误解析为 bookId；1 行修复。 |
 | OPT-089 | clearSampleData 不清理 chatHistories/chatContexts，孤儿聊天历史随 syncState 写回 | P2 | S | triaged | northstar「弱-中」；onboarding「示例→清除→空白起步」是新用户留存路径；`app.js:1729-1744`。 |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | northstar「中」；乐观锁版本字段污染可致跨设备丢数据；`app_server.py:676, 4057, 4061`。 |
-| OPT-057 | 「动态」Tab 时间线硬限 10 条，积累后无法看到更多历史 | P2 | S | triaged | northstar「中」，Theme 2；与 OPT-076 同类，建议合并一 PR 处理（OPT-076 是 M 复杂度的完整方案）。 |
-| OPT-076 | renderTimeline() 硬上限 10 条且无告知，阅读历史超 10 次后早期记录不可见 | P2 | M | in-progress | PR #62 open（opt-076-timeline-load-more）；northstar「中」，Theme 2「回顾有价值」。 |
 | OPT-077 | renderTimeline() 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 | P2 | M | triaged | OPT-074 数据已到位，展示层闭环；northstar「中」，Theme 2「回顾有价值」；Touch: `app.js:1321-1399` + `styles.css`。 |
 | OPT-102 | 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时 | P2 | M | triaged | Theme 1「采集顺滑」；Touch: `app_server.py`（OCR 端点 body 解析）+ `app.js`（toBlob 上传路径）；保留旧 dataURL 分支兼容。 |
+| OPT-109 | 跨页 OCR：runOcrFromImage() 仅支持单图，拍两页无法拼成同一摘抄 | P2 | M | triaged | **signal 2026-07-03**「希望能拍 2 张照片一起 OCR，拼成同一条摘抄」；Theme 1「采集顺滑」；Phase 1 纯前端：file input 加 multiple、串行两次 OCR 拼接，约 30-40 行；Touch: `app.js:4229-4280`（runOcrFromImage）；northstar「中-高」。 |
 | OPT-081 | Organize/Candidates 批量采集激活，前端实现沉睡，无 HTML/调用者/后端端点 | P3 | M | triaged | P3 parked（2026-07-13 PO 仪式）：零 signal 佐证；Theme 1「采集顺滑」已收尾；M 复杂度激活一条无人要求过的文字粘贴录入路径，对北极星无贡献。代码保留，出现真实 signal 再解冻。 |
 | OPT-060 | 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 | P3 | S | triaged | P3 parked：OPT-088（PR #60，2026-07-10 合并）已从上游函数侧完全覆盖，不另行指派。 |
 | OPT-051 | 添加 Web App Manifest，支持 Android/Chrome PWA 安装 | P3 | S | triaged | P3 parked（定位 A 下唯一用户不用 Android；升级到 B 当周再做）。 |
