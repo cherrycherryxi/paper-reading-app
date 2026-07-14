@@ -196,9 +196,11 @@ let quoteDialogIsNew = false;
 let ocrProvisionalQuoteId = "";
 let selectedQuoteTags = [];
 const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
-// AI 读后感的字数上限：既是给模型的提示词上限，也是书卡分享图的截断门槛。
-// 两处必须同一个数，否则模型写满就会在分享图里被切尾（OPT-108）。
-const BOOK_REVIEW_MAX_CHARS = 200;
+// AI 读后感字数拆成两个数：给模型的「目标篇幅」与分享图「硬截断上限」。模型会略微超写，
+// 上限必须比目标高、留余量，否则写满目标就在分享图里被切尾（OPT-108 曾把两者合成同一个
+// 200，模型写到 207 就被切尾——这是问题根源）。书卡画布高度按行数动态计算，加长不溢版。
+const BOOK_REVIEW_TARGET_CHARS = 200;   // 提示词目标：填满书卡又不啰嗦
+const BOOK_REVIEW_MAX_CHARS = 260;      // 分享图硬截断上限：比目标高，容忍模型超写、避免切尾
 // AI 起草且未经改动的读后感，展示时必须与手写读后感区分（OPT-101）。书详情页与分享卡共用同一措辞。
 const REVIEW_AI_LABEL = "AI 根据笔记整理";
 let toastTimer = null;
@@ -2368,7 +2370,7 @@ async function generateBookReview(bookId, textarea) {
       body: JSON.stringify({
         context: { type: "book", bookId },
         bookId,
-        message: `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_MAX_CHARS}字），包含你对这本书的个人感受和评价。`,
+        message: `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_TARGET_CHARS}字），包含你对这本书的个人感受和评价。`,
       }),
     });
     const reply = (data?.reply || "").trim();
