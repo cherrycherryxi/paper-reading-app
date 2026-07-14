@@ -113,6 +113,10 @@
             </button>
             <input id="sessionSearch" type="search" placeholder="搜索书名或笔记…" autocomplete="off" />
           </div>
+          <div class="books-meta-row">
+            <span></span>
+            <button class="link-btn is-hidden" type="button" id="clearSessionFiltersBtn">✕ 清除全部筛选</button>
+          </div>
           <p id="sessionStats" class="session-stats is-hidden"></p>
           <div id="timeline" class="timeline empty-state"></div>
         </section>
@@ -132,6 +136,10 @@
             <button class="filter-chip active" type="button" data-quote-type="all">全部</button>
             <button class="filter-chip" type="button" data-quote-type="quote">摘抄</button>
             <button class="filter-chip" type="button" data-quote-type="note">笔记</button>
+          </div>
+          <div class="books-meta-row">
+            <span></span>
+            <button class="link-btn is-hidden" type="button" id="clearQuoteFiltersBtn">✕ 清除全部筛选</button>
           </div>
           <div id="quotesList" class="quote-list empty-state"></div>
         </section>
@@ -154,6 +162,10 @@
             <button class="filter-chip" type="button" data-kind-filter="对比">对比</button>
             <button class="filter-chip" type="button" data-kind-filter="影响">影响</button>
             <button class="filter-chip" type="button" data-kind-filter="延伸">延伸</button>
+          </div>
+          <div class="books-meta-row">
+            <span></span>
+            <button class="link-btn is-hidden" type="button" id="clearConnectionFiltersBtn">✕ 清除全部筛选</button>
           </div>
           <div id="connectionsList" class="connections-list empty-state"></div>
         </section>

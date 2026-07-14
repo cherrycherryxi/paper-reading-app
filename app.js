@@ -61,6 +61,9 @@ const els = {
   statusFilterChips: document.querySelector("#statusFilterChips"),
   booksSearchInput: document.querySelector("#booksSearchInput"),
   clearBookFiltersBtn: document.querySelector("#clearBookFiltersBtn"),
+  clearSessionFiltersBtn: document.querySelector("#clearSessionFiltersBtn"),
+  clearQuoteFiltersBtn: document.querySelector("#clearQuoteFiltersBtn"),
+  clearConnectionFiltersBtn: document.querySelector("#clearConnectionFiltersBtn"),
   booksResultCount: document.querySelector("#booksResultCount"),
   importInput: document.querySelector("#importInput"),
   importResultDialog: document.querySelector("#importResultDialog"),
@@ -894,6 +897,7 @@ function renderConnections() {
   connSourceQuoteComboWrap?._comboboxUpdate?.(state.quotes);
   connTargetQuoteComboWrap?._comboboxUpdate?.(state.quotes);
   if (!els.connectionsList) return;
+  els.clearConnectionFiltersBtn?.classList.toggle("is-hidden", !hasActiveConnectionFilters());
   const conns = state.connections || [];
   const searchRaw = (els.connectionSearch?.value || "").trim().toLowerCase();
   let filtered = conns;
@@ -1458,6 +1462,38 @@ function restoreDefaultView() {
   renderBooks();
 }
 
+// 记录 / 摘抄 / 关联 三页的「一键清除全部筛选」——与书单同一套模式：
+// hasActive* 判定是否有筛选（决定 ✕ 按钮显隐），clearAll* 把该页所有筛选维度归零后重渲染。
+function hasActiveSessionFilters() {
+  return Boolean((els.sessionSearch?.value || "").trim());
+}
+function clearAllSessionFilters() {
+  if (els.sessionSearch) els.sessionSearch.value = "";
+  renderTimeline();
+}
+
+function hasActiveQuoteFilters() {
+  const type = els.quoteTypeChips?.querySelector(".filter-chip.active")?.dataset.quoteType || "all";
+  return Boolean((els.quoteSearch?.value || "").trim()) || type !== "all";
+}
+function clearAllQuoteFilters() {
+  if (els.quoteSearch) els.quoteSearch.value = "";
+  els.quoteTypeChips?.querySelectorAll(".filter-chip").forEach((b) =>
+    b.classList.toggle("active", b.dataset.quoteType === "all"));
+  renderQuotes();
+}
+
+function hasActiveConnectionFilters() {
+  return Boolean((els.connectionSearch?.value || "").trim()) || selectedConnectionKindFilter !== "all";
+}
+function clearAllConnectionFilters() {
+  if (els.connectionSearch) els.connectionSearch.value = "";
+  selectedConnectionKindFilter = "all";
+  els.connectionKindChips?.querySelectorAll("[data-kind-filter]").forEach((item) =>
+    item.classList.toggle("active", item.dataset.kindFilter === "all"));
+  renderConnections();
+}
+
 function globalSearch(query) {
   const normalized = String(query || "").trim().toLowerCase();
   searchQuery = normalized;
@@ -1546,6 +1582,7 @@ function renderTimeline() {
     return;
   }
 
+  els.clearSessionFiltersBtn?.classList.toggle("is-hidden", !hasActiveSessionFilters());
   const searchRaw = (els.sessionSearch?.value || "").trim().toLowerCase();
   const allSorted = [...state.sessions].sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
   const sessions = searchRaw
@@ -1639,6 +1676,7 @@ function renderQuotes() {
     return;
   }
 
+  els.clearQuoteFiltersBtn?.classList.toggle("is-hidden", !hasActiveQuoteFilters());
   const filter = els.quoteTypeChips?.querySelector('.filter-chip.active')?.dataset.quoteType || 'all';
   const searchRaw = (els.quoteSearch?.value || "").trim().toLowerCase();
   const quotes = [...state.quotes]
@@ -5266,6 +5304,9 @@ function bindEvents() {
   });
 
   els.clearBookFiltersBtn?.addEventListener("click", clearAllBookFilters);
+  els.clearSessionFiltersBtn?.addEventListener("click", clearAllSessionFilters);
+  els.clearQuoteFiltersBtn?.addEventListener("click", clearAllQuoteFilters);
+  els.clearConnectionFiltersBtn?.addEventListener("click", clearAllConnectionFilters);
 
   document.querySelector("#booksSearchInput")?.addEventListener("input", (event) => {
     window.clearTimeout(searchDebounceTimer);
