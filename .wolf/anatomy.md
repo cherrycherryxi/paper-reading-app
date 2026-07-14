@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T02:09:13.504Z
-> Files: 265 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T19:23:14.962Z
+> Files: 267 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -58,6 +58,7 @@
 - `2026-07-08.md` — 日报 2026-07-08 (~456 tok)
 - `2026-07-09.md` — 日报 2026-07-09 (~580 tok)
 - `2026-07-10.md` — 日报 2026-07-10 (~592 tok)
+- `2026-07-12.md` — 日报 2026-07-12 (~393 tok)
 
 ## ../../.claude/hooks/
 
@@ -71,7 +72,7 @@
 - `cards-2026-07-13.md` — 卡片① (~117 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
-- `today-pick.md` — 卡片① (~95 tok)
+- `today-pick.md` — 卡片① (~132 tok)
 
 ## ../../.claude/plans/
 
@@ -117,15 +118,15 @@
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~590 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1179 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1132 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~415 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~398 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~838 tok)
 - `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
-- `send-email.py` — Send a text file as an email via Gmail SMTP. (~899 tok)
+- `send-email.py` — Send a text file as an email via Gmail SMTP. (~1100 tok)
 - `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
 - `weekly-report.sh` (~897 tok)
 
@@ -164,7 +165,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 3 more (~57723 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl, buildApiUrl, resolveImageUrl (~57793 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -175,7 +176,7 @@
 - `CLAUDE.md` — OpenWolf (~1301 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~11478 tok)
+- `index.html` — 🐛 又买了一本书 (~11506 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
@@ -183,7 +184,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary (~4373 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~23599 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~23644 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -275,17 +276,17 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~27786 tok)
+- `backlog.md` — Optimization Backlog (~28301 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~48458 tok)
+- `explore.md` — Exploration — new optimization directions (~49582 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2040 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~720 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1746 tok)
+- `triage.md` — Triage (~1742 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -344,6 +345,7 @@
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
+- `book-filter-clear-all.test.js` — OPT-107 书单三个筛选维度（搜索词 / 状态 chip / 标签 chip）的「清除全部筛选」入口。 (~2476 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
 - `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~6007 tok)
@@ -374,7 +376,7 @@
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~3047 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
-- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~3593 tok)
+- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~3955 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## wechat-miniprogram/

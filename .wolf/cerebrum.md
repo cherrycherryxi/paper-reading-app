@@ -164,6 +164,10 @@
 
 - **[2026-07-10] 功能 PR（含指派给 @claude bot 修改的）绝不能带 `.wolf/` bookkeeping 文件。** PR #60 本来 mergeable=CLEAN，让 @claude bot 改完后它把 `.wolf/{anatomy,buglog,memory}` 一起提交了，隔天 feature/agent 上的 buglog.json（并发加了 bug-429）与之尾部追加撞冲突 → PR 变 CONFLICTING/DIRTY，合并被拒。**代码本身零冲突，冲突全在 .wolf。** 教训：① 给 bot 的评论指令里明确写「只改代码与测试，不要碰 .wolf/」；② 自己审查 bot 提交时，`git show <sha> --stat` 若见 .wolf 要提示拆分；③ 若已混入且冲突，最省事的解法=本地 worktree 合并 feature/agent、对 buglog.json 之类 append 型文件 `git checkout --theirs`（保 feature/agent 权威实时状态）、其余自动合并、跑测试后推回 PR 分支再 squash。buglog/memory/signals 这类高频并发追加的文件，跨分支撞车是常态，隔离在独立提交是唯一解。
 
+- **[2026-07-13] 分享卡的画布高度是按内容行数动态算的，不是固定版式（OPT-108）。** `renderBookShareCard()` 先 `wrapCanvasText()` 得到行数，再由 `notesLines.length * notesLH` 累加出 `height`（app.js:2999-3005）。所以「加长文案会撑爆卡片」的直觉是错的——加长只是卡片变高。`truncateForShare(text, max)` 的 max 是**海报预算**（防用户贴 5000 字生成巨图），不是版式硬约束；当文案长度另有契约（如 AI 提示词字数上限）时，应该让 max 跟着那个契约走，而不是反过来压契约。
+
+- **[2026-07-13] 书单三个筛选维度（`searchQuery` / `selectedStatusFilter` / `selectedTagFilter`）互相独立，`restoreDefaultView()` 只清搜索词是有意的，不要「顺手」把它改成全清（OPT-107）。** `tests/frontend/global-search.test.js:458`「restoreDefaultView reapplies the current filters after clearing search」就在锁这个行为——清空搜索框后应回到用户既有的状态/标签筛选视图。需要一键回全部时，加独立的 `clearAllBookFilters()` 出口，别动 restoreDefaultView 的语义。另：状态 chip 的 active 高亮存在静态 DOM 里（index.html 写死 `class="filter-chip active"`），任何以代码方式改 `selectedStatusFilter` 的地方都必须调 `syncStatusFilterChips()` 同步高亮，否则 chip 显示与实际筛选脱节。
+
 ## Decision Log
 
 - [2026-06-02] **划线句子提取归 AI 精识别，快路径(百度)不做划线检测。** OPT-016 后用户问"百度能只识别划线句子吗"。结论：传统 OCR(百度/腾讯)不理解"划线"语义、无此接口，整页全识别。App 的划线提取一直由 AI 精识别(Kimi)路径承担——`OCR_PROMPT`(app_server.py:787)指示"只提取用户划线、标记或框选的正文"，无划线时取主段落，`未发现划线文字`为其空结果哨兵。曾评估"给百度快路径加下划线检测(找横线笔画+按行 location 过滤)"以实现"快+只要划线"，但真实照片下下划线检测鲁棒性差(底纹/表格线/页边/倾斜误判)、且稳妥实现要引入 OpenCV 重依赖——故**维持现状**：快路径(百度)=整页快速录入，AI 精识别=划线精准提取。两档分工即产品设计，勿再给快路径加划线检测。

@@ -937,7 +937,7 @@ Format per item:
 - how: `app.js` 新增 `importFromDouban()` 函数（约 80-100 行）：`FileReader` + `TextDecoder('gb18030')` 读 CSV → 逐行解析标题行定位列索引 → 按书名/作者 `fuzzyMatch` 匹配现有书籍 → patch `rating`/`finishedAt`/`review` → `syncState()`。`index.html` 在「我的」抽屉导入区加 `<input type="file" accept=".csv">` + 触发按钮 + 可选引导弹窗（说明豆瓣 CSV 导出步骤，复用 `#importExcelModal` 结构）。`showImportResult()` 展示更新/新增书目数。无后端/DB schema 变更（字段均已存在，走 `syncState()`）。Touch: `app.js`（新增 `importFromDouban` + 事件绑定）、`index.html`（导入按钮 + file input）。
 
 ### OPT-107 — 书单多维过滤无统一「清除全部」——`restoreDefaultView()` 重置文字搜索但不重置状态/标签 chip — 由 explore E176 提拔 [2026-07-11]
-- status: triaged
+- status: done (PR #63, 2026-07-13 — 未改 `restoreDefaultView()` 语义：它「只清搜索词、保留状态/标签」是有意的，`tests/frontend/global-search.test.js:458` 在锁这个行为；改为新增 `clearAllBookFilters()` + books-meta-row 的「✕ 清除全部筛选」按钮（仅在有活跃筛选时显示），筛选空结果的空状态也接同一入口)
 - area: frontend
 - northstar: 中——W28「检索修通」可用性前提；三维过滤无统一清除违反最小惊讶原则，降低筛选信任度；2026-07-11 信号明确驱动；Theme 2「回顾有价值→能找到」路径基础流畅度。
 - description: 书单 Tab 有文字搜索（`#booksSearchInput`）、状态 chip（`selectedStatusFilter`，`app.js:195`）、标签 chip（`selectedTagFilter`，`app.js:196`）三个独立过滤维度。清除文字搜索时 `restoreDefaultView()`（`app.js:1408-1418`）只重置 `searchQuery` 并让 chip 条可见，不重置 `selectedStatusFilter`/`selectedTagFilter`。`renderBooks()`（`app.js:1450-1456`）仍以上次 chip 选择过滤结果，用户以为「已清除」，实际仍在筛选状态。
@@ -945,7 +945,7 @@ Format per item:
 - how: ① `app.js:1408-1418`（`restoreDefaultView()`）追加 `selectedStatusFilter = "all"; selectedTagFilter = "";` + 同步更新 chip 的 active 状态（参照 `app.js:5178-5182` 的更新模式）；② 可选：`index.html:89-97` 区域在搜索框旁插入显式「清除全部」按钮（仅在有过滤激活时可见），点击后调用 `restoreDefaultView()` 并清空 `booksSearchInput.value`。Touch: `app.js:1408-1418`；`app.js:5178-5182`（参照）；可选 `index.html:89-97`。
 
 ### OPT-108 — `generateBookReview()` 提示词字数上限（200 字）与分享卡截断门槛（150 字）未对齐，AI 读后感可能总被截断 — 由 explore E175 提拔 [2026-07-11]
-- status: triaged
+- status: done (PR #64, 2026-07-13 — 取了与 how 相反的方向：不压提示词到 80-120，而是把书卡截断门槛提到 200，两处共用新常量 `BOOK_REVIEW_MAX_CHARS`。理由：读后感在书详情页是全文展示的，为迁就海报压模型输出会连带降低详情页质量；书卡高度本就按 `notesLines.length` 动态算，加长只是卡片变高不会溢出版式。无读后感时回落的 `book.notes` 仍保持 150 字预算)
 - area: frontend
 - northstar: 中——OPT-098（AI 读后感生成）和 OPT-087（分享卡片）是「让阅读感染他人」路径的两块积木；字数不对齐使读后感在分享卡中被截断带省略号，降低分享意愿；S 级 1 行修复完成两个已上线功能的最后一块拼图。
 - description: `generateBookReview()`（`app.js:2317`）发给 LLM 的提示词要求「100-200字」，AI 生成上限为 200 字；`renderBookShareCard()`（`app.js:2950`）调用 `truncateForShare(review || book.notes || "", 150)`，150 字以上追加「…」截断。151-200 字区间的 AI 读后感在分享卡中必定被截断，与 2026-07-11 信号诉求「不被截断、也不留大片空白」直接矛盾。
@@ -953,7 +953,7 @@ Format per item:
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
 
 ### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: M
@@ -963,7 +963,7 @@ Format per item:
 - how: Phase 1：`app.js` addQuote file input 改为 `accept="image/*" multiple`；`handleQuoteImageChange()` 改为处理 FileList（≤2 张）；`runOcrFromImage()` 改为顺序调两次上传+识别，结果拼接写入 textarea。约 30–40 行，零后端/schema 变更。Phase 2 可在 `/api/quotes/ocr` 端点增加 `imageDataUrl2` 字段支持 Kimi multi-image payload。Touch: `app.js`（addQuote file input、`handleQuoteImageChange`、`runOcrFromImage`）；Phase 2 可选 `app_server.py`（OCR 端点）。
 
 ### OPT-110 — Excel 导入模板无「读后感」列，`importExcel()` 不写 `book.review`——OPT-100（rating）的对称遗漏 — 由 explore E180 提拔 [2026-07-12]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -979,3 +979,19 @@ Format per item:
 - description: `app.js:3193-3209`（`deleteQuote()`）：`showConfirmDialog({ message: "确定删除这张摘抄卡片吗？" })`，不提及关联数量；`onConfirm` 回调用 `.filter()` 静默删除所有 `sourceId === quoteId || targetId === quoteId` 的 connections。`getConnectionCount(quoteId)`（`app.js:813`）已存在并返回「该摘抄参与的关联数量」，只需在 message 构建时调用一次即可。
 - why: E169（2026-07-08 首次核实）：connections 是 Theme 2 的核心数据，用户花时间手动建立的思想碰撞关联在删除摘抄时被无声抹去；若用户点下删除时知道「同时删除 3 条关联」，行为决策会有所不同。`getConnectionCount()` 复用零成本，是 OPT-043（导入过载守卫）/OPT-062（deleteBook Escape 守卫）「破坏性操作透明度」系列的对称延伸，S 级，无 API/schema 变更。
 - how: `app.js:3194`：在 `showConfirmDialog` 调用前加 `const connCount = getConnectionCount(quoteId);`；将 `message` 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``。约 3-4 行改动。建议与 E168（deleteBook 级联数量透明度）合并为「破坏性操作透明度」PR，共享一个 PR 讲故事。Touch: `app.js:3193-3199`（showConfirmDialog 调用处）；`app.js:813`（getConnectionCount，已存在，直接复用）。
+
+### OPT-111 — `quoteLabel()` 在关联对话框摘抄下拉中不回落 `ocrText`，OCR 摘抄全部显示「书名 · 」空白标签 — 由 explore E177 提拔 [2026-07-13]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「建立关联」可操作性直接前提；快速 OCR 是最高频采集路径，OCR-only 摘抄在关联目标选择框中对用户完全不可辨识，阻碍 Theme 2「关联」场景；S 级 2 行修复，2026-07-11 信号直接对应
+- description: `quoteLabel()`（`app.js:4613`）：`(q.content || "").slice(0, 70)`，q.content 为空时标签退化为「书名 · 」；`filteredQuotes()`（`app.js:4622`）搜索只检索 `item.content`，OCR 摘抄无法被搜索命中
+- why: OCR-only 摘抄在关联目标选择列表中完全不可辨识，来自同一本书的多张 OCR 摘抄全部显示相同空标签；`renderConnections()`（`app.js:898`）已正确使用 `q?.content || q?.ocrText` 回落，quoteLabel 是唯一遗漏；2026-07-11 signal「建立关联时来源没自动填入当前摘抄……目标若选摘抄，关键词搜索后每条摘抄显示不完整（被截断），看不清内容」直接对应
+- how: ① `app.js:4613`：`(q.content || "").slice(0, 70)` → `(q.content || q.ocrText || "").slice(0, 70)`（1 行）；② `app.js:4622`：搜索加 `|| (item.ocrText || "").toLowerCase().includes(lower)` 分支（1 行）。Touch: `app.js:4613`（quoteLabel）、`app.js:4622`（filteredQuotes）
+
+### OPT-112 — `renderTimeline()` 搜索 haystack 不含 `s.date`，用户无法按时间段（"6月"、"2026-07"）搜索阅读动态 — 由 explore E178 提拔 [2026-07-13]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」核心场景；「动态」Tab 是时序阅读记录的专用界面，按时间段回顾是自然需求，当前 haystack 不含日期字段使此路径完全阻断；S 级 1 行修复
+- description: `renderTimeline()`（`app.js:1515`）haystack：`[book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase()`，`s.date` 未被拼入；搜索「6月」「2026-07」时即便有匹配 session 也返回零结果
+- why: 「动态」Tab 设计初衷是时序阅读记录浏览，不支持按日期搜索与设计语义矛盾；OPT-076（PR #62，2026-07-13 合并）已做「加载更多」，搭车窗口已关，本项单独一行修复
+- how: `app.js:1515`：haystack 数组末尾加 `s.date?.slice(0, 7) || ""`（截取年月前缀 `"2026-06"`），1 行，零副作用，无 HTML/后端/schema 改动。Touch: `app.js:1515`（renderTimeline haystack 构建）

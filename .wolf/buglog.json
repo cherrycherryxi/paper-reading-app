@@ -7546,8 +7546,8 @@
       "related_bugs": [
         "bug-447"
       ],
-      "occurrences": 1,
-      "last_seen": "2026-07-12"
+      "occurrences": 2,
+      "last_seen": "2026-07-13"
     },
     {
       "id": "bug-452",
@@ -7705,6 +7705,215 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-461",
+      "timestamp": "2026-07-13T05:58:58.853Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: els.booksList.innerHTML =; '没有匹配的书籍，<button type=\"button\" class=\"link-btn\" id=\"clearFil",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-13T05:59:15.489Z"
+    },
+    {
+      "id": "bug-462",
+      "timestamp": "2026-07-13T06:03:01.557Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-200字），包含你对这本书的个人感受",
+      "fix": "Changed to `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_MAX_",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:03:01.557Z"
+    },
+    {
+      "id": "bug-463",
+      "timestamp": "2026-07-13T06:03:43.299Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/share-card.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:03:43.299Z"
+    },
+    {
+      "id": "bug-464",
+      "timestamp": "2026-07-13T06:05:30.209Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-13T06:05:38.200Z"
+    },
+    {
+      "id": "bug-465",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "AI 起草的读后感在书卡分享图里被切尾：提示词上限 200 字 vs 截断门槛 150 字",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "fixed_at": "2026-07-13T00:00:00.000Z",
+      "error_message": "AI 生成的读后感（100-200字）生成分享图后结尾变成「…」，句子没写完",
+      "file": "app.js",
+      "root_cause": "generateBookReview() 的提示词让模型写 100-200 字，renderBookShareCard() 却 truncateForShare(review, 150)。两个上限各写各的字面量，OPT-098 与 OPT-087 分别上线时没对口径，151-200 字区间必被截断。",
+      "fix": "抽出 const BOOK_REVIEW_MAX_CHARS = 200，提示词与书卡截断共用同一个数；书卡高度本就按 notesLines.length 动态算，加长不溢出版式。无读后感时回落的 book.notes 仍保持 150 字海报预算。PR #64。",
+      "tags": [
+        "share-card",
+        "ai-review",
+        "opt-108",
+        "constant-drift",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T00:00:00.000Z"
+    },
+    {
+      "id": "bug-466",
+      "timestamp": "2026-07-13T06:06:37.213Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:06:37.213Z"
+    },
+    {
+      "id": "bug-467",
+      "timestamp": "2026-07-13T06:19:34.520Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 11→6 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T06:19:34.520Z"
+    },
+    {
+      "id": "bug-451",
+      "timestamp": "2026-07-13",
+      "error_message": "周一产品负责人焦点邮件没收到（09:06 SMTPServerDisconnected，与 bug-449 同因复发，两天两次晨间）",
+      "file": "~/.claude/scripts/send-email.py（根因，共用发信工具）",
+      "root_cause": "send-email.py 单次 SMTP 连接偶发被断开（晨间尤甚，疑与 Clash 代理/网络抖动有关），且发一次失败即抛异常无重试 → 所有定时任务(PO 仪式/周报/prod 摘要/paper-loop)的邮件都可能因一次瞬时故障丢失。PO 仪式的活其实全干完了、摘要已生成，只是最后一步发信失败。",
+      "fix": "把重试直接加进共用的 send-email.py（重试 4 次、线性退避 5/10/15s，捕获 SMTPException/OSError），所有调用方自动受益；同时删掉 paper-morning.sh 昨天加的外层冗余重试。今天焦点邮件已从 product-owner-latest.md 手工补发。",
+      "tags": [
+        "smtp",
+        "email",
+        "retry",
+        "product-owner",
+        "launchd",
+        "transient",
+        "shared-infra"
+      ],
+      "related_bugs": [
+        "bug-449"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-07-13",
+      "error_message": "paper-wrapup 昨晚(07-12 23:30)没自动写日报，用户晚上已停止工作",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "'是否还在工作' 用 pgrep 检测有没有 claude CLI 进程存在。但用户晚上离开时留着几个 claude 终端窗口开着没关(空闲挂在提示符)，进程仍在 → 被误判为「活跃会话·在工作」→ 跳过收工。开着但空闲的窗口 != 在工作。",
+      "fix": "改为活动检测：看 ~/.claude/projects 下 *.jsonl 会话 transcript 最近 30 分钟内有没有被更新(find -mmin -30)。空闲窗口不写 transcript，故不再误判；有真实交互才算在工作。",
+      "tags": [
+        "pgrep",
+        "idle-detection",
+        "launchd",
+        "wrapup",
+        "transcript",
+        "false-positive"
+      ],
+      "related_bugs": [
+        "bug-446"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-470",
+      "timestamp": "2026-07-13T17:15:24.482Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-13T17:15:29.059Z"
+    },
+    {
+      "id": "bug-471",
+      "timestamp": "2026-07-13T19:19:50.513Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T19:19:50.513Z"
+    },
+    {
+      "id": "bug-472",
+      "timestamp": "2026-07-13T19:23:14.976Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/backlog.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T19:23:14.977Z"
     }
   ]
 }
