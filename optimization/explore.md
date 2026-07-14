@@ -3036,6 +3036,63 @@ const progressText =
 
 > 本次 run（2026-07-13）聚焦 OPT-105（豆瓣导入，本周焦点）合并后的「已读完」书单体验影响扫描，以及 E177/E178 的正式提拔。新发现 3 条：E182（PromptBuilder all_books_summary 缺 rating/finishedAt，S，AI 跨书回顾能力残缺）、E183（compareBooksForList 二级排序用 createdAt，批量导入后状态组排序语义错乱，S）、E184（已读完书卡不展示 finishedAt，OPT-074 字段未达卡面层，S）。将 E177（quoteLabel ocrText 回落缺失，2026-07-11 核实）提拔为 OPT-111；将 E178（时间线 haystack 缺 date 字段，2026-07-12 核实）提拔为 OPT-112。E174（书卡不展 rating）、E179（addSession startedAt 不溯更新）为已核实未提拔候选，建议分别与 OPT-100 和 OPT-093 搭车。所有本次新发现均基于实际代码读取，已标注 file:line。
 
+## 2026-07-14
+
+### E185 — `buildBookSearchCard()` 书卡从不展示 `book.rating`——OPT-099（1-5 星评分）上线后核心入口仍为零评分可见度 (S)
+
+**What (verified):** `app.js:1303-1348`（`buildBookSearchCard()`）：书卡 body 仅含三行 `book-grid-meta`（记录次数 / 摘抄数 / 关联数，以及阅读进度行），无任何 rating 显示。对比 `app.js:3066`（`renderBookShareCard`）：`const rating = book.rating || 0`——分享卡已正确读取 rating 并渲染星级。OPT-099（PR #58，2026-07-08 合并）在编辑/新增对话框加入了 1-5 星输入，书籍详情页也已展示星级，但 `buildBookSearchCard()` 从未同步更新。
+
+**Why it matters:** 书单卡片是用户最高频触达的信息层——搜书、翻书单、回顾时全经此层。评分字段的核心价值是「一眼识别优质书」，若卡面不显示星级，OPT-099 对浏览体验的贡献几乎为零；用户须点开详情才能看到评分，与「快速回顾」诉求背道而驰。S 修复可立即激活 OPT-099 在最高频入口的实际价值。
+
+**Complexity:** S — `app.js:1303-1348`：仿照 `renderBookShareCard` 的星级渲染（`app.js:3066`），在 `book-grid-meta` 行追加 `${book.rating ? "★".repeat(book.rating) + "☆".repeat(5 - book.rating) : ""}` 或数字展示，约 2-3 行。无 HTML/后端/schema 改动。
+
+**Files:** `app.js:1303-1348`（`buildBookSearchCard` 卡 body 段）；`app.js:3066`（`renderBookShareCard` rating 参照）
+
+**northstar:** 中——OPT-099 已上线但最高频入口看不到评分，「快速识别优质书回顾」路径的 S 级补全；与 Theme 2「回顾有价值」直接对齐。
+
+---
+
+### E186 — `addSession()` 的 `startedAt` 赋值有 `!book.startedAt` 守卫——补录更早阅读记录时开始日期永远不会往前修正 (S)
+
+**What (verified):** `app.js:2552`（`addSession()` 内 startedAt 更新段）：
+```js
+if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;
+```
+`!book.startedAt` 守卫意味着一旦任意 session 写入了 `startedAt`，后续补录更早日期的 session 不会将 `startedAt` 更新到更早。例：用户已有 2026-03-01 开始记录，后补录 2026-01-15 的阅读（遗漏月份），`startedAt` 仍保持 2026-03-01，书卡显示的「开始阅读日期」偏晚约 6 周。对比：`finishedAt`（`app.js:2556`）已做"择大更新"（仅推迟读完日期），但 `startedAt` 无对应"择小更新"逻辑。
+
+**Why it matters:** OPT-074 将 `startedAt` 带到了书卡展示层，日期偏差直接对用户可见；补录历史记录（豆瓣导入后的手工微调）是 OPT-105 完成后的典型操作；修正守卫约 1 行代码，可消除「显示开始日期比实际晚」的系统性偏差。S 修复，纯前端，无后端/schema 变更。
+
+**Complexity:** S — `app.js:2552`：将 `if (!book.startedAt && ...)` 改为 `if (!book.startedAt || (date < book.startedAt && !(book.finishedAt && date > book.finishedAt)))`（择小更新，约 1 行）。建议搭车 OPT-093（`deleteSession()` 回写 currentPage）在同区域改动。
+
+**Files:** `app.js:2552`（`addSession` startedAt 赋值处）；对比 `app.js:2556`（finishedAt 择大更新参照）
+
+**northstar:** 弱-中——OPT-074 将 `startedAt` 展示在书卡上，日期偏差在补录历史场景下直接对用户可见；1 行修复，豆瓣导入（OPT-105）后用户补录微调频率将提升。
+
+---
+
+### E187 — `deleteConnection()` 确认弹窗无永久性提示，关联中的「想法/insight」内容无声消失 (S)
+
+**What (verified):** `app.js:4904-4918`（`deleteConnection()` 函数体）：
+```js
+showConfirmDialog({
+  message: "确定删除这条关联记录吗？",
+  onConfirm: async () => { ... }
+});
+```
+`message` 只有一行通用提示，无任何关于「关联中存储的 thought 内容将永久删除」的说明，也不展示被删关联的 thought 文本预览。关联数据结构含 `connection.thought`（用户手写想法）字段。OPT-106（triaged）已覆盖 `deleteQuote()` 的级联透明度，但 `deleteConnection()` 本身的 thought 内容消失未被警示。
+
+**Why it matters:** 关联的「想法」字段是用户在两条摘抄之间主动写下的意义碰撞——比摘抄本身更高密度的思考输出，删除代价最高。当前确认框语义过浅，用户在快速操作时难以意识到 thought 内容同时永久消失。S 修复（约 3-4 行）完成 OPT-050/OPT-062/OPT-106「破坏性操作透明度」系列在 `deleteConnection()` 侧的对称覆盖。
+
+**Complexity:** S — `app.js:4904`：在 `showConfirmDialog` 调用前读取 `const conn = state.connections.find(c => c.id === connId)`；若 `conn.thought` 非空，将 message 改为 `` `确定删除这条关联记录吗？${conn.thought ? "（关联中的「想法」内容将同时删除）" : ""}` ``；约 3-4 行，零 API/schema 变更。
+
+**Files:** `app.js:4904-4918`（`deleteConnection` showConfirmDialog 调用处）；参照 `app.js:3193-3199`（`deleteQuote` OPT-106 透明度模式）
+
+**northstar:** 中——Theme 2 核心数据保护；thought 字段是最高密度用户输出，删除透明度直接影响数据完整性；与 OPT-050/062/106 透明度系列对称，S 级修复。
+
+---
+
+> 本次 run（2026-07-14）扫描 OPT-099（rating 字段）和 OPT-074（startedAt/finishedAt）的前端覆盖完整度，以及破坏性操作透明度系列的未覆盖路径。新发现 3 条：E185（书卡不展 rating，OPT-099 上线后最高频入口仍为零评分可见度，S）、E186（addSession startedAt 不溯更新，补录历史场景偏差系统性存在，S）、E187（deleteConnection 确认弹窗无 thought 内容提示，透明度系列缺口，S）。将昨日 run（2026-07-13）发现的 E182（all_books_summary 缺 rating/finishedAt）提拔为 OPT-113，E183（compareBooksForList 二级排序语义错乱）提拔为 OPT-114。E184（已读完书卡不展示 finishedAt）列为候选，建议搭车 OPT-114 合并为「已读完书单时序体验」PR。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。

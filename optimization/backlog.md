@@ -995,3 +995,19 @@ Format per item:
 - description: `renderTimeline()`（`app.js:1515`）haystack：`[book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase()`，`s.date` 未被拼入；搜索「6月」「2026-07」时即便有匹配 session 也返回零结果
 - why: 「动态」Tab 设计初衷是时序阅读记录浏览，不支持按日期搜索与设计语义矛盾；OPT-076（PR #62，2026-07-13 合并）已做「加载更多」，搭车窗口已关，本项单独一行修复
 - how: `app.js:1515`：haystack 数组末尾加 `s.date?.slice(0, 7) || ""`（截取年月前缀 `"2026-06"`），1 行，零副作用，无 HTML/后端/schema 改动。Touch: `app.js:1515`（renderTimeline haystack 构建）
+
+### OPT-113 — `PromptBuilder.all_books_summary` 缺少 `rating` 和 `finishedAt`——AI 无法回答「评分最高的书」「去年读完的书」类跨书查询 — 由 explore E182 提拔 [2026-07-14]
+- status: new
+- area: backend
+- northstar: 中——Theme 2「回顾有价值」AI 查询层；OPT-099（rating）和 OPT-074（finishedAt）两个已上线字段对 AI 跨书问答完全不可见，本修复使「评分最高」「最近读完」两类高频回顾询问可被 AI 正确处理；S 级 1 行修复，token 增量极低。
+- description: `app_server.py:2432-2434`（`PromptBuilder.build_chat_prompt()` 的 `all_books_summary` 构建段）：dict 只含 `id/title/author/status` 四字段，不含 `rating`（OPT-099，2026-07-08 上线）和 `finishedAt`（OPT-074，2026-06 上线）。`all_books_summary` 是 AI 回答跨书查询（「帮我找评分最高的书」「去年我读了哪些书」）的唯一数据来源；focused `book` 对象（`app_server.py:2421`）含全量字段，但只覆盖当前上下文书籍，不能跨书检索。
+- why: OPT-099/074 两字段的核心价值在「跨书回顾」场景——正是用户向 AI 提问频率最高的操作路径；两字段不在 `all_books_summary` 导致 AI 只能凭书名猜测评分和读完时间，回答必然错误。S 修复，token 开销极低（50 本 × ~15 字符 ≈ 750 tokens 新增，OPT-020 的节省早已覆盖）。
+- how: `app_server.py:2433`：`all_books_summary` dict 末尾追加 `"rating": b.get("rating", 0), "finishedAt": (b.get("finishedAt") or "")[:10]`（截 ISO 至 YYYY-MM-DD 节省 token），约 1 行，无 schema/接口/测试变更。Touch: `app_server.py:2432-2434`（`all_books_summary` 构建段）。
+
+### OPT-114 — `compareBooksForList()` 二级排序键为 `createdAt`——OPT-105 豆瓣导入后「已读完」组书单时序语义错乱 — 由 explore E183 提拔 [2026-07-14]
+- status: new
+- area: frontend
+- northstar: 中——Theme 2「回顾有价值」浏览层前提；豆瓣导入（OPT-105，本周焦点）将为大量书籍写入有效 `finishedAt`，若不切换二级排序键，「已读完」列表按 `createdAt` 排序退化为导入批次顺序而非阅读时序；S 修复，建议搭车或紧随 OPT-105 PR。
+- description: `app.js:1238-1246`（`compareBooksForList()`）：一级排序键为 `bookStatusOrder`（finished/reading/wishlist），二级排序键为 `createdAt` desc。批量导入（Excel/豆瓣 CSV）同一批次 `createdAt` 相同（`app.js:4155`：`const now = new Date().toISOString(); ... createdAt: now`），同状态组内相对顺序退化为 CSV 行序，无时序语义。OPT-105 豆瓣导入后「已读完」组将出现大量具有有效 `finishedAt` 的书籍，此时「最近读完的先出现」是用户自然期望。
+- why: 「最近读完了哪些书」是「回顾」场景最基础查询，豆瓣导入后「已读完」列表应按 `finishedAt` desc 呈现，当前按 `createdAt` 排序（导入批次顺序）直接割裂时序回顾体验；S 修复：status-aware 三分支替换当前单一二级键（`finished` → finishedAt，`reading` → lastReadAt，其余 → createdAt），约 5-8 行，纯前端，无后端/schema 变更。
+- how: `app.js:1238-1246`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支：若 `a.status === "finished"` 则按 `finishedAt` desc；若 `a.status === "reading"` 则按 `lastReadAt` desc；其余按 `createdAt` desc。Touch: `app.js:1238-1246`（`compareBooksForList` 函数体）。建议与 E184（已读完书卡展示 finishedAt）合并为「已读完书单时序体验」PR。
