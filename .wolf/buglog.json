@@ -8147,6 +8147,42 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-14"
+    },
+    {
+      "id": "bug-487",
+      "timestamp": "2026-07-14T06:41:39.332Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T06:41:39.332Z"
+    },
+    {
+      "id": "bug-456",
+      "timestamp": "2026-07-14",
+      "error_message": "「一键清除筛选」只在书单页有，记录/摘抄/关联三页缺失（owner 报）",
+      "file": "app.js, index.html",
+      "root_cause": "OPT-107 实现时只覆盖了书单页，但 07-11 原始 signal 明确写「书单/摘抄/关联各搜索框都适用」——scope 漏了另外几页(以及同样有搜索框的记录页)。",
+      "fix": "把书单那套模式(hasActive*Filters + clearAll*Filters + 有筛选才显示的 ✕ 按钮 + render 里显隐 + bindEvents 绑定)复制到 记录(仅搜索)/摘抄(搜索+类型chip)/关联(搜索+关系chip)。加 clear-filters.test.js 真跑源码验证。",
+      "tags": [
+        "filters",
+        "OPT-107",
+        "scope-miss",
+        "ux",
+        "quotes",
+        "connections",
+        "sessions"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14"
     }
   ]
 }
