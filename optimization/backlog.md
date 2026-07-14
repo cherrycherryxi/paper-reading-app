@@ -893,7 +893,7 @@ Format per item:
 - how: `app.js:4092`：将 `const rating = ...` 改为 `const ratingNum = Number(...) || 0`；`app.js:4098-4113` book 对象新增 `rating: ratingNum`；同时可将 `if (rating) notesParts.push(\`喜欢程度：${rating}\`)` 一行删除（评分已存入独立字段，无需再写 notes）。共约 3 行改动，纯前端，零后端/DB 变更。Touch: `app.js:4092-4113`（importFromExcel 书籍对象构建段）。
 
 ### OPT-101 — `generateBookReview()` 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 — 由 explore E166 提拔 [2026-07-08]
-- status: in-progress (2026-07-14, 分支 opt-101-ai-review-source-badge — 标记口径定为「AI 草稿一字未改才算 AI 来源，用户改过即算手写」；`sanitize_state()` 原样透传 books，故 `book.reviewIsAi` 零后端改动)
+- status: done (PR #66, merged 2026-07-14 — book.reviewIsAi 字段 + 详情/分享标注「AI 草稿」；零后端改动)
 - area: frontend
 - priority: P2
 - size: S
@@ -981,7 +981,7 @@ Format per item:
 - how: `app.js:3194`：在 `showConfirmDialog` 调用前加 `const connCount = getConnectionCount(quoteId);`；将 `message` 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``。约 3-4 行改动。建议与 E168（deleteBook 级联数量透明度）合并为「破坏性操作透明度」PR，共享一个 PR 讲故事。Touch: `app.js:3193-3199`（showConfirmDialog 调用处）；`app.js:813`（getConnectionCount，已存在，直接复用）。
 
 ### OPT-111 — `quoteLabel()` 在关联对话框摘抄下拉中不回落 `ocrText`，OCR 摘抄全部显示「书名 · 」空白标签 — 由 explore E177 提拔 [2026-07-13]
-- status: in-progress (2026-07-14, 分支 opt-111-quote-label-ocr-fallback — 按 how 实现，但把回落抽成 combobox 内的 quoteText(q) 共享给 quoteLabel/filteredQuotes，避免同一口径写两遍)
+- status: done (PR #65, merged 2026-07-14 — quoteLabel/filteredQuotes 各加 ocrText 回落；回落口径抽为 combobox 内 quoteText(q) 共享函数，避免重复)
 - area: frontend
 - northstar: 中——Theme 2「建立关联」可操作性直接前提；快速 OCR 是最高频采集路径，OCR-only 摘抄在关联目标选择框中对用户完全不可辨识，阻碍 Theme 2「关联」场景；S 级 2 行修复，2026-07-11 信号直接对应
 - description: `quoteLabel()`（`app.js:4613`）：`(q.content || "").slice(0, 70)`，q.content 为空时标签退化为「书名 · 」；`filteredQuotes()`（`app.js:4622`）搜索只检索 `item.content`，OCR 摘抄无法被搜索命中
@@ -989,7 +989,7 @@ Format per item:
 - how: ① `app.js:4613`：`(q.content || "").slice(0, 70)` → `(q.content || q.ocrText || "").slice(0, 70)`（1 行）；② `app.js:4622`：搜索加 `|| (item.ocrText || "").toLowerCase().includes(lower)` 分支（1 行）。Touch: `app.js:4613`（quoteLabel）、`app.js:4622`（filteredQuotes）
 
 ### OPT-112 — `renderTimeline()` 搜索 haystack 不含 `s.date`，用户无法按时间段（"6月"、"2026-07"）搜索阅读动态 — 由 explore E178 提拔 [2026-07-13]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」核心场景；「动态」Tab 是时序阅读记录的专用界面，按时间段回顾是自然需求，当前 haystack 不含日期字段使此路径完全阻断；S 级 1 行修复
 - description: `renderTimeline()`（`app.js:1515`）haystack：`[book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase()`，`s.date` 未被拼入；搜索「6月」「2026-07」时即便有匹配 session 也返回零结果

@@ -2,33 +2,44 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-13
+Last triaged: 2026-07-14
 
 ## Next up
 
-本周实现预算已满（近 7 天已有 4 个 auto PR，上限 4），本次不指派
+**OPT-100 + OPT-103 + OPT-110 — Excel/MCP 导入字段完整度补全（合并一 PR）**
 
-> 近 7 天 auto/ PR 明细：#61 auto/opt-065-mcp-sanitize-state（2026-07-11）、#60 auto/opt-092-search-field-bundle（2026-07-08）、#59 auto/opt-058-061-066-090-084-091-entry-bundle（2026-07-07）、#55 auto/opt-064-promptbuilder-strip-ocr-fields（2026-07-05）。
->
-> **预算开槽首选（下次 triage 可指派，OPT-105 owner 白天认领中）**：OPT-100+OPT-101+OPT-103+OPT-110（同属 2026-07-06 评分/AI读后感/Excel 导入 signal cluster，均 S 级，约 25 行前端+1 行 MCP，可合并一 PR，与 owner OPT-105 无文件冲突）。
->
-> **状态更新（本次 triage）**：OPT-076 per git log（PR #62 merged 2026-07-13T02:05Z）已标 done，从表中移出；OPT-057（OPT-076 重复项）同步 done，移出；OPT-107 per PR #63 open（opt-107-clear-all-filters）已标 in-progress；OPT-108 per PR #64 open（opt-108-review-length）已标 in-progress；OPT-109/110 new → triaged 并入表。
+预算状态：近 7 天 auto/ PR 共 **3 个**（PR #59 auto/opt-058-061-066-090-084-091-entry-bundle 2026-07-07、PR #60 auto/opt-092-search-field-bundle 2026-07-08、PR #61 auto/opt-065-mcp-sanitize-state 2026-07-11），上限 4，**本次可指派（3 < 4）**。
+
+> 注：上次 triage（2026-07-13）将 PR #55（auto/opt-064，创建于 2026-07-05）误计入 7 天窗口（窗口实为 2026-07-06 起），实际当时也是 3 个；今日从 2026-07-07 起算，结论相同——预算可用。
+
+**状态更新（本次 triage）**：
+- OPT-101（PR #66）、OPT-107（PR #63）、OPT-108（PR #64）、OPT-111（PR #65）均 merged 2026-07-14，已在 backlog.md 标 done，从待办表移出。
+- OPT-112（renderTimeline 搜索不含 s.date）：new → triaged（P2, S），加入待办表。
+
+**选题理由：**
+三项均为 **S 级**，合并一 PR 约 7 行代码，零后端/DB schema 变更，零文件冲突（与 owner 亲自实现的 OPT-105 豆瓣导入无交集）：
+
+- **OPT-100**（`app.js:4092-4113`）：Excel 导入「喜欢程度」列改写入 `book.rating` 独立字段而非混入 notes 文本，直接由 **signal 2026-07-06**「喜欢程度混进内容简介」驱动；约 3 行。
+- **OPT-110**（`app.js:4083` + `4130-4153`）：Excel 模板补「读后感」列 + importExcel() 写入 `book.review`，是 OPT-100 的对称续集；与 OPT-105 豆瓣 CSV 导入并行，完成「评分+读后感」在两条 Excel/CSV 入口的对称落地；约 3 行。
+- **OPT-103**（`reading_mcp_server.py:323`）：MCP `summary()` 写入字段由 `book.notes` 改 `book.review`，闭合 OPT-098 AI 读后感的 MCP 侧遗漏；signal 2026-07-06「AI 把书的笔记整理成读后感」佐证；1 行。
+
+三项合并一 PR，共同收尾同一 signal cluster（2026-07-06 评分/读后感/导入），让 Theme 2「回顾有价值」的书籍字段从 Excel、豆瓣 CSV、MCP 三个入口同步正确写入，配合正在进行的 OPT-105。
+
+**关键文件：** `app.js`（importFromExcel 的 rating/review 字段赋值与模板 headers），`reading_mcp_server.py:323`（summary action 字段名）
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **in-progress** | 🔒 **W29 唯一焦点，owner 白天亲自做，夜间 agent 勿指派**（2026-07-13 PO 仪式）。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
-| OPT-107 | 书单多维过滤无统一「清除全部」——restoreDefaultView() 不重置状态/标签 chip | P2 | S | **in-progress** | PR #63 open（opt-107-clear-all-filters）；**signal 2026-07-11**「一键清空搜索/筛选，回到全部，不用逐字删」；Theme 2「回顾有价值→能找到」；`app.js:1408-1418` + 可选 `index.html:89-97`。 |
-| OPT-108 | generateBookReview() 提示词字数上限（200字）与分享卡截断门槛（150字）未对齐 | P2 | S | **in-progress** | PR #64 open（opt-108-review-length）；**signal 2026-07-11**「AI 读后感限制字数适配分享图」；OPT-098+087 两个已上线功能的完整度收尾；约 1 行改动。 |
-| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | triaged | **signal 2026-07-06** 直接驱动；`app.js:4092-4113`，约 3 行，纯前端，零后端/DB 变更。 |
-| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | triaged | 对称于 OPT-100（同一 importFromExcel 路径）；`app.js:4083` header 解析 + `app.js:4130-4153` 字段赋值，约 3 行；OPT-105 豆瓣导入同期上线后两入口需对称；与 OPT-100 合并一 PR 共享 story。 |
-| OPT-101 | generateBookReview() 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 | P2 | S | triaged | **signal 2026-07-06**「展示时明确标注『AI 根据笔记整理』」；`index.html`（addBook/editBook）+ `app.js`（generateBookReview/addBook/saveBookEdit/详情展示）；约 15-20 行前端。 |
-| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | triaged | **signal 2026-07-06** 佐证（AI 读后感诉求 MCP 侧闭环缺口）；`reading_mcp_server.py:323`，1 行修复；与 OPT-101 是同一 signal 的两面，可合并一 PR。 |
-| OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | triaged | OPT-021（CSS 深色模式）+ OPT-087（分享卡）闭环唯一缺口；`app.js:2599-2606`，约 5 行。 |
+| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | triaged | **Next up 首选（与 OPT-103+OPT-110 合并一 PR）**。**signal 2026-07-06** 直接驱动；`app.js:4092-4113`，约 3 行，纯前端，零后端/DB 变更。 |
+| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | triaged | 对称于 OPT-100（同一 importFromExcel 路径）；`app.js:4083` header 解析 + `app.js:4130-4153` 字段赋值，约 3 行；OPT-105 豆瓣导入同期上线后两入口需对称；与 OPT-100+OPT-103 合并一 PR。 |
+| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | triaged | **signal 2026-07-06** 佐证（AI 读后感诉求 MCP 侧闭环缺口）；`reading_mcp_server.py:323`，1 行修复；与 OPT-100+OPT-110 合并一 PR。 |
+| OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | triaged | OPT-021（CSS 深色模式）+ OPT-087（分享卡）闭环唯一缺口；`app.js:2599-2606`，约 5 行；深色用户分享体验直接受损。 |
 | OPT-106 | deleteQuote() 确认弹窗不提及将级联删除关联，getConnectionCount() 已存在可直接复用 | P2 | S | triaged | **signal 2026-07-10** 佐证（E169 提拔）；关联是 Theme 2 核心数据；`app.js:3194`，3-4 行；建议与 deleteBook 级联透明度合并一 PR。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`，3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
 | OPT-082 | renderTimeline() sessionStats 仅在搜索时显示，默认视图无累计阅读数据 | P2 | S | triaged | **与 OPT-053 完全重复**（`app.js:1419`），OPT-053 实现后自动解决，不另行指派。 |
+| OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，用户无法按时间段（"6月"/"2026-07"）搜索阅读动态 | P2 | S | triaged | new→triaged（2026-07-14）；Theme 2「检索」延伸；`app.js`（renderTimeline 搜索 haystack 加 s.date），约 1-2 行；与 OPT-053 同区域，可合并一 PR；signal 2026-07-03「按主题找书」搜索诉求的动态页对称缺口。 |
 | OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`，约 10-15 行，纯前端。 |
 | OPT-094 | addSession() pagesRead 计算差一，统计数据永远少计一页 | P2 | S | triaged | northstar 弱（数据准确性）；`app.js:2311`（addSession）+ `app.js:2318`（editSession）+ `app.js:1456`（统计栏汇总）各漏 +1；纯前端 3 行。 |
 | OPT-095 | 新建摘抄对话框页码字段从不预填 book.currentPage | P2 | S | triaged | northstar 弱-中，Theme 1 小摩擦消除；`app.js:2520`，2-3 行，纯前端。 |
