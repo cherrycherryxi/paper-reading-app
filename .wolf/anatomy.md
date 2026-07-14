@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T17:10:04.919Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T18:10:45.916Z
 > Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -176,7 +176,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive (~59067 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive (~59118 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -192,7 +192,7 @@
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
-- `reading_mcp_server.py` — add_note, add_book, summary (~4373 tok)
+- `reading_mcp_server.py` — add_note, add_book, summary (~4374 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~23724 tok)
@@ -297,7 +297,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~720 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1816 tok)
+- `triage.md` — Triage (~1761 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -342,7 +342,7 @@
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
-- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3741 tok)
+- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3964 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
@@ -371,7 +371,7 @@
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
 - `entry-bundle-opt058-061-066-090-084-091.test.js` — OPT-058: quoteDialog focus after showModal (openNewQuoteForBook / editQuote) (~5475 tok)
-- `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1319 tok)
+- `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1716 tok)
 - `global-search.test.js` — test: createElementStub, innerHTML, innerHTML + 11 more (~4466 tok)
 - `login-fast-and-retry-btn.test.js` — 两个移动端体验修复： (~698 tok)
 - `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)

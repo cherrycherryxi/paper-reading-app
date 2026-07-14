@@ -8215,6 +8215,86 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-14T17:08:23.649Z"
+    },
+    {
+      "id": "bug-491",
+      "timestamp": "2026-07-14T18:05:43.401Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"示例：百年孤独\"",
+      "fix": "Changed to \"读后感\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T18:05:43.401Z"
+    },
+    {
+      "id": "bug-492",
+      "timestamp": "2026-07-14T18:06:01.047Z",
+      "error_message": "Incorrect value in code",
+      "file": "reading_mcp_server.py",
+      "root_cause": "Had \"notes\"",
+      "fix": "Changed to \"review\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T18:06:01.047Z"
+    },
+    {
+      "id": "bug-493",
+      "timestamp": "2026-07-14T18:06:43.631Z",
+      "error_message": "Function not marked async",
+      "file": "tests/frontend/excel-entry-books-page.test.js",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T18:06:43.631Z"
+    },
+    {
+      "id": "bug-494",
+      "timestamp": "2026-07-14T18:07:01.108Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/agent/reading_mcp_server_tools_test.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→24 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T18:07:01.108Z"
+    },
+    {
+      "id": "bug-495",
+      "timestamp": "2026-07-14T18:10:45.931Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/triage.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T18:10:45.931Z"
     }
   ]
 }
