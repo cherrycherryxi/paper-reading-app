@@ -893,7 +893,7 @@ Format per item:
 - how: `app.js:4092`：将 `const rating = ...` 改为 `const ratingNum = Number(...) || 0`；`app.js:4098-4113` book 对象新增 `rating: ratingNum`；同时可将 `if (rating) notesParts.push(\`喜欢程度：${rating}\`)` 一行删除（评分已存入独立字段，无需再写 notes）。共约 3 行改动，纯前端，零后端/DB 变更。Touch: `app.js:4092-4113`（importFromExcel 书籍对象构建段）。
 
 ### OPT-101 — `generateBookReview()` 未存 AI 来源标记，信号明确要求的「AI 根据笔记整理」标注缺失 — 由 explore E166 提拔 [2026-07-08]
-- status: triaged
+- status: in-progress (2026-07-14, 分支 opt-101-ai-review-source-badge — 标记口径定为「AI 草稿一字未改才算 AI 来源，用户改过即算手写」；`sanitize_state()` 原样透传 books，故 `book.reviewIsAi` 零后端改动)
 - area: frontend
 - priority: P2
 - size: S

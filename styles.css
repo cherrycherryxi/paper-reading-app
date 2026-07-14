@@ -3914,5 +3914,14 @@ body.is-admin .admin-only { display: revert; }
   letter-spacing: 0.04em;
   margin-bottom: 4px;
 }
+/* AI 起草的读后感：标签前缀 ✨ + 弱化底色，一眼与手写读后感区分（OPT-101） */
+.book-detail-sub-label--ai {
+  display: inline-block;
+  color: var(--color-yellow-dark);
+  background: var(--color-accent-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.book-detail-sub-label--ai::before { content: "✨ "; }
 .book-detail-review p,
 .book-detail-intro-text p { margin: 0; }
