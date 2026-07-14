@@ -32,9 +32,9 @@ Last triaged: 2026-07-14
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **in-progress** | 🔒 **W29 唯一焦点，owner 白天亲自做，夜间 agent 勿指派**（2026-07-13 PO 仪式）。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
-| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | triaged | **Next up 首选（与 OPT-103+OPT-110 合并一 PR）**。**signal 2026-07-06** 直接驱动；`app.js:4092-4113`，约 3 行，纯前端，零后端/DB 变更。 |
-| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | triaged | 对称于 OPT-100（同一 importFromExcel 路径）；`app.js:4083` header 解析 + `app.js:4130-4153` 字段赋值，约 3 行；OPT-105 豆瓣导入同期上线后两入口需对称；与 OPT-100+OPT-103 合并一 PR。 |
-| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | triaged | **signal 2026-07-06** 佐证（AI 读后感诉求 MCP 侧闭环缺口）；`reading_mcp_server.py:323`，1 行修复；与 OPT-100+OPT-110 合并一 PR。 |
+| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **in-progress** | PR #67（auto/opt-100-103-110-excel-mcp-field-fix，2026-07-14）。与 OPT-103+OPT-110 合并一 PR。 |
+| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **in-progress** | PR #67（同上）。 |
+| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **in-progress** | PR #67（同上）。 |
 | OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | triaged | OPT-021（CSS 深色模式）+ OPT-087（分享卡）闭环唯一缺口；`app.js:2599-2606`，约 5 行；深色用户分享体验直接受损。 |
 | OPT-106 | deleteQuote() 确认弹窗不提及将级联删除关联，getConnectionCount() 已存在可直接复用 | P2 | S | triaged | **signal 2026-07-10** 佐证（E169 提拔）；关联是 Theme 2 核心数据；`app.js:3194`，3-4 行；建议与 deleteBook 级联透明度合并一 PR。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`，3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
