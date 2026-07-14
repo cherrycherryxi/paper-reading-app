@@ -1,7 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T06:49:57.220Z
-> Files: 275 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T14:53:39.910Z
+> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../
+
+- `.zshrc` — Declares format (~1850 tok)
 
 ## ../../../
 
@@ -60,6 +64,7 @@
 - `2026-07-10.md` — 日报 2026-07-10 (~592 tok)
 - `2026-07-12.md` — 日报 2026-07-12 (~393 tok)
 - `2026-07-13.md` — 日报 2026-07-13 (~384 tok)
+- `2026-07-14.md` — 日报 2026-07-14 (~409 tok)
 
 ## ../../.claude/hooks/
 
@@ -121,13 +126,14 @@
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~691 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1132 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1203 tok)
+- `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~634 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
-- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~838 tok)
+- `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~896 tok)
 - `README.md` — Project documentation (~274 tok)
 - `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~1100 tok)

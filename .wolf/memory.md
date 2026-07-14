@@ -3003,3 +3003,11 @@
 | 14:46 | Edited app.js | 3→4 lines | ~72 |
 | 14:47 | Edited app.js | 1→4 lines | ~92 |
 | 14:49 | Created tests/frontend/clear-filters.test.js | — | ~1551 |
+| 14:51 | Session end: 36 writes across 11 files (app.js, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js, backlog.md, styles.css) | 8 reads | ~108355 tok |
+| 15:11 | Session end: 36 writes across 11 files (app.js, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js, backlog.md, styles.css) | 8 reads | ~108355 tok |
+| 16:31 | Created ../../.claude/scripts/paper-owner-focus.sh | — | ~214 |
+| 16:43 | Edited ../../.claude/scripts/paper-morning.sh | expanded (+7 lines) | ~128 |
+| 18:41 | Edited ../../.zshrc | modified _paper_pick_reminder() | ~250 |
+| 19:15 | Edited ../../.claude/scripts/product-owner-monday.sh | 1→2 lines | ~86 |
+| 19:16 | Session end: 40 writes across 15 files (app.js, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js, backlog.md, styles.css) | 11 reads | ~109081 tok |
+| 22:53 | Created ../../.claude/daily-logs/2026-07-14.md | — | ~436 |

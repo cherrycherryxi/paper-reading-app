@@ -8183,6 +8183,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-14"
+    },
+    {
+      "id": "bug-489",
+      "timestamp": "2026-07-14T10:41:40.198Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.zshrc",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 13→19 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "unknown"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T10:41:40.198Z"
     }
   ]
 }
