@@ -193,6 +193,9 @@ let quoteDialogIsNew = false;
 let ocrProvisionalQuoteId = "";
 let selectedQuoteTags = [];
 const DEFAULT_QUOTE_TAGS = ["金句", "人物", "结构", "哲学", "启发", "情节", "叙事"];
+// AI 读后感的字数上限：既是给模型的提示词上限，也是书卡分享图的截断门槛。
+// 两处必须同一个数，否则模型写满就会在分享图里被切尾（OPT-108）。
+const BOOK_REVIEW_MAX_CHARS = 200;
 let toastTimer = null;
 let selectedStatusFilter = "all";
 let selectedTagFilter = "";
@@ -2360,7 +2363,7 @@ async function generateBookReview(bookId, textarea) {
       body: JSON.stringify({
         context: { type: "book", bookId },
         bookId,
-        message: "请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-200字），包含你对这本书的个人感受和评价。",
+        message: `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_MAX_CHARS}字），包含你对这本书的个人感受和评价。`,
       }),
     });
     const reply = (data?.reply || "").trim();
@@ -2993,7 +2996,10 @@ async function renderBookShareCard(book) {
   // 有读后感优先展示读后感，否则回落内容简介；标签随内容语义变化。
   const review = (book.review || "").trim();
   const notesLabel = review ? "我的读后" : "内容简介";
-  const notes = truncateForShare(review || book.notes || "", 150);
+  // 读后感按提示词上限截断（写满也不切尾）；内容简介是任意长度的用户文本，仍用较紧的海报预算。
+  const notes = review
+    ? truncateForShare(review, BOOK_REVIEW_MAX_CHARS)
+    : truncateForShare(book.notes || "", 150);
   const tags = book.tags || [];
   const statusLabel = statusMap[book.status] || book.status || "";
   const pills = [];
