@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T04:47:54.902Z
-> Files: 273 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T06:21:56.036Z
+> Files: 274 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../
 
@@ -59,6 +59,7 @@
 - `2026-07-09.md` — 日报 2026-07-09 (~580 tok)
 - `2026-07-10.md` — 日报 2026-07-10 (~592 tok)
 - `2026-07-12.md` — 日报 2026-07-12 (~393 tok)
+- `2026-07-13.md` — 日报 2026-07-13 (~384 tok)
 
 ## ../../.claude/hooks/
 
@@ -119,7 +120,7 @@
 - `focus-midweek-check.sh` — 焦点中期检查(每周四 21:00,launchd com.huangnanqi.focus-midweek-check)。 (~562 tok)
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
-- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~590 tok)
+- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~691 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1132 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
@@ -169,7 +170,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl, buildApiUrl, resolveImageUrl (~58397 tok)
+- `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl (~58500 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -382,7 +383,7 @@
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~3047 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
-- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4006 tok)
+- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## wechat-miniprogram/

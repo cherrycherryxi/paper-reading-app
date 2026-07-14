@@ -8063,6 +8063,90 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-14"
+    },
+    {
+      "id": "bug-482",
+      "timestamp": "2026-07-14T06:16:34.752Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T06:16:34.752Z"
+    },
+    {
+      "id": "bug-483",
+      "timestamp": "2026-07-14T06:18:23.636Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_MAX_",
+      "fix": "Changed to `请根据你的阅读记录和摘抄，为这本书写一段简短的读后感（100-${BOOK_REVIEW_TARG",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14T06:18:23.636Z"
+    },
+    {
+      "id": "bug-484",
+      "timestamp": "2026-07-14T06:21:32.014Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-implement-poll.sh",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (2 removed) | Also: echo \"今日选题（${CHOICE}）已自动实现，请查看新开的 PR（base feature/; echo \"--- today-pick 状态 ---\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-14T06:21:56.058Z"
+    },
+    {
+      "id": "bug-454",
+      "timestamp": "2026-07-14",
+      "error_message": "AI 读后感在分享图里被切尾（末句「他人的共鸣。」丢失），OPT-108 没修透",
+      "file": "app.js",
+      "root_cause": "OPT-108 把「给模型的提示词字数」和「分享图硬截断门槛」合成同一个常量 BOOK_REVIEW_MAX_CHARS=200，注释还写「两处必须同一个数」。但模型不严格听字数、会略超（实测 207 字），于是卡在 200 被 truncateForShare 切尾。书卡画布高度本是动态的，本不必这么早截。",
+      "fix": "拆成两个常量：BOOK_REVIEW_TARGET_CHARS=200(提示词目标) 与 BOOK_REVIEW_MAX_CHARS=260(分享图截断上限,留余量)。上限>目标即容忍超写不切尾；207 字读后感现完整显示。share-card.test.js 改为断言 max>target。",
+      "tags": [
+        "share-card",
+        "ai-review",
+        "truncation",
+        "OPT-108",
+        "constants"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14"
+    },
+    {
+      "id": "bug-455",
+      "timestamp": "2026-07-14",
+      "error_message": "收到「今日选题已实现」邮件，但功能实际没上线（dev 看不到）",
+      "file": "~/.claude/scripts/paper-implement-poll.sh",
+      "root_cause": "轮询器设计终点是实现+开 PR、不合并（留晨间闸门次日审合）。但邮件写「已实现」、且用户只看主题/首行，误以为已上线；PR 未合入 feature/agent，dev 自然看不到(如 OPT-101 AI 标记)。",
+      "fix": "owner 决定让轮询器走完全程：测试绿即套闸门标准自动合入 feature/agent + 拉 dev；有需人工判断的才留 OPEN PR+NEED-HUMAN。邮件措辞改为「已合入 dev / prod 仍手动」。",
+      "tags": [
+        "poller",
+        "workflow",
+        "email",
+        "expectation",
+        "auto-merge"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-14"
     }
   ]
 }
