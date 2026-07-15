@@ -929,7 +929,7 @@ Format per item:
 - how: 新增 `SHARE_CARD_DARK` 常量（深色调色板，如 `bg: "#1a1a1a"`, `ink: "#e8e0d0"`）；在 `renderQuoteShareCard`、`renderConnectionShareCard`、`renderBookShareCard` 各入口顶部各加一行 `const C = window.matchMedia('(prefers-color-scheme: dark)').matches ? SHARE_CARD_DARK : SHARE_CARD;`；`newShareCanvas` 无需改动。Touch: `app.js:2599-2606`（新增 `SHARE_CARD_DARK`）+ 三个 `renderXShareCard` 函数入口（各 1 行）。
 
 ### OPT-105 — 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感）— 由 explore E173 提拔 [2026-07-10]
-- status: in-progress (2026-07-13 周一 PO 仪式定为 **W29 唯一焦点**，由 owner 白天功能轨亲自实现 — **夜间 implement agent 请勿指派本项**，防撞单)
+- status: done (2026-07-15, owner 白天功能轨实现: tools/douban_export.py 本地抓「读过」→CSV(110本, 无需cookie) + app importDoubanCsv 按书名匹配回填空缺字段; commit b978f9f)
 - area: frontend
 - northstar: 强——四条信号（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求豆瓣导入）驱动；三个目标字段（`book.finishedAt`/`book.rating`/`book.review`）均已就位，补写导入函数即可批量补全；是 OPT-074/099/098 三项已完成字段层建设的最终数据入口；推进 Theme B0「对外可用」用户数据完整度。triage 2026-07-10 明确指示 Agent3 评估并提拔。
 - description: 当前无任何豆瓣导入代码（全文件 grep `douban`/`豆瓣` 零匹配）。豆瓣「我读」CSV 标准列含书名/作者/我的评分（1-5）/阅读状态/我的评论/读完日期，与已存在字段天然对齐：`我的评分` → `book.rating`；`读完日期` → `book.finishedAt`；`我的评论` → `book.review`。导入逻辑：FileReader 读 CSV（注意豆瓣 CSV 为 GBK/GB18030 编码，须 `TextDecoder('gb18030')` 解码）→ 按书名模糊匹配现有书籍（`fuzzyMatch` 已有）→ 命中则 patch 三字段，未命中则新增书籍 → `syncState()` 保存 → `showImportResult()` 展示结果（新增/更新书目数量）。

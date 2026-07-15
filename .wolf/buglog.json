@@ -8311,6 +8311,166 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-14T19:17:31.882Z"
+    },
+    {
+      "id": "bug-497",
+      "timestamp": "2026-07-15T05:19:13.853Z",
+      "error_message": "Wrong return value",
+      "file": "../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/Script.js",
+      "root_cause": "Was returning: config;",
+      "fix": "Now returns: g && g.name === \"📧 SMTP\"; })) {",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T05:19:13.853Z"
+    },
+    {
+      "id": "bug-498",
+      "timestamp": "2026-07-15T05:29:00.340Z",
+      "error_message": "Wrong return value",
+      "file": "../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/sTQyI4HBEAhP.js",
+      "root_cause": "Was returning: config;",
+      "fix": "Now returns: g && g.name === \"📧 SMTP\"; })) {",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T05:29:00.340Z"
+    },
+    {
+      "id": "bug-499",
+      "timestamp": "2026-07-15T06:22:00.296Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→13 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T06:22:00.296Z"
+    },
+    {
+      "id": "bug-500",
+      "timestamp": "2026-07-15T06:32:06.913Z",
+      "error_message": "Wrong reference: WAITING should be IMPLEMENTING",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"WAITING\" instead of \"IMPLEMENTING\"",
+      "fix": "Changed WAITING → IMPLEMENTING",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T06:32:06.913Z"
+    },
+    {
+      "id": "bug-501",
+      "timestamp": "2026-07-15T06:34:16.517Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"rgba(61,74,63,0.20)\"",
+      "fix": "Changed to `italic 700 150px ${C.serif}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T06:34:16.517Z"
+    },
+    {
+      "id": "bug-502",
+      "timestamp": "2026-07-15T06:34:31.740Z",
+      "error_message": "Wrong reference: SHARE_CARD should be activeShareCard",
+      "file": "app.js",
+      "root_cause": "Used \"SHARE_CARD\" instead of \"activeShareCard\"",
+      "fix": "Changed SHARE_CARD → activeShareCard",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T06:34:31.740Z"
+    },
+    {
+      "id": "bug-503",
+      "timestamp": "2026-07-15T06:37:14.863Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T06:37:23.007Z"
+    },
+    {
+      "id": "bug-504",
+      "timestamp": "2026-07-15T06:38:36.572Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T06:38:36.572Z"
+    },
+    {
+      "id": "bug-505",
+      "timestamp": "2026-07-15T13:58:57.699Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \"#importExcelBooksBtn\"",
+      "fix": "Changed to \"#importDoubanInput\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:58:57.699Z"
+    },
+    {
+      "id": "bug-506",
+      "timestamp": "2026-07-15T14:00:50.364Z",
+      "error_message": "Missing await",
+      "file": "app.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:00:50.364Z"
     }
   ]
 }

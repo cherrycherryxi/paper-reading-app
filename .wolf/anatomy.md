@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-14T19:18:10.848Z
-> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-15T14:03:10.270Z
+> Files: 283 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -76,9 +76,11 @@
 
 - `cards-2026-07-12.md` — 卡片① (~71 tok)
 - `cards-2026-07-13.md` — 卡片① (~117 tok)
+- `cards-2026-07-15.md` — 卡片① (~89 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
-- `today-pick.md` — 卡片① (~132 tok)
+- `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
+- `today-pick.md` — 卡片① (~111 tok)
 
 ## ../../.claude/plans/
 
@@ -126,7 +128,7 @@
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~691 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1203 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1289 tok)
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
@@ -151,8 +153,8 @@
 
 ## ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/
 
-- `Script.js` — Define main function (script entry) (~222 tok)
-- `sTQyI4HBEAhP.js` — Define main function (script entry) (~222 tok)
+- `Script.js` — Define main function (script entry) (~450 tok)
+- `sTQyI4HBEAhP.js` — Define main function (script entry) (~450 tok)
 
 ## ../../Library/LaunchAgents/
 
@@ -176,7 +178,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — AUTH_TOKEN_KEY: isTabActive (~59118 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~60160 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -187,7 +189,7 @@
 - `CLAUDE.md` — OpenWolf (~1301 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~11657 tok)
+- `index.html` — 🐛 又买了一本书 (~11796 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
@@ -287,7 +289,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~28919 tok)
+- `backlog.md` — Optimization Backlog (~29070 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
@@ -370,6 +372,7 @@
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1442 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
+- `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1569 tok)
 - `entry-bundle-opt058-061-066-090-084-091.test.js` — OPT-058: quoteDialog focus after showModal (openNewQuoteForBook / editQuote) (~5475 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1716 tok)
 - `global-search.test.js` — test: createElementStub, innerHTML, innerHTML + 11 more (~4466 tok)
@@ -382,7 +385,7 @@
 - `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~1796 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
 - `quote-tag-picker-persist.test.js` — 摘抄标签 picker 的来源 = 默认标签 + 用户经输入框「手动敲过」的自定义标签(localStorage)。 (~1664 tok)
-- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19862 tok)
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20380 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~19497 tok)
 - `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2729 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~3886 tok)
@@ -390,8 +393,13 @@
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~3047 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
+- `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
+
+## tools/
+
+- `douban_export.py` — 抓取自己的豆瓣「读过」书籍 → CSV（书名/作者/我的评分/读过日期/我的短评/豆瓣链接）。 (~1557 tok)
 
 ## wechat-miniprogram/
 

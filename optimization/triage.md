@@ -31,7 +31,7 @@ Last triaged: 2026-07-14
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **in-progress** | 🔒 **W29 唯一焦点，owner 白天亲自做，夜间 agent 勿指派**（2026-07-13 PO 仪式）。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
+| OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **done** | ✅ 2026-07-15 完成(commit b978f9f); 曾为 W29 焦点。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
 | OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **in-progress** | PR #67（auto/opt-100-103-110-excel-mcp-field-fix，2026-07-14）。与 OPT-103+OPT-110 合并一 PR。 |
 | OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **in-progress** | PR #67（同上）。 |
 | OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **in-progress** | PR #67（同上）。 |
