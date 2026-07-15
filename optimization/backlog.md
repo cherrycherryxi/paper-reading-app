@@ -921,7 +921,7 @@ Format per item:
 - how: `reading_mcp_server.py:323` 改 `book["notes"]` → `book["review"]`（1 行）；更新 docstring（lines 296-307）说明目标字段；`sanitize_state()` 已原样透传 book 对象中的 `review` 字段，无需额外改动。Touch: `reading_mcp_server.py:290-328`。
 
 ### OPT-104 — 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 — 由 explore E170 提拔 [2026-07-09]
-- status: done (PR 待填, 2026-07-15 — 新增 `SHARE_CARD_DARK` 对称调色板 + `activeShareCard()` 按 `matchMedia('(prefers-color-scheme: dark)')` 选色，三个 `renderXShareCard` 改用 `activeShareCard()`；额外把散落的 ink 派生 rgba（分隔线 0.15 / 胶囊底与装饰圆 0.06 / 大引号 0.20）抽成调色板字段 `hair`/`tint`/`tintStrong` 一并随主题切换，否则深底上会画成不可见深色线条；matchMedia 缺失回落亮色保沙箱不炸。回归锁 tests/frontend/share-card-dark.test.js)
+- status: done (PR #68, 2026-07-15 — 新增 `SHARE_CARD_DARK` 对称调色板 + `activeShareCard()` 按 `matchMedia('(prefers-color-scheme: dark)')` 选色，三个 `renderXShareCard` 改用 `activeShareCard()`；额外把散落的 ink 派生 rgba（分隔线 0.15 / 胶囊底与装饰圆 0.06 / 大引号 0.20）抽成调色板字段 `hair`/`tint`/`tintStrong` 一并随主题切换，否则深底上会画成不可见深色线条；matchMedia 缺失回落亮色保沙箱不炸。回归锁 tests/frontend/share-card-dark.test.js)
 - area: frontend
 - northstar: 中——分享卡片是「让阅读感染他人」的对外接口；OPT-087（2026-07-06）上线分享功能但未补充暗色路径，深色模式用户输出米白底卡片与 UI 割裂，影响分享意愿；OPT-021 已做 CSS 深色模式，本项是 canvas 的对称收尾。
 - description: `app.js:2599-2606` 定义 `SHARE_CARD` 常量（`bg: "#f5f0e8"`, `ink: "#3d4a3f"` 等亮色值）；`newShareCanvas()`（line 2676）始终以 `ctx.fillStyle = C.bg` 填充背景，无任何 `matchMedia` 判断。三种卡片（摘抄卡、思想碰撞卡、书卡）均走同一路径，深色模式下统一输出亮色卡片。
@@ -973,7 +973,7 @@ Format per item:
 - how: ① `app.js:4083`：headers 末尾加 `"读后感"`；② `app.js:4130-4136` 区加 `const review = String(getRowField(row, ["读后感", "review", "我的评论"])).trim()`；③ book 对象（`app.js:4139`）补 `review: review || ""`。共约 3 行改动，纯前端，零后端/DB 变更，复用 `getRowField()` 已有模式。建议与 OPT-100 合并一 PR（同文件同区域同类改动）。Touch: `app.js:4083`（模板 headers）；`app.js:4130-4153`（解析+book 对象构建段）。
 
 ### OPT-106 — `deleteQuote()` 确认弹窗不提及将级联删除关联，`getConnectionCount()` 已存在可直接复用 — 由 explore E169 提拔 [2026-07-10]
-- status: done (PR 待填, 2026-07-15 — `deleteQuote()` 在 `showConfirmDialog` 前 `const connCount = getConnectionCount(quoteId)`，message 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``；无关联时保持原文案。回归锁 tests/frontend/regression-fixed-bugs.test.js 两条 OPT-106 用例)
+- status: done (PR #68, 2026-07-15 — `deleteQuote()` 在 `showConfirmDialog` 前 `const connCount = getConnectionCount(quoteId)`，message 改为 `` `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}` ``；无关联时保持原文案。回归锁 tests/frontend/regression-fixed-bugs.test.js 两条 OPT-106 用例)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」的前提是连接网络数据可靠；关联是用户花时间手动建立的意义链接，无声消失最为有害；S 修复让用户在删除前知晓波及的关联数量，防止意外抹去 Theme 2 核心数据；`getConnectionCount()` 已存在，零额外函数成本。
 - description: `app.js:3193-3209`（`deleteQuote()`）：`showConfirmDialog({ message: "确定删除这张摘抄卡片吗？" })`，不提及关联数量；`onConfirm` 回调用 `.filter()` 静默删除所有 `sourceId === quoteId || targetId === quoteId` 的 connections。`getConnectionCount(quoteId)`（`app.js:813`）已存在并返回「该摘抄参与的关联数量」，只需在 message 构建时调用一次即可。
