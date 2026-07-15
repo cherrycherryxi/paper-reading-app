@@ -3050,13 +3050,20 @@ async function renderBookShareCard(book) {
 
   const title = `《${(book.title || "").replace(/[《》]/g, "")}》`;
   const author = book.author || "";
-  // 有读后感优先展示读后感，否则回落内容简介；标签随内容语义变化。
+  // 取值链：读后感(AI/手写) → 豆瓣短评 → 内容简介；标签随内容语义变化。
   const review = (book.review || "").trim();
-  const notesLabel = review ? (book.reviewIsAi ? REVIEW_AI_LABEL : "我的读后") : "内容简介";
-  // 读后感按提示词上限截断（写满也不切尾）；内容简介是任意长度的用户文本，仍用较紧的海报预算。
-  const notes = review
-    ? truncateForShare(review, BOOK_REVIEW_MAX_CHARS)
-    : truncateForShare(book.notes || "", 150);
+  const doubanComment = (book.doubanComment || "").trim();
+  let notesLabel, notes;
+  if (review) {
+    notesLabel = book.reviewIsAi ? REVIEW_AI_LABEL : "我的读后";
+    notes = truncateForShare(review, BOOK_REVIEW_MAX_CHARS); // 读后感按上限截断(留余量不切尾)
+  } else if (doubanComment) {
+    notesLabel = "我的短评";
+    notes = truncateForShare(doubanComment, BOOK_REVIEW_MAX_CHARS);
+  } else {
+    notesLabel = "内容简介"; // 任意长度用户文本，用较紧的海报预算
+    notes = truncateForShare(book.notes || "", 150);
+  }
   const tags = book.tags || [];
   const statusLabel = statusMap[book.status] || book.status || "";
   const pills = [];
@@ -3520,18 +3527,27 @@ function openBookDetailDialog(bookId) {
     detailDatesEl.classList.toggle("is-hidden", parts.length === 0);
   }
 
-  // 优先展示读后感（若有），内容简介保留其下。
+  // 读后感（AI/手写）、豆瓣短评、内容简介三区分开展示，都保留。
   const detailReview = (book.review || "").trim();
+  const detailDouban = (book.doubanComment || "").trim();
   const detailIntro = (book.notes || "").trim();
+  const detailParts = [];
   if (detailReview) {
     const reviewLabel = book.reviewIsAi
       ? `<span class="book-detail-sub-label book-detail-sub-label--ai">${REVIEW_AI_LABEL}</span>`
       : `<span class="book-detail-sub-label">我的读后</span>`;
-    els.bookDetailIntro.innerHTML =
-      `<div class="book-detail-review">${reviewLabel}<p>${escapeHtml(detailReview)}</p></div>` +
-      (detailIntro ? `<div class="book-detail-intro-text"><span class="book-detail-sub-label">内容简介</span><p>${escapeHtml(detailIntro)}</p></div>` : "");
+    detailParts.push(`<div class="book-detail-review">${reviewLabel}<p>${escapeHtml(detailReview)}</p></div>`);
+  }
+  if (detailDouban) {
+    detailParts.push(`<div class="book-detail-review"><span class="book-detail-sub-label">我的短评 · 豆瓣</span><p>${escapeHtml(detailDouban)}</p></div>`);
+  }
+  if (detailIntro) {
+    detailParts.push(`<div class="book-detail-intro-text"><span class="book-detail-sub-label">内容简介</span><p>${escapeHtml(detailIntro)}</p></div>`);
+  }
+  if (detailParts.length) {
+    els.bookDetailIntro.innerHTML = detailParts.join("");
   } else {
-    els.bookDetailIntro.textContent = detailIntro || "暂无内容简介。";
+    els.bookDetailIntro.textContent = "暂无内容简介。";
   }
 
   const bookQuestion = state.quotes
@@ -4329,7 +4345,7 @@ async function importDoubanCsv(file) {
     const iAuthor = col(["作者", "author"]);
     const iRating = col(["我的评分", "评分", "喜欢程度", "rating"]);
     const iDate = col(["读过日期", "读完日期", "完成时间", "finishedAt"]);
-    const iReview = col(["我的短评", "短评", "读后感", "review"]);
+    const iComment = col(["我的短评", "短评", "comment"]);
     const get = (r, i) => (i >= 0 ? String(r[i] || "").trim() : "");
 
     let updated = 0, created = 0;
@@ -4340,22 +4356,22 @@ async function importDoubanCsv(file) {
       const author = get(r, iAuthor);
       const rating = Math.min(5, Math.max(0, Math.round(Number(get(r, iRating)) || 0)));
       const finishedAt = parseExcelDateToIso(get(r, iDate)) || "";
-      const review = get(r, iReview);
+      const doubanComment = get(r, iComment); // 豆瓣「短评」→ 独立字段, 与 AI/手写「读后感」分开并存
 
       const existing = state.books.find((b) => isSameBook(title, author, b.title, b.author));
       if (existing) {
         let touched = false;
         if (rating && !(existing.rating > 0)) { existing.rating = rating; touched = true; }
         if (finishedAt && !existing.finishedAt) { existing.finishedAt = finishedAt; touched = true; }
-        if (review && !String(existing.review || "").trim()) {
-          existing.review = review; existing.reviewIsAi = false; touched = true;
+        if (doubanComment && !String(existing.doubanComment || "").trim()) {
+          existing.doubanComment = doubanComment; touched = true; // 不碰 review, 读后感与短评并存
         }
         if (touched) { existing.updatedAt = now; updated += 1; }
       } else {
         state.books.unshift({
           id: createId("book"), title, author,
           totalPages: 0, currentPage: 0, status: "finished", // 豆瓣「读过」= 已读完
-          tags: [], notes: "", review, reviewIsAi: false, rating,
+          tags: [], notes: "", review: "", reviewIsAi: false, doubanComment, rating,
           coverImageUrl: "", createdAt: now, updatedAt: now,
           startedAt: "", finishedAt, lastReadAt: finishedAt,
         });

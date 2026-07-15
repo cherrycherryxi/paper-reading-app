@@ -102,18 +102,21 @@ test("importDoubanCsv：回填空缺书、不覆盖已填书、新增全新书",
   const a = st.books.find((x) => x.id === "a");
   assert.equal(a.rating, 5, "空缺书评分被回填");
   assert.ok(a.finishedAt.startsWith("2026-01-01"), "空缺书读完日期被回填");
-  assert.equal(a.review, "短评,含逗号", "空缺书读后感被回填(含逗号)");
+  assert.equal(a.doubanComment, "短评,含逗号", "空缺书豆瓣短评被回填(含逗号)");
+  assert.equal(a.review, "", "review 不被豆瓣导入触碰");
 
   const b = st.books.find((x) => x.id === "b");
   assert.equal(b.rating, 5, "已填书评分不被覆盖");
   assert.ok(b.finishedAt.startsWith("2020-09-09"), "已填书日期不被覆盖");
-  assert.equal(b.review, "我手写的", "已填书读后感不被覆盖");
+  assert.equal(b.review, "我手写的", "已填书读后感(review)保留");
+  assert.equal(b.doubanComment, "豆瓣短评", "豆瓣短评并存写入——读后感+短评两者都保留");
 
   const c = st.books.find((x) => x.title === "全新书");
   assert.ok(c, "全新书被创建");
   assert.equal(c.status, "finished", "新书状态为已读完");
   assert.equal(c.rating, 3);
-  assert.equal(c.review, "新书短评");
+  assert.equal(c.doubanComment, "新书短评");
+  assert.equal(c.review, "", "新书 review 为空(仅豆瓣短评)");
   assert.ok(c.finishedAt.startsWith("2025-03-03"));
 });
 
@@ -127,8 +130,13 @@ test("importDoubanCsv：缺「书名」列时报错不导入", async () => {
 test("结构：我的抽屉有豆瓣导入入口 + 绑定 + 只填空缺策略", () => {
   assert.ok(indexHtml.includes('id="importDoubanInput"'), "index.html 应有豆瓣导入 file input");
   assert.match(appSource, /els\.importDoubanInput\?\.addEventListener\("change"/, "应绑定豆瓣导入");
-  // 只填空缺：三字段都带「已有非空则跳过」的守卫
+  // 只填空缺：评分/日期/豆瓣短评都带「已有非空则跳过」的守卫
   assert.match(appSource, /!\(existing\.rating > 0\)/);
   assert.match(appSource, /!existing\.finishedAt/);
-  assert.match(appSource, /!String\(existing\.review \|\| ""\)\.trim\(\)/);
+  assert.match(appSource, /!String\(existing\.doubanComment \|\| ""\)\.trim\(\)/);
+});
+
+test("结构：豆瓣短评与读后感分开——详情页有独立区、分享图取值链含短评", () => {
+  assert.match(appSource, /我的短评 · 豆瓣/, "详情页应有独立豆瓣短评区");
+  assert.match(appSource, /const doubanComment = \(book\.doubanComment \|\| ""\)\.trim\(\)/, "分享图取值链含 doubanComment");
 });
