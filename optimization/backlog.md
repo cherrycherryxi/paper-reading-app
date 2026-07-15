@@ -1010,4 +1010,24 @@ Format per item:
 - northstar: 中——Theme 2「回顾有价值」浏览层前提；豆瓣导入（OPT-105，本周焦点）将为大量书籍写入有效 `finishedAt`，若不切换二级排序键，「已读完」列表按 `createdAt` 排序退化为导入批次顺序而非阅读时序；S 修复，建议搭车或紧随 OPT-105 PR。
 - description: `app.js:1238-1246`（`compareBooksForList()`）：一级排序键为 `bookStatusOrder`（finished/reading/wishlist），二级排序键为 `createdAt` desc。批量导入（Excel/豆瓣 CSV）同一批次 `createdAt` 相同（`app.js:4155`：`const now = new Date().toISOString(); ... createdAt: now`），同状态组内相对顺序退化为 CSV 行序，无时序语义。OPT-105 豆瓣导入后「已读完」组将出现大量具有有效 `finishedAt` 的书籍，此时「最近读完的先出现」是用户自然期望。
 - why: 「最近读完了哪些书」是「回顾」场景最基础查询，豆瓣导入后「已读完」列表应按 `finishedAt` desc 呈现，当前按 `createdAt` 排序（导入批次顺序）直接割裂时序回顾体验；S 修复：status-aware 三分支替换当前单一二级键（`finished` → finishedAt，`reading` → lastReadAt，其余 → createdAt），约 5-8 行，纯前端，无后端/schema 变更。
+
+### OPT-115 — `buildBookSearchCard()` 不展示 `book.rating`——评分字段在最高频入口完全不可见 — 由 explore E185 提拔 [2026-07-15]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——OPT-099（rating 字段，PR #60）上线后，书单卡面（最高频浏览入口）从未展示评分；用户无法在不点开详情的情况下快速区分「5 星精读」与「3 星随翻」，「凭记忆找高分书」路径受阻；S 修复 2-3 行激活评分对浏览场景的价值。
+- description: `app.js:1303-1348`（`buildBookSearchCard()` 渲染函数）：卡面构建包含 `statusBadge`（状态徽章）、`progressText`（进度）、`tagsHtml`（标签）等，但无 `book.rating` 展示。评分字段在书籍详情弹窗（`app.js:3472`：`★ ${book.rating || "-"}` 渲染）和书卡分享图（`app.js:3023`）中已展示，但书单主视图卡面没有。
+- why: 书单卡面是整个 app 打开后的第一视角，用户浏览书单时最需要「哪些书我读得很满意」的快速视觉信号；评分是 OPT-099（已上线）的核心数据，在最高频入口不可见等于功能对用户透明度为零。S 修复：在 statusBadge 后追加 `★ ${rating}` 小标签（若 `book.rating > 0`），约 2-3 行 JS + 1 行 CSS 调整，无 API/schema 变更。
+- how: `app.js:1303-1348`（buildBookSearchCard）：在 `statusBadge` 构建后追加 `const ratingHtml = book.rating ? \`<span class="book-rating">★ ${book.rating}</span>\` : ""`；注入到卡面 HTML；CSS `.book-rating` 参照 `.status-badge` 小徽章样式。Touch: `app.js:1303-1348`（buildBookSearchCard）、`styles.css`（book-rating 样式）。
+
+### OPT-116 — `matchBooks()` 过滤器不含 `book.doubanComment`——OPT-105 导入的豆瓣短评内容不可搜索 — 由 explore E188 提拔 [2026-07-15]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值→能找到」；OPT-105（今日落地，W29 焦点）为 110 本书批量写入豆瓣短评（`doubanComment`），但 `matchBooks()` 的五个 `fuzzyMatch` 分支没有 `doubanComment`，这批高密度读后印象关键词对书单搜索完全不可见；1 行修复。
+- description: `app.js:1239-1247`（`matchBooks()` 函数体）：过滤器包含 `title/author/tags/notes/review` 五个字段，无 `doubanComment`。该字段由 `importDoubanCsv()`（`app.js:4359`）写入，已在书籍详情（`app.js:3532`）和书卡分享（`app.js:3055`）中读取，但搜索路径不通。`matchBooks()` 同时为书单 Tab 搜索框（`app.js:4175`）和 `globalSearch()`（`app.js:4175`）所调用，修复后两个入口自动获益。
+- why: `doubanComment` 包含用户对每本书的主观读后评价关键词（治愈感、哲学性、二刷价值等），是书单检索的高质量语义信号；导入了数据但搜不到，直接削弱 OPT-105 的使用价值；S 修复，与 `book.review` 处理方式完全对称。
+- how: `app.js:1246`（`fuzzyMatch(book.review || "", query)` 行之后）：追加 `|| fuzzyMatch(book.doubanComment || "", query)`，1 行，无 HTML/CSS/后端/schema 变更。Touch: `app.js:1239-1247`（matchBooks 过滤器）。
 - how: `app.js:1238-1246`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支：若 `a.status === "finished"` 则按 `finishedAt` desc；若 `a.status === "reading"` 则按 `lastReadAt` desc；其余按 `createdAt` desc。Touch: `app.js:1238-1246`（`compareBooksForList` 函数体）。建议与 E184（已读完书卡展示 finishedAt）合并为「已读完书单时序体验」PR。
