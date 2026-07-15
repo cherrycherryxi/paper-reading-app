@@ -2,44 +2,46 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-14
+Last triaged: 2026-07-15
 
 ## Next up
 
-**OPT-100 + OPT-103 + OPT-110 — Excel/MCP 导入字段完整度补全（合并一 PR）**
+**OPT-113 + OPT-114 — 豆瓣导入后续双修：PromptBuilder 补字段 + 书单二级排序修正（合并一 PR）**
 
-预算状态：近 7 天 auto/ PR 共 **3 个**（PR #59 auto/opt-058-061-066-090-084-091-entry-bundle 2026-07-07、PR #60 auto/opt-092-search-field-bundle 2026-07-08、PR #61 auto/opt-065-mcp-sanitize-state 2026-07-11），上限 4，**本次可指派（3 < 4）**。
-
-> 注：上次 triage（2026-07-13）将 PR #55（auto/opt-064，创建于 2026-07-05）误计入 7 天窗口（窗口实为 2026-07-06 起），实际当时也是 3 个；今日从 2026-07-07 起算，结论相同——预算可用。
+预算状态：近 7 天 auto/ PR 共 **3 个**（PR #60 auto/opt-092-search-field-bundle 2026-07-08、PR #61 auto/opt-065-mcp-sanitize-state 2026-07-11、PR #67 auto/opt-100-103-110-excel-mcp-field-fix 2026-07-14），上限 4，**本次可指派（3 < 4）**。
 
 **状态更新（本次 triage）**：
-- OPT-101（PR #66）、OPT-107（PR #63）、OPT-108（PR #64）、OPT-111（PR #65）均 merged 2026-07-14，已在 backlog.md 标 done，从待办表移出。
-- OPT-112（renderTimeline 搜索不含 s.date）：new → triaged（P2, S），加入待办表。
+- OPT-100（PR #67）、OPT-103（PR #67）、OPT-110（PR #67）均 merged 2026-07-14，已在 backlog.md 标 done，从待办表移出。
+- OPT-105（commit b978f9f / 77319b1，2026-07-15）owner 白天功能轨完成，已标 done。
+- OPT-104、OPT-106：PR #68（feat/opt-104-106-share-dark-delete-cascade，2026-07-15 open）→ 状态从 triaged 改为 in-progress。
+- OPT-113、OPT-114：new → triaged（explore 2026-07-14 提拔）。
 
 **选题理由：**
-三项均为 **S 级**，合并一 PR 约 7 行代码，零后端/DB schema 变更，零文件冲突（与 owner 亲自实现的 OPT-105 豆瓣导入无交集）：
 
-- **OPT-100**（`app.js:4092-4113`）：Excel 导入「喜欢程度」列改写入 `book.rating` 独立字段而非混入 notes 文本，直接由 **signal 2026-07-06**「喜欢程度混进内容简介」驱动；约 3 行。
-- **OPT-110**（`app.js:4083` + `4130-4153`）：Excel 模板补「读后感」列 + importExcel() 写入 `book.review`，是 OPT-100 的对称续集；与 OPT-105 豆瓣 CSV 导入并行，完成「评分+读后感」在两条 Excel/CSV 入口的对称落地；约 3 行。
-- **OPT-103**（`reading_mcp_server.py:323`）：MCP `summary()` 写入字段由 `book.notes` 改 `book.review`，闭合 OPT-098 AI 读后感的 MCP 侧遗漏；signal 2026-07-06「AI 把书的笔记整理成读后感」佐证；1 行。
+OPT-105（豆瓣导入，W29 焦点）今日（2026-07-15）落地，一次性为 110 本书回填了 `finishedAt` / `rating` / `review` 三个字段。但有两个立即可见的后续断点：
 
-三项合并一 PR，共同收尾同一 signal cluster（2026-07-06 评分/读后感/导入），让 Theme 2「回顾有价值」的书籍字段从 Excel、豆瓣 CSV、MCP 三个入口同步正确写入，配合正在进行的 OPT-105。
+- **OPT-114**（`app.js:1238-1246`）：「已读完」组二级排序键是 `createdAt`，豆瓣同批导入的书 `createdAt` 相同，导致 110 本书在书单里按 CSV 行序随机排列，而非按 `finishedAt` 时序。用户今天打开书单就能看到这个乱序问题。约 5-8 行 status-aware 三分支替换，零后端/schema 变更。
+- **OPT-113**（`app_server.py:2432-2434`）：`all_books_summary` 只含 `id/title/author/status` 四字段，`rating` 和 `finishedAt` 不在 AI 上下文里，导致「帮我找评分最高的书」「我去年读完了哪些书」这类现在有了真实数据的 AI 问答必然答错。约 1 行追加，token 增量约 750，OPT-020 的节省早已覆盖。
 
-**关键文件：** `app.js`（importFromExcel 的 rating/review 字段赋值与模板 headers），`reading_mcp_server.py:323`（summary action 字段名）
+两项合并一 PR：文件无冲突（一前端一后端），共约 8-10 行，完成「豆瓣导入数据在书单 UI 和 AI 两个消费层都可正确使用」的闭环。主题是 Theme 2「回顾有价值」。
+
+**关键文件：** `app.js:1238-1246`（`compareBooksForList` 二级排序分支），`app_server.py:2432-2434`（`all_books_summary` dict 追加 rating/finishedAt）
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **done** | ✅ 2026-07-15 完成(commit b978f9f); 曾为 W29 焦点。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
-| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **in-progress** | PR #67（auto/opt-100-103-110-excel-mcp-field-fix，2026-07-14）。与 OPT-103+OPT-110 合并一 PR。 |
-| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **in-progress** | PR #67（同上）。 |
-| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **in-progress** | PR #67（同上）。 |
-| OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | triaged | OPT-021（CSS 深色模式）+ OPT-087（分享卡）闭环唯一缺口；`app.js:2599-2606`，约 5 行；深色用户分享体验直接受损。 |
-| OPT-106 | deleteQuote() 确认弹窗不提及将级联删除关联，getConnectionCount() 已存在可直接复用 | P2 | S | triaged | **signal 2026-07-10** 佐证（E169 提拔）；关联是 Theme 2 核心数据；`app.js:3194`，3-4 行；建议与 deleteBook 级联透明度合并一 PR。 |
+| OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **done** | ✅ 2026-07-15 完成(commit b978f9f); W29 焦点。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）；OPT-074/099/098 字段层已完成，本项打通数据入口，为 Theme 2「回顾有价值」补存量。 |
+| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **done** | PR #67（2026-07-14 merged）。与 OPT-103+OPT-110 合并一 PR。 |
+| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **done** | PR #67（2026-07-14 merged）。同上。 |
+| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **done** | PR #67（2026-07-14 merged）。同上。 |
+| OPT-113 | PromptBuilder.all_books_summary 缺 rating/finishedAt，AI 无法回答跨书评分/读完时间查询 | P2 | S | **triaged** | ✅ **Next up**（与 OPT-114 合并一 PR）。Theme 2 AI 查询层；OPT-105 后 rating/finishedAt 在数据里但 AI 看不见；`app_server.py:2432-2434`，1 行追加。 |
+| OPT-114 | compareBooksForList() 二级排序键为 createdAt——豆瓣导入后「已读完」组时序语义错乱 | P2 | S | **triaged** | ✅ **Next up**（与 OPT-113 合并一 PR）。Theme 2 浏览层；OPT-105 后 finishedAt 有数据但书单排序仍按 createdAt（导入批次顺序）；`app.js:1238-1246`，5-8 行三分支替换。 |
+| OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | **in-progress** | PR #68（feat/opt-104-106-share-dark-delete-cascade，2026-07-15 open）；OPT-021（CSS 深色模式）+ OPT-087（分享卡）闭环唯一缺口；`app.js:2599-2606`，约 5 行。 |
+| OPT-106 | deleteQuote() 确认弹窗不提及将级联删除关联，getConnectionCount() 已存在可直接复用 | P2 | S | **in-progress** | PR #68（同上）；**signal 2026-07-10** 佐证（E169 提拔）；关联是 Theme 2 核心数据；`app.js:3194`，3-4 行。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`，3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
 | OPT-082 | renderTimeline() sessionStats 仅在搜索时显示，默认视图无累计阅读数据 | P2 | S | triaged | **与 OPT-053 完全重复**（`app.js:1419`），OPT-053 实现后自动解决，不另行指派。 |
-| OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，用户无法按时间段（"6月"/"2026-07"）搜索阅读动态 | P2 | S | triaged | new→triaged（2026-07-14）；Theme 2「检索」延伸；`app.js`（renderTimeline 搜索 haystack 加 s.date），约 1-2 行；与 OPT-053 同区域，可合并一 PR；signal 2026-07-03「按主题找书」搜索诉求的动态页对称缺口。 |
+| OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，用户无法按时间段（"6月"/"2026-07"）搜索阅读动态 | P2 | S | triaged | Theme 2「检索」延伸；`app.js:1515`（renderTimeline haystack 加 s.date），约 1-2 行；与 OPT-053 同区域，可合并一 PR；signal 2026-07-03「按主题找书」搜索诉求的动态页对称缺口。 |
 | OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`，约 10-15 行，纯前端。 |
 | OPT-094 | addSession() pagesRead 计算差一，统计数据永远少计一页 | P2 | S | triaged | northstar 弱（数据准确性）；`app.js:2311`（addSession）+ `app.js:2318`（editSession）+ `app.js:1456`（统计栏汇总）各漏 +1；纯前端 3 行。 |
 | OPT-095 | 新建摘抄对话框页码字段从不预填 book.currentPage | P2 | S | triaged | northstar 弱-中，Theme 1 小摩擦消除；`app.js:2520`，2-3 行，纯前端。 |
