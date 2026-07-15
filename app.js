@@ -70,6 +70,7 @@ const els = {
   importResultList: document.querySelector("#importResultList"),
   importResultOkBtn: document.querySelector("#importResultOkBtn"),
   importExcelInput: document.querySelector("#importExcelInput"),
+  importDoubanInput: document.querySelector("#importDoubanInput"),
   importExcelBooksBtn: document.querySelector("#importExcelBooksBtn"),
   importExcelDialog: document.querySelector("#importExcelDialog"),
   downloadExcelTemplateBtn: document.querySelector("#downloadExcelTemplateBtn"),
@@ -4287,6 +4288,89 @@ async function importExcel(file) {
   }
 }
 
+// 极简 CSV 解析（RFC4180 风格）：处理引号包裹、字段内逗号/换行、"" 转义、UTF-8 BOM。
+// 豆瓣短评可能含逗号/换行, 故不能简单 split(",")。返回 string[][]。
+function parseCsv(text) {
+  let s = String(text || "");
+  if (s.charCodeAt(0) === 0xfeff) s = s.slice(1); // 去 BOM
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (s[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+      } else { field += c; }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field); field = "";
+    } else if (c === "\n") {
+      row.push(field); rows.push(row); row = []; field = "";
+    } else if (c !== "\r") {
+      field += c;
+    }
+  }
+  if (field !== "" || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// 从豆瓣「读过」导出的 CSV 回填已有书的空缺字段（评分/读完日期/读后感），匹配不到则新增。
+// 冲突策略：只填空缺——绝不覆盖你已手填/已生成的字段(OPT-105)。
+async function importDoubanCsv(file) {
+  if (!requireAuth("导入豆瓣")) return;
+  try {
+    const rows = parseCsv(await file.text()).filter((r) => r.some((c) => String(c).trim() !== ""));
+    if (rows.length < 2) { showToast("CSV 没有数据行"); return; }
+    const header = rows[0].map((h) => String(h).trim());
+    const col = (aliases) => header.findIndex((h) => aliases.includes(h));
+    const iTitle = col(["书名", "标题", "title", "Title"]);
+    if (iTitle < 0) { showToast("CSV 首行缺「书名」列"); return; }
+    const iAuthor = col(["作者", "author"]);
+    const iRating = col(["我的评分", "评分", "喜欢程度", "rating"]);
+    const iDate = col(["读过日期", "读完日期", "完成时间", "finishedAt"]);
+    const iReview = col(["我的短评", "短评", "读后感", "review"]);
+    const get = (r, i) => (i >= 0 ? String(r[i] || "").trim() : "");
+
+    let updated = 0, created = 0;
+    const now = new Date().toISOString();
+    for (const r of rows.slice(1)) {
+      const title = get(r, iTitle);
+      if (!title || title.startsWith("示例：")) continue;
+      const author = get(r, iAuthor);
+      const rating = Math.min(5, Math.max(0, Math.round(Number(get(r, iRating)) || 0)));
+      const finishedAt = parseExcelDateToIso(get(r, iDate)) || "";
+      const review = get(r, iReview);
+
+      const existing = state.books.find((b) => isSameBook(title, author, b.title, b.author));
+      if (existing) {
+        let touched = false;
+        if (rating && !(existing.rating > 0)) { existing.rating = rating; touched = true; }
+        if (finishedAt && !existing.finishedAt) { existing.finishedAt = finishedAt; touched = true; }
+        if (review && !String(existing.review || "").trim()) {
+          existing.review = review; existing.reviewIsAi = false; touched = true;
+        }
+        if (touched) { existing.updatedAt = now; updated += 1; }
+      } else {
+        state.books.unshift({
+          id: createId("book"), title, author,
+          totalPages: 0, currentPage: 0, status: "finished", // 豆瓣「读过」= 已读完
+          tags: [], notes: "", review, reviewIsAi: false, rating,
+          coverImageUrl: "", createdAt: now, updatedAt: now,
+          startedAt: "", finishedAt, lastReadAt: finishedAt,
+        });
+        created += 1;
+      }
+    }
+    if (!updated && !created) { showToast("没有可导入的数据（可能都已填过，或书名列为空）"); return; }
+    await syncState();
+    render();
+    showToast(`豆瓣导入完成：回填 ${updated} 本、新增 ${created} 本`);
+  } catch (error) {
+    showToast(`豆瓣导入失败：${error.message || "未知错误"}`);
+  }
+}
+
 async function clearLogs() {
   if (!requireAuth("清空日志")) return;
   try {
@@ -5341,6 +5425,13 @@ function bindEvents() {
     const [file] = event.target.files || [];
     if (!file) return;
     await importExcel(file);
+    event.target.value = "";
+  });
+
+  els.importDoubanInput?.addEventListener("change", async (event) => {
+    const [file] = event.target.files || [];
+    if (!file) return;
+    await importDoubanCsv(file);
     event.target.value = "";
   });
 
