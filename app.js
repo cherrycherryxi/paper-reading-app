@@ -4194,8 +4194,8 @@ function downloadExcelTemplate() {
     showToast("Excel 解析库未加载，请刷新后重试");
     return;
   }
-  const headers = ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度"];
-  const example = ["示例：百年孤独", "加西亚·马尔克斯", "阅读中", "小说,拉美文学", 360, "2026-06-01", "", "范晔", "布恩迪亚家族七代人的故事", "5"];
+  const headers = ["书名", "作者", "状态", "标签", "总页数", "开始时间", "完成时间", "译者", "简介", "喜欢程度", "读后感"];
+  const example = ["示例：百年孤独", "加西亚·马尔克斯", "阅读中", "小说,拉美文学", 360, "2026-06-01", "", "范晔", "布恩迪亚家族七代人的故事", "5", ""];
   const sheet = window.XLSX.utils.aoa_to_sheet([headers, example]);
   sheet["!cols"] = headers.map((h) => ({ wch: h === "书名" || h === "简介" ? 24 : 12 }));
   const workbook = window.XLSX.utils.book_new();
@@ -4244,10 +4244,12 @@ async function importExcel(file) {
       const notesParts = [];
       const intro = String(getRowField(row, ["内容简介", "简介", "notes", "备注"])).trim();
       const translator = String(getRowField(row, ["译者", "translator"])).trim();
-      const rating = String(getRowField(row, ["喜欢程度", "评分", "rating"])).trim();
       if (translator) notesParts.push(`译者：${translator}`);
       if (intro) notesParts.push(`简介：${intro}`);
-      if (rating) notesParts.push(`喜欢程度：${rating}`);
+
+      const ratingRaw = String(getRowField(row, ["喜欢程度", "评分", "rating"])).trim();
+      const rating = Math.min(5, Math.max(0, Math.round(Number(ratingRaw) || 0)));
+      const review = String(getRowField(row, ["读后感", "review"])).trim();
 
       const now = new Date().toISOString();
       state.books.unshift({
@@ -4259,6 +4261,9 @@ async function importExcel(file) {
         status,
         tags: normalizeTags(getRowField(row, ["类别", "标签", "tags"])),
         notes: notesParts.join("\n"),
+        review,
+        reviewIsAi: false,
+        rating,
         coverImageUrl: "",
         createdAt: now,
         updatedAt: now,

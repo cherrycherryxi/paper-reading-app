@@ -323,7 +323,7 @@ def summary(
         if not book:
             return {"ok": False, "error": f"book not found: {book_id}"}
 
-        book["notes"] = ((book.get("notes") or "") + "\n\n" + content).strip()
+        book["review"] = ((book.get("review") or "") + "\n\n" + content).strip()
         book["updatedAt"] = _now_iso()
         _save_state(conn, user_id, state)
         return _ok(state, {"updated": {"bookId": book_id}})
