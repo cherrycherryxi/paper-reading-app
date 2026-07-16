@@ -1031,3 +1031,13 @@ Format per item:
 - why: `doubanComment` 包含用户对每本书的主观读后评价关键词（治愈感、哲学性、二刷价值等），是书单检索的高质量语义信号；导入了数据但搜不到，直接削弱 OPT-105 的使用价值；S 修复，与 `book.review` 处理方式完全对称。
 - how: `app.js:1246`（`fuzzyMatch(book.review || "", query)` 行之后）：追加 `|| fuzzyMatch(book.doubanComment || "", query)`，1 行，无 HTML/CSS/后端/schema 变更。Touch: `app.js:1239-1247`（matchBooks 过滤器）。
 - how: `app.js:1238-1246`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支：若 `a.status === "finished"` 则按 `finishedAt` desc；若 `a.status === "reading"` 则按 `lastReadAt` desc；其余按 `createdAt` desc。Touch: `app.js:1238-1246`（`compareBooksForList` 函数体）。建议与 E184（已读完书卡展示 finishedAt）合并为「已读完书单时序体验」PR。
+
+### OPT-117 — 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding 的「即时兑现」钩子 — owner 渠道复盘直接提出 [2026-07-16]
+- status: new
+- area: fullstack
+- priority: P1
+- size: L
+- northstar: 高——增长/激活层。渠道复盘（2026-07-16）结论：分享物料承诺「扫码生成你的阅读画像」，但陌生新用户注册后面对空书架，需手动录入几十本书才有任何画像可看，承诺-兑现落差是转化为 0 的核心断点之一。本项把 OPT-105 的能力翻转为新用户 onboarding：输入豆瓣 ID → 服务端拉取其公开「读过」（书名/作者/评分/读完日期/短评）→ 30 秒内生成该用户自己的阅读偏好画像（评分脉络+偏好分析，复用 OPT-113 已入 prompt 的 rating/finishedAt）→ 顺势引导注册留存。精准命中豆瓣/小红书读书人群（他们的历史数据都在豆瓣）；也是小红书内容策略第 5 篇「豆瓣搬家」的产品支撑。
+- description: 现状：`tools/douban_export.py` 是本地 CLI（owner 亲测公开书架无 cookie 可抓 110 本），陌生用户无法使用；`importDoubanCsv()`（app.js）要求用户自己跑脚本得到 CSV。缺一条「站内输入豆瓣 ID → 后端代抓 → 画像页」的产品化链路。
+- why: 把海报/帖子的承诺当场兑现，是画像分享素材能形成增长闭环的前提；同时天然完成数据导入（书+评分+日期+短评一次到位），新用户跳过冷启动录入。
+- how: ①后端新端点（如 `POST /api/douban/import-preview`）：移植 douban_export.py 的 fetch+parse 到 app_server.py，输入豆瓣数字 ID，仅抓公开 collect 页（mode=list），带严格频控（全局队列 + 每 IP/每 ID 限次 + REQ_INTERVAL≥2.5s + 页数上限）与被拦降级提示；②前端 onboarding 入口（未登录 landing 或注册后空状态）：输入 ID → 进度态 → 画像结果页（偏好脉络+星级分布，可复用分享卡视觉）→ 「保存到我的书架」触发注册/登录并落库（复用 importDoubanCsv 的 fill-if-empty 合并语义）；③风控注意：豆瓣反爬（服务端 IP 被 ban 的风险，小规模可行）、隐私提示（仅抓公开数据）、结果缓存防重复抓取。Touch: app_server.py（抓取端点+频控）、app.js/index.html（onboarding 流程+画像页）、可选复用 AI 偏好分析 prompt。

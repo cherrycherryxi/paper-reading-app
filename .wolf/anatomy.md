@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T07:53:45.316Z
-> Files: 286 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T12:38:59.447Z
+> Files: 288 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -14,6 +14,11 @@
 - `index.html` — 🐛 又买了一本书 (~8023 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 11 more (~29248 tok)
 - `styles.css` — Styles: 149 rules, 51 vars (~13191 tok)
+
+## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/
+
+- `reading-taste-card.html` — 阅读偏好画像 · 47 本书里的你 (~2929 tok)
+- `taste-poster.html` (~2477 tok)
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/3bfa5118-bef4-4aee-b646-f659353e2f2c/scratchpad/pr54-fix/tests/frontend/
 

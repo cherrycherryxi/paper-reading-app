@@ -8559,10 +8559,32 @@
       "file": "app.js",
       "root_cause": "compareBooksForList() 二级排序键写死 createdAt；批量导入(Excel/豆瓣 CSV)同批次 createdAt 相同，同状态组内退化为导入行序，无时序语义",
       "fix": "抽出 status-aware 的 bookRecencyKey：finished→finishedAt、reading→lastReadAt、wishlist/其余→createdAt，各自回落 createdAt(仍走 OPT-037 的 Date.parse 数值比较)。同 PR 修 OPT-113(all_books_summary 补 rating/finishedAt 供 AI 跨书查询)。PR #69",
-      "tags": ["sorting", "douban-import", "OPT-114", "OPT-113", "js"],
+      "tags": [
+        "sorting",
+        "douban-import",
+        "OPT-114",
+        "OPT-113",
+        "js"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T15:30:00.000Z"
+    },
+    {
+      "id": "bug-513",
+      "timestamp": "2026-07-16T12:38:59.469Z",
+      "error_message": "Wrong reference: 1350px should be 1720px",
+      "file": "../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/taste-poster.html",
+      "root_cause": "Used \"1350px\" instead of \"1720px\"",
+      "fix": "Changed 1350px → 1720px",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T12:38:59.469Z"
     }
   ]
 }
