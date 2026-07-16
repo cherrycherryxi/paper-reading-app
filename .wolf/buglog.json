@@ -8471,6 +8471,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:00:50.364Z"
+    },
+    {
+      "id": "bug-507",
+      "timestamp": "2026-07-15T14:31:32.120Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 13→22 lines (5 removed) | Also: // 有读后感优先展示读后感，否则回落内容简介；标签随内容语义变化。; const notesLabel = review ? (book.reviewIsAi ? REV",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T14:32:00.289Z"
+    },
+    {
+      "id": "bug-508",
+      "timestamp": "2026-07-15T14:32:50.140Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/douban-import.test.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→10 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:32:50.140Z"
     }
   ]
 }
