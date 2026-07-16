@@ -2744,10 +2744,29 @@ const SHARE_CARD = {
   W: 1080, PAD: 84,
   bg: "#f5f0e8", ink: "#3d4a3f", inkSoft: "#5a6a5d", inkMuted: "#8a948a",
   accent: "#c9a85a", pillBg: "#e7ecdf",
+  // ink 派生的三档淡色（分隔线 / 胶囊底与装饰圆 / 大引号），随主题切换避免深色模式下画成不可见的深色线条
+  hair: "rgba(61,74,63,0.15)", tint: "rgba(61,74,63,0.06)", tintStrong: "rgba(61,74,63,0.20)",
   brand: "又买了一本书",
   serif: '"Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif',
   sans: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif',
 };
+
+// 深色模式分享卡调色板：与 SHARE_CARD 对称，仅覆盖颜色字段（尺寸/字体沿用），
+// ink 派生淡色改用暖白 rgba，保证深底上分隔线/装饰圆/大引号仍可见。
+const SHARE_CARD_DARK = {
+  ...SHARE_CARD,
+  bg: "#1c1a17", ink: "#e8e0d0", inkSoft: "#c4bcaa", inkMuted: "#8f887a",
+  accent: "#d8b968", pillBg: "#2b3228",
+  hair: "rgba(232,224,208,0.15)", tint: "rgba(232,224,208,0.06)", tintStrong: "rgba(232,224,208,0.20)",
+};
+
+// 出图时按系统深色偏好挑调色板；matchMedia 在测试沙箱可能缺失，缺失即回落亮色。
+function activeShareCard() {
+  const dark = typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return dark ? SHARE_CARD_DARK : SHARE_CARD;
+}
 
 function loadImageForShare(src) {
   return new Promise((resolve) => {
@@ -2845,7 +2864,7 @@ function drawShareHeader(ctx, C, logo) {
 }
 
 function drawShareDivider(ctx, C, y) {
-  ctx.strokeStyle = "rgba(61,74,63,0.15)";
+  ctx.strokeStyle = C.hair;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(C.PAD, y);
@@ -2889,7 +2908,7 @@ function layoutShareTags(ctx, C, tags, startY, draw) {
     const w = ctx.measureText(label).width + 40;
     if (x + w > C.W - C.PAD && x > C.PAD) { x = C.PAD; y += h + rowGap; }
     if (draw) {
-      ctx.fillStyle = "rgba(61,74,63,0.06)";
+      ctx.fillStyle = C.tint;
       roundRectPath(ctx, x, y, w, h, 12);
       ctx.fill();
       ctx.fillStyle = C.inkSoft;
@@ -2903,7 +2922,7 @@ function layoutShareTags(ctx, C, tags, startY, draw) {
 }
 
 async function renderQuoteShareCard(quote, book) {
-  const C = SHARE_CARD;
+  const C = activeShareCard();
   const contentW = C.W - C.PAD * 2;
   const { qr, logo } = await loadShareAssets();
 
@@ -2930,7 +2949,7 @@ async function renderQuoteShareCard(quote, book) {
   const { canvas, ctx } = newShareCanvas(C, height);
   let cy = drawShareHeader(ctx, C, logo) + 64;
 
-  ctx.fillStyle = "rgba(61,74,63,0.20)";
+  ctx.fillStyle = C.tintStrong;
   ctx.font = `italic 700 150px ${C.serif}`;
   ctx.fillText("“", C.PAD - 6, cy + 60);
   cy += 96;
@@ -2960,7 +2979,7 @@ async function renderQuoteShareCard(quote, book) {
 }
 
 async function renderConnectionShareCard(conn) {
-  const C = SHARE_CARD;
+  const C = activeShareCard();
   const contentW = C.W - C.PAD * 2;
   const { qr, logo } = await loadShareAssets();
 
@@ -2998,7 +3017,7 @@ async function renderConnectionShareCard(conn) {
   drawShareHeader(ctx, C, logo);
 
   // 顶部偏右的装饰圆（发现感）
-  ctx.fillStyle = "rgba(61,74,63,0.06)";
+  ctx.fillStyle = C.tint;
   ctx.beginPath();
   ctx.arc(C.W - 30, 40, 190, 0, Math.PI * 2);
   ctx.fill();
@@ -3042,7 +3061,7 @@ function readingDaysLabel(book) {
 }
 
 async function renderBookShareCard(book) {
-  const C = SHARE_CARD;
+  const C = activeShareCard();
   const [{ qr, logo }, cover] = await Promise.all([
     loadShareAssets(),
     book.coverImageUrl ? loadImageForShare(resolveImageUrl(book.coverImageUrl)) : Promise.resolve(null),
@@ -3337,8 +3356,9 @@ async function deleteSession(sessionId) {
 
 async function deleteQuote(quoteId) {
   if (!requireAuth("删除摘抄")) return;
+  const connCount = getConnectionCount(quoteId);
   showConfirmDialog({
-    message: "确定删除这张摘抄卡片吗？",
+    message: `确定删除这张摘抄卡片吗？${connCount > 0 ? `（同时删除 ${connCount} 条关联）` : ""}`,
     onConfirm: async () => {
       state.quotes = state.quotes.filter((item) => item.id !== quoteId);
       state.connections = (state.connections || []).filter((c) => c.sourceId !== quoteId && c.targetId !== quoteId);

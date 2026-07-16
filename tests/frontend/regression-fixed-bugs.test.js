@@ -820,6 +820,49 @@ test("P1-003 regression: deleteSession and deleteQuote use showConfirmDialog, no
   );
 });
 
+test("OPT-106: deleteQuote 确认弹窗提示将级联删除的关联数量（有关联时）", () => {
+  const hooks = createAppHarness();
+  hooks.setCurrentUser({ id: "u1" });
+  hooks.setAuthToken("tok");
+  hooks.setState({
+    books: [{ id: "b1", title: "书", author: "A", status: "reading", tags: [] }],
+    quotes: [{ id: "q1", bookId: "b1", content: "摘抄一", createdAt: "2026-05-01T00:00:00.000Z" },
+             { id: "q2", bookId: "b1", content: "摘抄二", createdAt: "2026-05-01T00:00:00.000Z" }],
+    sessions: [],
+    connections: [
+      { id: "c1", sourceId: "q1", targetId: "q2" },
+      { id: "c2", sourceId: "q2", targetId: "q1" }, // 反向也计入 q1
+      { id: "c3", sourceId: "b1", targetId: "q1" },
+    ],
+    chatHistories: {},
+  });
+
+  hooks.deleteQuote("q1");
+  assert.equal(hooks.els.confirmDialog.open, true, "应打开确认弹窗");
+  assert.match(
+    hooks.els.confirmDialogMessage.textContent,
+    /同时删除\s*3\s*条关联/,
+    "有关联时确认文案应提示级联删除的关联数量（q1 参与 3 条）"
+  );
+});
+
+test("OPT-106: deleteQuote 无关联时确认文案不追加级联提示", () => {
+  const hooks = createAppHarness();
+  hooks.setCurrentUser({ id: "u1" });
+  hooks.setAuthToken("tok");
+  hooks.setState({
+    books: [{ id: "b1", title: "书", author: "A", status: "reading", tags: [] }],
+    quotes: [{ id: "q1", bookId: "b1", content: "孤立摘抄", createdAt: "2026-05-01T00:00:00.000Z" }],
+    sessions: [],
+    connections: [],
+    chatHistories: {},
+  });
+
+  hooks.deleteQuote("q1");
+  assert.equal(hooks.els.confirmDialogMessage.textContent, "确定删除这张摘抄卡片吗？",
+    "无关联时应保持原始文案，不带括号提示");
+});
+
 test("P1-004 regression: withSavingState disables button and restores label after async operation", async () => {
   const hooks = createAppHarness();
 
