@@ -3166,6 +3166,94 @@ OPT-113（triaged，Next up，将在下一个 PR 修复）将在此处追加 `"r
 
 > 本次 run（2026-07-15）扫描焦点为 OPT-105（豆瓣导入，今日 W29 焦点落地）的数据下游覆盖完整度。新发现 3 条：E188（matchBooks 不含 doubanComment，S，northstar 中，直接 1 行修复）、E189（importDoubanCsv 反馈 showToast 而非 showImportResult，S，northstar 弱-中，透明度倒置）、E190（all_books_summary 缺 doubanComment，S，northstar 弱-中，OPT-113 搭车点）。将昨日 run（2026-07-14）发现的 E185（buildBookSearchCard 不展示 rating）提拔为 OPT-115，今日发现的 E188（matchBooks 缺 doubanComment）提拔为 OPT-116。所有断言均基于实际代码读取，已标注 file:line。
 
+---
+
+## 2026-07-16
+
+> 扫描焦点：OPT-105（豆瓣导入，已落地）后的 UI 数据曝光缺口——110 本书的新字段（`finishedAt`、`doubanComment`）在最高频视图层的可见度；以及 2026-07-16 信号（owner 几乎不用「记录」页面）对应的隐性时序数据机会。E186、E187 为本次新验证（上次 run 探索发现但未写入 explore.md），E190 上次已记录但未提拔，E191、E192、E193 为今日新发现。
+
+---
+
+### E191 — `buildBookSearchCard()` 对「已读完」书籍展示进度文字而非 `finishedAt` 日期，OPT-105 导入的 110 个读完日期在最高频浏览入口完全不可见 (S)
+
+**What (verified):** `app.js:1324-1358`（`buildBookSearchCard()` 函数体）：
+```js
+// app.js:1341-1354
+const progressText =
+  book.totalPages && book.currentPage
+    ? `${Math.round((book.currentPage / book.totalPages) * 100)}%·${book.currentPage}/${book.totalPages}页`
+    : book.currentPage
+    ? `已读到第${book.currentPage}页`
+    : "";
+```
+`progressText` 对所有书籍状态使用同一分支，「已读完」书籍展示「已读到第X页」或「X%·X/Y页」——读完后的页数进度毫无意义，而 `book.finishedAt`（OPT-105 为 110 本书批量写入、OPT-074 手动录入逻辑上线）从不出现在卡面。书籍详情弹窗（`app.js:3532`）和书卡分享图（`app.js:3023`）均已读取 `finishedAt`，书单卡面（打开 App 的第一视角）是唯一遗漏入口。
+
+**Why it matters:** 「已读完」状态下用户关心的是「我什么时候读完的」而非「已读到哪页」；OPT-105 落地后 110 本书有真实读完日期，OPT-074 上线后手动录入日期也可靠，但书单主视图完全看不到这些数据。「回顾有价值」的核心前提是让时序信息触手可及，书单卡面是用户每次打开 App 的第一视角，时序缺口直接削弱 Theme 2 体验。S 修复：在 `book.status === "finished"` 时将 `progressText` 替换为 `finishedAt` 短日期（`YYYY-MM-DD`），约 3-4 行 JS，0 行 CSS 变更，无 API/schema 变更。
+
+**Complexity:** S — `app.js:1341-1356`（progressText 构建段）：在 progressText 赋值前加 `if (book.status === "finished" && book.finishedAt) return \`读完 ${book.finishedAt.slice(0, 10)}\``（可复用 `formatDate()` 若有），替换进度文字分支。Touch: `app.js:1341-1356`（progressText 构建），无 CSS/API/schema 变更。
+
+**Files:** `app.js:1324-1358`（buildBookSearchCard）；参照 `app.js:3023`（书卡分享已读取 finishedAt）、`app.js:3532`（书籍详情已读取 finishedAt）
+
+**northstar:** 中-高——Theme 2「回顾有价值」浏览入口层。OPT-115（rating 徽章，triaged）激活了评分字段；本项使 finishedAt 在同一卡面可见，两项组合后「已读完」书卡完整传达「何时读完、满意度如何」，形成可扫描的时序回顾层；S 修复，与 OPT-115 天然合并为一 PR。→ **提拔 OPT-119**
+
+---
+
+### E186 — `addSession()` 仅在 `!book.startedAt` 时设置开始日期，早于现有日期的补录无法追溯更新 `startedAt` (S)
+
+**What (verified):** `app.js:2564`（`addSession()` 新建路径）：
+```js
+if (!book.startedAt && !(book.finishedAt && date > book.finishedAt))
+  book.startedAt = date;
+```
+`!book.startedAt` 守卫意味着：一旦 `startedAt` 已有值，无论新补录的 session 日期是否更早，都不更新。编辑路径（`app.js:2533-2550`）更新 `currentPage, lastReadAt, updatedAt, status, finishedAt`，完全不含 `startedAt`。OPT-105（豆瓣导入）写入 `finishedAt` 后，owner 可能在书架上反向补录「最初什么时候开始读这本书」的阅读记录——此时 `startedAt` 要么是豆瓣导入时自动推算的晚于实际日期，要么根本没有值，而新补录的更早日期无法纠正它。
+
+**Why it matters:** 2026-07-16 信号显示 owner 几乎不显式使用「记录」页，但 OPT-105 批量填完 finishedAt 后，重建「从什么时候开始读」的时序是下一个自然冲动；若补录反向不生效，owner 修完后看到开始日期仍错，时序数据可信度下降。S 修复：将新建路径守卫从 `!book.startedAt` 改为 `!book.startedAt || (date < book.startedAt && ...)`，保留 finishedAt 矛盾守卫；编辑路径补充同一 `if` 逻辑。约 2-3 行。
+
+**Complexity:** S — `app.js:2564`（新建路径 startedAt 赋值行）：改为 `if ((!book.startedAt || date < book.startedAt) && !(book.finishedAt && date > book.finishedAt))`；`app.js:2550`（编辑路径结尾）：补一行相同的 startedAt 最早日期收敛逻辑。Touch: `app.js:2550`、`app.js:2564`。
+
+**Files:** `app.js:2533-2550`（addSession 编辑路径）；`app.js:2564`（addSession 新建路径 startedAt 赋值）
+
+**northstar:** 中——Theme 2「回顾有价值」时序数据可信度；owner 2026-06-26 已明确「希望有开始/读完日期字段」，补录机制若有偏差则 OPT-105 后的时序回顾可信度打折。S 修复，无 UI/API/schema 变更。
+
+---
+
+### E187 — `deleteConnection()` 确认弹窗不提示 `connection.thought` 字段将永久删除，用户手写关联感悟无声消失 (S)
+
+**What (verified):** `app.js:5040-5054`（`deleteConnection()` 函数体）：
+```js
+showConfirmDialog({
+  message: "确定删除这条关联记录吗？",
+  onConfirm: async () => { /* 直接 filter 删除 */ }
+});
+```
+`connection.thought`（用户在「建立关联」时手写的「为什么建立这条关联/读到了什么」）是 connections 数据中信息密度最高的字段，也是纯用户创作内容（不可 AI 重新生成），但确认弹窗只问「确定删除这条关联记录吗？」，不提示 thought 内容即将消失。对比 `deleteQuote()`（OPT-106，PR #68，已上线）：若摘抄参与了关联，弹窗追加「（同时删除 N 条关联）」警告；`deleteConnection()` 方向相反——即使 thought 有内容，弹窗也完全不显示。
+
+**Why it matters:** `connection.thought` 是 Theme 2「建立关联」工作流中用户主动产出的最高密度内容（比摘抄文本更个人化），无声删除等于永久抹去用户的思考记录；与 OPT-043（导入过载守卫）、OPT-106（deleteQuote 级联透明度）已建立的「破坏性操作透明度」系列完全对称。S 修复：在 `showConfirmDialog` 前读 `conn.thought`，若非空则 message 追加「（关联感悟将一并删除）」或预览前 20 字。
+
+**Complexity:** S — `app.js:5040`：在 `showConfirmDialog` 前加 `const thought = (conn.thought || "").trim()`；message 改为 `` `确定删除这条关联记录吗？${thought ? `（关联感悟将一并删除）` : ""}` ``。约 3 行，0 API/schema 变更。Touch: `app.js:5040-5054`（deleteConnection showConfirmDialog 调用段）。
+
+**Files:** `app.js:5040-5054`（deleteConnection）；参照 `app.js:3193-3209`（deleteQuote OPT-106 同类改动参照）
+
+**northstar:** 中——Theme 2「建立关联」数据可靠性；关联感悟是用户二次思考的结晶，是 Theme 2 核心产出，S 修复且有 OPT-106 既有代码模式可直接复用。
+
+---
+
+### E192 — 2026-07-16 信号：owner 几乎不显式新增「记录」，quote 的 `createdAt` 时间戳可作为隐式阅读时序数据替代记录页面 (M)
+
+**What:** 2026-07-16 信号（signals.md 末行）：owner 很少显式新增「记录」，记录页面几乎不用，方向倾向「以摘抄流作为阅读足迹的唯一载体」。验证当前 quote 数据结构：每条摘抄有 `createdAt`（ISO 时间戳，`app_server.py:sanitize_state()`），`book.id` 可关联到书籍；`renderTimeline()`（`app.js:1515`）目前只消费 `sessions` 数组，完全不使用 quotes 数据。
+
+**Why it matters:** 如果 owner 长期以摘抄代替显式记录，则「动态」Tab 的时序数据将永远是空的（零 sessions），而摘抄流（28 条/周）实际上已经隐式记录了「哪天在读哪本书」——把 quotes 的 createdAt 投影到动态时间轴，owner 在不做任何额外操作的情况下就能获得一条完整的阅读时序足迹。这与 2026-06-26 信号「自动或一键标记读完日期」和 roadmap 「records replaced by implicit quote stream」方向完全一致。
+
+**Complexity:** M — 需新增「按书+日期聚合 quotes 推算阅读时段」逻辑，以 `{date, bookId, quoteCount}` 形态合并进 `renderTimeline()`；统计层不复杂，主要工作在 UI 层如何区分「显式记录」与「隐式摘抄日」的视觉表达（避免重叠/混淆）。需产品侧决策：是否合并显示，或提供开关。
+
+**Files:** `app.js:1515`（renderTimeline haystack）；`app.js:1595-1617`（renderTimeline stats bar）；`app_server.py:sanitize_state()`（quotes 的 createdAt 来源）
+
+**northstar:** 高——2026-07-16 信号直接对应，owner 明确倾向「以摘抄流替代手动记录」；本方向若落地，可将「动态」Tab 的有效数据密度从当前（几乎空）提升为 quotes 流密度（28条/周），是 Theme 2「回顾有价值」核心入口的实质性重构。M 复杂度，需产品决策后才宜实现，先记录为方向。
+
+---
+
+> 本次 run（2026-07-16）扫描焦点：OPT-105 后新字段在 UI 可见度的残余缺口 + 2026-07-16 信号（owner 不用「记录」页）对应的时序数据机会。新发现 4 条：E191（buildBookSearchCard 已读完不显 finishedAt，S，northstar 中-高，直接 3 行修复）、E186（addSession startedAt 追溯守卫缺失，S，northstar 中，补录语义正确性）、E187（deleteConnection thought 无声删除，S，northstar 中，OPT-106 对称延伸）、E192（quote createdAt 作为隐式阅读时序，M，northstar 高，需产品决策）。E190（all_books_summary 缺 doubanComment）上次已记录，今日提拔为 OPT-118；E191 今日提拔为 OPT-119。所有 S 级断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。

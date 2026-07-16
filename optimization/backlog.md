@@ -1041,3 +1041,23 @@ Format per item:
 - description: 现状：`tools/douban_export.py` 是本地 CLI（owner 亲测公开书架无 cookie 可抓 110 本），陌生用户无法使用；`importDoubanCsv()`（app.js）要求用户自己跑脚本得到 CSV。缺一条「站内输入豆瓣 ID → 后端代抓 → 画像页」的产品化链路。
 - why: 把海报/帖子的承诺当场兑现，是画像分享素材能形成增长闭环的前提；同时天然完成数据导入（书+评分+日期+短评一次到位），新用户跳过冷启动录入。
 - how: ①后端新端点（如 `POST /api/douban/import-preview`）：移植 douban_export.py 的 fetch+parse 到 app_server.py，输入豆瓣数字 ID，仅抓公开 collect 页（mode=list），带严格频控（全局队列 + 每 IP/每 ID 限次 + REQ_INTERVAL≥2.5s + 页数上限）与被拦降级提示；②前端 onboarding 入口（未登录 landing 或注册后空状态）：输入 ID → 进度态 → 画像结果页（偏好脉络+星级分布，可复用分享卡视觉）→ 「保存到我的书架」触发注册/登录并落库（复用 importDoubanCsv 的 fill-if-empty 合并语义）；③风控注意：豆瓣反爬（服务端 IP 被 ban 的风险，小规模可行）、隐私提示（仅抓公开数据）、结果缓存防重复抓取。Touch: app_server.py（抓取端点+频控）、app.js/index.html（onboarding 流程+画像页）、可选复用 AI 偏好分析 prompt。
+
+### OPT-118 — `all_books_summary` 缺少 `doubanComment`——OPT-105 导入的 110 条豆瓣短评对 AI 跨书查询不可见 — 由 explore E190 提拔 [2026-07-16]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值」AI 查询层。OPT-105 为 110 本书批量写入 `doubanComment`（豆瓣短评），但 `all_books_summary`（AI 跨书查询的唯一数据窗口）只含 `id/title/author/status/rating/finishedAt`，AI 无法回答「哪本书治愈感强」「哪本适合悲伤时读」等以主观读后印象为关键词的查询；1 行修复，token 增量可控（50 本 × 60 字符 ≈ 3000 chars）。
+- description: `app_server.py:2434-2438`（`PromptBuilder.build_chat_prompt()` 的 `all_books_summary` 构建段）：dict 字段为 `id, title, author, status, rating, finishedAt`，无 `doubanComment`。OPT-113（PR #69，已合入）上线时追加了 `rating` 和 `finishedAt`，但 `doubanComment` 未搭车——是当时有意遗留、等独立验证后再提拔的项（E190，2026-07-15 记录）。`doubanComment` 由 `importDoubanCsv()`（`app.js:4359`）写入，书籍详情（`app.js:3532`）和分享图（`app.js:3055`）已读取，AI 层为最后一个未覆盖的消费路径。
+- why: `doubanComment` 包含用户对每本书的主观读后关键词（「治愈」「悬疑节奏快」「看完想哭」等），是 `all_books_summary` 中目前唯一缺席的高语义密度字段；OPT-105 的核心价值之一是让 AI 能回答「我的书架里哪本最适合X心情」，不加 `doubanComment` 这类查询就只能靠书名/作者猜测。
+- how: `app_server.py:2438`（dict 末尾）：追加 `"doubanComment": (b.get("doubanComment") or "")[:60]`（截 60 字节节省 token，与 finishedAt 截断策略对称）。1 行，无 schema/前端/接口变更。建议与 OPT-115/116 同批次 PR 或单独 S 级 PR（1 行后端改动，PR 成本极低）。Touch: `app_server.py:2434-2438`（all_books_summary 构建段）。
+
+### OPT-119 — `buildBookSearchCard()` 对「已读完」书籍展示进度文字而非 `finishedAt` 日期——OPT-105 导入的 110 个读完日期在书单主视图不可见 — 由 explore E191 提拔 [2026-07-16]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中-高——Theme 2「回顾有价值」浏览入口层。书单卡面是每次打开 App 的第一视角；「已读完」状态下进度文字（「已读到第X页」）毫无意义，而 `finishedAt`（OPT-105 为 110 本书写入，OPT-074 手动路径上线）完全不在卡面。OPT-115（rating 徽章，triaged）激活评分可见度，本项激活时序可见度，两项合并为「已读完书卡信息完整度」PR，使书单扫视层直接传达「何时读完、满意度如何」，对应 Theme 2 核心场景「看到时序足迹」。
+- description: `app.js:1341-1356`（`buildBookSearchCard()` 的 `progressText` 构建段）：`progressText` 对所有状态使用同一分支，`book.status === "finished"` 时展示「已读到第X页」或「X%·X/Y页」——读完后的页数进度对用户无语义价值。`book.finishedAt` 字段已在详情弹窗（`app.js:3532`）和书卡分享（`app.js:3023`）中读取，书单主视图卡面是唯一遗漏入口。
+- why: OPT-105 后 110 本书的读完日期在最高频浏览入口完全不可见；owner 2026-06-26 明确「希望有读完日期字段」；书单卡面是 Theme 2「回顾」场景最高频的视觉起点，时序信息缺失直接削弱「扫一眼就能回顾」的体验。
+- how: `app.js:1341-1356`（progressText 赋值段）：在现有赋值逻辑前插入 `if (book.status === "finished" && book.finishedAt) { progressText = \`读完 ${book.finishedAt.slice(0, 10)}\`; }` 分支，短路其余进度逻辑；或用三元合并（`book.status === "finished" && book.finishedAt ? \`读完...\` : <原逻辑>`）。约 3-4 行 JS，0 行 CSS 变更（`progressText` 已有容器样式）。建议与 OPT-115 合并为「已读完书卡信息完整度」PR。Touch: `app.js:1341-1356`（buildBookSearchCard progressText 构建段）。
