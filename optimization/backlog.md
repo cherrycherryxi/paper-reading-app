@@ -883,7 +883,7 @@ Format per item:
 - how: ① `index.html:399-427`（addBook 对话框）和 `index.html:329-368`（editBook 对话框）各加一个星级选择器（5 个 `<button>` 视觉为可点击星标）；② `app.js:2259`（addBook）补存 `rating: Number(formData.get("rating")) || 0`；③ `app.js:3173`（saveBookEdit）同；④ 书单卡面（`renderBooks()`）在书卡显示 `rating > 0 ? "★".repeat(rating) : ""`；⑤ 可选：书单排序加「按评分」维度；⑥ 书卡分享图可在封面下方渲染星标。约 60–80 行前端，零后端改动，零 DB schema 变更。Touch: `index.html:399-427`（addBook）；`index.html:329-368`（editBook）；`app.js:2259`（addBook 存储）；`app.js:3173`（saveBookEdit 存储）；`app.js`（renderBooks 卡面渲染）。
 
 ### OPT-100 — Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 — 由 explore E165 提拔 [2026-07-08]
-- status: triaged
+- status: done (PR #67, merged 2026-07-14 — Excel 「喜欢程度」列改写入 book.rating 独立字段，不再混入 notes 文本)
 - area: frontend
 - priority: P2
 - size: S
@@ -913,7 +913,7 @@ Format per item:
 - how: 后端 `do_POST` 的 `/api/quotes/ocr`（app_server.py ~4810）与 `/api/books/ocr` 增加对 `Content-Type: multipart/form-data` / `application/octet-stream` 的解析分支：从 multipart part 或 raw body 取二进制 + 从 form 字段/自定义头取 `bookId`/`quoteId`/`filename`；`decode_data_url()` 改为可接收「已是二进制」的路径，复用后续 `save_image`/`run_fast_ocr` 不变。前端 `resizeImageToDataUrl` 之外新增「导出 Blob」路径（`canvas.toBlob`），用 `FormData`/`fetch` 直传 Blob，不再 `toDataURL`。**注意兼容**：保留旧 data URL 分支一段时间（老前端/回退），或前后端同发版。测试：新增 multipart/raw 上传的后端解析用例 + 前端 toBlob 路径断言。Touch: `app_server.py`（两个 OCR 端点的 body 解析）、`app.js`（`handleQuoteImageChange`/`runBookOcr` 的上传路径 + 新 blob 导出）。stdlib 无 multipart 解析器，可用 `email.parser`/`cgi`（cgi 3.13 弃用，倾向手写 boundary 拆分或 `email.message`）——评估后选无弃用依赖的方案。
 
 ### OPT-103 — MCP `summary()` 写入 `book.notes` 而非 `book.review`，OPT-098 上线后两条 AI 路径语义分裂 — 由 explore E171 提拔 [2026-07-09]
-- status: triaged
+- status: done (PR #67, merged 2026-07-14 — reading_mcp_server.py:323 改写 book.review，闭合 OPT-098 的 MCP 侧遗漏)
 - area: agent
 - northstar: 中——2026-07-06 信号「AI 把书的笔记整理成读后感」直接驱动 OPT-098；MCP `summary()` 是同一诉求的另一入口，写入错字段使 OPT-098 对 MCP 用户名存实亡，OPT-101 的 reviewIsAi 来源标记亦无法覆盖；S 修复完成 OPT-098 的跨客户端闭环。
 - description: `reading_mcp_server.py:323` 将 MCP summary 内容追加至 `book["notes"]`；OPT-098（2026-07-08）新增了独立的 `book.review` 字段供 AI 读后感使用，in-app `generateBookReview()` 已写 `book.review`，但 MCP 路径仍写 `book.notes`。结果：(1) MCP 生成的摘要在 UI 书籍详情页被贴「内容简介」标签（`app.js:3375`），语义完全错位；(2) OPT-101 计划的 `reviewIsAi` 标记永远不会覆盖 MCP 路径产生的内容。
@@ -921,7 +921,7 @@ Format per item:
 - how: `reading_mcp_server.py:323` 改 `book["notes"]` → `book["review"]`（1 行）；更新 docstring（lines 296-307）说明目标字段；`sanitize_state()` 已原样透传 book 对象中的 `review` 字段，无需额外改动。Touch: `reading_mcp_server.py:290-328`。
 
 ### OPT-104 — 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 — 由 explore E170 提拔 [2026-07-09]
-- status: triaged
+- status: in-progress (PR #68 open — feat/opt-104-106-share-dark-delete-cascade, 2026-07-15)
 - area: frontend
 - northstar: 中——分享卡片是「让阅读感染他人」的对外接口；OPT-087（2026-07-06）上线分享功能但未补充暗色路径，深色模式用户输出米白底卡片与 UI 割裂，影响分享意愿；OPT-021 已做 CSS 深色模式，本项是 canvas 的对称收尾。
 - description: `app.js:2599-2606` 定义 `SHARE_CARD` 常量（`bg: "#f5f0e8"`, `ink: "#3d4a3f"` 等亮色值）；`newShareCanvas()`（line 2676）始终以 `ctx.fillStyle = C.bg` 填充背景，无任何 `matchMedia` 判断。三种卡片（摘抄卡、思想碰撞卡、书卡）均走同一路径，深色模式下统一输出亮色卡片。
@@ -963,7 +963,7 @@ Format per item:
 - how: Phase 1：`app.js` addQuote file input 改为 `accept="image/*" multiple`；`handleQuoteImageChange()` 改为处理 FileList（≤2 张）；`runOcrFromImage()` 改为顺序调两次上传+识别，结果拼接写入 textarea。约 30–40 行，零后端/schema 变更。Phase 2 可在 `/api/quotes/ocr` 端点增加 `imageDataUrl2` 字段支持 Kimi multi-image payload。Touch: `app.js`（addQuote file input、`handleQuoteImageChange`、`runOcrFromImage`）；Phase 2 可选 `app_server.py`（OCR 端点）。
 
 ### OPT-110 — Excel 导入模板无「读后感」列，`importExcel()` 不写 `book.review`——OPT-100（rating）的对称遗漏 — 由 explore E180 提拔 [2026-07-12]
-- status: triaged
+- status: done (PR #67, merged 2026-07-14 — Excel 模板加「读后感」列，importExcel() 补写 book.review，与 OPT-100 同 PR)
 - area: frontend
 - priority: P2
 - size: S
@@ -973,7 +973,7 @@ Format per item:
 - how: ① `app.js:4083`：headers 末尾加 `"读后感"`；② `app.js:4130-4136` 区加 `const review = String(getRowField(row, ["读后感", "review", "我的评论"])).trim()`；③ book 对象（`app.js:4139`）补 `review: review || ""`。共约 3 行改动，纯前端，零后端/DB 变更，复用 `getRowField()` 已有模式。建议与 OPT-100 合并一 PR（同文件同区域同类改动）。Touch: `app.js:4083`（模板 headers）；`app.js:4130-4153`（解析+book 对象构建段）。
 
 ### OPT-106 — `deleteQuote()` 确认弹窗不提及将级联删除关联，`getConnectionCount()` 已存在可直接复用 — 由 explore E169 提拔 [2026-07-10]
-- status: triaged
+- status: in-progress (PR #68 open — feat/opt-104-106-share-dark-delete-cascade, 2026-07-15)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」的前提是连接网络数据可靠；关联是用户花时间手动建立的意义链接，无声消失最为有害；S 修复让用户在删除前知晓波及的关联数量，防止意外抹去 Theme 2 核心数据；`getConnectionCount()` 已存在，零额外函数成本。
 - description: `app.js:3193-3209`（`deleteQuote()`）：`showConfirmDialog({ message: "确定删除这张摘抄卡片吗？" })`，不提及关联数量；`onConfirm` 回调用 `.filter()` 静默删除所有 `sourceId === quoteId || targetId === quoteId` 的 connections。`getConnectionCount(quoteId)`（`app.js:813`）已存在并返回「该摘抄参与的关联数量」，只需在 message 构建时调用一次即可。
@@ -997,7 +997,7 @@ Format per item:
 - how: `app.js:1515`：haystack 数组末尾加 `s.date?.slice(0, 7) || ""`（截取年月前缀 `"2026-06"`），1 行，零副作用，无 HTML/后端/schema 改动。Touch: `app.js:1515`（renderTimeline haystack 构建）
 
 ### OPT-113 — `PromptBuilder.all_books_summary` 缺少 `rating` 和 `finishedAt`——AI 无法回答「评分最高的书」「去年读完的书」类跨书查询 — 由 explore E182 提拔 [2026-07-14]
-- status: new
+- status: triaged
 - area: backend
 - northstar: 中——Theme 2「回顾有价值」AI 查询层；OPT-099（rating）和 OPT-074（finishedAt）两个已上线字段对 AI 跨书问答完全不可见，本修复使「评分最高」「最近读完」两类高频回顾询问可被 AI 正确处理；S 级 1 行修复，token 增量极低。
 - description: `app_server.py:2432-2434`（`PromptBuilder.build_chat_prompt()` 的 `all_books_summary` 构建段）：dict 只含 `id/title/author/status` 四字段，不含 `rating`（OPT-099，2026-07-08 上线）和 `finishedAt`（OPT-074，2026-06 上线）。`all_books_summary` 是 AI 回答跨书查询（「帮我找评分最高的书」「去年我读了哪些书」）的唯一数据来源；focused `book` 对象（`app_server.py:2421`）含全量字段，但只覆盖当前上下文书籍，不能跨书检索。
@@ -1005,9 +1005,29 @@ Format per item:
 - how: `app_server.py:2433`：`all_books_summary` dict 末尾追加 `"rating": b.get("rating", 0), "finishedAt": (b.get("finishedAt") or "")[:10]`（截 ISO 至 YYYY-MM-DD 节省 token），约 1 行，无 schema/接口/测试变更。Touch: `app_server.py:2432-2434`（`all_books_summary` 构建段）。
 
 ### OPT-114 — `compareBooksForList()` 二级排序键为 `createdAt`——OPT-105 豆瓣导入后「已读完」组书单时序语义错乱 — 由 explore E183 提拔 [2026-07-14]
-- status: new
+- status: triaged
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」浏览层前提；豆瓣导入（OPT-105，本周焦点）将为大量书籍写入有效 `finishedAt`，若不切换二级排序键，「已读完」列表按 `createdAt` 排序退化为导入批次顺序而非阅读时序；S 修复，建议搭车或紧随 OPT-105 PR。
 - description: `app.js:1238-1246`（`compareBooksForList()`）：一级排序键为 `bookStatusOrder`（finished/reading/wishlist），二级排序键为 `createdAt` desc。批量导入（Excel/豆瓣 CSV）同一批次 `createdAt` 相同（`app.js:4155`：`const now = new Date().toISOString(); ... createdAt: now`），同状态组内相对顺序退化为 CSV 行序，无时序语义。OPT-105 豆瓣导入后「已读完」组将出现大量具有有效 `finishedAt` 的书籍，此时「最近读完的先出现」是用户自然期望。
 - why: 「最近读完了哪些书」是「回顾」场景最基础查询，豆瓣导入后「已读完」列表应按 `finishedAt` desc 呈现，当前按 `createdAt` 排序（导入批次顺序）直接割裂时序回顾体验；S 修复：status-aware 三分支替换当前单一二级键（`finished` → finishedAt，`reading` → lastReadAt，其余 → createdAt），约 5-8 行，纯前端，无后端/schema 变更。
+
+### OPT-115 — `buildBookSearchCard()` 不展示 `book.rating`——评分字段在最高频入口完全不可见 — 由 explore E185 提拔 [2026-07-15]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——OPT-099（rating 字段，PR #60）上线后，书单卡面（最高频浏览入口）从未展示评分；用户无法在不点开详情的情况下快速区分「5 星精读」与「3 星随翻」，「凭记忆找高分书」路径受阻；S 修复 2-3 行激活评分对浏览场景的价值。
+- description: `app.js:1303-1348`（`buildBookSearchCard()` 渲染函数）：卡面构建包含 `statusBadge`（状态徽章）、`progressText`（进度）、`tagsHtml`（标签）等，但无 `book.rating` 展示。评分字段在书籍详情弹窗（`app.js:3472`：`★ ${book.rating || "-"}` 渲染）和书卡分享图（`app.js:3023`）中已展示，但书单主视图卡面没有。
+- why: 书单卡面是整个 app 打开后的第一视角，用户浏览书单时最需要「哪些书我读得很满意」的快速视觉信号；评分是 OPT-099（已上线）的核心数据，在最高频入口不可见等于功能对用户透明度为零。S 修复：在 statusBadge 后追加 `★ ${rating}` 小标签（若 `book.rating > 0`），约 2-3 行 JS + 1 行 CSS 调整，无 API/schema 变更。
+- how: `app.js:1303-1348`（buildBookSearchCard）：在 `statusBadge` 构建后追加 `const ratingHtml = book.rating ? \`<span class="book-rating">★ ${book.rating}</span>\` : ""`；注入到卡面 HTML；CSS `.book-rating` 参照 `.status-badge` 小徽章样式。Touch: `app.js:1303-1348`（buildBookSearchCard）、`styles.css`（book-rating 样式）。
+
+### OPT-116 — `matchBooks()` 过滤器不含 `book.doubanComment`——OPT-105 导入的豆瓣短评内容不可搜索 — 由 explore E188 提拔 [2026-07-15]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值→能找到」；OPT-105（今日落地，W29 焦点）为 110 本书批量写入豆瓣短评（`doubanComment`），但 `matchBooks()` 的五个 `fuzzyMatch` 分支没有 `doubanComment`，这批高密度读后印象关键词对书单搜索完全不可见；1 行修复。
+- description: `app.js:1239-1247`（`matchBooks()` 函数体）：过滤器包含 `title/author/tags/notes/review` 五个字段，无 `doubanComment`。该字段由 `importDoubanCsv()`（`app.js:4359`）写入，已在书籍详情（`app.js:3532`）和书卡分享（`app.js:3055`）中读取，但搜索路径不通。`matchBooks()` 同时为书单 Tab 搜索框（`app.js:4175`）和 `globalSearch()`（`app.js:4175`）所调用，修复后两个入口自动获益。
+- why: `doubanComment` 包含用户对每本书的主观读后评价关键词（治愈感、哲学性、二刷价值等），是书单检索的高质量语义信号；导入了数据但搜不到，直接削弱 OPT-105 的使用价值；S 修复，与 `book.review` 处理方式完全对称。
+- how: `app.js:1246`（`fuzzyMatch(book.review || "", query)` 行之后）：追加 `|| fuzzyMatch(book.doubanComment || "", query)`，1 行，无 HTML/CSS/后端/schema 变更。Touch: `app.js:1239-1247`（matchBooks 过滤器）。
 - how: `app.js:1238-1246`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支：若 `a.status === "finished"` 则按 `finishedAt` desc；若 `a.status === "reading"` 则按 `lastReadAt` desc；其余按 `createdAt` desc。Touch: `app.js:1238-1246`（`compareBooksForList` 函数体）。建议与 E184（已读完书卡展示 finishedAt）合并为「已读完书单时序体验」PR。
