@@ -8519,6 +8519,50 @@
       "related_bugs": [],
       "occurrences": 7,
       "last_seen": "2026-07-15T18:23:05.134Z"
+    },
+    {
+      "id": "bug-510",
+      "timestamp": "2026-07-16T07:18:29.470Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→20 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T07:18:29.470Z"
+    },
+    {
+      "id": "bug-511",
+      "timestamp": "2026-07-16T07:53:27.341Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-16T07:53:34.000Z"
+    },
+    {
+      "id": "bug-512",
+      "timestamp": "2026-07-16T15:30:00.000Z",
+      "error_message": "OPT-105 豆瓣批量导入后「已读完」书单按 CSV 行序乱排，而非按读完日期",
+      "file": "app.js",
+      "root_cause": "compareBooksForList() 二级排序键写死 createdAt；批量导入(Excel/豆瓣 CSV)同批次 createdAt 相同，同状态组内退化为导入行序，无时序语义",
+      "fix": "抽出 status-aware 的 bookRecencyKey：finished→finishedAt、reading→lastReadAt、wishlist/其余→createdAt，各自回落 createdAt(仍走 OPT-037 的 Date.parse 数值比较)。同 PR 修 OPT-113(all_books_summary 补 rating/finishedAt 供 AI 跨书查询)。PR #69",
+      "tags": ["sorting", "douban-import", "OPT-114", "OPT-113", "js"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T15:30:00.000Z"
     }
   ]
 }

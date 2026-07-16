@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T07:02:25.185Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T07:53:45.316Z
 > Files: 286 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -179,9 +179,9 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71350 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71473 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~60346 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~60756 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -292,7 +292,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~29644 tok)
+- `backlog.md` — Optimization Backlog (~29671 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
@@ -300,9 +300,9 @@
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2040 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~720 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1865 tok)
+- `triage.md` — Triage (~1863 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -331,7 +331,7 @@
 
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
-- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~11300 tok)
+- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~11734 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)
@@ -363,7 +363,7 @@
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
 - `book-filter-clear-all.test.js` — OPT-107 书单三个筛选维度（搜索词 / 状态 chip / 标签 chip）的「清除全部筛选」入口。 (~2476 tok)
-- `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4028 tok)
+- `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4598 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
 - `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~6007 tok)
 - `book-reading-dates.test.js` — OPT-074: book startedAt/finishedAt display in detail dialog + editable date inputs in edit dialog (~2600 tok)
