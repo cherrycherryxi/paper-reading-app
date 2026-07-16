@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T12:38:59.447Z
-> Files: 288 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T14:26:59.286Z
+> Files: 295 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -71,6 +71,7 @@
 - `2026-07-13.md` — 日报 2026-07-13 (~384 tok)
 - `2026-07-14.md` — 日报 2026-07-14 (~409 tok)
 - `2026-07-15.md` — 日报 2026-07-15 (~440 tok)
+- `2026-07-16.md` — 日报 2026-07-16 (~444 tok)
 
 ## ../../.claude/hooks/
 
@@ -212,6 +213,7 @@
 
 - `.DS_Store` (~1640 tok)
 - `settings.json` (~441 tok)
+- `settings.local.json` — Declares escapeHtml (~2882 tok)
 
 ## .claude/agent-memory/
 
@@ -428,3 +430,11 @@
 ## wechat-miniprogram/utils/
 
 - `store.js` — STORAGE_KEY: loadState, saveState, createId (~223 tok)
+
+## 小红书物料/第1篇-开发故事/
+
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~386 tok)
+- `img-1-封面.html` (~733 tok)
+- `img-2-痛点.html` (~645 tok)
+- `img-3-流程.html` (~831 tok)
+- `img-4-尾图.html` (~674 tok)

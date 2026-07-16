@@ -16,8 +16,7 @@ You are working in an OpenWolf-managed project. These rules apply every turn.
 
 ## After Actions
 
-1. After every significant action, append a one-line entry to `.wolf/memory.md`:
-   `| HH:MM | description | file(s) | outcome | ~tokens |`
+1. After every significant action, append a one-line entry to `.wolf/memory.md` by running `bash .wolf/append-memory.sh "<description>" "<file(s)>" "<outcome>" "<~tokens>"` (allow-listed; do NOT hand-roll a `printf ... $(date ...) >> .wolf/memory.md` one-liner — the inline `$(...)` and literal `|` chars trip the Bash tool's static-analysis check and force a manual approval every time). Produces the line format: `| HH:MM | description | file(s) | outcome | ~tokens |`
 2. After creating, deleting, or renaming files: update `.wolf/anatomy.md`.
 
 ## Cerebrum Learning (MANDATORY — every session)
