@@ -2429,8 +2429,12 @@ class PromptBuilder:
             # status: finished(已读完) / reading(在读) / wishlist(想读，尚未开始)。
             # 带上状态，模型才能区分用户「读过的书」与「书架上还没开始的书」——否则会把
             # wishlist 的书也当作读过的一并召回（用户反馈：返回了还没开始读的书）。
+            # rating(1-5 星，0=未评) 与 finishedAt(读完日期，取 YYYY-MM-DD) 一并带上：
+            # OPT-105 豆瓣导入后这两项已有真实数据，模型才能回答「评分最高的书」「去年读完的书」这类跨书查询。
             "all_books_summary": [
-                {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""), "status": b.get("status", "")}
+                {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""),
+                 "status": b.get("status", ""), "rating": b.get("rating", 0),
+                 "finishedAt": (b.get("finishedAt") or "")[:10]}
                 for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:50]
             ],
             "existing_connections": [] if book_id else user_state.get("connections", [])[:20],
@@ -2459,7 +2463,7 @@ class PromptBuilder:
 2. actions 通常为 0 或 1 个。例外：add_book 可在一次回复中给出多本，最多 4 条；其他类型 action 仍最多 1 个。
 3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前上下文本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
 4. 只输出 JSON，不要输出任何额外说明；不要在 JSON 前后添加自然语言，也不要使用 Markdown 代码块。
-5. all_books_summary 里每本书带 status：finished=已读完、reading=在读、wishlist=想读但尚未开始。当用户提到"我读过的/看过的/读过哪些"书时，只能从 status 为 finished 或 reading 的书里找，绝不能把 wishlist 的书算作读过的一并列出；若你认为某本 wishlist 的书也相关想顺带提及，必须显式标注"（这本你还没开始读）"，不得与读过的书混在同一份清单里不加区分。"""
+5. all_books_summary 里每本书带 status：finished=已读完、reading=在读、wishlist=想读但尚未开始。当用户提到"我读过的/看过的/读过哪些"书时，只能从 status 为 finished 或 reading 的书里找，绝不能把 wishlist 的书算作读过的一并列出；若你认为某本 wishlist 的书也相关想顺带提及，必须显式标注"（这本你还没开始读）"，不得与读过的书混在同一份清单里不加区分。每本书还带 rating 与 finishedAt：rating 是用户打的 1-5 星评分（0 表示未评分，回答「评分最高/最喜欢的书」时忽略 0）；finishedAt 是读完日期 YYYY-MM-DD（为空表示未记录读完日期，回答「去年/某年读完了哪些书」这类按时间筛选时忽略空值）。据此可回答评分排序、按读完时间筛选等跨书查询，不要臆造未提供的评分或日期。"""
         if has_focused_quote:
             scenario_rules = """6. 当前上下文包含 focused_quote 时，优先围绕这条摘抄解释、追问或整理；不要泛泛总结整本书。
 7. 当用户明确要求"记下来/做笔记/加入书单/总结/提炼问题/打标签"，或你的回复里已经给出了明确可执行建议时，必须返回对应 action，不要只返回 reply。

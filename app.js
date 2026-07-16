@@ -1252,14 +1252,25 @@ function matchQuotes(query) {
   return state.quotes.filter((quote) => isRegularQuote(quote) && fuzzyMatch(quote.content || "", query));
 }
 
+// OPT-114: within a status group, order by the timestamp that actually reflects
+// recency for that state — finished by when it was finished, reading by last read,
+// wishlist by when it was added — falling back to createdAt when that field is
+// empty. Before this, every group sorted by createdAt, so a batch Douban import
+// (OPT-105 — all books sharing one createdAt) collapsed the "已读完" group into CSV
+// row order instead of finished-date order.
+function bookRecencyKey(book) {
+  const preferred = book.status === "finished" ? (book.finishedAt || book.lastReadAt)
+    : book.status === "reading" ? (book.lastReadAt || book.startedAt)
+    : ""; // wishlist / unknown → fall back to createdAt below
+  // OPT-037: parse numerically — createdAt is mixed precision (ms+Z vs second+Z),
+  // and string compare would invert same-second order ('.' < 'Z').
+  return Date.parse(preferred || book.createdAt) || 0;
+}
+
 function compareBooksForList(a, b) {
   const statusDelta = (bookStatusOrder[a.status] ?? 99) - (bookStatusOrder[b.status] ?? 99);
   if (statusDelta !== 0) return statusDelta;
-  // OPT-037: compare timestamps numerically, not as strings. createdAt is mixed
-  // format (utc_now_iso ms+Z vs legacy now_iso second-precision), and
-  // localeCompare orders "...20.500Z" before "...20Z" ('.'<'Z'), inverting
-  // same-second order. Date.parse normalizes both. (Matches OPT-014 at line ~1415.)
-  return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
+  return bookRecencyKey(b) - bookRecencyKey(a);
 }
 
 function restoreEditedBookPosition(bookId, fallbackScrollTop = 0) {

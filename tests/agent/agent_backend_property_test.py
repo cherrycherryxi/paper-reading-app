@@ -432,6 +432,33 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIn("status", prompt)
         self.assertIn("读过", prompt)
 
+    def test_all_books_summary_includes_rating_and_finished_date(self):
+        """OPT-113: OPT-105 豆瓣导入后 rating/finishedAt 已在数据里，但 all_books_summary
+        原来只给模型 id/title/author/status，导致「评分最高的书」「去年读完的书」这类现在
+        有真实数据的跨书查询必然答错。修复：summary 带上 rating 与 finishedAt(截到日期)，
+        且系统提示说明这两个字段的语义与忽略规则。"""
+        builder = app_server.PromptBuilder()
+        books = [
+            {"id": "b1", "title": "五星书", "author": "A", "status": "finished",
+             "rating": 5, "finishedAt": "2025-08-10T12:34:56.000Z", "updatedAt": "2026-01-03T00:00:00Z"},
+            {"id": "b2", "title": "未评分书", "author": "B", "status": "finished",
+             "rating": 0, "finishedAt": "", "updatedAt": "2026-01-02T00:00:00Z"},
+        ]
+        state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
+
+        prompt = builder.build_chat_prompt(state, "", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        summary = json.loads(user_data_json)["all_books_summary"]
+        by_id = {b["id"]: b for b in summary}
+
+        self.assertEqual(by_id["b1"]["rating"], 5)
+        self.assertEqual(by_id["b1"]["finishedAt"], "2025-08-10", "finishedAt 应截到 YYYY-MM-DD")
+        self.assertEqual(by_id["b2"]["rating"], 0, "未评分应保留 0，交给模型忽略")
+        self.assertEqual(by_id["b2"]["finishedAt"], "", "无读完日期应为空串")
+        # 系统提示必须解释 rating/finishedAt 的语义（关键词够稳，不锁死整句措辞）。
+        self.assertIn("rating", prompt)
+        self.assertIn("finishedAt", prompt)
+
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()
         state["quotes"] = [

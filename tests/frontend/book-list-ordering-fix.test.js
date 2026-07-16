@@ -329,6 +329,50 @@ test("OPT-037: compareBooksForList uses numeric Date.parse comparison, not local
   );
 });
 
+test("OPT-114: finished books sharing one createdAt (batch Douban import) order by finishedAt desc", () => {
+  // Reproduce the OPT-105 batch-import defect: a Douban CSV import stamps every
+  // book with the same createdAt. Under the old createdAt-only secondary sort the
+  // "已读完" group degraded into CSV row order. Now finished books sort by finishedAt.
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "user-1" });
+  const sameCreatedAt = "2026-05-01T00:00:00.000Z";
+  hooks.setState({
+    books: [
+      createBook({ id: "f-old", title: "早读完", status: "finished", createdAt: sameCreatedAt, finishedAt: "2024-01-10T00:00:00.000Z" }),
+      createBook({ id: "f-new", title: "晚读完", status: "finished", createdAt: sameCreatedAt, finishedAt: "2026-03-20T00:00:00.000Z" }),
+      createBook({ id: "f-mid", title: "中读完", status: "finished", createdAt: sameCreatedAt, finishedAt: "2025-06-15T00:00:00.000Z" }),
+    ],
+    sessions: [],
+    quotes: [],
+    chatHistories: {},
+  });
+
+  hooks.renderBooks();
+
+  // Most-recently-finished first, independent of the identical createdAt.
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["晚读完", "中读完", "早读完"]);
+});
+
+test("OPT-114: finished book missing finishedAt falls back to createdAt (no crash, stable order)", () => {
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "user-1" });
+  hooks.setState({
+    books: [
+      // finishedAt empty → falls back to createdAt; the dated one still leads.
+      createBook({ id: "f-dated", title: "有日期", status: "finished", createdAt: "2026-01-01T00:00:00.000Z", finishedAt: "2026-04-01T00:00:00.000Z" }),
+      createBook({ id: "f-nodate", title: "无日期", status: "finished", createdAt: "2026-02-01T00:00:00.000Z", finishedAt: "" }),
+    ],
+    sessions: [],
+    quotes: [],
+    chatHistories: {},
+  });
+
+  hooks.renderBooks();
+
+  // 有日期(finishedAt 2026-04) 应在 无日期(fallback createdAt 2026-02) 之前。
+  assert.deepEqual(Array.from(hooks.getRenderedTitles()), ["有日期", "无日期"]);
+});
+
 test("bug exploration: saveBookEdit should explicitly preserve and normalize tags in source", () => {
   assert.match(
     appSource,
