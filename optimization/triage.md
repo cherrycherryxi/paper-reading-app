@@ -40,8 +40,8 @@ Last triaged: 2026-07-16
 | OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **done** | PR #67（2026-07-14 merged）。与 OPT-103+OPT-110 合并一 PR。 |
 | OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **done** | PR #67（2026-07-14 merged）。 |
 | OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **done** | PR #67（2026-07-14 merged）。 |
-| OPT-115 | buildBookSearchCard() 不展示 book.rating——评分字段在最高频入口完全不可见 | P2 | S | triaged | **Next up 候选 A**；northstar「中」，Theme 2 浏览层；OPT-099 评分字段在书单卡面透明度为零；**signal 2026-07-06**；`app.js:1303-1348` + `styles.css`（.book-rating），~3 行 JS + 1 行 CSS。 |
-| OPT-116 | matchBooks() 不含 book.doubanComment——OPT-105 豆瓣短评对搜索不可见 | P2 | S | triaged | **Next up 候选 B（与 OPT-115 合并）**；northstar「中」，Theme 2 检索层；1 行追加；**signal 2026-07-10**（豆瓣导入直接遗留缺口）；`app.js:1239-1247`（matchBooks）。 |
+| OPT-115 | buildBookSearchCard() 不展示 book.rating——评分字段在最高频入口完全不可见 | P2 | S | **in-progress** | PR #70（与 OPT-116 合并一 PR）2026-07-16。 |
+| OPT-116 | matchBooks() 不含 book.doubanComment——OPT-105 豆瓣短评对搜索不可见 | P2 | S | **in-progress** | PR #70（与 OPT-115 合并一 PR）2026-07-16。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`，3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
 | OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，用户无法按时间段（"6月"/"2026-07"）搜索阅读动态 | P2 | S | triaged | Theme 2「检索」延伸；`app.js:1515`（renderTimeline haystack 加 s.date），约 1-2 行；与 OPT-053 同区域，可合并一 PR；signal 2026-07-03「按主题找书」搜索诉求的动态页对称缺口。 |
 | OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`，约 10-15 行，纯前端。 |
