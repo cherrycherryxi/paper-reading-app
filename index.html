@@ -328,6 +328,13 @@
             </div>
             <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /></label>
           </li>
+          <li class="me-action">
+            <div class="me-action-info">
+              <div class="me-action-title">从豆瓣导入（评分 / 读完日期 / 短评）</div>
+              <div class="me-action-desc">导入豆瓣「读过」导出的 <code>.csv</code>（首行含「书名」列，可含 作者 / 我的评分 / 读过日期 / 我的短评）。<strong>会回填你书单里已有书的空缺字段</strong>（评分 / 读完日期 / 读后感），不覆盖你已填的；匹配不到的新增为「已读完」。</div>
+            </div>
+            <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importDoubanInput" accept=".csv,text/csv" /></label>
+          </li>
           <li class="me-action me-action--danger">
             <div class="me-action-info">
               <div class="me-action-title">注销账号</div>

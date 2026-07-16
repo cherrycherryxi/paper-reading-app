@@ -48,3 +48,7 @@ build/
 .wolf/designqc-report.json
 .wolf/hooks/_session.json
 .wolf/suggestions.json
+
+# 豆瓣导入本地一次性数据(OPT-105)——含登录凭据/个人数据, 不提交
+tools/douban_cookie.txt
+tools/douban_books.csv

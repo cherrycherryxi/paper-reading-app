@@ -3093,6 +3093,79 @@ showConfirmDialog({
 
 > 本次 run（2026-07-14）扫描 OPT-099（rating 字段）和 OPT-074（startedAt/finishedAt）的前端覆盖完整度，以及破坏性操作透明度系列的未覆盖路径。新发现 3 条：E185（书卡不展 rating，OPT-099 上线后最高频入口仍为零评分可见度，S）、E186（addSession startedAt 不溯更新，补录历史场景偏差系统性存在，S）、E187（deleteConnection 确认弹窗无 thought 内容提示，透明度系列缺口，S）。将昨日 run（2026-07-13）发现的 E182（all_books_summary 缺 rating/finishedAt）提拔为 OPT-113，E183（compareBooksForList 二级排序语义错乱）提拔为 OPT-114。E184（已读完书卡不展示 finishedAt）列为候选，建议搭车 OPT-114 合并为「已读完书单时序体验」PR。所有断言均基于实际代码读取，已标注 file:line。
 
+## 2026-07-15
+
+> 扫描焦点：OPT-105（豆瓣导入，今日落地）的数据下游覆盖完整度——新字段 `doubanComment` 是否在搜索、AI 摘要、导入反馈三个消费层均已接入。
+
+### E188 — `matchBooks()` 过滤器不含 `book.doubanComment`——OPT-105 导入的 110 条豆瓣短评数据不可搜索 (S)
+
+**What (verified):** `app.js:1239-1247`（`matchBooks()` 函数体）：
+```js
+function matchBooks(query) {
+  return state.books.filter(
+    (book) =>
+      fuzzyMatch(book.title, query) ||
+      fuzzyMatch(book.author || "", query) ||
+      (book.tags || []).some((t) => fuzzyMatch(t, query)) ||
+      fuzzyMatch(book.notes || "", query) ||
+      fuzzyMatch(book.review || "", query)
+      // 无 doubanComment 分支
+  );
+}
+```
+`doubanComment` 字段由 OPT-105（今日落地，commit b978f9f）的 `importDoubanCsv()` 写入（`app.js:4359`：`const doubanComment = get(r, iComment)`）；书卡分享（`app.js:3055`）和书籍详情（`app.js:3532`）均可读取该字段；但 `matchBooks()` 的五个 `fuzzyMatch` 分支没有 `doubanComment`，豆瓣短评内容无法被书单搜索或 `globalSearch()` 命中。
+
+**Why it matters:** OPT-105 的核心价值是「为 110 本书一次性补齐豆瓣阅读数据」，其中豆瓣短评是高信息密度的主观内容（读后感关键词、作品特征标签）；用户按书中印象词搜索「治愈感」「看完想哭」时，这批内容完全不参与匹配。S 修复：在 `matchBooks()` 末尾追加 `|| fuzzyMatch(book.doubanComment || "", query)`，1 行，无 API/schema 变更，与 `review` 字段处理模式完全对称。
+
+**Complexity:** S — `app.js:1246`（`fuzzyMatch(book.review || "", query)` 行之后）追加 1 行；同时 `saveBookEdit()` 的书籍搜索入口 `globalSearch()`（`app.js:4175`）通过调用 `matchBooks()` 自动获得覆盖，无需额外修改。Touch: `app.js:1239-1247`（matchBooks 过滤器）。
+
+**Files:** `app.js:1239-1247`（matchBooks）；参照 `app.js:4359`（importDoubanCsv 写入 doubanComment）
+
+**northstar:** 中——Theme 2「回顾有价值→能找到」；OPT-105 今日落地，豆瓣短评内容已在数据层，但搜索路径不通，最直接的后续 1 行修复；提拔为 OPT-116。
+
+---
+
+### E189 — `importDoubanCsv()` 用 `showToast()` 而非 `showImportResult()` 反馈结果——110 本书导入后 2 秒内反馈消失 (S)
+
+**What (verified):** `app.js:4381-4384`（`importDoubanCsv()` 结尾）：
+```js
+showToast(`豆瓣导入完成：回填 ${updated} 本、新增 ${created} 本`);
+```
+对比 JSON 导入（`app.js:3839`）和 Excel 导入（`app.js:4226`）均调用 `showImportResult(result)`——后者是持久化 modal，显示书籍/摘抄/记录/关联四行分类统计，用户须主动关闭。豆瓣 CSV 导入使用 `showToast()`（约 2 秒自动消失），110 本书批量回填的结果在用户来不及阅读时即消失，无任何 breakdown（回填 N 本 vs 新增 N 本两类外无更多明细）。
+
+**Why it matters:** 批量操作的结果透明度是 OPT-040/041 系列已建立的惯例（避免用户误导入后不知发生了什么）；豆瓣导入规模（110 本）远大于典型单次 Excel 导入，反馈持久度不及 Excel 路径，体验倒置。S 修复：替换为 `showImportResult()` 调用（或保持 toast 但加一行书名预览的模态辅助），约 3-5 行；需注意 `showImportResult()` 接收 `{ books, quotes, sessions, connections }` 结构，豆瓣导入只有 books，其余传 `0`。
+
+**Complexity:** S — `app.js:4381-4384`（importDoubanCsv 结尾段）；`showImportResult()` 定义在 `app.js:858`；调用约 1 行，数据结构填充约 2-3 行。Touch: `app.js:4381-4384`（showToast 替换点）。
+
+**Files:** `app.js:4381-4384`（importDoubanCsv 反馈段）；参照 `app.js:858`（showImportResult 定义）、`app.js:4226`（Excel 导入 showImportResult 调用参照）
+
+**northstar:** 弱-中——导入透明度，OPT-040/041 延伸；批量操作规模越大透明度越重要，豆瓣导入是最大批次场景（110 本）却是反馈最弱的路径。
+
+---
+
+### E190 — `all_books_summary` 同行修复（OPT-113 搭车点）：`doubanComment` 亦不在 AI 跨书上下文中 (S)
+
+**What (verified):** `app_server.py:2432-2434`（`PromptBuilder.build_chat_prompt()` 的 `all_books_summary` 段，OPT-113 的目标修复点）：
+```python
+"all_books_summary": [
+    {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""), "status": b.get("status", "")}
+    for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:50]
+],
+```
+OPT-113（triaged，Next up，将在下一个 PR 修复）将在此处追加 `"rating"` 和 `"finishedAt"`；但 `"doubanComment"` 同样缺席——OPT-105 今日导入的豆瓣短评（用户对每本书的主观读后印象）对 AI 完全不可见，「帮我找讲成长故事的书」「哪本书让我觉得值得二刷」等查询无法利用这批数据。
+
+**Why it matters:** `all_books_summary` 是 AI 跨书查询的唯一数据窗口；OPT-113 本次将改这一行的 dict，最自然的时机是同步追加 `doubanComment`（字段已在今日 OPT-105 写入数据库），否则 OPT-113 合并后仍需另开 PR 补这一个字段，产生不必要的碎片 PR。截断 60 字符以控制 token 增量（50 本 × 60 字符 ≈ 3000 chars，相对 OPT-113 的 rating/finishedAt 增量极小）。
+
+**Complexity:** S — `app_server.py:2433`（OPT-113 改动点）：追加 `"doubanComment": (b.get("doubanComment") or "")[:60]`，1 行，建议搭车 OPT-113 PR 同时落地。Touch: `app_server.py:2432-2434`（all_books_summary 构建段）。
+
+**Files:** `app_server.py:2432-2434`（all_books_summary 构建段）；参照 `app.js:4359`（importDoubanCsv 写入 doubanComment）
+
+**northstar:** 弱-中——OPT-113 搭车点；doubanComment 是今日 OPT-105 为 110 本书批量写入的高密度语义字段，AI 不可见即浪费了这批数据对「AI 帮你找书」场景的价值；单独 PR 代价不合算，搭车 OPT-113 代价趋近于零。
+
+---
+
+> 本次 run（2026-07-15）扫描焦点为 OPT-105（豆瓣导入，今日 W29 焦点落地）的数据下游覆盖完整度。新发现 3 条：E188（matchBooks 不含 doubanComment，S，northstar 中，直接 1 行修复）、E189（importDoubanCsv 反馈 showToast 而非 showImportResult，S，northstar 弱-中，透明度倒置）、E190（all_books_summary 缺 doubanComment，S，northstar 弱-中，OPT-113 搭车点）。将昨日 run（2026-07-14）发现的 E185（buildBookSearchCard 不展示 rating）提拔为 OPT-115，今日发现的 E188（matchBooks 缺 doubanComment）提拔为 OPT-116。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
