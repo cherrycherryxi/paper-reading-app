@@ -1243,7 +1243,8 @@ function matchBooks(query) {
       fuzzyMatch(book.author || "", query) ||
       (book.tags || []).some((t) => fuzzyMatch(t, query)) ||
       fuzzyMatch(book.notes || "", query) ||
-      fuzzyMatch(book.review || "", query)
+      fuzzyMatch(book.review || "", query) ||
+      fuzzyMatch(book.doubanComment || "", query)
   );
 }
 
@@ -1331,6 +1332,7 @@ function buildBookSearchCard(book, cache) {
     ? book.tags.slice(0, MAX_TAGS).map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("") +
       (book.tags.length > MAX_TAGS ? `<span class="book-tag-chip book-tag-more">+${book.tags.length - MAX_TAGS}</span>` : "")
     : "";
+  const ratingHtml = book.rating ? `<span class="book-rating">${"★".repeat(book.rating)}</span>` : "";
 
   const card = document.createElement("article");
   card.className = "book-grid-card";
@@ -1353,6 +1355,7 @@ function buildBookSearchCard(book, cache) {
     <div class="book-grid-body">
       <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
+      ${ratingHtml}
       <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${qCount} 张${cCount ? ` · 🔗 ${cCount} 关联` : ""}</div>
       <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
       ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
