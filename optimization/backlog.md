@@ -1012,7 +1012,7 @@ Format per item:
 - why: 「最近读完了哪些书」是「回顾」场景最基础查询，豆瓣导入后「已读完」列表应按 `finishedAt` desc 呈现，当前按 `createdAt` 排序（导入批次顺序）直接割裂时序回顾体验；S 修复：status-aware 三分支替换当前单一二级键（`finished` → finishedAt，`reading` → lastReadAt，其余 → createdAt），约 5-8 行，纯前端，无后端/schema 变更。
 
 ### OPT-115 — `buildBookSearchCard()` 不展示 `book.rating`——评分字段在最高频入口完全不可见 — 由 explore E185 提拔 [2026-07-15]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1022,7 +1022,7 @@ Format per item:
 - how: `app.js:1303-1348`（buildBookSearchCard）：在 `statusBadge` 构建后追加 `const ratingHtml = book.rating ? \`<span class="book-rating">★ ${book.rating}</span>\` : ""`；注入到卡面 HTML；CSS `.book-rating` 参照 `.status-badge` 小徽章样式。Touch: `app.js:1303-1348`（buildBookSearchCard）、`styles.css`（book-rating 样式）。
 
 ### OPT-116 — `matchBooks()` 过滤器不含 `book.doubanComment`——OPT-105 导入的豆瓣短评内容不可搜索 — 由 explore E188 提拔 [2026-07-15]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1033,7 +1033,7 @@ Format per item:
 - how: `app.js:1238-1246`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支：若 `a.status === "finished"` 则按 `finishedAt` desc；若 `a.status === "reading"` 则按 `lastReadAt` desc；其余按 `createdAt` desc。Touch: `app.js:1238-1246`（`compareBooksForList` 函数体）。建议与 E184（已读完书卡展示 finishedAt）合并为「已读完书单时序体验」PR。
 
 ### OPT-117 — 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding 的「即时兑现」钩子 — owner 渠道复盘直接提出 [2026-07-16]
-- status: new
+- status: triaged
 - area: fullstack
 - priority: P1
 - size: L
