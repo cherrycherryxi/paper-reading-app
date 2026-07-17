@@ -8910,6 +8910,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T17:09:26.504Z"
+    },
+    {
+      "id": "bug-534",
+      "timestamp": "2026-07-17T19:18:01.437Z",
+      "error_message": "Missing await",
+      "file": "optimization/explore.md",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T19:18:01.437Z"
     }
   ]
 }
