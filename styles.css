@@ -3927,3 +3927,72 @@ body.is-admin .admin-only { display: revert; }
 .book-detail-sub-label--ai::before { content: "✨ "; }
 .book-detail-review p,
 .book-detail-intro-text p { margin: 0; }
+
+/* OPT-118 拍书架批量加书：识别结果确认列表。低置信/重复行用左侧色条标记，
+   让「哪些需要核对」在滚动时一眼可辨，而不必逐行读右侧提示文字。 */
+.shelf-ocr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 46vh;
+  overflow-y: auto;
+  margin: 4px 0 12px;
+  padding-right: 4px;
+}
+
+.shelf-ocr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-soft-accent2);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.shelf-ocr-row[data-level="high"] { border-left-color: var(--color-ink); }
+.shelf-ocr-row[data-level="mid"] { border-left-color: var(--color-accent); }
+.shelf-ocr-row[data-level="low"] { border-left-color: var(--color-ink-muted); }
+
+.shelf-ocr-row input[type="checkbox"] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-ink);
+}
+
+.shelf-ocr-fields {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shelf-ocr-title,
+.shelf-ocr-author {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  color: var(--color-ink);
+  font-size: 0.9rem;
+}
+
+.shelf-ocr-title { flex: 2; }
+.shelf-ocr-author { flex: 1; color: var(--color-ink-soft); }
+
+.shelf-ocr-title:focus,
+.shelf-ocr-author:focus {
+  border-color: var(--color-ink);
+  outline: none;
+  background: var(--color-surface);
+}
+
+.shelf-ocr-note {
+  flex: none;
+  font-size: 0.72rem;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}

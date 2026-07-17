@@ -1082,6 +1082,73 @@ BOOK_OCR_PROMPT = """你是图书封面信息提取器。
 只输出 JSON，不要 Markdown，不要解释：
 {"title":"书名","author":"[国籍] 人名","tags":["标签1","标签2"]}"""
 
+# 书架整排识别（OPT-118）。与 BOOK_OCR_PROMPT 的差异全部源于 2026-07-17 的真实
+# 书架实测：①模型会把副标题当成另一本书输出（《重走：在公路、河流和驿道上寻找
+# 西南联大》多出一条「在公路、河流和驿道上寻找」；《厌女：日本的女性嫌恶》多出
+# 一条「日本的女性嫌恶」）→ 规则 2 显式禁止；②平放/被遮挡的书会整本编造（横放的
+# 《我弥留之际》被说成《当我们谈论爱情时我们在谈论什么》，还给了 0.70 置信度）
+# → 规则 5/6 要求宁缺毋滥并压低置信度。置信度本身不可信，前端必须让用户勾选确认。
+SHELF_OCR_PROMPT = """你是书架图片识别器。图中是一排实体书，多为竖立的书脊，也可能有平放或封面朝外的书。
+
+任务：
+逐本识别书名与作者，从左到右依次输出。
+
+规则：
+1. title 只填书名本身，不要包含出版社、丛书名、译者、腰封宣传语。
+2. 副标题属于同一本书，绝不能拆成两条。例如书脊上写「重走：在公路、河流和驿道上寻找西南联大」是一本书，只输出「重走」；「厌女：日本的女性嫌恶」是一本书，只输出「厌女」。同一本书的主标题与副标题分行排版时尤其注意，不要误判为两本。
+3. author 只填人名，不要带「著」「编」「译」等字样。外国作者按「[国籍] 人名」格式（如「[德] 黑塞」），中国作者直接写人名；无法确定作者时给空字符串。
+4. confidence 是 0 到 1 的数字，表示你对这一条的把握：书脊文字完整清晰=0.8 以上；部分遮挡但能辨认=0.5 到 0.8；模糊、严重遮挡或主要靠猜=0.5 以下。
+5. 只识别你在图中真实看见的文字。严禁凭书籍常识补全或想象书名——看不清就按规则 6 处理，宁可漏掉也不要编造。
+6. 若某本书只能辨认出零星文字，title 填你能看到的部分，confidence 给 0.3 以下；完全无法辨认的书直接跳过，不要输出。
+
+输出：
+只输出 JSON 数组，不要 Markdown，不要解释：
+[{"title":"书名","author":"[国籍] 人名","confidence":0.9}]"""
+
+
+def parse_shelf_ocr_extraction(output: str) -> list[dict]:
+    """Parse [{title,author,confidence}] from raw model output (OPT-118).
+
+    Mirrors parse_book_ocr_extraction's tolerance (Markdown fences, stray prose)
+    but for the array shape. Entries without a usable title are dropped; a
+    malformed payload yields [] rather than raising, so the endpoint can still
+    return a clean empty result to the UI.
+    """
+    raw = str(output or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw).strip()
+    payload = None
+    try:
+        payload = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        match = re.search(r"\[[\s\S]*\]", raw)
+        if match:
+            try:
+                payload = json.loads(match.group(0))
+            except (TypeError, json.JSONDecodeError):
+                payload = None
+    if not isinstance(payload, list):
+        return []
+
+    books = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title", "") or "").strip()
+        if not title:
+            continue
+        try:
+            confidence = float(item.get("confidence", 0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+        books.append({
+            "title": title,
+            "author": str(item.get("author", "") or "").strip(),
+            "confidence": min(1.0, max(0.0, confidence)),
+        })
+    return books
+
 
 def parse_book_ocr_extraction(output: str) -> dict:
     """Parse {title,author,tags} from raw model output, tolerant of Markdown
@@ -4806,6 +4873,60 @@ class Handler(BaseHTTPRequestHandler):
                     type_="ocr",
                     model=MOONSHOT_VISION_MODEL,
                     prompt=BOOK_OCR_PROMPT,
+                    input_="image:data-url",
+                    output="",
+                    error=str(error),
+                )
+                conn.close()
+                self._send_json({"error": str(error)}, 500)
+            return
+
+        if parsed.path == "/api/books/shelf-ocr":
+            # OPT-118: one photo of a shelf -> many {title, author, confidence}.
+            # Shares the "ocr" rate-limit bucket with the single-cover route; a
+            # shelf shot costs one call but returns dozens of books, so it is the
+            # cheapest path in that bucket rather than a new cost centre.
+            conn, user = self._require_user()
+            if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "ocr"):
+                conn.close()
+                return
+            payload = self._read_json()
+            data_url = str(payload.get("imageDataUrl", "")).strip()
+            if not data_url:
+                conn.close()
+                self._send_json({"error": "imageDataUrl is required"}, 400)
+                return
+
+            content = [
+                {"type": "image_url", "image_url": {"url": data_url}},
+                {"type": "text", "text": SHELF_OCR_PROMPT},
+            ]
+            try:
+                response = call_kimi_vision([{"role": "user", "content": content}])
+                raw_output = response.content if isinstance(response, KimiVisionResult) else str(response or "")
+                books = parse_shelf_ocr_extraction(raw_output)
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="ocr",
+                    model=MOONSHOT_VISION_MODEL,
+                    prompt=SHELF_OCR_PROMPT,
+                    input_="image:data-url",
+                    output=json.dumps(books, ensure_ascii=False),
+                )
+                conn.close()
+                self._send_json({"books": books})
+            except Exception as error:
+                append_log(
+                    conn,
+                    user_id=user["id"],
+                    username=user["username"],
+                    type_="ocr",
+                    model=MOONSHOT_VISION_MODEL,
+                    prompt=SHELF_OCR_PROMPT,
                     input_="image:data-url",
                     output="",
                     error=str(error),

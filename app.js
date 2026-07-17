@@ -71,6 +71,12 @@ const els = {
   importResultOkBtn: document.querySelector("#importResultOkBtn"),
   importExcelInput: document.querySelector("#importExcelInput"),
   importDoubanInput: document.querySelector("#importDoubanInput"),
+  shelfOcrInput: document.querySelector("#shelfOcrInput"),
+  shelfOcrDialog: document.querySelector("#shelfOcrDialog"),
+  shelfOcrList: document.querySelector("#shelfOcrList"),
+  shelfOcrSummary: document.querySelector("#shelfOcrSummary"),
+  shelfOcrStatus: document.querySelector("#shelfOcrStatus"),
+  shelfOcrConfirmBtn: document.querySelector("#shelfOcrConfirmBtn"),
   importExcelBooksBtn: document.querySelector("#importExcelBooksBtn"),
   importExcelDialog: document.querySelector("#importExcelDialog"),
   downloadExcelTemplateBtn: document.querySelector("#downloadExcelTemplateBtn"),
@@ -4425,6 +4431,118 @@ async function importDoubanCsv(file) {
   }
 }
 
+// OPT-118: shelf photo -> many books. The confirm step is not optional polish:
+// 2026-07-17 testing on real shelves showed the model inventing a whole book for
+// a flat-lying spine it couldn't read (and reporting 0.70 confidence for it), so
+// confidence gates the default checked state but never the entry's existence —
+// the user is the filter. High-confidence rows start checked, the rest don't.
+const SHELF_OCR_MAX_PX = 2000; // 1200 (the app default) blurs spine type past legibility
+const SHELF_OCR_AUTO_CHECK_CONFIDENCE = 0.8;
+let shelfOcrCandidates = [];
+
+async function runShelfOcr(file) {
+  if (!requireAuth("识别书架")) return;
+  if (!file) return;
+  showToast("正在识别书架，约需 20 秒…");
+  try {
+    const imageDataUrl = await resizeImageToDataUrl(file, SHELF_OCR_MAX_PX);
+    const data = await apiFetch("/api/books/shelf-ocr", {
+      method: "POST",
+      body: JSON.stringify({ imageDataUrl }),
+    }, true);
+    const books = Array.isArray(data?.books) ? data.books : [];
+    if (!books.length) {
+      showToast("没认出书名，换个角度让书脊正对镜头再试");
+      return;
+    }
+    shelfOcrCandidates = books.map((b) => {
+      const title = String(b.title || "").trim();
+      const author = String(b.author || "").trim();
+      const confidence = Number(b.confidence) || 0;
+      const duplicate = state.books.some((x) => isSameBook(title, author, x.title, x.author));
+      return {
+        title,
+        author,
+        confidence,
+        duplicate,
+        // Already-owned books stay unchecked so a re-scan doesn't re-add them.
+        checked: !duplicate && confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE,
+      };
+    });
+    renderShelfOcrList();
+    els.shelfOcrDialog?.showModal(); // 已在上方 requireAuth 过，无需 openDialog 再拦一次
+  } catch (error) {
+    showToast(`识别失败：${error.message || "未知错误"}`);
+  }
+}
+
+function renderShelfOcrList() {
+  if (!els.shelfOcrList) return;
+  const dupes = shelfOcrCandidates.filter((c) => c.duplicate).length;
+  const low = shelfOcrCandidates.filter((c) => !c.duplicate && c.confidence < SHELF_OCR_AUTO_CHECK_CONFIDENCE).length;
+  if (els.shelfOcrSummary) {
+    const parts = [`认出 ${shelfOcrCandidates.length} 本`];
+    if (dupes) parts.push(`${dupes} 本书单里已有（默认不选）`);
+    if (low) parts.push(`${low} 本把握不大（默认不选，请核对）`);
+    els.shelfOcrSummary.textContent = parts.join(" · ");
+  }
+  els.shelfOcrList.innerHTML = shelfOcrCandidates
+    .map((c, i) => {
+      const level = c.confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE ? "high" : (c.confidence >= 0.5 ? "mid" : "low");
+      const note = c.duplicate ? "书单已有" : (level === "high" ? "" : "请核对");
+      return `<label class="shelf-ocr-row" data-level="${level}">
+        <input type="checkbox" data-shelf-index="${i}"${c.checked ? " checked" : ""} />
+        <span class="shelf-ocr-fields">
+          <input type="text" class="shelf-ocr-title" data-shelf-title="${i}" value="${escapeHtml(c.title)}" aria-label="书名" />
+          <input type="text" class="shelf-ocr-author" data-shelf-author="${i}" value="${escapeHtml(c.author)}" placeholder="作者" aria-label="作者" />
+        </span>
+        ${note ? `<span class="shelf-ocr-note">${note}</span>` : ""}
+      </label>`;
+    })
+    .join("");
+}
+
+async function confirmShelfOcr() {
+  if (!requireAuth("加入书单")) return;
+  const picked = shelfOcrCandidates.filter((c) => c.checked && c.title.trim());
+  if (!picked.length) {
+    showToast("没有勾选任何书");
+    return;
+  }
+  const status = els.shelfOcrStatus?.value || "wishlist";
+  const now = new Date().toISOString();
+  let created = 0, skipped = 0;
+  for (const c of picked) {
+    const title = c.title.trim();
+    const author = c.author.trim();
+    // Re-check against live state: the user may have edited a title into an
+    // existing book, and picked rows can collide with each other.
+    if (state.books.some((x) => isSameBook(title, author, x.title, x.author))) {
+      skipped += 1;
+      continue;
+    }
+    state.books.unshift({
+      id: createId("book"), title, author,
+      totalPages: 0, currentPage: 0, status,
+      tags: [], notes: "", review: "", reviewIsAi: false, doubanComment: "", rating: 0,
+      coverImageUrl: "", createdAt: now, updatedAt: now,
+      startedAt: status === "wishlist" ? "" : now,
+      finishedAt: status === "finished" ? now : "",
+      lastReadAt: status === "wishlist" ? "" : now,
+    });
+    created += 1;
+  }
+  if (!created) {
+    showToast("勾选的书书单里都已有");
+    return;
+  }
+  await syncState();
+  render();
+  closeDialog(els.shelfOcrDialog);
+  shelfOcrCandidates = [];
+  showToast(skipped ? `已加入 ${created} 本，跳过 ${skipped} 本已有的` : `已加入 ${created} 本`);
+}
+
 async function clearLogs() {
   if (!requireAuth("清空日志")) return;
   try {
@@ -5488,6 +5606,32 @@ function bindEvents() {
     await importDoubanCsv(file);
     event.target.value = "";
   });
+
+  els.shelfOcrInput?.addEventListener("change", async (event) => {
+    const [file] = event.target.files || [];
+    if (!file) return;
+    await runShelfOcr(file);
+    event.target.value = "";
+  });
+  // Delegated: the candidate rows are re-rendered, so bind once on the container.
+  els.shelfOcrList?.addEventListener("change", (event) => {
+    const index = Number(event.target?.dataset?.shelfIndex);
+    if (Number.isInteger(index) && shelfOcrCandidates[index]) {
+      shelfOcrCandidates[index].checked = Boolean(event.target.checked);
+    }
+  });
+  els.shelfOcrList?.addEventListener("input", (event) => {
+    const titleIndex = Number(event.target?.dataset?.shelfTitle);
+    if (Number.isInteger(titleIndex) && shelfOcrCandidates[titleIndex]) {
+      shelfOcrCandidates[titleIndex].title = event.target.value;
+      return;
+    }
+    const authorIndex = Number(event.target?.dataset?.shelfAuthor);
+    if (Number.isInteger(authorIndex) && shelfOcrCandidates[authorIndex]) {
+      shelfOcrCandidates[authorIndex].author = event.target.value;
+    }
+  });
+  els.shelfOcrConfirmBtn?.addEventListener("click", () => confirmShelfOcr());
 
   // OPT-001: books-page secondary entry opens a guide dialog first (format
   // help + downloadable template); "选择文件" forwards to the drawer's hidden

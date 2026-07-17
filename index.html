@@ -323,6 +323,13 @@
           </li>
           <li class="me-action">
             <div class="me-action-info">
+              <div class="me-action-title">拍书架，批量加书</div>
+              <div class="me-action-desc">对着书架拍一张照片，自动识别整排书名和作者，勾选后一键加入书单。书脊清晰、正对拍摄识别更准；<strong>识别结果需你确认后才会加入</strong>，可逐条改书名。</div>
+            </div>
+            <label class="button button-ghost button-small file-button">拍照 / 选图<input type="file" id="shelfOcrInput" accept="image/*" /></label>
+          </li>
+          <li class="me-action">
+            <div class="me-action-info">
               <div class="me-action-title">从 Excel 批量加书</div>
               <div class="me-action-desc">从 <code>.xlsx</code> 表格批量添加书单。表格首行需含「书名」列（可选：作者 / 状态 / 标签 / 总页数 / 开始时间 / 完成时间 / 译者 / 简介 / 喜欢程度）。已存在的书不会重复。</div>
             </div>
@@ -472,6 +479,28 @@
           <button type="submit" class="button button-primary">保存书籍</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="shelfOcrDialog" aria-labelledby="shelf-ocr-dialog-label">
+      <div class="dialog-form">
+        <div class="section-head">
+          <h2 id="shelf-ocr-dialog-label">确认要加入的书</h2>
+          <p>识别可能有误，请核对后再加入。取消勾选不想加的，书名可直接修改。</p>
+        </div>
+        <div id="shelfOcrSummary" class="helper-text"></div>
+        <div id="shelfOcrList" class="shelf-ocr-list"></div>
+        <label><span>加入后的状态</span>
+          <select id="shelfOcrStatus">
+            <option value="wishlist">想读</option>
+            <option value="reading">阅读中</option>
+            <option value="finished">已读完</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" data-close-dialog="shelfOcrDialog">取消</button>
+          <button type="button" class="button button-primary" id="shelfOcrConfirmBtn">加入书单</button>
+        </div>
+      </div>
     </dialog>
 
     <dialog id="sessionDialog" aria-labelledby="session-dialog-label">
