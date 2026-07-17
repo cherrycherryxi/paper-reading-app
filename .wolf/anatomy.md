@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T06:10:49.887Z
-> Files: 302 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T06:40:30.624Z
+> Files: 303 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -121,12 +121,13 @@
 
 ## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
 
+- `feedback_no_loop_terminology.md` (~295 tok)
 - `feedback_pr_target_feature_agent.md` (~318 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~609 tok)
+- `MEMORY.md` (~664 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~982 tok)
+- `project_daily_loop_automation.md` (~996 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)

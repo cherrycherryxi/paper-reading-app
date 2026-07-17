@@ -10,6 +10,8 @@
 
 - **[2026-06-10] 始终用中文回复。** 用户母语中文，已多次因为我切回英文而手动提醒。无论 PR 审核、技术分析还是任何场景，回复正文一律用中文（代码、命令、专有名词保持原文即可）。
 
+- **[2026-07-17] 别把每日定时自动化叫「loop」。** owner 明确纠正："以后在说这个功能时不要用 loop 这种不准确的词"。按实际机制称呼：**launchd 定时任务**——「晨间任务」(`paper-morning` 10:00 审 PR + 出选题卡)、「轮询器」(`paper-implement-poll` 每 30min 读回信→实现→合入 dev)、「收工任务」(`paper-wrapup` 23:30 日报)。**「loop」一词只留给 `/loop` skill**（Claude Code 里已运行会话内的自我排程，冷启动不了，与 launchd 是两套东西）。混用的代价是每次讨论都得先花一轮拆歧义。⚠️ 约束的是**口头表述**，不是去重命名文件——`~/.claude/paper-loop/` 状态目录、`settings.json` SessionStart 钩子里「用 /loop 交互推进」的文案（那处是真 /loop，没说错）都保持原样。
+
 ## Key Learnings
 
 - [2026-07-15] **豆瓣导入(OPT-105)：豆瓣无官方导出、第三方扩展(豆伴/tofu)已停维护且解析失效(GitHub #114/120/122)、油猴脚本停在2019——都不可靠。可行方案=本地小脚本抓 `book.douban.com/people/<id>/collect`(读书列表默认公开、无需 cookie)，当前结构是 `li.item > .title/.date(含 rating{N}-t)/.intro(作者)/.comment(短评)`(2026 版, 老的 subject-item/pub 已废)。脚本在 tools/douban_export.py。导入器只填空缺、不覆盖已填(评分/读完日期/读后感字段已存在, 走 syncState 零后端改动)。

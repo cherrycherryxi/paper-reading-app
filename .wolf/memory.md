@@ -3276,3 +3276,9 @@
 | 14:09 | Edited ../../.claude/scripts/paper-morning.sh | 1→6 lines | ~77 |
 | 14:10 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→3 lines | ~210 |
 | 14:10 | 补自动化缺口: 新增 paper-dev-reload.sh —— morning/poll 合并后按需 kickstart dev（仅非 tests 的 .py 变动才重启），四条分支实测通过 | ~/.claude/scripts/paper-{dev-reload,implement-poll,morning}.sh | done | ~3500 |
+| 14:11 | Session end: 9 writes across 6 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 5 reads | ~3052 tok |
+| 14:35 | Session end: 9 writes across 6 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 6 reads | ~3052 tok |
+| 14:40 | Created ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/feedback_no_loop_terminology.md | — | ~294 |
+| 14:40 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | 1→2 lines | ~114 |
+| 14:40 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | inline fix | ~41 |
+| 14:40 | 偏好入库: 禁用「loop」泛指每日 launchd 定时自动化（/loop 是另一机制），改称定时任务/晨间任务/轮询器/收工任务 | .wolf/cerebrum.md, ~/.claude/projects/.../memory/ | recorded | ~1200 |
