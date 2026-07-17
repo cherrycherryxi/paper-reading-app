@@ -748,9 +748,13 @@ function stripAuthorNationality(raw) {
   while (value && value !== previous) {
     previous = value;
     value = value
-      // 〔〕 (six-corner brackets) are as common as [] and 【】 for nationality on
-      // Chinese covers — 豆瓣 uses them — so they must be accepted here too.
-      .replace(new RegExp(`^[\\s\\[【〔(（]+\\s*(?:${authorNationalityPattern})\\s*[\\]】〕)）]+\\s*`, "i"), "")
+      // A bracket at the head of an author already says "this is the nationality"
+      // — its content need not be on any list. The old whitelist silently kept
+      // 「[阿根廷]」「[哥伦比亚]」「[苏]」「[南非]」… glued to the name, and a
+      // whitelist of countries can never be complete for a shelf of world lit.
+      // Capped at 6 chars so a bracketed *name* can't be eaten.
+      // 〔〕 (six-corner brackets) are as common as [] and 【】 on Chinese covers.
+      .replace(/^[\s]*[\[【〔(（]\s*[^\]】〕)）]{1,6}\s*[\]】〕)）]\s*/, "")
       .replace(new RegExp(`^(?:${authorNationalityPattern})(?:籍|国)?[\\s,，.．:：\\-—]+`, "i"), "")
       .replace(new RegExp(`^(?:中国|美国|英国|法国|德国|日本|俄国|俄罗斯|意大利|西班牙|加拿大|澳大利亚|奥地利|瑞士|瑞典|挪威|丹麦|芬兰|荷兰|比利时|爱尔兰|希腊|印度|韩国)`, "i"), "")
       .trim();
@@ -814,7 +818,18 @@ function authorsAreCompatible(authorA, authorB) {
   const tb = bookAuthorTokens(authorB);
   if (!ta.length || !tb.length) return false;
   const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
-  return shorter.every((token) => longer.includes(token));
+  if (shorter.every((token) => longer.includes(token))) return true;
+  // Chinese publishing abbreviates a translated name segment by segment, keeping
+  // each segment's first character: 豪·路·博尔赫斯 = 豪尔赫·路易斯·博尔赫斯,
+  // 尼·奥斯特洛夫斯基 = 尼古拉·奥斯特洛夫斯基. Requiring the same segment count *and*
+  // every segment to be a prefix keeps different people apart — 弗吉尼亚·伍尔夫 and
+  // 伦纳德·伍尔夫 share a segment count but 弗吉尼亚 does not prefix 伦纳德.
+  // Needs ≥2 segments: the convention only exists for multi-part translated names.
+  // A one-segment Chinese name is whole, so 金 must not prefix its way into 金庸.
+  if (ta.length === tb.length && ta.length >= 2) {
+    return ta.every((x, i) => tb[i].startsWith(x) || x.startsWith(tb[i]));
+  }
+  return false;
 }
 
 // The part after a colon is a subtitle, not part of the name: a shelf photo reads

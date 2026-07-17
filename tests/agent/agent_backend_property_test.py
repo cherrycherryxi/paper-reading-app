@@ -797,6 +797,41 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertTrue(app_server.books_are_same("通往奴役之路", "[英] 哈耶克", "《通往奴役之路》", full))
         self.assertTrue(app_server.books_are_same("通往奴役之路", "[英] 弗里德里希·哈耶克", "《通往奴役之路》", full))
 
+    def test_strip_author_nationality_handles_any_bracketed_marker(self):
+        # Real bug (2026-07-17): the nationality list was a whitelist, so
+        # 「[阿根廷] 豪·路·博尔赫斯」 kept its marker and never matched the library's
+        # copy. A country whitelist can't cover a shelf of world literature — the
+        # bracket itself is the signal.
+        for raw, expected in [
+            ("[阿根廷] 豪·路·博尔赫斯", "豪·路·博尔赫斯"),
+            ("[哥伦比亚] 马尔克斯", "马尔克斯"),
+            ("[苏] 尼·奥斯特洛夫斯基", "尼·奥斯特洛夫斯基"),
+            ("[南非] 库切", "库切"),
+            ("[以色列] 尤瓦尔·赫拉利", "尤瓦尔·赫拉利"),
+            ("〔德〕 赫尔曼·黑塞", "赫尔曼·黑塞"),
+            ("(英) 伍尔夫", "伍尔夫"),
+        ]:
+            with self.subTest(raw=raw):
+                self.assertEqual(app_server.strip_author_nationality(raw), expected)
+
+    def test_authors_are_compatible_accepts_segmentwise_abbreviation(self):
+        # Chinese publishing abbreviates translated names segment by segment.
+        # Real case: the library held 「[阿根廷] 豪·路·博尔赫斯」, the shelf photo read
+        # 「[阿根廷] 豪尔赫·路易斯·博尔赫斯」.
+        self.assertTrue(app_server.authors_are_compatible(
+            "[阿根廷] 豪·路·博尔赫斯", "[阿根廷] 豪尔赫·路易斯·博尔赫斯"))
+        self.assertTrue(app_server.authors_are_compatible(
+            "[苏] 尼·奥斯特洛夫斯基", "[苏] 尼古拉·奥斯特洛夫斯基"))
+
+    def test_segmentwise_abbreviation_needs_multiple_segments(self):
+        # The convention only exists for multi-part translated names; a one-segment
+        # Chinese name is whole and must not prefix its way into a longer one.
+        self.assertFalse(app_server.authors_are_compatible("金", "金庸"))
+        self.assertFalse(app_server.authors_are_compatible("张三", "张三丰"))
+        # Same segment count, but not an abbreviation of each other.
+        self.assertFalse(app_server.authors_are_compatible("[美] 丹·布朗", "[美] 丹尼尔·格林"))
+        self.assertFalse(app_server.authors_are_compatible("[美] 乔治·奥威尔", "[英] 乔治·艾略特"))
+
     def test_authors_are_compatible_keeps_different_people_apart(self):
         # The subset rule must not merge people who merely share a name part.
         self.assertFalse(app_server.authors_are_compatible("[英] 弗吉尼亚·伍尔夫", "[英] 伦纳德·伍尔夫"))

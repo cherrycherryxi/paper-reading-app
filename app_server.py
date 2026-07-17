@@ -902,14 +902,13 @@ def strip_author_nationality(raw) -> str:
     previous = None
     while value and value != previous:
         previous = value
-        # 〔〕 (six-corner brackets) are as common as [] and 【】 for nationality on
-        # Chinese covers — 豆瓣 uses them — so they must be accepted here too.
-        value = re.sub(
-            rf"^[\s\[【〔(（]+\s*(?:{AUTHOR_NATIONALITY_PATTERN})\s*[\]】〕)）]+\s*",
-            "",
-            value,
-            flags=re.IGNORECASE,
-        )
+        # A bracket at the head of an author already says "this is the nationality"
+        # — its content need not be on any list. The old whitelist silently kept
+        # 「[阿根廷]」「[哥伦比亚]」「[苏]」「[南非]」… glued to the name, and a
+        # whitelist of countries can never be complete for a shelf of world lit.
+        # Capped at 6 chars so a bracketed *name* can't be eaten.
+        # 〔〕 (six-corner brackets) are as common as [] and 【】 on Chinese covers.
+        value = re.sub(r"^[\s]*[\[【〔(（]\s*[^\]】〕)）]{1,6}\s*[\]】〕)）]\s*", "", value)
         value = re.sub(
             rf"^(?:{AUTHOR_NATIONALITY_PATTERN})(?:籍|国)?[\s,，.．:：\-—]+",
             "",
@@ -965,7 +964,19 @@ def authors_are_compatible(author_a, author_b) -> bool:
     if not ta or not tb:
         return False
     shorter, longer = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
-    return all(token in longer for token in shorter)
+    if all(token in longer for token in shorter):
+        return True
+    # Chinese publishing abbreviates a translated name segment by segment, keeping
+    # each segment's first character: 豪·路·博尔赫斯 = 豪尔赫·路易斯·博尔赫斯,
+    # 尼·奥斯特洛夫斯基 = 尼古拉·奥斯特洛夫斯基. Requiring the same segment count *and*
+    # every segment to be a prefix keeps different people apart — 弗吉尼亚·伍尔夫 and
+    # 伦纳德·伍尔夫 share a segment count but 弗吉尼亚 does not prefix 伦纳德.
+    # Needs ≥2 segments: the abbreviation convention only exists for multi-part
+    # translated names. A one-segment Chinese name is whole, so 金 must not prefix
+    # its way into 金庸.
+    if len(ta) == len(tb) >= 2:
+        return all(y.startswith(x) or x.startswith(y) for x, y in zip(ta, tb))
+    return False
 
 
 def book_main_title_for_match(title) -> str:

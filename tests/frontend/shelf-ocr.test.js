@@ -364,3 +364,16 @@ test("isSameBook：版次后缀不影响匹配，但绝不能吞掉卷次", () =
   assert.equal(h.isSameBook("第二性 I", "", "第二性 II", ""), false);
   assert.equal(h.isSameBook("巴黎评论·诺奖作家访谈（上）", "", "巴黎评论·诺奖作家访谈（下）", ""), false);
 });
+
+test("isSameBook：任意括号国籍标记都要剥离 + 译名逐节缩写视为同一人", () => {
+  const h = matchHarness();
+  // 真实事故：库里《小径分岔的花园》/[阿根廷] 豪·路·博尔赫斯，书架读成
+  // [阿根廷] 豪尔赫·路易斯·博尔赫斯 —— 国籍白名单没有「阿根廷」，且缩写识别不了。
+  assert.equal(h.isSameBook(
+    "小径分岔的花园", "[阿根廷] 豪尔赫·路易斯·博尔赫斯",
+    "《小径分岔的花园》", "[阿根廷] 豪·路·博尔赫斯"), true);
+  // 逐节缩写只对多节译名生效
+  assert.equal(h.isSameBook("某书", "金", "某书", "金庸"), false);
+  assert.equal(h.isSameBook("某书", "[美] 丹·布朗", "某书", "[美] 丹尼尔·格林"), false);
+  assert.equal(h.isSameBook("到灯塔去", "[英] 弗吉尼亚·伍尔夫", "到灯塔去", "[英] 伦纳德·伍尔夫"), false);
+});
