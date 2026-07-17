@@ -584,6 +584,8 @@ label span,
   border-color: var(--color-border);
 }
 
+.book-rating { font-size: 11px; color: var(--color-accent, #e8a020); letter-spacing: 1px; margin-bottom: 2px; }
+
 .book-tag-row {
   display: flex;
   gap: 6px;

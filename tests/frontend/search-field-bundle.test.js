@@ -1,9 +1,10 @@
 /**
- * OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097
+ * OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 + OPT-116
  * 检索修通 bundle — 搜索字段全面补全回归覆盖
  *
  * OPT-092: matchBooks() 搜索 tags / notes
  * OPT-097: matchBooks() 搜索 review
+ * OPT-116: matchBooks() 搜索 doubanComment
  * OPT-083: renderQuotes haystack 搜索 ocrText
  * OPT-056: renderQuotes haystack 搜索 reflection
  * OPT-088: renderConnections getSearchLabel quote 分支含 content/ocrText
@@ -284,6 +285,34 @@ test("OPT-097: matchBooks review=undefined doesn't throw", () => {
   const hooks = createHarness();
   const b = book({ id: "b1", title: "书A" });
   delete b.review;
+  hooks.setState({
+    books: [b],
+    quotes: [], sessions: [], connections: [], chatHistories: {},
+  });
+
+  assert.doesNotThrow(() => hooks.matchBooks("成长"));
+});
+
+// ─── OPT-116: matchBooks 搜索 doubanComment ─────────────────────────────────
+
+test("OPT-116: matchBooks finds book by doubanComment field", () => {
+  const hooks = createHarness();
+  hooks.setState({
+    books: [
+      book({ id: "b1", title: "书A", doubanComment: "读完很受触动的一本书" }),
+      book({ id: "b2", title: "书B", doubanComment: "政治经济学入门" }),
+    ],
+    quotes: [], sessions: [], connections: [], chatHistories: {},
+  });
+
+  const result = hooks.matchBooks("触动").map(b => b.id);
+  assert.deepEqual(result, ["b1"]);
+});
+
+test("OPT-116: matchBooks doubanComment=undefined doesn't throw", () => {
+  const hooks = createHarness();
+  const b = book({ id: "b1", title: "书A" });
+  delete b.doubanComment;
   hooks.setState({
     books: [b],
     quotes: [], sessions: [], connections: [], chatHistories: {},
