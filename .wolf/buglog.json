@@ -8830,6 +8830,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T09:04:49.549Z"
+    },
+    {
+      "id": "bug-529",
+      "timestamp": "2026-07-17T09:17:49.954Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→25 lines (2 removed) | Also: const low = shelfOcrCandidates.filter((c) => !c.du; const level = c.confidence >= SHELF_OCR_AUTO_CHECK",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-17T09:18:04.192Z"
     }
   ]
 }

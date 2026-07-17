@@ -3954,6 +3954,12 @@ body.is-admin .admin-only { display: revert; }
 .shelf-ocr-row[data-level="high"] { border-left-color: var(--color-ink); }
 .shelf-ocr-row[data-level="mid"] { border-left-color: var(--color-accent); }
 .shelf-ocr-row[data-level="low"] { border-left-color: var(--color-ink-muted); }
+/* Already-owned / maybe-owned: muted ground so the rows the reader must judge
+   read as a group, distinct from the plain "not sure I read this right" ones. */
+.shelf-ocr-row[data-level="dupe"] {
+  border-left-color: var(--color-accent);
+  background: var(--color-surface-alt);
+}
 
 /* Same trap as .terms-check: the global `input { appearance: none; width: 100%;
    padding: 13px 14px }` rule strips the native tick, so the box renders empty
@@ -4011,9 +4017,13 @@ body.is-admin .admin-only { display: revert; }
   background: var(--color-surface);
 }
 
+/* 「可能重复：《重走》/ 杨潇」 is long — it must wrap rather than squeeze the
+   author field, so no white-space: nowrap here. */
 .shelf-ocr-note {
-  flex: none;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.72rem;
+  line-height: 1.4;
   color: var(--color-ink-muted);
-  white-space: nowrap;
+  text-align: right;
 }

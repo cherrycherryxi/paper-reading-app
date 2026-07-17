@@ -4508,13 +4508,24 @@ async function runShelfOcr(file) {
       const author = String(b.author || "").trim();
       const confidence = Number(b.confidence) || 0;
       const duplicate = state.books.some((x) => isSameBook(title, author, x.title, x.author));
+      // Same title but the author didn't match is the signature of a translation
+      // variant (「本吉·沃特豪斯」vs「本吉·沃特斯豪斯」) — the rules can't call it
+      // either way, and fuzzy-matching names would risk silently merging 余华 with
+      // 余桦. So surface the near-miss and let the reader decide, which is what
+      // this dialog is for. Genuinely different same-title books land here too;
+      // seeing 「可能与《活着》重复」costs a glance, a silent merge costs a book.
+      const nearMiss = duplicate
+        ? null
+        : state.books.find((x) => titlesAreSame(title, x.title));
       return {
         title,
         author,
         confidence,
         duplicate,
-        // Already-owned books stay unchecked so a re-scan doesn't re-add them.
-        checked: !duplicate && confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE,
+        possibleDuplicateOf: nearMiss ? { title: nearMiss.title, author: nearMiss.author || "" } : null,
+        // Already-owned and maybe-owned books stay unchecked so a re-scan can't
+        // re-add them by default.
+        checked: !duplicate && !nearMiss && confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE,
       };
     });
     renderShelfOcrList();
@@ -4527,17 +4538,27 @@ async function runShelfOcr(file) {
 function renderShelfOcrList() {
   if (!els.shelfOcrList) return;
   const dupes = shelfOcrCandidates.filter((c) => c.duplicate).length;
-  const low = shelfOcrCandidates.filter((c) => !c.duplicate && c.confidence < SHELF_OCR_AUTO_CHECK_CONFIDENCE).length;
+  const maybes = shelfOcrCandidates.filter((c) => c.possibleDuplicateOf).length;
+  const low = shelfOcrCandidates.filter(
+    (c) => !c.duplicate && !c.possibleDuplicateOf && c.confidence < SHELF_OCR_AUTO_CHECK_CONFIDENCE
+  ).length;
   if (els.shelfOcrSummary) {
     const parts = [`认出 ${shelfOcrCandidates.length} 本`];
     if (dupes) parts.push(`${dupes} 本书单里已有（默认不选）`);
+    if (maybes) parts.push(`${maybes} 本可能重复（默认不选，请核对）`);
     if (low) parts.push(`${low} 本把握不大（默认不选，请核对）`);
     els.shelfOcrSummary.textContent = parts.join(" · ");
   }
   els.shelfOcrList.innerHTML = shelfOcrCandidates
     .map((c, i) => {
-      const level = c.confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE ? "high" : (c.confidence >= 0.5 ? "mid" : "low");
-      const note = c.duplicate ? "书单已有" : (level === "high" ? "" : "请核对");
+      const level = c.duplicate || c.possibleDuplicateOf
+        ? "dupe"
+        : (c.confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE ? "high" : (c.confidence >= 0.5 ? "mid" : "low"));
+      const note = c.duplicate
+        ? "书单已有"
+        : (c.possibleDuplicateOf
+          ? `可能重复：${normalizeBookTitle(c.possibleDuplicateOf.title)}${c.possibleDuplicateOf.author ? ` / ${c.possibleDuplicateOf.author}` : ""}`
+          : (level === "high" ? "" : "请核对"));
       // Title gets its own full-width row: side by side with the author it was
       // cut off mid-name on a phone, which defeats the point of a confirm step.
       return `<label class="shelf-ocr-row" data-level="${level}">
