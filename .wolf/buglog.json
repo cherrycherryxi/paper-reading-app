@@ -8585,6 +8585,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T12:38:59.469Z"
+    },
+    {
+      "id": "bug-514",
+      "timestamp": "2026-07-16T17:06:36.386Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-16T17:06:50.348Z"
+    },
+    {
+      "id": "bug-515",
+      "timestamp": "2026-07-16T19:16:05.136Z",
+      "error_message": "Missing guard clause",
+      "file": "optimization/explore.md",
+      "root_cause": "No early return/throw for edge case: book.status === \"finished\" && book.finishedAt",
+      "fix": "Added guard clause: if (book.status === \"finished\" && book.finis)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T19:16:05.136Z"
     }
   ]
 }
