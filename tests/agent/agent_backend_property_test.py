@@ -781,6 +781,31 @@ class AgentBackendPropertyTests(unittest.TestCase):
         # Exact-token match only: a surname prefix is not an abbreviation.
         self.assertFalse(app_server.authors_are_compatible("金", "金庸"))
 
+    def test_strip_author_nationality_handles_six_corner_brackets(self):
+        # Real data (2026-07-17): 豆瓣 writes 「著者 〔德〕 赫尔曼·黑塞」. 〔〕 was not in
+        # the bracket class, so the nationality survived and the book failed to
+        # match the library's 「〔德〕 赫尔曼·黑塞」 — a duplicate 荒原狼 was created.
+        self.assertEqual(app_server.strip_author_nationality("〔德〕 赫尔曼·黑塞"), "赫尔曼·黑塞")
+        self.assertEqual(app_server.strip_author_nationality("【德】黑塞"), "黑塞")
+        self.assertEqual(app_server.strip_author_nationality("[德] 黑塞"), "黑塞")
+
+    def test_strip_author_nationality_drops_field_labels(self):
+        # 「著者」 is 豆瓣's field label leaking into the scraped author string.
+        self.assertEqual(app_server.strip_author_nationality("著者 〔德〕 赫尔曼·黑塞"), "赫尔曼·黑塞")
+        self.assertEqual(app_server.strip_author_nationality("作者：李娟"), "李娟")
+        self.assertEqual(app_server.strip_author_nationality("著者 李娟"), "李娟")
+        # A name that merely starts with those characters must survive intact.
+        self.assertEqual(app_server.strip_author_nationality("编者按"), "编者按")
+
+    def test_books_are_same_matches_douban_scraped_author_against_library(self):
+        # The two real duplicates found in owner's library on 2026-07-17.
+        self.assertTrue(app_server.books_are_same(
+            "荒原狼", "著者 〔德〕 赫尔曼·黑塞", "《荒原狼》", "〔德〕 赫尔曼·黑塞"))
+        # 豆瓣 lists one book once per edition, so the same title arrives twice with
+        # differently-spelled authors; the importer must merge, not create a second.
+        self.assertTrue(app_server.books_are_same(
+            "钢铁是怎样炼成的", "[苏] 尼·奥斯特洛夫斯基", "钢铁是怎样炼成的", "奥斯特洛夫斯基"))
+
     def test_book_author_tokens_splits_on_name_separators(self):
         self.assertEqual(app_server.book_author_tokens("[德] 赫尔曼·黑塞"), ["赫尔曼", "黑塞"])
         self.assertEqual(app_server.book_author_tokens("李娟 著"), ["李娟"])

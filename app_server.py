@@ -875,12 +875,18 @@ def normalize_book_title_for_match(raw) -> str:
 
 
 def strip_author_nationality(raw) -> str:
-    value = re.sub(r"^作者\s*[:：]\s*", "", str(raw or "").strip(), flags=re.IGNORECASE)
+    # 「作者：」/「著者」 are field labels that ride along from scraped pages (豆瓣
+    # spells it 著者), not part of the name. Mirrors stripAuthorNationality in app.js.
+    # The label must be followed by a colon or whitespace, otherwise a real name
+    # that merely starts with those characters (编者按) gets its head bitten off.
+    value = re.sub(r"^\s*(?:作者|著者|编者|译者)\s*(?:[:：]\s*|\s+)", "", str(raw or "").strip(), flags=re.IGNORECASE)
     previous = None
     while value and value != previous:
         previous = value
+        # 〔〕 (six-corner brackets) are as common as [] and 【】 for nationality on
+        # Chinese covers — 豆瓣 uses them — so they must be accepted here too.
         value = re.sub(
-            rf"^[\s\[【(（]+\s*(?:{AUTHOR_NATIONALITY_PATTERN})\s*[\]】)）]+\s*",
+            rf"^[\s\[【〔(（]+\s*(?:{AUTHOR_NATIONALITY_PATTERN})\s*[\]】〕)）]+\s*",
             "",
             value,
             flags=re.IGNORECASE,

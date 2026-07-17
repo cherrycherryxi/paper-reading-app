@@ -737,14 +737,20 @@ const authorNationalityPattern = authorNationalityLabels
 function stripAuthorNationality(raw) {
   let value = String(raw || "")
     .trim()
-    .replace(/^作者\s*[:：]\s*/i, "");
+    // 「作者：」/「著者」 are field labels that ride along from scraped pages
+    // (豆瓣 spells it 著者), not part of the name.
+    // The label must be followed by a colon or whitespace, otherwise a real name
+    // that merely starts with those characters (编者按) gets its head bitten off.
+    .replace(/^\s*(?:作者|著者|编者|译者)\s*(?:[:：]\s*|\s+)/i, "");
   if (!value) return "";
 
   let previous = "";
   while (value && value !== previous) {
     previous = value;
     value = value
-      .replace(new RegExp(`^[\\s\\[【(（]+\\s*(?:${authorNationalityPattern})\\s*[\\]】)）]+\\s*`, "i"), "")
+      // 〔〕 (six-corner brackets) are as common as [] and 【】 for nationality on
+      // Chinese covers — 豆瓣 uses them — so they must be accepted here too.
+      .replace(new RegExp(`^[\\s\\[【〔(（]+\\s*(?:${authorNationalityPattern})\\s*[\\]】〕)）]+\\s*`, "i"), "")
       .replace(new RegExp(`^(?:${authorNationalityPattern})(?:籍|国)?[\\s,，.．:：\\-—]+`, "i"), "")
       .replace(new RegExp(`^(?:中国|美国|英国|法国|德国|日本|俄国|俄罗斯|意大利|西班牙|加拿大|澳大利亚|奥地利|瑞士|瑞典|挪威|丹麦|芬兰|荷兰|比利时|爱尔兰|希腊|印度|韩国)`, "i"), "")
       .trim();
