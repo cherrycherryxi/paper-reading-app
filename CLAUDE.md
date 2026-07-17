@@ -80,6 +80,16 @@ node --test tests/frontend/ui-redesign.test.js
 
 Python tests use a temp directory for the DB — they never touch `app_state.db`. JS tests load `chat.js` or `app.js` into a vm sandbox with DOM stubs.
 
+## Git Hooks
+
+Hooks live in `.githooks/` but git only runs them if `core.hooksPath` points there — and that is per-clone local config, not carried by the repo. **Run this once per clone/worktree, or the hooks are silently dead:**
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`pre-push` enforces two gates: it blocks pushes to `main` (which is only the prod deploy pointer — day-to-day work goes to `feature/agent`), and it runs the CI test suite. Releasing to prod means declaring intent: `ALLOW_MAIN_PUSH=1 git push origin feature/agent:main`. Emergency bypass for the whole hook is `git push --no-verify`.
+
 ## Key Conventions
 
 - **State shape** is enforced by `sanitize_state()` in `app_server.py`: `{books, sessions, quotes, chatHistories, chatContexts, connections}`. Any save/load goes through this sanitizer. `stateContentCount()` (in `app.js`) sums `books` / `quotes` / `sessions` / `connections` (array lengths) **plus** `chatHistories` (object key count, added in OPT-068); it is used only by the import zero-content footgun guard. The import-*result* dialog (`showImportResult()`) separately renders a hardcoded 4-row summary of `books` / `quotes` / `sessions` / `connections`.

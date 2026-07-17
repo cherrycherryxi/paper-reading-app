@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
-# pre-push —— push 前在本地跑 CI 同款测试，不绿就拦下。
+# pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。
 # 目的：避免"本地只跑了单个测试文件 → 看起来通过 → push 后 CI 才发现别的文件挂了"。
 # 紧急绕过：git push --no-verify
 set -uo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)" || exit 0
 cd "$ROOT" || exit 0
+
+# [0/2] main 保护 —— main 只是 prod 部署指针，日常开发一律走 feature/agent。
+# 发版（push feature/agent:main）请显式声明意图：ALLOW_MAIN_PUSH=1 git push origin feature/agent:main
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ -z "${remote_ref:-}" ] && continue
+  if [ "$remote_ref" = "refs/heads/main" ] && [ "${ALLOW_MAIN_PUSH:-}" != "1" ]; then
+    echo "──────────────────────────────────────────────"
+    echo "✋ push 已拦截：目标是 main —— main 是 prod 部署指针，不是开发分支。"
+    echo "   日常开发请推 feature/agent。"
+    echo "   确实要发版，显式声明意图后重试："
+    echo "     ALLOW_MAIN_PUSH=1 git push origin feature/agent:main"
+    echo "──────────────────────────────────────────────"
+    exit 1
+  fi
+done
 
 FELOG="$(mktemp -t prepush_fe.XXXXXX)"
 PYLOG="$(mktemp -t prepush_py.XXXXXX)"
