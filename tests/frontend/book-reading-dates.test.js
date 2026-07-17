@@ -138,6 +138,8 @@ globalThis.__hooks = {
   openBookEditDialog,
   saveBookEdit,
   addSession,
+  buildBookSearchCard,
+  formatDate,
   els,
   setState(v) { state = v; },
   getState() { return state; },
@@ -515,4 +517,50 @@ test("bug-346: normalizeStateShape clears a start date that is later than the fi
   assert.equal(b1.startedAt, null, "impossible start>finish start date cleared");
   assert.equal(h.isoToDateInput(b1.finishedAt), "2025-09-02", "finish date kept");
   assert.equal(h.isoToDateInput(b2.startedAt), "2026-05-01", "valid ordering untouched");
+});
+
+// ---------------------------------------------------------------------------
+// OPT-119: 书单卡面对已读完的书展示读完日期，而不是无语义的页数进度
+// ---------------------------------------------------------------------------
+
+function cardMetaText(h, book) {
+  h.setState({ books: [book], sessions: [], quotes: [], connections: [] });
+  return h.buildBookSearchCard(book).innerHTML;
+}
+
+test("OPT-119: 已读完且有 finishedAt 的书，卡面展示读完日期而不是页数进度", () => {
+  const h = createHarness();
+  const finishedAt = new Date("2025-08-10T12:00:00").toISOString();
+  const html = cardMetaText(h, {
+    id: "b1", title: "读完的书", status: "finished",
+    currentPage: 320, totalPages: 320, finishedAt, startedAt: null,
+  });
+  assert.ok(html.includes(`${h.formatDate(finishedAt)} 读完`), `卡面应显示读完日期，实际：${html}`);
+  assert.ok(!html.includes("已读到第"), "读完的书不应再显示页数进度文案");
+  assert.ok(!html.includes("100% ·"), "读完的书不应再显示百分比进度");
+});
+
+test("OPT-119: 在读的书卡面仍显示原有进度文案", () => {
+  const h = createHarness();
+  const withTotal = cardMetaText(h, {
+    id: "b1", title: "在读有总页数", status: "reading",
+    currentPage: 50, totalPages: 200, finishedAt: null, startedAt: null,
+  });
+  assert.ok(withTotal.includes("25% · 50/200 页"), `应保留百分比进度，实际：${withTotal}`);
+
+  const noTotal = cardMetaText(h, {
+    id: "b2", title: "在读无总页数", status: "reading",
+    currentPage: 50, totalPages: 0, finishedAt: null, startedAt: null,
+  });
+  assert.ok(noTotal.includes("已读到第 50 页"), `应保留页码进度，实际：${noTotal}`);
+});
+
+test("OPT-119: 标为已读完但没有 finishedAt 的书回落到进度文案，不显示空日期", () => {
+  const h = createHarness();
+  const html = cardMetaText(h, {
+    id: "b1", title: "读完但没日期", status: "finished",
+    currentPage: 100, totalPages: 100, finishedAt: null, startedAt: null,
+  });
+  assert.ok(html.includes("100% · 100/100 页"), `无 finishedAt 应回落进度，实际：${html}`);
+  assert.ok(!html.includes("未记录"), "不应把 formatDate 的「未记录」兜底文案漏到卡面");
 });

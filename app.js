@@ -1322,10 +1322,14 @@ function buildBookSearchCard(book, cache) {
   const rawCover = book.coverImageUrl || fallbackImg || DEFAULT_BOOK_COVER_URL;
   const coverImage = resolveImageUrl(rawCover);            // 原图（onerror 兜底 / 详情用）
   const coverThumb = resolveImageUrl(thumbPath(rawCover)); // 书单显示用缩略图
+  // OPT-119: 读完的书再报页数进度没有语义（「已读到第 320 页」等于没说），这一栏该传达的
+  // 是何时读完——finishedAt 由 saveSession/编辑弹窗写入，OPT-105 豆瓣导入也批量填了。
   const progressText =
-    progress === null
-      ? `已读到第 ${book.currentPage || 0} 页`
-      : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
+    book.status === "finished" && book.finishedAt
+      ? `${formatDate(book.finishedAt)} 读完`
+      : progress === null
+        ? `已读到第 ${book.currentPage || 0} 页`
+        : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
 
   const MAX_TAGS = 3;
   const tags = Array.isArray(book.tags) && book.tags.length
