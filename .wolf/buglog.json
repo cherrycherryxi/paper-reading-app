@@ -8702,6 +8702,182 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T07:01:05.245Z"
+    },
+    {
+      "id": "bug-521",
+      "timestamp": "2026-07-17T08:00:08.604Z",
+      "error_message": "Missing error handling in function",
+      "file": "app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T08:00:08.604Z"
+    },
+    {
+      "id": "bug-522",
+      "timestamp": "2026-07-17T08:04:49.956Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `X-Auth-Token`",
+      "fix": "Changed to `Authorization: Bearer <token>`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T08:04:49.956Z"
+    },
+    {
+      "id": "bug-523",
+      "timestamp": "2026-07-17T08:40:27.465Z",
+      "error_message": "CSS fix: width, flex, height",
+      "file": "styles.css",
+      "root_cause": "width: 18px → 22px; flex: none → 0 0 auto; height: 18px → 22px",
+      "fix": "Changed width: 18px → 22px; flex: none → 0 0 auto; height: 18px → 22px",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T08:40:27.465Z"
+    },
+    {
+      "id": "bug-524",
+      "timestamp": "2026-07-17T08:41:53.284Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 16→45 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T08:41:53.284Z"
+    },
+    {
+      "id": "bug-525",
+      "timestamp": "2026-07-17T08:42:01.757Z",
+      "error_message": "Wrong return value",
+      "file": "app_server.py",
+      "root_cause": "Was returning: re.sub(r\"\\s+\", \"\", str(raw or \"\").strip().strip(\"《",
+      "fix": "Now returns: re.sub(r\"[\\s·・:：]+\", \"\", str(raw or \"\").strip().st",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T08:42:01.757Z"
+    },
+    {
+      "id": "bug-526",
+      "timestamp": "2026-07-17T08:46:59.280Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/book-duplicate.test.js",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 23→41 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T08:46:59.280Z"
+    },
+    {
+      "id": "bug-527",
+      "timestamp": "2026-07-17T09:04:37.541Z",
+      "error_message": "Wrong operator: !== should be ===",
+      "file": "app.js",
+      "root_cause": "Used \"!==\" instead of \"===\"",
+      "fix": "Changed operator !== → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T09:04:37.541Z"
+    },
+    {
+      "id": "bug-528",
+      "timestamp": "2026-07-17T09:04:49.549Z",
+      "error_message": "Wrong operator: != should be ==",
+      "file": "app_server.py",
+      "root_cause": "Used \"!=\" instead of \"==\"",
+      "fix": "Changed operator != → ==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T09:04:49.549Z"
+    },
+    {
+      "id": "bug-529",
+      "timestamp": "2026-07-17T09:17:49.954Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→25 lines (2 removed) | Also: const low = shelfOcrCandidates.filter((c) => !c.du; const level = c.confidence >= SHELF_OCR_AUTO_CHECK",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-17T09:18:04.192Z"
+    },
+    {
+      "id": "bug-530",
+      "timestamp": "2026-07-17T09:34:52.011Z",
+      "error_message": "Significant refactor of ",
+      "file": "app_server.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T09:34:52.011Z"
+    },
+    {
+      "id": "bug-531",
+      "timestamp": "2026-07-17T11:56:32.051Z",
+      "error_message": "Significant refactor of ",
+      "file": "app_server.py",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 8→7 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T11:56:32.051Z"
     }
   ]
 }

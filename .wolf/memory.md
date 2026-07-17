@@ -3293,3 +3293,58 @@
 | 15:02 | Session end: 16 writes across 12 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 11 reads | ~167213 tok |
 | 15:16 | Edited optimization/backlog.md | 4→5 lines | ~160 |
 | 15:17 | OPT-118 书架OCR可行性实测(owner真实3张照片,kimi-k2.5) | optimization/backlog.md,triage.md,.wolf/cerebrum.md | 识别57本准确率~90%+远超60%门槛→可行;发现副标题拆分/平放幻觉/confidence不可靠3问题 | ~6000 |
+| 15:18 | Session end: 17 writes across 12 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 13 reads | ~167384 tok |
+| 15:58 | Edited app_server.py | modified parse_shelf_ocr_extraction() | ~738 |
+| 15:58 | Edited app_server.py | modified _enforce_rate_limit() | ~704 |
+| 15:59 | Edited index.html | expanded (+7 lines) | ~155 |
+| 15:59 | Edited index.html | expanded (+22 lines) | ~275 |
+| 15:59 | Edited app.js | expanded (+6 lines) | ~144 |
+| 16:00 | Edited app.js | added error handling | ~1309 |
+| 16:01 | Edited app.js | added 4 condition(s) | ~384 |
+| 16:01 | Created tests/agent/shelf_ocr_test.py | — | ~1019 |
+| 16:02 | Created tests/frontend/shelf-ocr.test.js | — | ~2565 |
+| 16:04 | Edited CLAUDE.md | "X-Auth-Token" → "Authorization: Bearer <to" | ~84 |
+| 16:07 | Session end: 27 writes across 17 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 14 reads | ~186712 tok |
+| 16:40 | Edited styles.css | expanded (+9 lines) | ~139 |
+| 16:41 | Edited app.js | added 2 condition(s) | ~630 |
+| 16:42 | Edited app_server.py | modified normalize_book_title_for_match() | ~116 |
+| 16:42 | Edited app_server.py | modified book_author_tokens() | ~576 |
+| 16:42 | Edited tests/agent/agent_backend_property_test.py | modified test_books_are_same_ignores_title_subtitle_separator_style() | ~515 |
+| 16:46 | Edited tests/frontend/book-duplicate.test.js | expanded (+18 lines) | ~493 |
+| 16:49 | OPT-118 真机实测两bug修复:checkbox被全局appearance:none压掉+isSameBook分隔符/作者简写不归一(已给owner库造4本重复,已清理) | styles.css,app.js,app_server.py,tests/ | 全绿 py381/js387;DB已备份;owner拍板简写=同一人 | ~9000 |
+| 16:50 | Session end: 33 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 16 reads | ~192752 tok |
+| 17:04 | Edited app.js | added 2 condition(s) | ~402 |
+| 17:04 | Edited app_server.py | modified book_main_title_for_match() | ~470 |
+| 17:05 | Edited app.js | 9→13 lines | ~248 |
+| 17:05 | Edited tests/agent/agent_backend_property_test.py | modified test_books_are_same_matches_main_title_against_full_cover_title() | ~485 |
+| 17:07 | OPT-118 真机第二轮:副标题匹配(重走)+确认列表布局截断 | app.js,app_server.py,styles.css,tests/ | 全绿 py384/js390;变异验证锁住系列书防线;清理1本重复 | ~7000 |
+| 17:08 | Session end: 37 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 18 reads | ~194357 tok |
+| 17:17 | Edited app.js | expanded (+11 lines) | ~367 |
+| 17:18 | Edited app.js | added 1 condition(s) | ~344 |
+| 17:20 | OPT-118 第三轮:译名用字差异→改为「可能重复」警告而非模糊匹配 | app.js,styles.css,tests/ | 全绿 py384/js393;变异验证;清理1本;发现2组旧重复待owner定夺 | ~6000 |
+| 17:22 | Session end: 39 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~195068 tok |
+| 17:34 | Edited app_server.py | modified strip_author_nationality() | ~208 |
+| 17:35 | Edited tests/agent/agent_backend_property_test.py | modified test_strip_author_nationality_handles_six_corner_brackets() | ~485 |
+| 17:38 | 排查豆瓣导入重复根因:豆瓣按版本建subject(源头就重复)+作者字段用六角括号〔德〕/著者标签未剥离 | app_server.py,app.js,tests/ | 两个归一化漏洞已修;全绿 py387/js393 | ~5000 |
+| 17:38 | Session end: 41 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~196858 tok |
+| 17:42 | Session end: 41 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~196858 tok |
+| 17:46 | 合并2组重复书(荒原狼字段级合并/钢铁是怎样炼成的删多余版本) | app_state.db(用户数据) | 146→144;荒原狼两边数据都保住;全库0重复0孤儿;DB已备份 | ~4000 |
+| 17:47 | Session end: 41 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~196858 tok |
+| 19:38 | Edited app_server.py | modified strip_book_edition_suffix() | ~319 |
+| 19:39 | Edited tests/agent/agent_backend_property_test.py | modified test_titles_are_same_ignores_edition_suffix() | ~429 |
+| 19:41 | OPT-118 第五轮:版次后缀(第4版)归一化+合并神经科学重复 | app.js,app_server.py,tests/,app_state.db | 全绿 py390/js394;变异锁死卷次防线;全库0重复 | ~5000 |
+| 19:42 | Session end: 43 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~197606 tok |
+| 19:56 | Edited app_server.py | 8→7 lines | ~154 |
+| 19:57 | Edited app_server.py | modified all() | ~212 |
+| 19:57 | Edited app_server.py | 3→6 lines | ~90 |
+| 19:58 | Edited tests/agent/agent_backend_property_test.py | modified test_strip_author_nationality_handles_any_bracketed_marker() | ~559 |
+| 20:00 | OPT-118 第六轮:国籍白名单改括号识别+译名逐节缩写;合并小径分岔的花园 | app.js,app_server.py,tests/,app_state.db | 全绿 py393/js395;全库0重复;146本 | ~6000 |
+| 20:01 | Session end: 47 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~201138 tok |
+| 20:21 | Edited app_server.py | 31→29 lines | ~439 |
+| 20:21 | Edited app.js | added 1 condition(s) | ~172 |
+| 20:22 | Edited app.js | modified catch() | ~222 |
+| 20:23 | Created tests/frontend/api-fetch-interrupted.test.js | — | ~1172 |
+| 20:26 | 排查切走App后「连接后端错误」:后端回包在try内致真错被掩盖+前端错误归因误导 | app_server.py,app.js,tests/ | 根因=iOS挂起断socket;OCR其实成功;全绿 py393/js399 | ~9000 |
+| 20:26 | Session end: 51 writes across 21 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~203397 tok |
+| 21:01 | 记 OPT-120 长耗时OCR结果留存+断线取回 | optimization/backlog.md | P2/M;OPT-119已被夜间explore占号故用120 | ~1500 |
+| 21:02 | Session end: 51 writes across 21 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~203397 tok |

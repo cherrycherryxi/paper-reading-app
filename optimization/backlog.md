@@ -1077,3 +1077,13 @@ Format per item:
 - description: 现状已有**单本**封面识别的完整链路：前端 `runBookOcr()`（app.js:4610）拍/选一张封面图 → `POST` 到后端（app_server.py:4780 附近）→ `BOOK_OCR_PROMPT` + `call_kimi_vision()` → `parse_book_ocr_extraction()`（app_server.py:1086）返回单个 `{title, author, tags}` → 填进加书表单。缺口：一次只能一本，且直接填表单（无批量勾选/确认）。新用户有 30 本实体书时，要重复 30 次。
 - why: 「拍书架 → 建库」把冷启动从「手动录 30 本（放弃）」压缩到「拍一张照 + 勾选（30 秒）」，直接兑现分享物料的承诺；且与 App 核心心智（拍照采集）完全一致，是 OCR 能力的自然延伸；不依赖任何外部平台，无 OPT-117 那种被第三方封锁的风险。
 - how: ①后端：新增（或给现有书籍 OCR 端点加 `mode=shelf` 分支）批量提示词 `SHELF_OCR_PROMPT`——要求模型从书架照片中识别**多本**书脊/封面，返回 `[{title, author, confidence}]` 数组；复用 `call_kimi_vision()`；`parse_book_ocr_extraction()` 需扩展或新增数组版解析（容忍 markdown 围栏/缺字段，参照现有实现）。走已有 `ocr` 限流桶（PLAN_LIMITS，free 12/时 40/天），注意书架图信息密度高，可能需单独放宽或计多次。②前端：新入口（「我的」或空书架状态的显眼位置）→ 拍照/选图（复用 `resizeImageToDataUrl`，注意书架图需更高分辨率上限，现默认 1200px 可能不够识别书脊小字）→ 批量结果**勾选确认列表**（可编辑书名/作者、默认全选、去重：复用 `isSameBook()` 与已有书比对，已存在的标灰）→ 一键建库（复用 `importDoubanCsv` 同款 fill-if-empty 新增语义，`status` 默认 wishlist 或让用户选）。③风险/验证点：**书脊竖排文字 + 小字号是识别难点，必须先用 owner 真实书架照片做可行性验证**（识别率 <60% 则本方案价值大打折扣，应先验证再开发）；分辨率/压缩策略需实测；单张图书目过多时的 token 成本。Touch: `app_server.py`（SHELF_OCR_PROMPT + 数组解析 + 端点分支）、`app.js`（拍照入口 + 勾选确认 UI + 批量建库）、`index.html`（入口 + 确认列表 DOM）、`styles.css`。
+
+### OPT-120 — 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走 App 就白等 20 秒并浪费一次 LLM 调用 — owner 真机实测暴露 [2026-07-17]
+- status: new
+- area: fullstack
+- priority: P2
+- size: M
+- northstar: 中——Theme 1「采集顺滑」。手机是主力场景（分享渠道 95% 流量来自手机），而书架识别要跑 20 秒——这期间用户切走 App、接个电话、锁屏都是常态。iOS 会挂起标签页并断开 socket，导致：①用户白等 20 秒，回来必须重拍重来；②服务端其实已经算完并**已经付过 LLM 费用**，结果被直接丢弃。识别越准、越好用，这个浪费越刺眼。
+- description: 真机实测（2026-07-17）：owner 上传书架照片后切到其他 App，回来显示请求失败。排查确认后端 OCR 实际**成功**（16s，1373 字节结果，已入 model_logs），但回包时 socket 已被 iOS 断开（server_errors 留下 BrokenPipe 现场）。当前 `POST /api/books/shelf-ocr` 是**同步请求-响应**：结果只存在于那一次 HTTP 响应里，连接一断就永久丢失。已修复的部分：错误提示不再误导（"请求被中断…请回到本页重试"）、后端不再把断线误记为 OCR 失败（PR #73）——但**结果本身仍然被丢弃**。同类问题也影响 `/api/quotes/ocr` 与 `/api/chat`（长耗时端点通病）。
+- why: 「拍一张照 → 30 秒建库」是 OPT-118 的核心承诺，也是分享物料的兑现点。若用户切个屏就前功尽弃、还得重拍，承诺打折且白烧一次 vision 调用的钱。修复后：切走再回来能直接拿到结果，体验从「重来」变成「无感」。
+- how: 方案 A（推荐，改动可控）：结果留存 + 幂等取回。①前端生成 `requestId`（如 `crypto.randomUUID()`）随请求发送；②后端算完后把结果连同 `requestId` 落库（可复用 model_logs 或新建轻量 ocr_results 表，带 TTL/定期 GC，注意 `_run_gc()`）；③前端把「进行中的 requestId」存 localStorage，页面重新可见时（`visibilitychange` → visible）若存在未完成的 requestId，调 `GET /api/books/shelf-ocr/result?requestId=…` 取回结果并直接弹确认列表；④同一 requestId 重复提交直接返回已有结果（幂等），顺带防重复扣费。方案 B：改为 job 模式（POST 返回 jobId + 前端轮询）——更通用但改动大，且要处理 job 生命周期，暂不采纳。注意：前端已有 `lastHiddenAt` 可复用；TTL 建议短（如 1 小时），结果含用户书目属个人数据，取回必须校验 user_id 归属。Touch: `app_server.py`（结果落库 + 取回端点 + GC）、`app.js`（requestId 生成/持久化、visibilitychange 取回）。

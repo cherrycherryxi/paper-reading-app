@@ -71,6 +71,12 @@ const els = {
   importResultOkBtn: document.querySelector("#importResultOkBtn"),
   importExcelInput: document.querySelector("#importExcelInput"),
   importDoubanInput: document.querySelector("#importDoubanInput"),
+  shelfOcrInput: document.querySelector("#shelfOcrInput"),
+  shelfOcrDialog: document.querySelector("#shelfOcrDialog"),
+  shelfOcrList: document.querySelector("#shelfOcrList"),
+  shelfOcrSummary: document.querySelector("#shelfOcrSummary"),
+  shelfOcrStatus: document.querySelector("#shelfOcrStatus"),
+  shelfOcrConfirmBtn: document.querySelector("#shelfOcrConfirmBtn"),
   importExcelBooksBtn: document.querySelector("#importExcelBooksBtn"),
   importExcelDialog: document.querySelector("#importExcelDialog"),
   downloadExcelTemplateBtn: document.querySelector("#downloadExcelTemplateBtn"),
@@ -373,7 +379,19 @@ function normalizeStateShape(rawState) {
   };
 }
 
+// iOS suspends a backgrounded tab and drops its sockets, so any in-flight
+// request dies. The rejection surfaces only after the user returns, when the
+// page is visible again — so the page's *current* visibility tells us nothing.
+// Stamping each hide lets apiFetch ask "did we go away while this was open?".
+let lastHiddenAt = 0;
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") lastHiddenAt = Date.now();
+  });
+}
+
 async function apiFetch(path, options = {}, requiresAuth = true) {
+  const startedAt = Date.now();
   const headers = {
     ...(options.headers || {}),
   };
@@ -389,7 +407,20 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
       headers,
     });
   } catch (error) {
-    throw new Error("无法连接后端服务，请确认已启动 ./scripts/dev_backend.sh 或 app_server.py");
+    // A fetch rejects for two very different reasons, and they need different
+    // advice. Switching apps mid-request is the common one on a phone: iOS
+    // suspends the tab and drops the socket, so a request that was actually
+    // running server-side (a 20s shelf scan) lands here. Telling that user the
+    // backend is down — and to go run a dev script — is nonsense.
+    // Note we can't test visibilityState here: iOS suspends JS too, so this
+    // handler only runs once the user is back and the page is visible again.
+    // What matters is whether the page went away *while the request was open*.
+    // >= : Date.now() has millisecond resolution, and a hide can land in the very
+    // same millisecond the request started; a strict > would miss those.
+    if (lastHiddenAt >= startedAt) {
+      throw new Error("请求被中断（切到其他应用时页面被系统暂停），请回到本页重试");
+    }
+    throw new Error("网络请求失败，请检查网络后重试");
   }
 
   const isJson = response.headers.get("content-type")?.includes("application/json");
@@ -731,14 +762,24 @@ const authorNationalityPattern = authorNationalityLabels
 function stripAuthorNationality(raw) {
   let value = String(raw || "")
     .trim()
-    .replace(/^作者\s*[:：]\s*/i, "");
+    // 「作者：」/「著者」 are field labels that ride along from scraped pages
+    // (豆瓣 spells it 著者), not part of the name.
+    // The label must be followed by a colon or whitespace, otherwise a real name
+    // that merely starts with those characters (编者按) gets its head bitten off.
+    .replace(/^\s*(?:作者|著者|编者|译者)\s*(?:[:：]\s*|\s+)/i, "");
   if (!value) return "";
 
   let previous = "";
   while (value && value !== previous) {
     previous = value;
     value = value
-      .replace(new RegExp(`^[\\s\\[【(（]+\\s*(?:${authorNationalityPattern})\\s*[\\]】)）]+\\s*`, "i"), "")
+      // A bracket at the head of an author already says "this is the nationality"
+      // — its content need not be on any list. The old whitelist silently kept
+      // 「[阿根廷]」「[哥伦比亚]」「[苏]」「[南非]」… glued to the name, and a
+      // whitelist of countries can never be complete for a shelf of world lit.
+      // Capped at 6 chars so a bracketed *name* can't be eaten.
+      // 〔〕 (six-corner brackets) are as common as [] and 【】 on Chinese covers.
+      .replace(/^[\s]*[\[【〔(（]\s*[^\]】〕)）]{1,6}\s*[\]】〕)）]\s*/, "")
       .replace(new RegExp(`^(?:${authorNationalityPattern})(?:籍|国)?[\\s,，.．:：\\-—]+`, "i"), "")
       .replace(new RegExp(`^(?:中国|美国|英国|法国|德国|日本|俄国|俄罗斯|意大利|西班牙|加拿大|澳大利亚|奥地利|瑞士|瑞典|挪威|丹麦|芬兰|荷兰|比利时|爱尔兰|希腊|印度|韩国)`, "i"), "")
       .trim();
@@ -753,21 +794,96 @@ function normalizeBookAuthorForMatch(raw) {
     .toLowerCase();
 }
 
+// An edition suffix marks a reprint of the same book, so it must not keep
+// 「神经科学——探索脑（第4版）」 apart from 「神经科学——探索脑」. Deliberately narrow:
+// it matches 版 only. Volume markers (第N部/卷/册, 上/下, I/II, a trailing digit)
+// name *different* books — 花朵与探险 vs 花朵与探险2, 第二性 I vs II — and must survive.
+const BOOK_EDITION_SUFFIX_RE = /[\s(（\[【]*(?:原书)?第?\s*[0-9一二三四五六七八九十]+\s*版(?:本)?[\s)）\]】]*$/;
+
+function stripBookEditionSuffix(raw) {
+  let value = String(raw || "").trim();
+  let previous = "";
+  while (value && value !== previous) {
+    previous = value;
+    value = value.replace(BOOK_EDITION_SUFFIX_RE, "").trim();
+  }
+  return value || String(raw || "").trim();
+}
+
+// Separators between a main title and its subtitle are a typography choice, not
+// part of the name: 「羊道·春牧场」「羊道 春牧场」「羊道:春牧场」are one book, and
+// OCR/Excel/豆瓣 each pick a different one. Dropping them stops the same book
+// from being added once per punctuation style (OPT-118 real-shelf finding).
 function normalizeBookTitleForMatch(title) {
-  return normalizeBookTitle(title).replace(/\s+/g, "").toLowerCase();
+  return stripBookEditionSuffix(normalizeBookTitle(title)).replace(/[\s·・:：]+/g, "").toLowerCase();
+}
+
+// Name parts of an author, kept separate (unlike normalizeBookAuthorForMatch,
+// which joins them) so abbreviations can be compared part-by-part.
+function bookAuthorTokens(raw) {
+  return stripAuthorNationality(raw)
+    .replace(/\s*(?:著|撰|编著|编|译)\s*$/g, "")
+    .split(/[\s·・.．,，、:：;；\-—_'"“”‘’`]+/)
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+// Translated foreign names get abbreviated in the wild — 「[英] 哈耶克」,
+// 「弗里德里希·哈耶克」and 「弗里德里希·奥古斯特·冯·哈耶克」are one person, and a
+// shelf photo, an Excel sheet and 豆瓣 will each give a different one. Treat two
+// authors as the same person when every name part of the shorter one appears in
+// the longer. Requiring *every* part keeps genuinely different people apart:
+// 余华/泰戈尔 share nothing, and 弗吉尼亚·伍尔夫/伦纳德·伍尔夫 share only 伍尔夫.
+function authorsAreCompatible(authorA, authorB) {
+  const aa = normalizeBookAuthorForMatch(authorA);
+  const ab = normalizeBookAuthorForMatch(authorB);
+  if (!aa || !ab) return true; // unspecified acts as a wildcard
+  if (aa === ab) return true;
+  const ta = bookAuthorTokens(authorA);
+  const tb = bookAuthorTokens(authorB);
+  if (!ta.length || !tb.length) return false;
+  const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  if (shorter.every((token) => longer.includes(token))) return true;
+  // Chinese publishing abbreviates a translated name segment by segment, keeping
+  // each segment's first character: 豪·路·博尔赫斯 = 豪尔赫·路易斯·博尔赫斯,
+  // 尼·奥斯特洛夫斯基 = 尼古拉·奥斯特洛夫斯基. Requiring the same segment count *and*
+  // every segment to be a prefix keeps different people apart — 弗吉尼亚·伍尔夫 and
+  // 伦纳德·伍尔夫 share a segment count but 弗吉尼亚 does not prefix 伦纳德.
+  // Needs ≥2 segments: the convention only exists for multi-part translated names.
+  // A one-segment Chinese name is whole, so 金 must not prefix its way into 金庸.
+  if (ta.length === tb.length && ta.length >= 2) {
+    return ta.every((x, i) => tb[i].startsWith(x) || x.startsWith(tb[i]));
+  }
+  return false;
+}
+
+// The part after a colon is a subtitle, not part of the name: a shelf photo reads
+// the full cover 「重走：在公路、河流和驿道上寻找西南联大」while the library holds
+// just 「重走」. Only ：/: count as subtitle markers — 「·」 separates a series from
+// its volume, and 羊道·春牧场 / 羊道·深山夏牧场 must stay different books.
+function bookMainTitleForMatch(title) {
+  const bare = normalizeBookTitle(title);
+  return normalizeBookTitleForMatch(bare.split(/[：:]/)[0] || bare);
+}
+
+// Same title, or one side carries a subtitle the other omits. Comparing each
+// main title against the *whole* other title (rather than main-vs-main) keeps
+// same-series volumes apart: 明朝那些事儿：第一部 / 第二部 share a main title but
+// neither equals the other in full, so they stay distinct.
+function titlesAreSame(titleA, titleB) {
+  const ta = normalizeBookTitleForMatch(titleA);
+  const tb = normalizeBookTitleForMatch(titleB);
+  if (!ta || !tb) return false;
+  if (ta === tb) return true;
+  return bookMainTitleForMatch(titleA) === tb || bookMainTitleForMatch(titleB) === ta;
 }
 
 // Two books are the same when titles match and authors are compatible.
 // An empty author means "unspecified" and acts as a wildcard, so adding a
 // title-only book still matches an existing same-title book that has an author.
 function isSameBook(titleA, authorA, titleB, authorB) {
-  const ta = normalizeBookTitleForMatch(titleA);
-  const tb = normalizeBookTitleForMatch(titleB);
-  if (!ta || ta !== tb) return false;
-  const aa = normalizeBookAuthorForMatch(authorA);
-  const ab = normalizeBookAuthorForMatch(authorB);
-  if (!aa || !ab) return true;
-  return aa === ab;
+  if (!titlesAreSame(titleA, titleB)) return false;
+  return authorsAreCompatible(authorA, authorB);
 }
 
 function findDuplicateBook(title, author, books = state.books) {
@@ -4425,6 +4541,143 @@ async function importDoubanCsv(file) {
   }
 }
 
+// OPT-118: shelf photo -> many books. The confirm step is not optional polish:
+// 2026-07-17 testing on real shelves showed the model inventing a whole book for
+// a flat-lying spine it couldn't read (and reporting 0.70 confidence for it), so
+// confidence gates the default checked state but never the entry's existence —
+// the user is the filter. High-confidence rows start checked, the rest don't.
+const SHELF_OCR_MAX_PX = 2000; // 1200 (the app default) blurs spine type past legibility
+const SHELF_OCR_AUTO_CHECK_CONFIDENCE = 0.8;
+let shelfOcrCandidates = [];
+
+async function runShelfOcr(file) {
+  if (!requireAuth("识别书架")) return;
+  if (!file) return;
+  showToast("正在识别书架，约需 20 秒…");
+  try {
+    const imageDataUrl = await resizeImageToDataUrl(file, SHELF_OCR_MAX_PX);
+    const data = await apiFetch("/api/books/shelf-ocr", {
+      method: "POST",
+      body: JSON.stringify({ imageDataUrl }),
+    }, true);
+    const books = Array.isArray(data?.books) ? data.books : [];
+    if (!books.length) {
+      showToast("没认出书名，换个角度让书脊正对镜头再试");
+      return;
+    }
+    shelfOcrCandidates = books.map((b) => {
+      const title = String(b.title || "").trim();
+      const author = String(b.author || "").trim();
+      const confidence = Number(b.confidence) || 0;
+      const duplicate = state.books.some((x) => isSameBook(title, author, x.title, x.author));
+      // Same title but the author didn't match is the signature of a translation
+      // variant (「本吉·沃特豪斯」vs「本吉·沃特斯豪斯」) — the rules can't call it
+      // either way, and fuzzy-matching names would risk silently merging 余华 with
+      // 余桦. So surface the near-miss and let the reader decide, which is what
+      // this dialog is for. Genuinely different same-title books land here too;
+      // seeing 「可能与《活着》重复」costs a glance, a silent merge costs a book.
+      const nearMiss = duplicate
+        ? null
+        : state.books.find((x) => titlesAreSame(title, x.title));
+      return {
+        title,
+        author,
+        confidence,
+        duplicate,
+        possibleDuplicateOf: nearMiss ? { title: nearMiss.title, author: nearMiss.author || "" } : null,
+        // Already-owned and maybe-owned books stay unchecked so a re-scan can't
+        // re-add them by default.
+        checked: !duplicate && !nearMiss && confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE,
+      };
+    });
+    renderShelfOcrList();
+    els.shelfOcrDialog?.showModal(); // 已在上方 requireAuth 过，无需 openDialog 再拦一次
+  } catch (error) {
+    showToast(`识别失败：${error.message || "未知错误"}`);
+  }
+}
+
+function renderShelfOcrList() {
+  if (!els.shelfOcrList) return;
+  const dupes = shelfOcrCandidates.filter((c) => c.duplicate).length;
+  const maybes = shelfOcrCandidates.filter((c) => c.possibleDuplicateOf).length;
+  const low = shelfOcrCandidates.filter(
+    (c) => !c.duplicate && !c.possibleDuplicateOf && c.confidence < SHELF_OCR_AUTO_CHECK_CONFIDENCE
+  ).length;
+  if (els.shelfOcrSummary) {
+    const parts = [`认出 ${shelfOcrCandidates.length} 本`];
+    if (dupes) parts.push(`${dupes} 本书单里已有（默认不选）`);
+    if (maybes) parts.push(`${maybes} 本可能重复（默认不选，请核对）`);
+    if (low) parts.push(`${low} 本把握不大（默认不选，请核对）`);
+    els.shelfOcrSummary.textContent = parts.join(" · ");
+  }
+  els.shelfOcrList.innerHTML = shelfOcrCandidates
+    .map((c, i) => {
+      const level = c.duplicate || c.possibleDuplicateOf
+        ? "dupe"
+        : (c.confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE ? "high" : (c.confidence >= 0.5 ? "mid" : "low"));
+      const note = c.duplicate
+        ? "书单已有"
+        : (c.possibleDuplicateOf
+          ? `可能重复：${normalizeBookTitle(c.possibleDuplicateOf.title)}${c.possibleDuplicateOf.author ? ` / ${c.possibleDuplicateOf.author}` : ""}`
+          : (level === "high" ? "" : "请核对"));
+      // Title gets its own full-width row: side by side with the author it was
+      // cut off mid-name on a phone, which defeats the point of a confirm step.
+      return `<label class="shelf-ocr-row" data-level="${level}">
+        <input type="checkbox" data-shelf-index="${i}"${c.checked ? " checked" : ""} />
+        <span class="shelf-ocr-fields">
+          <input type="text" class="shelf-ocr-title" data-shelf-title="${i}" value="${escapeHtml(c.title)}" aria-label="书名" />
+          <span class="shelf-ocr-sub">
+            <input type="text" class="shelf-ocr-author" data-shelf-author="${i}" value="${escapeHtml(c.author)}" placeholder="作者" aria-label="作者" />
+            ${note ? `<span class="shelf-ocr-note">${note}</span>` : ""}
+          </span>
+        </span>
+      </label>`;
+    })
+    .join("");
+}
+
+async function confirmShelfOcr() {
+  if (!requireAuth("加入书单")) return;
+  const picked = shelfOcrCandidates.filter((c) => c.checked && c.title.trim());
+  if (!picked.length) {
+    showToast("没有勾选任何书");
+    return;
+  }
+  const status = els.shelfOcrStatus?.value || "wishlist";
+  const now = new Date().toISOString();
+  let created = 0, skipped = 0;
+  for (const c of picked) {
+    const title = c.title.trim();
+    const author = c.author.trim();
+    // Re-check against live state: the user may have edited a title into an
+    // existing book, and picked rows can collide with each other.
+    if (state.books.some((x) => isSameBook(title, author, x.title, x.author))) {
+      skipped += 1;
+      continue;
+    }
+    state.books.unshift({
+      id: createId("book"), title, author,
+      totalPages: 0, currentPage: 0, status,
+      tags: [], notes: "", review: "", reviewIsAi: false, doubanComment: "", rating: 0,
+      coverImageUrl: "", createdAt: now, updatedAt: now,
+      startedAt: status === "wishlist" ? "" : now,
+      finishedAt: status === "finished" ? now : "",
+      lastReadAt: status === "wishlist" ? "" : now,
+    });
+    created += 1;
+  }
+  if (!created) {
+    showToast("勾选的书书单里都已有");
+    return;
+  }
+  await syncState();
+  render();
+  closeDialog(els.shelfOcrDialog);
+  shelfOcrCandidates = [];
+  showToast(skipped ? `已加入 ${created} 本，跳过 ${skipped} 本已有的` : `已加入 ${created} 本`);
+}
+
 async function clearLogs() {
   if (!requireAuth("清空日志")) return;
   try {
@@ -5488,6 +5741,32 @@ function bindEvents() {
     await importDoubanCsv(file);
     event.target.value = "";
   });
+
+  els.shelfOcrInput?.addEventListener("change", async (event) => {
+    const [file] = event.target.files || [];
+    if (!file) return;
+    await runShelfOcr(file);
+    event.target.value = "";
+  });
+  // Delegated: the candidate rows are re-rendered, so bind once on the container.
+  els.shelfOcrList?.addEventListener("change", (event) => {
+    const index = Number(event.target?.dataset?.shelfIndex);
+    if (Number.isInteger(index) && shelfOcrCandidates[index]) {
+      shelfOcrCandidates[index].checked = Boolean(event.target.checked);
+    }
+  });
+  els.shelfOcrList?.addEventListener("input", (event) => {
+    const titleIndex = Number(event.target?.dataset?.shelfTitle);
+    if (Number.isInteger(titleIndex) && shelfOcrCandidates[titleIndex]) {
+      shelfOcrCandidates[titleIndex].title = event.target.value;
+      return;
+    }
+    const authorIndex = Number(event.target?.dataset?.shelfAuthor);
+    if (Number.isInteger(authorIndex) && shelfOcrCandidates[authorIndex]) {
+      shelfOcrCandidates[authorIndex].author = event.target.value;
+    }
+  });
+  els.shelfOcrConfirmBtn?.addEventListener("click", () => confirmShelfOcr());
 
   // OPT-001: books-page secondary entry opens a guide dialog first (format
   // help + downloadable template); "选择文件" forwards to the drawer's hidden

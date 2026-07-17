@@ -93,7 +93,7 @@ git config core.hooksPath .githooks
 ## Key Conventions
 
 - **State shape** is enforced by `sanitize_state()` in `app_server.py`: `{books, sessions, quotes, chatHistories, chatContexts, connections}`. Any save/load goes through this sanitizer. `stateContentCount()` (in `app.js`) sums `books` / `quotes` / `sessions` / `connections` (array lengths) **plus** `chatHistories` (object key count, added in OPT-068); it is used only by the import zero-content footgun guard. The import-*result* dialog (`showImportResult()`) separately renders a hardcoded 4-row summary of `books` / `quotes` / `sessions` / `connections`.
-- **Auth** uses `X-Auth-Token` header (token stored in `localStorage` under key `paper-reading-auth-token-v1`). The backend resolves the user via `resolve_user_from_token()`.
+- **Auth** uses the `Authorization: Bearer <token>` header (token stored in `localStorage` under key `paper-reading-auth-token-v1`). The frontend sets it in `apiFetch()` (`app.js`); the backend reads it in `Handler._get_token()` and resolves the user via `resolve_user_from_token()`. No other header is accepted.
 - **Cross-module events**: `app.js` fires `paper-reading-data-changed` and `paper-reading-user-changed` custom events on `window`; `chat.js` listens to these to stay in sync without direct coupling.
 - **Agent action approval flow**: the chat UI shows a confirm button before executing any agent action. The JS in `chat.js` calls `POST /api/agent/actions/:id/approve` then `POST /api/agent/actions/:id/execute`.
 - **No frontend build tooling** — all JS is plain ES2020, loaded via `<script>` tags. Do not introduce bundlers or TypeScript.

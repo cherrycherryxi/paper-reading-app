@@ -866,21 +866,49 @@ AUTHOR_COUNTRY_NAME_PATTERN = "|".join(
 )
 
 
-def normalize_book_title_for_match(raw) -> str:
-    return re.sub(r"\s+", "", str(raw or "").strip().strip("《》")).lower()
+# An edition suffix marks a reprint of the same book, so it must not keep 「神经
+# 科学——探索脑（第4版）」 apart from 「神经科学——探索脑」. Deliberately narrow: it
+# matches 版 only. Volume markers (第N部/卷/册, 上/下, I/II, a trailing digit) name
+# *different* books — 花朵与探险 vs 花朵与探险2, 第二性 I vs II — and must survive.
+BOOK_EDITION_SUFFIX_RE = re.compile(
+    r"[\s(（\[【]*(?:原书)?第?\s*[0-9一二三四五六七八九十]+\s*版(?:本)?[\s)）\]】]*$"
+)
 
 
-def strip_author_nationality(raw) -> str:
-    value = re.sub(r"^作者\s*[:：]\s*", "", str(raw or "").strip(), flags=re.IGNORECASE)
+def strip_book_edition_suffix(raw) -> str:
+    value = str(raw or "").strip()
     previous = None
     while value and value != previous:
         previous = value
-        value = re.sub(
-            rf"^[\s\[【(（]+\s*(?:{AUTHOR_NATIONALITY_PATTERN})\s*[\]】)）]+\s*",
-            "",
-            value,
-            flags=re.IGNORECASE,
-        )
+        value = BOOK_EDITION_SUFFIX_RE.sub("", value).strip()
+    return value or str(raw or "").strip()
+
+
+def normalize_book_title_for_match(raw) -> str:
+    # Separators between a main title and its subtitle are a typography choice,
+    # not part of the name: 「羊道·春牧场」「羊道 春牧场」「羊道:春牧场」are one book,
+    # and OCR/Excel/豆瓣 each pick a different one. Mirrors normalizeBookTitleForMatch
+    # in app.js (OPT-118 real-shelf finding).
+    bare = strip_book_edition_suffix(str(raw or "").strip().strip("《》"))
+    return re.sub(r"[\s·・:：]+", "", bare).lower()
+
+
+def strip_author_nationality(raw) -> str:
+    # 「作者：」/「著者」 are field labels that ride along from scraped pages (豆瓣
+    # spells it 著者), not part of the name. Mirrors stripAuthorNationality in app.js.
+    # The label must be followed by a colon or whitespace, otherwise a real name
+    # that merely starts with those characters (编者按) gets its head bitten off.
+    value = re.sub(r"^\s*(?:作者|著者|编者|译者)\s*(?:[:：]\s*|\s+)", "", str(raw or "").strip(), flags=re.IGNORECASE)
+    previous = None
+    while value and value != previous:
+        previous = value
+        # A bracket at the head of an author already says "this is the nationality"
+        # — its content need not be on any list. The old whitelist silently kept
+        # 「[阿根廷]」「[哥伦比亚]」「[苏]」「[南非]」… glued to the name, and a
+        # whitelist of countries can never be complete for a shelf of world lit.
+        # Capped at 6 chars so a bracketed *name* can't be eaten.
+        # 〔〕 (six-corner brackets) are as common as [] and 【】 on Chinese covers.
+        value = re.sub(r"^[\s]*[\[【〔(（]\s*[^\]】〕)）]{1,6}\s*[\]】〕)）]\s*", "", value)
         value = re.sub(
             rf"^(?:{AUTHOR_NATIONALITY_PATTERN})(?:籍|国)?[\s,，.．:：\-—]+",
             "",
@@ -901,21 +929,97 @@ def book_duplicate_signature(title, author) -> str:
     return f"{normalize_book_title_for_match(title)}::{normalize_book_author_for_match(author)}"
 
 
+def book_author_tokens(raw) -> list[str]:
+    """Name parts of an author, kept separate (unlike normalize_book_author_for_match,
+    which joins them) so abbreviations can be compared part-by-part.
+
+    Mirrors bookAuthorTokens in app.js.
+    """
+    value = strip_author_nationality(raw)
+    value = re.sub(r"\s*(?:著|撰|编著|编|译)\s*$", "", value)
+    parts = re.split(r"[\s·・.．,，、:：;；\-—_'\"“”‘’`]+", value)
+    return [p.strip().lower() for p in parts if p.strip()]
+
+
+def authors_are_compatible(author_a, author_b) -> bool:
+    """True when two author strings name the same person.
+
+    Translated foreign names get abbreviated in the wild — 「[英] 哈耶克」,
+    「弗里德里希·哈耶克」and 「弗里德里希·奥古斯特·冯·哈耶克」are one person, and a
+    shelf photo, an Excel sheet and 豆瓣 will each give a different one. Two authors
+    are the same person when every name part of the shorter appears in the longer.
+    Requiring *every* part keeps genuinely different people apart: 余华/泰戈尔 share
+    nothing, and 弗吉尼亚·伍尔夫/伦纳德·伍尔夫 share only 伍尔夫.
+
+    Mirrors authorsAreCompatible in app.js.
+    """
+    aa = normalize_book_author_for_match(author_a)
+    ab = normalize_book_author_for_match(author_b)
+    if not aa or not ab:
+        return True  # unspecified acts as a wildcard
+    if aa == ab:
+        return True
+    ta = book_author_tokens(author_a)
+    tb = book_author_tokens(author_b)
+    if not ta or not tb:
+        return False
+    shorter, longer = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
+    if all(token in longer for token in shorter):
+        return True
+    # Chinese publishing abbreviates a translated name segment by segment, keeping
+    # each segment's first character: 豪·路·博尔赫斯 = 豪尔赫·路易斯·博尔赫斯,
+    # 尼·奥斯特洛夫斯基 = 尼古拉·奥斯特洛夫斯基. Requiring the same segment count *and*
+    # every segment to be a prefix keeps different people apart — 弗吉尼亚·伍尔夫 and
+    # 伦纳德·伍尔夫 share a segment count but 弗吉尼亚 does not prefix 伦纳德.
+    # Needs ≥2 segments: the abbreviation convention only exists for multi-part
+    # translated names. A one-segment Chinese name is whole, so 金 must not prefix
+    # its way into 金庸.
+    if len(ta) == len(tb) >= 2:
+        return all(y.startswith(x) or x.startswith(y) for x, y in zip(ta, tb))
+    return False
+
+
+def book_main_title_for_match(title) -> str:
+    """Title with any subtitle dropped.
+
+    The part after a colon is a subtitle, not part of the name: a shelf photo
+    reads the full cover 「重走：在公路、河流和驿道上寻找西南联大」while the library
+    holds just 「重走」. Only ：/: count as subtitle markers — 「·」 separates a series
+    from its volume, and 羊道·春牧场 / 羊道·深山夏牧场 must stay different books.
+
+    Mirrors bookMainTitleForMatch in app.js.
+    """
+    bare = str(title or "").strip().strip("《》")
+    return normalize_book_title_for_match(re.split(r"[：:]", bare)[0] or bare)
+
+
+def titles_are_same(title_a, title_b) -> bool:
+    """Same title, or one side carries a subtitle the other omits.
+
+    Comparing each main title against the *whole* other title (rather than
+    main-vs-main) keeps same-series volumes apart: 明朝那些事儿：第一部 / 第二部
+    share a main title but neither equals the other in full, so they stay distinct.
+
+    Mirrors titlesAreSame in app.js.
+    """
+    ta = normalize_book_title_for_match(title_a)
+    tb = normalize_book_title_for_match(title_b)
+    if not ta or not tb:
+        return False
+    if ta == tb:
+        return True
+    return book_main_title_for_match(title_a) == tb or book_main_title_for_match(title_b) == ta
+
+
 def books_are_same(title_a, author_a, title_b, author_b) -> bool:
     """Two books match when titles match and authors are compatible.
 
     An empty author means "unspecified" and acts as a wildcard, so a title-only
     book still matches an existing same-title book that has an author.
     """
-    ta = normalize_book_title_for_match(title_a)
-    tb = normalize_book_title_for_match(title_b)
-    if not ta or ta != tb:
+    if not titles_are_same(title_a, title_b):
         return False
-    aa = normalize_book_author_for_match(author_a)
-    ab = normalize_book_author_for_match(author_b)
-    if not aa or not ab:
-        return True
-    return aa == ab
+    return authors_are_compatible(author_a, author_b)
 
 
 @dataclass
@@ -1081,6 +1185,73 @@ BOOK_OCR_PROMPT = """你是图书封面信息提取器。
 输出：
 只输出 JSON，不要 Markdown，不要解释：
 {"title":"书名","author":"[国籍] 人名","tags":["标签1","标签2"]}"""
+
+# 书架整排识别（OPT-118）。与 BOOK_OCR_PROMPT 的差异全部源于 2026-07-17 的真实
+# 书架实测：①模型会把副标题当成另一本书输出（《重走：在公路、河流和驿道上寻找
+# 西南联大》多出一条「在公路、河流和驿道上寻找」；《厌女：日本的女性嫌恶》多出
+# 一条「日本的女性嫌恶」）→ 规则 2 显式禁止；②平放/被遮挡的书会整本编造（横放的
+# 《我弥留之际》被说成《当我们谈论爱情时我们在谈论什么》，还给了 0.70 置信度）
+# → 规则 5/6 要求宁缺毋滥并压低置信度。置信度本身不可信，前端必须让用户勾选确认。
+SHELF_OCR_PROMPT = """你是书架图片识别器。图中是一排实体书，多为竖立的书脊，也可能有平放或封面朝外的书。
+
+任务：
+逐本识别书名与作者，从左到右依次输出。
+
+规则：
+1. title 只填书名本身，不要包含出版社、丛书名、译者、腰封宣传语。
+2. 副标题属于同一本书，绝不能拆成两条。例如书脊上写「重走：在公路、河流和驿道上寻找西南联大」是一本书，只输出「重走」；「厌女：日本的女性嫌恶」是一本书，只输出「厌女」。同一本书的主标题与副标题分行排版时尤其注意，不要误判为两本。
+3. author 只填人名，不要带「著」「编」「译」等字样。外国作者按「[国籍] 人名」格式（如「[德] 黑塞」），中国作者直接写人名；无法确定作者时给空字符串。
+4. confidence 是 0 到 1 的数字，表示你对这一条的把握：书脊文字完整清晰=0.8 以上；部分遮挡但能辨认=0.5 到 0.8；模糊、严重遮挡或主要靠猜=0.5 以下。
+5. 只识别你在图中真实看见的文字。严禁凭书籍常识补全或想象书名——看不清就按规则 6 处理，宁可漏掉也不要编造。
+6. 若某本书只能辨认出零星文字，title 填你能看到的部分，confidence 给 0.3 以下；完全无法辨认的书直接跳过，不要输出。
+
+输出：
+只输出 JSON 数组，不要 Markdown，不要解释：
+[{"title":"书名","author":"[国籍] 人名","confidence":0.9}]"""
+
+
+def parse_shelf_ocr_extraction(output: str) -> list[dict]:
+    """Parse [{title,author,confidence}] from raw model output (OPT-118).
+
+    Mirrors parse_book_ocr_extraction's tolerance (Markdown fences, stray prose)
+    but for the array shape. Entries without a usable title are dropped; a
+    malformed payload yields [] rather than raising, so the endpoint can still
+    return a clean empty result to the UI.
+    """
+    raw = str(output or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw).strip()
+    payload = None
+    try:
+        payload = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        match = re.search(r"\[[\s\S]*\]", raw)
+        if match:
+            try:
+                payload = json.loads(match.group(0))
+            except (TypeError, json.JSONDecodeError):
+                payload = None
+    if not isinstance(payload, list):
+        return []
+
+    books = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title", "") or "").strip()
+        if not title:
+            continue
+        try:
+            confidence = float(item.get("confidence", 0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+        books.append({
+            "title": title,
+            "author": str(item.get("author", "") or "").strip(),
+            "confidence": min(1.0, max(0.0, confidence)),
+        })
+    return books
 
 
 def parse_book_ocr_extraction(output: str) -> dict:
@@ -4812,6 +4983,58 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 conn.close()
                 self._send_json({"error": str(error)}, 500)
+            return
+
+        if parsed.path == "/api/books/shelf-ocr":
+            # OPT-118: one photo of a shelf -> many {title, author, confidence}.
+            # Shares the "ocr" rate-limit bucket with the single-cover route; a
+            # shelf shot costs one call but returns dozens of books, so it is the
+            # cheapest path in that bucket rather than a new cost centre.
+            conn, user = self._require_user()
+            if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "ocr"):
+                conn.close()
+                return
+            payload = self._read_json()
+            data_url = str(payload.get("imageDataUrl", "")).strip()
+            if not data_url:
+                conn.close()
+                self._send_json({"error": "imageDataUrl is required"}, 400)
+                return
+
+            content = [
+                {"type": "image_url", "image_url": {"url": data_url}},
+                {"type": "text", "text": SHELF_OCR_PROMPT},
+            ]
+            # Only the OCR call is inside the try. Writing the response is not: a
+            # phone that backgrounds the tab mid-call (iOS suspends Safari and drops
+            # the socket) makes _send_json raise BrokenPipe, and if that landed in
+            # the except below it would log a bogus "OCR failed" — and blow up
+            # again on the already-closed conn, masking the real error. Observed
+            # 2026-07-17: a successful 16s shelf scan surfaced as
+            # "ProgrammingError: Cannot operate on a closed database".
+            try:
+                response = call_kimi_vision([{"role": "user", "content": content}])
+                raw_output = response.content if isinstance(response, KimiVisionResult) else str(response or "")
+                books = parse_shelf_ocr_extraction(raw_output)
+                log_kwargs = {"output": json.dumps(books, ensure_ascii=False)}
+                result, status = {"books": books}, 200
+            except Exception as error:
+                log_kwargs = {"output": "", "error": str(error)}
+                result, status = {"error": str(error)}, 500
+            append_log(
+                conn,
+                user_id=user["id"],
+                username=user["username"],
+                type_="ocr",
+                model=MOONSHOT_VISION_MODEL,
+                prompt=SHELF_OCR_PROMPT,
+                input_="image:data-url",
+                **log_kwargs,
+            )
+            conn.close()
+            self._send_json(result, status)
             return
 
         if parsed.path == "/api/quotes/ocr":

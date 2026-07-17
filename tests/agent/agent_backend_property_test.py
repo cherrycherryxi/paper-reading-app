@@ -733,6 +733,142 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertTrue(app_server.books_are_same("悉达多", "黑塞", "悉达多", ""))
         self.assertTrue(app_server.books_are_same("悉达多", "", "悉达多", ""))
 
+    def test_books_are_same_ignores_title_subtitle_separator_style(self):
+        # Real bug (2026-07-17, OPT-118): a shelf photo produced 「羊道 深山夏牧场」
+        # while the library held 「羊道·深山夏牧场」, so 3 duplicates were created.
+        # The separator is typography, not part of the name.
+        self.assertTrue(app_server.books_are_same("羊道 深山夏牧场", "李娟", "羊道·深山夏牧场", "李娟"))
+        self.assertTrue(app_server.books_are_same("羊道:春牧场", "李娟", "羊道·春牧场", "李娟"))
+        self.assertTrue(app_server.books_are_same("羊道·前山夏牧场", "李娟", "羊道 前山夏牧场", "李娟"))
+
+    def test_books_are_same_matches_main_title_against_full_cover_title(self):
+        # Real bug (2026-07-17, OPT-118): the shelf photo read the full cover
+        # 「重走：在公路、河流和驿道上寻找西南联大」while the library held 「重走」,
+        # so a duplicate was created on top of a finished, 4-star book.
+        self.assertTrue(app_server.books_are_same(
+            "重走：在公路、河流和驿道上寻找西南联大", "杨潇", "重走", "杨潇"))
+        self.assertTrue(app_server.books_are_same(
+            "重走", "杨潇", "重走：在公路、河流和驿道上寻找西南联大", "杨潇"))
+
+    def test_titles_are_same_ignores_edition_suffix(self):
+        # Real bug (2026-07-17, OPT-118): the library held 「神经科学——探索脑（第4版）」
+        # (reading, started 2025-11-14) while the shelf photo read 「神经科学——探索脑」.
+        # An edition is a reprint of the same book, not a different one.
+        self.assertTrue(app_server.titles_are_same("神经科学——探索脑（第4版）", "神经科学——探索脑"))
+        self.assertTrue(app_server.titles_are_same("人类简史(第2版)", "人类简史"))
+        self.assertTrue(app_server.titles_are_same("算法导论 第三版", "算法导论"))
+        self.assertTrue(app_server.titles_are_same("深入理解计算机系统（原书第3版）", "深入理解计算机系统"))
+
+    def test_edition_stripping_never_eats_volume_markers(self):
+        # The edition rule matches 版 only. Volumes name different books and must
+        # survive — this is the line the rule must not cross.
+        self.assertFalse(app_server.titles_are_same("花朵与探险", "花朵与探险2"))
+        self.assertFalse(app_server.titles_are_same("第二性 I", "第二性 II"))
+        self.assertFalse(app_server.titles_are_same("明朝那些事儿：第一部", "明朝那些事儿：第二部"))
+        self.assertFalse(app_server.titles_are_same("巴黎评论·诺奖作家访谈（上）", "巴黎评论·诺奖作家访谈（下）"))
+
+    def test_edition_stripping_never_eats_a_real_title(self):
+        # Titles that merely contain 版 must come through untouched.
+        for title in ("出版之后", "第八版画", "版权谈判", "盗版天堂"):
+            with self.subTest(title=title):
+                self.assertEqual(app_server.strip_book_edition_suffix(title), title)
+
+    def test_titles_are_same_keeps_series_volumes_apart(self):
+        # The subtitle rule must not swallow a series: these share a main title
+        # (or a prefix) but are different volumes / different books.
+        self.assertFalse(app_server.titles_are_same("明朝那些事儿：第一部", "明朝那些事儿：第二部"))
+        self.assertFalse(app_server.titles_are_same("羊道·春牧场", "羊道·深山夏牧场"))
+        self.assertFalse(app_server.titles_are_same("第二性 I", "第二性 II"))
+        self.assertFalse(app_server.titles_are_same("花朵与探险", "花朵与探险2"))
+        # 「·」 is a series separator, not a subtitle marker, so it never truncates.
+        self.assertFalse(app_server.titles_are_same("羊道", "羊道·春牧场"))
+        # No separator at the boundary: two genuinely different books.
+        self.assertFalse(app_server.titles_are_same("活着", "活着为了讲述"))
+
+    def test_book_main_title_for_match_drops_only_the_subtitle(self):
+        self.assertEqual(app_server.book_main_title_for_match("重走：在公路上"), "重走")
+        self.assertEqual(app_server.book_main_title_for_match("《厌女：日本的女性嫌恶》"), "厌女")
+        self.assertEqual(app_server.book_main_title_for_match("羊道·春牧场"), "羊道春牧场")
+
+    def test_books_are_same_accepts_abbreviated_translated_author(self):
+        # Real bug (2026-07-17, OPT-118): 「[英] 哈耶克」/「[英] 弗里德里希·哈耶克」/
+        # 「[英] 弗里德里希·奥古斯特·冯·哈耶克」are one person; a duplicate was created.
+        full = "[英] 弗里德里希·奥古斯特·冯·哈耶克"
+        self.assertTrue(app_server.books_are_same("通往奴役之路", "[英] 哈耶克", "《通往奴役之路》", full))
+        self.assertTrue(app_server.books_are_same("通往奴役之路", "[英] 弗里德里希·哈耶克", "《通往奴役之路》", full))
+
+    def test_strip_author_nationality_handles_any_bracketed_marker(self):
+        # Real bug (2026-07-17): the nationality list was a whitelist, so
+        # 「[阿根廷] 豪·路·博尔赫斯」 kept its marker and never matched the library's
+        # copy. A country whitelist can't cover a shelf of world literature — the
+        # bracket itself is the signal.
+        for raw, expected in [
+            ("[阿根廷] 豪·路·博尔赫斯", "豪·路·博尔赫斯"),
+            ("[哥伦比亚] 马尔克斯", "马尔克斯"),
+            ("[苏] 尼·奥斯特洛夫斯基", "尼·奥斯特洛夫斯基"),
+            ("[南非] 库切", "库切"),
+            ("[以色列] 尤瓦尔·赫拉利", "尤瓦尔·赫拉利"),
+            ("〔德〕 赫尔曼·黑塞", "赫尔曼·黑塞"),
+            ("(英) 伍尔夫", "伍尔夫"),
+        ]:
+            with self.subTest(raw=raw):
+                self.assertEqual(app_server.strip_author_nationality(raw), expected)
+
+    def test_authors_are_compatible_accepts_segmentwise_abbreviation(self):
+        # Chinese publishing abbreviates translated names segment by segment.
+        # Real case: the library held 「[阿根廷] 豪·路·博尔赫斯」, the shelf photo read
+        # 「[阿根廷] 豪尔赫·路易斯·博尔赫斯」.
+        self.assertTrue(app_server.authors_are_compatible(
+            "[阿根廷] 豪·路·博尔赫斯", "[阿根廷] 豪尔赫·路易斯·博尔赫斯"))
+        self.assertTrue(app_server.authors_are_compatible(
+            "[苏] 尼·奥斯特洛夫斯基", "[苏] 尼古拉·奥斯特洛夫斯基"))
+
+    def test_segmentwise_abbreviation_needs_multiple_segments(self):
+        # The convention only exists for multi-part translated names; a one-segment
+        # Chinese name is whole and must not prefix its way into a longer one.
+        self.assertFalse(app_server.authors_are_compatible("金", "金庸"))
+        self.assertFalse(app_server.authors_are_compatible("张三", "张三丰"))
+        # Same segment count, but not an abbreviation of each other.
+        self.assertFalse(app_server.authors_are_compatible("[美] 丹·布朗", "[美] 丹尼尔·格林"))
+        self.assertFalse(app_server.authors_are_compatible("[美] 乔治·奥威尔", "[英] 乔治·艾略特"))
+
+    def test_authors_are_compatible_keeps_different_people_apart(self):
+        # The subset rule must not merge people who merely share a name part.
+        self.assertFalse(app_server.authors_are_compatible("[英] 弗吉尼亚·伍尔夫", "[英] 伦纳德·伍尔夫"))
+        self.assertFalse(app_server.authors_are_compatible("余华", "泰戈尔"))
+        # Exact-token match only: a surname prefix is not an abbreviation.
+        self.assertFalse(app_server.authors_are_compatible("金", "金庸"))
+
+    def test_strip_author_nationality_handles_six_corner_brackets(self):
+        # Real data (2026-07-17): 豆瓣 writes 「著者 〔德〕 赫尔曼·黑塞」. 〔〕 was not in
+        # the bracket class, so the nationality survived and the book failed to
+        # match the library's 「〔德〕 赫尔曼·黑塞」 — a duplicate 荒原狼 was created.
+        self.assertEqual(app_server.strip_author_nationality("〔德〕 赫尔曼·黑塞"), "赫尔曼·黑塞")
+        self.assertEqual(app_server.strip_author_nationality("【德】黑塞"), "黑塞")
+        self.assertEqual(app_server.strip_author_nationality("[德] 黑塞"), "黑塞")
+
+    def test_strip_author_nationality_drops_field_labels(self):
+        # 「著者」 is 豆瓣's field label leaking into the scraped author string.
+        self.assertEqual(app_server.strip_author_nationality("著者 〔德〕 赫尔曼·黑塞"), "赫尔曼·黑塞")
+        self.assertEqual(app_server.strip_author_nationality("作者：李娟"), "李娟")
+        self.assertEqual(app_server.strip_author_nationality("著者 李娟"), "李娟")
+        # A name that merely starts with those characters must survive intact.
+        self.assertEqual(app_server.strip_author_nationality("编者按"), "编者按")
+
+    def test_books_are_same_matches_douban_scraped_author_against_library(self):
+        # The two real duplicates found in owner's library on 2026-07-17.
+        self.assertTrue(app_server.books_are_same(
+            "荒原狼", "著者 〔德〕 赫尔曼·黑塞", "《荒原狼》", "〔德〕 赫尔曼·黑塞"))
+        # 豆瓣 lists one book once per edition, so the same title arrives twice with
+        # differently-spelled authors; the importer must merge, not create a second.
+        self.assertTrue(app_server.books_are_same(
+            "钢铁是怎样炼成的", "[苏] 尼·奥斯特洛夫斯基", "钢铁是怎样炼成的", "奥斯特洛夫斯基"))
+
+    def test_book_author_tokens_splits_on_name_separators(self):
+        self.assertEqual(app_server.book_author_tokens("[德] 赫尔曼·黑塞"), ["赫尔曼", "黑塞"])
+        self.assertEqual(app_server.book_author_tokens("李娟 著"), ["李娟"])
+        self.assertEqual(app_server.book_author_tokens(""), [])
+
     def test_books_are_same_keeps_distinct_same_title_authors(self):
         # Two same-title books with different known authors stay distinct.
         self.assertFalse(app_server.books_are_same("活着", "余华", "活着", "泰戈尔"))
