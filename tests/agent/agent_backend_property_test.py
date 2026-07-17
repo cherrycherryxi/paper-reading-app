@@ -459,6 +459,33 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIn("rating", prompt)
         self.assertIn("finishedAt", prompt)
 
+    def test_all_books_summary_includes_douban_comment(self):
+        """OPT-118: OPT-105 豆瓣导入为书写入 doubanComment(一句话短评)，书籍详情与分享图都已读取，
+        但 all_books_summary 缺这个字段——「哪本书适合悲伤时读」这类以读后感受为关键词的跨书查询
+        只能靠书名瞎猜。修复：summary 带上 doubanComment(截 60 字符控 token)，系统提示说明其语义。"""
+        builder = app_server.PromptBuilder()
+        long_comment = "治" * 80
+        books = [
+            {"id": "b1", "title": "有短评的书", "author": "A", "status": "finished",
+             "doubanComment": "很治愈，难过的时候翻一翻", "updatedAt": "2026-01-03T00:00:00Z"},
+            {"id": "b2", "title": "没短评的书", "author": "B", "status": "finished",
+             "updatedAt": "2026-01-02T00:00:00Z"},
+            {"id": "b3", "title": "长短评的书", "author": "C", "status": "finished",
+             "doubanComment": long_comment, "updatedAt": "2026-01-01T00:00:00Z"},
+        ]
+        state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
+
+        prompt = builder.build_chat_prompt(state, "", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        summary = json.loads(user_data_json)["all_books_summary"]
+        by_id = {b["id"]: b for b in summary}
+
+        self.assertEqual(by_id["b1"]["doubanComment"], "很治愈，难过的时候翻一翻")
+        self.assertEqual(by_id["b2"]["doubanComment"], "", "没写短评的书应为空串，交给模型忽略")
+        self.assertEqual(by_id["b3"]["doubanComment"], "治" * 60, "过长短评应截到 60 字符控 token")
+        # 系统提示必须解释 doubanComment 的语义（关键词够稳，不锁死整句措辞）。
+        self.assertIn("doubanComment", prompt)
+
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()
         state["quotes"] = [
