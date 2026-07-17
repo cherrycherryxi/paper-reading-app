@@ -765,12 +765,28 @@ function normalizeBookAuthorForMatch(raw) {
     .toLowerCase();
 }
 
+// An edition suffix marks a reprint of the same book, so it must not keep
+// 「神经科学——探索脑（第4版）」 apart from 「神经科学——探索脑」. Deliberately narrow:
+// it matches 版 only. Volume markers (第N部/卷/册, 上/下, I/II, a trailing digit)
+// name *different* books — 花朵与探险 vs 花朵与探险2, 第二性 I vs II — and must survive.
+const BOOK_EDITION_SUFFIX_RE = /[\s(（\[【]*(?:原书)?第?\s*[0-9一二三四五六七八九十]+\s*版(?:本)?[\s)）\]】]*$/;
+
+function stripBookEditionSuffix(raw) {
+  let value = String(raw || "").trim();
+  let previous = "";
+  while (value && value !== previous) {
+    previous = value;
+    value = value.replace(BOOK_EDITION_SUFFIX_RE, "").trim();
+  }
+  return value || String(raw || "").trim();
+}
+
 // Separators between a main title and its subtitle are a typography choice, not
 // part of the name: 「羊道·春牧场」「羊道 春牧场」「羊道:春牧场」are one book, and
 // OCR/Excel/豆瓣 each pick a different one. Dropping them stops the same book
 // from being added once per punctuation style (OPT-118 real-shelf finding).
 function normalizeBookTitleForMatch(title) {
-  return normalizeBookTitle(title).replace(/[\s·・:：]+/g, "").toLowerCase();
+  return stripBookEditionSuffix(normalizeBookTitle(title)).replace(/[\s·・:：]+/g, "").toLowerCase();
 }
 
 // Name parts of an author, kept separate (unlike normalizeBookAuthorForMatch,

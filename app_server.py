@@ -866,12 +866,31 @@ AUTHOR_COUNTRY_NAME_PATTERN = "|".join(
 )
 
 
+# An edition suffix marks a reprint of the same book, so it must not keep 「神经
+# 科学——探索脑（第4版）」 apart from 「神经科学——探索脑」. Deliberately narrow: it
+# matches 版 only. Volume markers (第N部/卷/册, 上/下, I/II, a trailing digit) name
+# *different* books — 花朵与探险 vs 花朵与探险2, 第二性 I vs II — and must survive.
+BOOK_EDITION_SUFFIX_RE = re.compile(
+    r"[\s(（\[【]*(?:原书)?第?\s*[0-9一二三四五六七八九十]+\s*版(?:本)?[\s)）\]】]*$"
+)
+
+
+def strip_book_edition_suffix(raw) -> str:
+    value = str(raw or "").strip()
+    previous = None
+    while value and value != previous:
+        previous = value
+        value = BOOK_EDITION_SUFFIX_RE.sub("", value).strip()
+    return value or str(raw or "").strip()
+
+
 def normalize_book_title_for_match(raw) -> str:
     # Separators between a main title and its subtitle are a typography choice,
     # not part of the name: 「羊道·春牧场」「羊道 春牧场」「羊道:春牧场」are one book,
     # and OCR/Excel/豆瓣 each pick a different one. Mirrors normalizeBookTitleForMatch
     # in app.js (OPT-118 real-shelf finding).
-    return re.sub(r"[\s·・:：]+", "", str(raw or "").strip().strip("《》")).lower()
+    bare = strip_book_edition_suffix(str(raw or "").strip().strip("《》"))
+    return re.sub(r"[\s·・:：]+", "", bare).lower()
 
 
 def strip_author_nationality(raw) -> str:

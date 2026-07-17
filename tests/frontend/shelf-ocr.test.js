@@ -353,3 +353,14 @@ test("runShelfOcr：真正的新书不受可能重复逻辑影响", async () => 
   assert.equal(c.possibleDuplicateOf, null);
   assert.equal(c.checked, true, "书单里没有的高置信新书仍应默认勾选");
 });
+
+test("isSameBook：版次后缀不影响匹配，但绝不能吞掉卷次", () => {
+  const h = matchHarness();
+  // 真实事故：库里《神经科学——探索脑（第4版）》(在读)，书架读成《神经科学——探索脑》
+  assert.equal(h.isSameBook("神经科学——探索脑（第4版）", "", "神经科学——探索脑", ""), true);
+  assert.equal(h.isSameBook("人类简史(第2版)", "", "人类简史", ""), true);
+  // 卷次是不同的书 —— 这条线不能越
+  assert.equal(h.isSameBook("花朵与探险", "", "花朵与探险2", ""), false);
+  assert.equal(h.isSameBook("第二性 I", "", "第二性 II", ""), false);
+  assert.equal(h.isSameBook("巴黎评论·诺奖作家访谈（上）", "", "巴黎评论·诺奖作家访谈（下）", ""), false);
+});

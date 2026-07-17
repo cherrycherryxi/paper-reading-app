@@ -750,6 +750,29 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertTrue(app_server.books_are_same(
             "重走", "杨潇", "重走：在公路、河流和驿道上寻找西南联大", "杨潇"))
 
+    def test_titles_are_same_ignores_edition_suffix(self):
+        # Real bug (2026-07-17, OPT-118): the library held 「神经科学——探索脑（第4版）」
+        # (reading, started 2025-11-14) while the shelf photo read 「神经科学——探索脑」.
+        # An edition is a reprint of the same book, not a different one.
+        self.assertTrue(app_server.titles_are_same("神经科学——探索脑（第4版）", "神经科学——探索脑"))
+        self.assertTrue(app_server.titles_are_same("人类简史(第2版)", "人类简史"))
+        self.assertTrue(app_server.titles_are_same("算法导论 第三版", "算法导论"))
+        self.assertTrue(app_server.titles_are_same("深入理解计算机系统（原书第3版）", "深入理解计算机系统"))
+
+    def test_edition_stripping_never_eats_volume_markers(self):
+        # The edition rule matches 版 only. Volumes name different books and must
+        # survive — this is the line the rule must not cross.
+        self.assertFalse(app_server.titles_are_same("花朵与探险", "花朵与探险2"))
+        self.assertFalse(app_server.titles_are_same("第二性 I", "第二性 II"))
+        self.assertFalse(app_server.titles_are_same("明朝那些事儿：第一部", "明朝那些事儿：第二部"))
+        self.assertFalse(app_server.titles_are_same("巴黎评论·诺奖作家访谈（上）", "巴黎评论·诺奖作家访谈（下）"))
+
+    def test_edition_stripping_never_eats_a_real_title(self):
+        # Titles that merely contain 版 must come through untouched.
+        for title in ("出版之后", "第八版画", "版权谈判", "盗版天堂"):
+            with self.subTest(title=title):
+                self.assertEqual(app_server.strip_book_edition_suffix(title), title)
+
     def test_titles_are_same_keeps_series_volumes_apart(self):
         # The subtitle rule must not swallow a series: these share a main title
         # (or a prefix) but are different volumes / different books.
