@@ -379,7 +379,19 @@ function normalizeStateShape(rawState) {
   };
 }
 
+// iOS suspends a backgrounded tab and drops its sockets, so any in-flight
+// request dies. The rejection surfaces only after the user returns, when the
+// page is visible again — so the page's *current* visibility tells us nothing.
+// Stamping each hide lets apiFetch ask "did we go away while this was open?".
+let lastHiddenAt = 0;
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") lastHiddenAt = Date.now();
+  });
+}
+
 async function apiFetch(path, options = {}, requiresAuth = true) {
+  const startedAt = Date.now();
   const headers = {
     ...(options.headers || {}),
   };
@@ -395,7 +407,20 @@ async function apiFetch(path, options = {}, requiresAuth = true) {
       headers,
     });
   } catch (error) {
-    throw new Error("无法连接后端服务，请确认已启动 ./scripts/dev_backend.sh 或 app_server.py");
+    // A fetch rejects for two very different reasons, and they need different
+    // advice. Switching apps mid-request is the common one on a phone: iOS
+    // suspends the tab and drops the socket, so a request that was actually
+    // running server-side (a 20s shelf scan) lands here. Telling that user the
+    // backend is down — and to go run a dev script — is nonsense.
+    // Note we can't test visibilityState here: iOS suspends JS too, so this
+    // handler only runs once the user is back and the page is visible again.
+    // What matters is whether the page went away *while the request was open*.
+    // >= : Date.now() has millisecond resolution, and a hide can land in the very
+    // same millisecond the request started; a strict > would miss those.
+    if (lastHiddenAt >= startedAt) {
+      throw new Error("请求被中断（切到其他应用时页面被系统暂停），请回到本页重试");
+    }
+    throw new Error("网络请求失败，请检查网络后重试");
   }
 
   const isJson = response.headers.get("content-type")?.includes("application/json");

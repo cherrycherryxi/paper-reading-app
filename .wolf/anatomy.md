@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T11:58:29.693Z
-> Files: 305 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T12:23:00.618Z
+> Files: 306 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -195,9 +195,9 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74339 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~63700 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~64486 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -379,6 +379,7 @@
 
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
 - `ai-review-source-badge.test.js` — OPT-101: AI 起草的读后感要标注来源（「AI 根据笔记整理」），与手写读后感区分。 (~3120 tok)
+- `api-fetch-interrupted.test.js` — 真机事故（2026-07-17）：拍完书架切到别的 App，回来显示「无法连接后端服务， (~1172 tok)
 - `book-cover-thumbnail-lazy.test.js` — 书单封面「缩略图 + 懒加载」优化：书单原来一次性拉 28MB 原图封面，改为用 (~1084 tok)
 - `book-dates-display.test.js` — OPT-074: startedAt / finishedAt are written to the book object via saveSession() (~1526 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)

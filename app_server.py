@@ -5007,36 +5007,34 @@ class Handler(BaseHTTPRequestHandler):
                 {"type": "image_url", "image_url": {"url": data_url}},
                 {"type": "text", "text": SHELF_OCR_PROMPT},
             ]
+            # Only the OCR call is inside the try. Writing the response is not: a
+            # phone that backgrounds the tab mid-call (iOS suspends Safari and drops
+            # the socket) makes _send_json raise BrokenPipe, and if that landed in
+            # the except below it would log a bogus "OCR failed" — and blow up
+            # again on the already-closed conn, masking the real error. Observed
+            # 2026-07-17: a successful 16s shelf scan surfaced as
+            # "ProgrammingError: Cannot operate on a closed database".
             try:
                 response = call_kimi_vision([{"role": "user", "content": content}])
                 raw_output = response.content if isinstance(response, KimiVisionResult) else str(response or "")
                 books = parse_shelf_ocr_extraction(raw_output)
-                append_log(
-                    conn,
-                    user_id=user["id"],
-                    username=user["username"],
-                    type_="ocr",
-                    model=MOONSHOT_VISION_MODEL,
-                    prompt=SHELF_OCR_PROMPT,
-                    input_="image:data-url",
-                    output=json.dumps(books, ensure_ascii=False),
-                )
-                conn.close()
-                self._send_json({"books": books})
+                log_kwargs = {"output": json.dumps(books, ensure_ascii=False)}
+                result, status = {"books": books}, 200
             except Exception as error:
-                append_log(
-                    conn,
-                    user_id=user["id"],
-                    username=user["username"],
-                    type_="ocr",
-                    model=MOONSHOT_VISION_MODEL,
-                    prompt=SHELF_OCR_PROMPT,
-                    input_="image:data-url",
-                    output="",
-                    error=str(error),
-                )
-                conn.close()
-                self._send_json({"error": str(error)}, 500)
+                log_kwargs = {"output": "", "error": str(error)}
+                result, status = {"error": str(error)}, 500
+            append_log(
+                conn,
+                user_id=user["id"],
+                username=user["username"],
+                type_="ocr",
+                model=MOONSHOT_VISION_MODEL,
+                prompt=SHELF_OCR_PROMPT,
+                input_="image:data-url",
+                **log_kwargs,
+            )
+            conn.close()
+            self._send_json(result, status)
             return
 
         if parsed.path == "/api/quotes/ocr":

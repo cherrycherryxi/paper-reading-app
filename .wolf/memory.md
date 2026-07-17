@@ -3339,3 +3339,9 @@
 | 19:57 | Edited app_server.py | 3→6 lines | ~90 |
 | 19:58 | Edited tests/agent/agent_backend_property_test.py | modified test_strip_author_nationality_handles_any_bracketed_marker() | ~559 |
 | 20:00 | OPT-118 第六轮:国籍白名单改括号识别+译名逐节缩写;合并小径分岔的花园 | app.js,app_server.py,tests/,app_state.db | 全绿 py393/js395;全库0重复;146本 | ~6000 |
+| 20:01 | Session end: 47 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~201138 tok |
+| 20:21 | Edited app_server.py | 31→29 lines | ~439 |
+| 20:21 | Edited app.js | added 1 condition(s) | ~172 |
+| 20:22 | Edited app.js | modified catch() | ~222 |
+| 20:23 | Created tests/frontend/api-fetch-interrupted.test.js | — | ~1172 |
+| 20:26 | 排查切走App后「连接后端错误」:后端回包在try内致真错被掩盖+前端错误归因误导 | app_server.py,app.js,tests/ | 根因=iOS挂起断socket;OCR其实成功;全绿 py393/js399 | ~9000 |
