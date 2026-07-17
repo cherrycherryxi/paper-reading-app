@@ -3290,3 +3290,6 @@
 | 14:59 | Edited optimization/backlog.md | 8→13 lines | ~407 |
 | 15:01 | Edited optimization/triage.md | 1→2 lines | ~179 |
 | 15:01 | OPT-117 豆瓣抓取调研否决(IP风控实测)+提出OPT-118书架照片建库替代;小红书图3去掉未实现的豆瓣承诺 | optimization/backlog.md,triage.md,小红书物料/ | OPT-117降P3 blocked;OPT-118 P1 new;帖子可发 | ~8000 |
+| 15:02 | Session end: 16 writes across 12 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 11 reads | ~167213 tok |
+| 15:16 | Edited optimization/backlog.md | 4→5 lines | ~160 |
+| 15:17 | OPT-118 书架OCR可行性实测(owner真实3张照片,kimi-k2.5) | optimization/backlog.md,triage.md,.wolf/cerebrum.md | 识别57本准确率~90%+远超60%门槛→可行;发现副标题拆分/平放幻觉/confidence不可靠3问题 | ~6000 |
