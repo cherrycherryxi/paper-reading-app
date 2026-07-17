@@ -733,6 +733,33 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertTrue(app_server.books_are_same("悉达多", "黑塞", "悉达多", ""))
         self.assertTrue(app_server.books_are_same("悉达多", "", "悉达多", ""))
 
+    def test_books_are_same_ignores_title_subtitle_separator_style(self):
+        # Real bug (2026-07-17, OPT-118): a shelf photo produced 「羊道 深山夏牧场」
+        # while the library held 「羊道·深山夏牧场」, so 3 duplicates were created.
+        # The separator is typography, not part of the name.
+        self.assertTrue(app_server.books_are_same("羊道 深山夏牧场", "李娟", "羊道·深山夏牧场", "李娟"))
+        self.assertTrue(app_server.books_are_same("羊道:春牧场", "李娟", "羊道·春牧场", "李娟"))
+        self.assertTrue(app_server.books_are_same("羊道·前山夏牧场", "李娟", "羊道 前山夏牧场", "李娟"))
+
+    def test_books_are_same_accepts_abbreviated_translated_author(self):
+        # Real bug (2026-07-17, OPT-118): 「[英] 哈耶克」/「[英] 弗里德里希·哈耶克」/
+        # 「[英] 弗里德里希·奥古斯特·冯·哈耶克」are one person; a duplicate was created.
+        full = "[英] 弗里德里希·奥古斯特·冯·哈耶克"
+        self.assertTrue(app_server.books_are_same("通往奴役之路", "[英] 哈耶克", "《通往奴役之路》", full))
+        self.assertTrue(app_server.books_are_same("通往奴役之路", "[英] 弗里德里希·哈耶克", "《通往奴役之路》", full))
+
+    def test_authors_are_compatible_keeps_different_people_apart(self):
+        # The subset rule must not merge people who merely share a name part.
+        self.assertFalse(app_server.authors_are_compatible("[英] 弗吉尼亚·伍尔夫", "[英] 伦纳德·伍尔夫"))
+        self.assertFalse(app_server.authors_are_compatible("余华", "泰戈尔"))
+        # Exact-token match only: a surname prefix is not an abbreviation.
+        self.assertFalse(app_server.authors_are_compatible("金", "金庸"))
+
+    def test_book_author_tokens_splits_on_name_separators(self):
+        self.assertEqual(app_server.book_author_tokens("[德] 赫尔曼·黑塞"), ["赫尔曼", "黑塞"])
+        self.assertEqual(app_server.book_author_tokens("李娟 著"), ["李娟"])
+        self.assertEqual(app_server.book_author_tokens(""), [])
+
     def test_books_are_same_keeps_distinct_same_title_authors(self):
         # Two same-title books with different known authors stay distinct.
         self.assertFalse(app_server.books_are_same("活着", "余华", "活着", "泰戈尔"))

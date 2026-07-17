@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T07:16:48.845Z
-> Files: 303 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T08:46:59.255Z
+> Files: 305 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -195,9 +195,9 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71568 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~73410 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~60818 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~63035 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -205,10 +205,10 @@
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
-- `CLAUDE.md` — OpenWolf (~1454 tok)
+- `CLAUDE.md` — OpenWolf (~1489 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~11796 tok)
+- `index.html` — 🐛 又买了一本书 (~12162 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
@@ -216,7 +216,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary (~4374 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~23756 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~24279 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -352,7 +352,7 @@
 
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
-- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~12174 tok)
+- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~12669 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)
@@ -372,6 +372,7 @@
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
+- `shelf_ocr_test.py` — OPT-118 书架 OCR：解析器与提示词的真实行为测试。 (~1019 tok)
 - `static_cache_test.py` — OPT-086: 静态资源缓存策略测试。 (~692 tok)
 
 ## tests/frontend/
@@ -382,7 +383,7 @@
 - `book-dates-display.test.js` — OPT-074: startedAt / finishedAt are written to the book object via saveSession() (~1526 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1954 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~1704 tok)
-- `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~1786 tok)
+- `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~2042 tok)
 - `book-filter-clear-all.test.js` — OPT-107 书单三个筛选维度（搜索词 / 状态 chip / 标签 chip）的「清除全部筛选」入口。 (~2476 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4598 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
@@ -419,6 +420,7 @@
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
+- `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~2565 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## tools/

@@ -759,8 +759,40 @@ function normalizeBookAuthorForMatch(raw) {
     .toLowerCase();
 }
 
+// Separators between a main title and its subtitle are a typography choice, not
+// part of the name: 「羊道·春牧场」「羊道 春牧场」「羊道:春牧场」are one book, and
+// OCR/Excel/豆瓣 each pick a different one. Dropping them stops the same book
+// from being added once per punctuation style (OPT-118 real-shelf finding).
 function normalizeBookTitleForMatch(title) {
-  return normalizeBookTitle(title).replace(/\s+/g, "").toLowerCase();
+  return normalizeBookTitle(title).replace(/[\s·・:：]+/g, "").toLowerCase();
+}
+
+// Name parts of an author, kept separate (unlike normalizeBookAuthorForMatch,
+// which joins them) so abbreviations can be compared part-by-part.
+function bookAuthorTokens(raw) {
+  return stripAuthorNationality(raw)
+    .replace(/\s*(?:著|撰|编著|编|译)\s*$/g, "")
+    .split(/[\s·・.．,，、:：;；\-—_'"“”‘’`]+/)
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+// Translated foreign names get abbreviated in the wild — 「[英] 哈耶克」,
+// 「弗里德里希·哈耶克」and 「弗里德里希·奥古斯特·冯·哈耶克」are one person, and a
+// shelf photo, an Excel sheet and 豆瓣 will each give a different one. Treat two
+// authors as the same person when every name part of the shorter one appears in
+// the longer. Requiring *every* part keeps genuinely different people apart:
+// 余华/泰戈尔 share nothing, and 弗吉尼亚·伍尔夫/伦纳德·伍尔夫 share only 伍尔夫.
+function authorsAreCompatible(authorA, authorB) {
+  const aa = normalizeBookAuthorForMatch(authorA);
+  const ab = normalizeBookAuthorForMatch(authorB);
+  if (!aa || !ab) return true; // unspecified acts as a wildcard
+  if (aa === ab) return true;
+  const ta = bookAuthorTokens(authorA);
+  const tb = bookAuthorTokens(authorB);
+  if (!ta.length || !tb.length) return false;
+  const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  return shorter.every((token) => longer.includes(token));
 }
 
 // Two books are the same when titles match and authors are compatible.
@@ -770,10 +802,7 @@ function isSameBook(titleA, authorA, titleB, authorB) {
   const ta = normalizeBookTitleForMatch(titleA);
   const tb = normalizeBookTitleForMatch(titleB);
   if (!ta || ta !== tb) return false;
-  const aa = normalizeBookAuthorForMatch(authorA);
-  const ab = normalizeBookAuthorForMatch(authorB);
-  if (!aa || !ab) return true;
-  return aa === ab;
+  return authorsAreCompatible(authorA, authorB);
 }
 
 function findDuplicateBook(title, author, books = state.books) {

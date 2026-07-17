@@ -867,7 +867,11 @@ AUTHOR_COUNTRY_NAME_PATTERN = "|".join(
 
 
 def normalize_book_title_for_match(raw) -> str:
-    return re.sub(r"\s+", "", str(raw or "").strip().strip("《》")).lower()
+    # Separators between a main title and its subtitle are a typography choice,
+    # not part of the name: 「羊道·春牧场」「羊道 春牧场」「羊道:春牧场」are one book,
+    # and OCR/Excel/豆瓣 each pick a different one. Mirrors normalizeBookTitleForMatch
+    # in app.js (OPT-118 real-shelf finding).
+    return re.sub(r"[\s·・:：]+", "", str(raw or "").strip().strip("《》")).lower()
 
 
 def strip_author_nationality(raw) -> str:
@@ -901,6 +905,44 @@ def book_duplicate_signature(title, author) -> str:
     return f"{normalize_book_title_for_match(title)}::{normalize_book_author_for_match(author)}"
 
 
+def book_author_tokens(raw) -> list[str]:
+    """Name parts of an author, kept separate (unlike normalize_book_author_for_match,
+    which joins them) so abbreviations can be compared part-by-part.
+
+    Mirrors bookAuthorTokens in app.js.
+    """
+    value = strip_author_nationality(raw)
+    value = re.sub(r"\s*(?:著|撰|编著|编|译)\s*$", "", value)
+    parts = re.split(r"[\s·・.．,，、:：;；\-—_'\"“”‘’`]+", value)
+    return [p.strip().lower() for p in parts if p.strip()]
+
+
+def authors_are_compatible(author_a, author_b) -> bool:
+    """True when two author strings name the same person.
+
+    Translated foreign names get abbreviated in the wild — 「[英] 哈耶克」,
+    「弗里德里希·哈耶克」and 「弗里德里希·奥古斯特·冯·哈耶克」are one person, and a
+    shelf photo, an Excel sheet and 豆瓣 will each give a different one. Two authors
+    are the same person when every name part of the shorter appears in the longer.
+    Requiring *every* part keeps genuinely different people apart: 余华/泰戈尔 share
+    nothing, and 弗吉尼亚·伍尔夫/伦纳德·伍尔夫 share only 伍尔夫.
+
+    Mirrors authorsAreCompatible in app.js.
+    """
+    aa = normalize_book_author_for_match(author_a)
+    ab = normalize_book_author_for_match(author_b)
+    if not aa or not ab:
+        return True  # unspecified acts as a wildcard
+    if aa == ab:
+        return True
+    ta = book_author_tokens(author_a)
+    tb = book_author_tokens(author_b)
+    if not ta or not tb:
+        return False
+    shorter, longer = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
+    return all(token in longer for token in shorter)
+
+
 def books_are_same(title_a, author_a, title_b, author_b) -> bool:
     """Two books match when titles match and authors are compatible.
 
@@ -911,11 +953,7 @@ def books_are_same(title_a, author_a, title_b, author_b) -> bool:
     tb = normalize_book_title_for_match(title_b)
     if not ta or ta != tb:
         return False
-    aa = normalize_book_author_for_match(author_a)
-    ab = normalize_book_author_for_match(author_b)
-    if not aa or not ab:
-        return True
-    return aa == ab
+    return authors_are_compatible(author_a, author_b)
 
 
 @dataclass

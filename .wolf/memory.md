@@ -3293,3 +3293,22 @@
 | 15:02 | Session end: 16 writes across 12 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 11 reads | ~167213 tok |
 | 15:16 | Edited optimization/backlog.md | 4→5 lines | ~160 |
 | 15:17 | OPT-118 书架OCR可行性实测(owner真实3张照片,kimi-k2.5) | optimization/backlog.md,triage.md,.wolf/cerebrum.md | 识别57本准确率~90%+远超60%门槛→可行;发现副标题拆分/平放幻觉/confidence不可靠3问题 | ~6000 |
+| 15:18 | Session end: 17 writes across 12 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 13 reads | ~167384 tok |
+| 15:58 | Edited app_server.py | modified parse_shelf_ocr_extraction() | ~738 |
+| 15:58 | Edited app_server.py | modified _enforce_rate_limit() | ~704 |
+| 15:59 | Edited index.html | expanded (+7 lines) | ~155 |
+| 15:59 | Edited index.html | expanded (+22 lines) | ~275 |
+| 15:59 | Edited app.js | expanded (+6 lines) | ~144 |
+| 16:00 | Edited app.js | added error handling | ~1309 |
+| 16:01 | Edited app.js | added 4 condition(s) | ~384 |
+| 16:01 | Created tests/agent/shelf_ocr_test.py | — | ~1019 |
+| 16:02 | Created tests/frontend/shelf-ocr.test.js | — | ~2565 |
+| 16:04 | Edited CLAUDE.md | "X-Auth-Token" → "Authorization: Bearer <to" | ~84 |
+| 16:07 | Session end: 27 writes across 17 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 14 reads | ~186712 tok |
+| 16:40 | Edited styles.css | expanded (+9 lines) | ~139 |
+| 16:41 | Edited app.js | added 2 condition(s) | ~630 |
+| 16:42 | Edited app_server.py | modified normalize_book_title_for_match() | ~116 |
+| 16:42 | Edited app_server.py | modified book_author_tokens() | ~576 |
+| 16:42 | Edited tests/agent/agent_backend_property_test.py | modified test_books_are_same_ignores_title_subtitle_separator_style() | ~515 |
+| 16:46 | Edited tests/frontend/book-duplicate.test.js | expanded (+18 lines) | ~493 |
+| 16:49 | OPT-118 真机实测两bug修复:checkbox被全局appearance:none压掉+isSameBook分隔符/作者简写不归一(已给owner库造4本重复,已清理) | styles.css,app.js,app_server.py,tests/ | 全绿 py381/js387;DB已备份;owner拍板简写=同一人 | ~9000 |

@@ -62,7 +62,7 @@ function createHarness({ shelfResponse } = {}) {
   const src = appSource.replace(/\nbindEvents\(\);\nrender\(\);[\s\S]*$/, "\n");
   const instrumented = `${src}
 globalThis.__hooks = {
-  runShelfOcr, confirmShelfOcr, renderShelfOcrList, els,
+  runShelfOcr, confirmShelfOcr, renderShelfOcrList, els, isSameBook,
   SHELF_OCR_MAX_PX, SHELF_OCR_AUTO_CHECK_CONFIDENCE,
   getCandidates(){ return shelfOcrCandidates; },
   setCandidates(v){ shelfOcrCandidates = v; },
@@ -220,4 +220,57 @@ test("结构：入口 / 确认对话框 / 绑定 都在", () => {
   assert.match(appSource, /els\.shelfOcrConfirmBtn\?\.addEventListener\("click"/, "应绑定确认");
   // 确认步骤是必需项：置信度只能决定默认勾选，不能决定是否入列表
   assert.match(appSource, /checked: !duplicate && confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE/);
+});
+
+// —— isSameBook 归一化（2026-07-17 真机实测暴露：本功能给 owner 库里造了 4 本重复书）——
+function matchHarness() {
+  const h = createHarness();
+  return h;
+}
+
+test("isSameBook：书名的主副标题分隔符（·/空格/冒号）不影响匹配", () => {
+  const h = matchHarness();
+  h.setState({ books: [], quotes: [], sessions: [], connections: [] });
+  // 真实事故：书架 OCR 给「羊道 深山夏牧场」，库里是「羊道·深山夏牧场」→ 造了重复
+  assert.equal(h.isSameBook("羊道 深山夏牧场", "李娟", "羊道·深山夏牧场", "李娟"), true);
+  assert.equal(h.isSameBook("羊道:春牧场", "李娟", "羊道·春牧场", "李娟"), true);
+});
+
+test("isSameBook：译名作者的简写视为同一人", () => {
+  const h = matchHarness();
+  const full = "[英] 弗里德里希·奥古斯特·冯·哈耶克";
+  assert.equal(h.isSameBook("通往奴役之路", "[英] 哈耶克", "《通往奴役之路》", full), true);
+  assert.equal(h.isSameBook("通往奴役之路", "[英] 弗里德里希·哈耶克", "《通往奴役之路》", full), true);
+});
+
+test("isSameBook：仅共享部分名字的不同人仍然区分", () => {
+  const h = matchHarness();
+  assert.equal(h.isSameBook("到灯塔去", "[英] 弗吉尼亚·伍尔夫", "到灯塔去", "[英] 伦纳德·伍尔夫"), false);
+  assert.equal(h.isSameBook("活着", "余华", "活着", "泰戈尔"), false);
+  assert.equal(h.isSameBook("某书", "金", "某书", "金庸"), false, "姓氏前缀不是简写");
+});
+
+test("runShelfOcr：分隔符/简写差异的书应被认出「书单已有」而不是重复加入", async () => {
+  const h = createHarness({
+    shelfResponse: { books: [
+      { title: "羊道 深山夏牧场", author: "李娟", confidence: 0.9 },
+      { title: "通往奴役之路", author: "[英] 弗里德里希·哈耶克", confidence: 0.9 },
+    ] },
+  });
+  h.setState({
+    books: [
+      { id: "b1", title: "羊道·深山夏牧场", author: "李娟", tags: [] },
+      { id: "b2", title: "《通往奴役之路》", author: "[英] 弗里德里希·奥古斯特·冯·哈耶克", tags: [] },
+    ],
+    quotes: [], sessions: [], connections: [],
+  });
+  h.stubResize(async () => "data:image/jpeg;base64,xxx");
+
+  await h.runShelfOcr(FAKE_FILE);
+  const c = h.getCandidates();
+
+  assert.equal(c[0].duplicate, true, "羊道：分隔符不同也应认出已有");
+  assert.equal(c[0].checked, false, "已有的书不该默认勾选");
+  assert.equal(c[1].duplicate, true, "哈耶克：作者简写也应认出已有");
+  assert.equal(c[1].checked, false);
 });

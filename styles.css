@@ -3955,10 +3955,19 @@ body.is-admin .admin-only { display: revert; }
 .shelf-ocr-row[data-level="mid"] { border-left-color: var(--color-accent); }
 .shelf-ocr-row[data-level="low"] { border-left-color: var(--color-ink-muted); }
 
+/* Same trap as .terms-check: the global `input { appearance: none; width: 100%;
+   padding: 13px 14px }` rule strips the native tick, so the box renders empty
+   and clicking it looks like nothing happened. appearance must be restored. */
 .shelf-ocr-row input[type="checkbox"] {
-  flex: none;
-  width: 18px;
-  height: 18px;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  margin: 0;
+  border-radius: 4px;
+  appearance: auto;
+  -webkit-appearance: checkbox;
   accent-color: var(--color-ink);
 }
 
