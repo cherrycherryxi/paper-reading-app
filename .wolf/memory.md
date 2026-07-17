@@ -3348,3 +3348,4 @@
 | 20:26 | Session end: 51 writes across 21 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~203397 tok |
 | 21:01 | 记 OPT-120 长耗时OCR结果留存+断线取回 | optimization/backlog.md | P2/M;OPT-119已被夜间explore占号故用120 | ~1500 |
 | 21:02 | Session end: 51 writes across 21 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~203397 tok |
+| 21:33 | 发版 prod:main 快进到 80bd500(4功能 OPT-118/115/116/119/71) | prod checkout + kickstart paper-backend-prod | read.readjot.com 验证通过:新端点401(存在)、/app含入口、app.js含runShelfOcr | ~2000 |
