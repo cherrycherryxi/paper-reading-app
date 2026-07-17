@@ -3345,3 +3345,5 @@
 | 20:22 | Edited app.js | modified catch() | ~222 |
 | 20:23 | Created tests/frontend/api-fetch-interrupted.test.js | — | ~1172 |
 | 20:26 | 排查切走App后「连接后端错误」:后端回包在try内致真错被掩盖+前端错误归因误导 | app_server.py,app.js,tests/ | 根因=iOS挂起断socket;OCR其实成功;全绿 py393/js399 | ~9000 |
+| 20:26 | Session end: 51 writes across 21 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 19 reads | ~203397 tok |
+| 21:01 | 记 OPT-120 长耗时OCR结果留存+断线取回 | optimization/backlog.md | P2/M;OPT-119已被夜间explore占号故用120 | ~1500 |
