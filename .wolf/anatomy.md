@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T06:40:30.624Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T07:01:05.215Z
 > Files: 303 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -313,7 +313,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~30599 tok)
+- `backlog.md` — Optimization Backlog (~30700 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
@@ -323,7 +323,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1941 tok)
+- `triage.md` — Triage (~2040 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -447,8 +447,8 @@
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~386 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
-- `img-3-流程.html` (~831 tok)
+- `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)

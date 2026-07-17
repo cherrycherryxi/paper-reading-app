@@ -1033,14 +1033,19 @@ Format per item:
 - how: `app.js:1238-1246`：将 `return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)` 替换为 status-aware 三分支：若 `a.status === "finished"` 则按 `finishedAt` desc；若 `a.status === "reading"` 则按 `lastReadAt` desc；其余按 `createdAt` desc。Touch: `app.js:1238-1246`（`compareBooksForList` 函数体）。建议与 E184（已读完书卡展示 finishedAt）合并为「已读完书单时序体验」PR。
 
 ### OPT-117 — 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding 的「即时兑现」钩子 — owner 渠道复盘直接提出 [2026-07-16]
-- status: triaged
+- status: **blocked** — 2026-07-17 调研结论：原方案（服务端代抓）技术上不成立，作为增长钩子的目标（陌生手机用户 30 秒生成画像）无可行路径。降级 P3 搁置，等待新证据再解冻。
 - area: fullstack
-- priority: P1
+- priority: P3（原 P1，2026-07-17 调研后降级）
 - size: L
-- northstar: 高——增长/激活层。渠道复盘（2026-07-16）结论：分享物料承诺「扫码生成你的阅读画像」，但陌生新用户注册后面对空书架，需手动录入几十本书才有任何画像可看，承诺-兑现落差是转化为 0 的核心断点之一。本项把 OPT-105 的能力翻转为新用户 onboarding：输入豆瓣 ID → 服务端拉取其公开「读过」（书名/作者/评分/读完日期/短评）→ 30 秒内生成该用户自己的阅读偏好画像（评分脉络+偏好分析，复用 OPT-113 已入 prompt 的 rating/finishedAt）→ 顺势引导注册留存。精准命中豆瓣/小红书读书人群（他们的历史数据都在豆瓣）；也是小红书内容策略第 5 篇「豆瓣搬家」的产品支撑。
-- description: 现状：`tools/douban_export.py` 是本地 CLI（owner 亲测公开书架无 cookie 可抓 110 本），陌生用户无法使用；`importDoubanCsv()`（app.js）要求用户自己跑脚本得到 CSV。缺一条「站内输入豆瓣 ID → 后端代抓 → 画像页」的产品化链路。
-- why: 把海报/帖子的承诺当场兑现，是画像分享素材能形成增长闭环的前提；同时天然完成数据导入（书+评分+日期+短评一次到位），新用户跳过冷启动录入。
-- how: ①后端新端点（如 `POST /api/douban/import-preview`）：移植 douban_export.py 的 fetch+parse 到 app_server.py，输入豆瓣数字 ID，仅抓公开 collect 页（mode=list），带严格频控（全局队列 + 每 IP/每 ID 限次 + REQ_INTERVAL≥2.5s + 页数上限）与被拦降级提示；②前端 onboarding 入口（未登录 landing 或注册后空状态）：输入 ID → 进度态 → 画像结果页（偏好脉络+星级分布，可复用分享卡视觉）→ 「保存到我的书架」触发注册/登录并落库（复用 importDoubanCsv 的 fill-if-empty 合并语义）；③风控注意：豆瓣反爬（服务端 IP 被 ban 的风险，小规模可行）、隐私提示（仅抓公开数据）、结果缓存防重复抓取。Touch: app_server.py（抓取端点+频控）、app.js/index.html（onboarding 流程+画像页）、可选复用 AI 偏好分析 prompt。
+- northstar: ~~高~~ → **无法兑现**。原设想：分享物料承诺「扫码生成你的阅读画像」，新用户注册后面对空书架，承诺-兑现落差是转化断点；本项拟用豆瓣数据填平。**但豆瓣侧的墙让这个目标在手机端无解**（见 how 的调研结论）。承诺-兑现落差本身仍是真问题，改由 OPT-118（书架照片一键建库）承接。
+- description: 现状：`tools/douban_export.py` 是本地 CLI（owner 亲测公开书架无 cookie 可抓 110 本，但那是**单人、自家 IP、2.5s 间隔**的特殊条件）；`importDoubanCsv()`（app.js:4374）要求用户自己跑脚本得到 CSV。缺「用户把豆瓣数据交给我们」的可行路径——**注意入库侧已完全就绪**（匹配/回填/新增语义 + 测试齐备），缺的只有数据获取这一段。
+- why: 原动机成立（豆瓣重度用户的历史数据都在豆瓣），但下方三条获取路径全部被否，动机无法转化为可交付方案。
+- how: **【2026-07-17 调研结论 — 三条路全部否决】**
+  ① ~~服务端代抓~~ ❌ **实测否决**：无 cookie 抓 `book.douban.com/people/<id>/collect?mode=list` 单次可用（HTTP 200、29 条/页、含评分+日期），但豆瓣**按 IP 强风控**——间隔 2.5s 连抓 4 次即全部 403，且封禁持续 >3.5 分钟，连 owner 自己的书架也一并 403。单用户导入 110 本需翻 4 页 = 必然触发；多用户并发 = 服务器 IP 长期被封并连带影响 prod。频控无法解决（频控只限制我方发送量，改变不了豆瓣的 IP 阈值）。除非代理池——不做。
+  ② ~~豆瓣官方数据导出~~ ❌ **查证否决**：官方入口确实存在（隐私政策原文：「你可通过豆瓣App『设置』-『个人信息管理』-『个人信息下载』页面获取你的个人信息副本，我们会将其发送到你指定的邮箱」https://www.douban.com/about/privacy ），但：**仅 App 内有入口**（非网页）、**承诺 15 个工作日内答复**（异步，无法做 onboarding）、**政策未列明副本含哪些数据项、未说明格式**（是否含读过/评分/短评/日期，JSON 还是 PDF，均无保证）。
+  ③ ~~浏览器书签脚本 bookmarklet~~ ⚠️ **技术可行但目标不匹配**：跑在用户自己浏览器/IP 上，天然分散、同源无 CORS、已登录数据完整——是唯一技术可行路径。但体验为「复制代码→存书签→开豆瓣→点书签」，门槛不低于现有 CSV 方案，且**手机端基本无法操作**，而小红书流量 95% 是手机。解决不了原始目标。
+  **第三方生态同样是死的**：豆伴/tofu 官方文档自陈「可能会因为频繁访问豆瓣服务器而导致当前账号被锁定」（同一堵墙）；油猴脚本停更于 2019。
+  **若未来解冻**，触发条件：豆瓣开放官方 API/同步导出、或出现真实用户明确愿意接受书签脚本门槛（届时按 ③ 做，PC 端限定）。
 
 ### OPT-118 — `all_books_summary` 缺少 `doubanComment`——OPT-105 导入的 110 条豆瓣短评对 AI 跨书查询不可见 — 由 explore E190 提拔 [2026-07-16]
 - status: new
@@ -1061,3 +1066,13 @@ Format per item:
 - description: `app.js:1341-1356`（`buildBookSearchCard()` 的 `progressText` 构建段）：`progressText` 对所有状态使用同一分支，`book.status === "finished"` 时展示「已读到第X页」或「X%·X/Y页」——读完后的页数进度对用户无语义价值。`book.finishedAt` 字段已在详情弹窗（`app.js:3532`）和书卡分享（`app.js:3023`）中读取，书单主视图卡面是唯一遗漏入口。
 - why: OPT-105 后 110 本书的读完日期在最高频浏览入口完全不可见；owner 2026-06-26 明确「希望有读完日期字段」；书单卡面是 Theme 2「回顾」场景最高频的视觉起点，时序信息缺失直接削弱「扫一眼就能回顾」的体验。
 - how: `app.js:1341-1356`（progressText 赋值段）：在现有赋值逻辑前插入 `if (book.status === "finished" && book.finishedAt) { progressText = \`读完 ${book.finishedAt.slice(0, 10)}\`; }` 分支，短路其余进度逻辑；或用三元合并（`book.status === "finished" && book.finishedAt ? \`读完...\` : <原逻辑>`）。约 3-4 行 JS，0 行 CSS 变更（`progressText` 已有容器样式）。建议与 OPT-115 合并为「已读完书卡信息完整度」PR。Touch: `app.js:1341-1356`（buildBookSearchCard progressText 构建段）。
+
+### OPT-118 — 拍一张书架照片，批量识别书名一键建库——新用户 onboarding 的「即时兑现」钩子（替代 OPT-117） — owner 渠道复盘 + OPT-117 调研否决后提出 [2026-07-17]
+- status: new
+- area: fullstack
+- priority: P1
+- size: M
+- northstar: 高——增长/激活层。承接 OPT-117 被否决后遗留的真问题：**分享物料承诺「30 秒生成你的阅读画像」，但新用户注册后面对空书架，需手动录入几十本书才有任何画像可看**（渠道复盘 2026-07-16：豆瓣 0 转化的核心断点之一）。相比 OPT-117 依赖豆瓣（已证不可行），本项**完全在自己掌控内**：用已成熟的 OCR 能力，让用户拍一张自己书架/一摞书的照片 → 批量识别书名作者 → 勾选确认 → 一键建库。**手机原生适配**（拍照是手机最自然的动作），而小红书流量 95% 是手机——这才是「即时兑现」在目标渠道真正跑得通的形态。
+- description: 现状已有**单本**封面识别的完整链路：前端 `runBookOcr()`（app.js:4610）拍/选一张封面图 → `POST` 到后端（app_server.py:4780 附近）→ `BOOK_OCR_PROMPT` + `call_kimi_vision()` → `parse_book_ocr_extraction()`（app_server.py:1086）返回单个 `{title, author, tags}` → 填进加书表单。缺口：一次只能一本，且直接填表单（无批量勾选/确认）。新用户有 30 本实体书时，要重复 30 次。
+- why: 「拍书架 → 建库」把冷启动从「手动录 30 本（放弃）」压缩到「拍一张照 + 勾选（30 秒）」，直接兑现分享物料的承诺；且与 App 核心心智（拍照采集）完全一致，是 OCR 能力的自然延伸；不依赖任何外部平台，无 OPT-117 那种被第三方封锁的风险。
+- how: ①后端：新增（或给现有书籍 OCR 端点加 `mode=shelf` 分支）批量提示词 `SHELF_OCR_PROMPT`——要求模型从书架照片中识别**多本**书脊/封面，返回 `[{title, author, confidence}]` 数组；复用 `call_kimi_vision()`；`parse_book_ocr_extraction()` 需扩展或新增数组版解析（容忍 markdown 围栏/缺字段，参照现有实现）。走已有 `ocr` 限流桶（PLAN_LIMITS，free 12/时 40/天），注意书架图信息密度高，可能需单独放宽或计多次。②前端：新入口（「我的」或空书架状态的显眼位置）→ 拍照/选图（复用 `resizeImageToDataUrl`，注意书架图需更高分辨率上限，现默认 1200px 可能不够识别书脊小字）→ 批量结果**勾选确认列表**（可编辑书名/作者、默认全选、去重：复用 `isSameBook()` 与已有书比对，已存在的标灰）→ 一键建库（复用 `importDoubanCsv` 同款 fill-if-empty 新增语义，`status` 默认 wishlist 或让用户选）。③风险/验证点：**书脊竖排文字 + 小字号是识别难点，必须先用 owner 真实书架照片做可行性验证**（识别率 <60% 则本方案价值大打折扣，应先验证再开发）；分辨率/压缩策略需实测；单张图书目过多时的 token 成本。Touch: `app_server.py`（SHELF_OCR_PROMPT + 数组解析 + 端点分支）、`app.js`（拍照入口 + 勾选确认 UI + 批量建库）、`index.html`（入口 + 确认列表 DOM）、`styles.css`。

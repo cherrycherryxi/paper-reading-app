@@ -31,7 +31,8 @@ Last triaged: 2026-07-16
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-117 | 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding「即时兑现」钩子 | P1 | L | triaged | owner 渠道复盘 2026-07-16 直接提出；northstar「高」（增长/激活层，分享物料承诺与兑现落差）；L 复杂度（新爬取端点+频控+onboarding流程），**不适合夜间 agent**，留白天功能轨。Touch: `app_server.py`（/api/douban/import-preview）、`app.js/index.html`（onboarding 流程）。 |
+| OPT-118 | 拍书架照片批量识别书名一键建库——新用户 onboarding「即时兑现」钩子（替代 OPT-117） | P1 | M | new | 2026-07-17 提出，承接 OPT-117 被否后的真问题；northstar「高」（增长/激活）；复用已有单本封面 OCR 链路（`runBookOcr` + `BOOK_OCR_PROMPT` + `call_kimi_vision`）扩成多本+勾选确认。**开发前必须先用真实书架照片验证书脊识别率**（<60% 则方案价值存疑）。手机原生适配，不依赖外部平台。**不适合夜间 agent**（含可行性验证+新 UI），留白天功能轨。 |
+| OPT-117 | 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding「即时兑现」钩子 | ~~P1~~ **P3** | L | **blocked** | ❌ 2026-07-17 调研否决，降级搁置。①服务端代抓：实测 2.5s 间隔连抓 4 次即全部 403、封禁 >3.5 分钟（豆瓣按 IP 风控），多用户并发会长期封服务器 IP 并连带 prod——频控无法解决，架构不成立。②豆瓣官方「个人信息下载」：确实存在但**仅 App 内入口 + 承诺 15 个工作日 + 未列明数据项与格式**，无法做 onboarding。③bookmarklet：技术可行但手机端无法操作（小红书流量 95% 手机），目标不匹配。真问题改由 OPT-118 承接。解冻条件：豆瓣开放官方 API/同步导出。 |
 | OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **done** | ✅ 2026-07-15（commit b978f9f）; W29 焦点。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）。 |
 | OPT-113 | PromptBuilder.all_books_summary 缺 rating/finishedAt，AI 无法回答跨书评分/读完时间查询 | P2 | S | **done** | ✅ PR #69（与 OPT-114 合并一 PR）已合入 feature/agent [2026-07-16]。 |
 | OPT-114 | compareBooksForList() 二级排序键为 createdAt——豆瓣导入后「已读完」组时序语义错乱 | P2 | S | **done** | ✅ PR #69（与 OPT-113 合并一 PR）已合入 feature/agent [2026-07-16]。 |
