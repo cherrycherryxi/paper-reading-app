@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T04:29:54.374Z
-> Files: 299 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T05:34:50.350Z
+> Files: 301 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -39,13 +39,14 @@
 
 - `opt118-msg.txt` (~103 tok)
 - `opt119-msg.txt` (~122 tok)
+- `wolf-msg.txt` (~30 tok)
 
 ## ../../.claude/
 
 - `bark-key.txt` (~6 tok)
 - `CLAUDE.md` — 全局工作约定（跨项目） (~421 tok)
 - `product-owner-latest.md` — 产品负责人周报 — 2026-W29(7/13 周一仪式) (~234 tok)
-- `settings.json` (~1484 tok)
+- `settings.json` (~2125 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
 ## ../../.claude/daily-logs/
@@ -125,7 +126,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~609 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~604 tok)
+- `project_daily_loop_automation.md` (~743 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
@@ -202,7 +203,7 @@
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~49609 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~46807 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11314 tok)
-- `CLAUDE.md` — OpenWolf (~1301 tok)
+- `CLAUDE.md` — OpenWolf (~1454 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~11796 tok)
@@ -257,6 +258,10 @@
 ## .claude/worktrees/agent-aebfc23151e99c216/tests/agent/
 
 - `security_headers_test.py` — Regression tests for OPT-011: security headers on static/HTML responses. (~917 tok)
+
+## .githooks/
+
+- `pre-push` — pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。 (~635 tok)
 
 ## .kiro/specs/agent-backend-reliability/
 
@@ -440,8 +445,8 @@
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~386 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~831 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~386 tok)
