@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T14:26:59.286Z
-> Files: 295 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T19:16:55.446Z
-> Files: 288 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T04:29:54.374Z
+> Files: 299 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -36,6 +34,11 @@
 - `og-card.html` — Declares html (~417 tok)
 - `slide.html` — Declares html (~606 tok)
 - `wechat-poster.html` — Declares html (~594 tok)
+
+## ../../../../tmp/
+
+- `opt118-msg.txt` (~103 tok)
+- `opt119-msg.txt` (~122 tok)
 
 ## ../../.claude/
 
@@ -87,11 +90,13 @@
 - `cards-2026-07-13.md` — 卡片① (~117 tok)
 - `cards-2026-07-15.md` — 卡片① (~89 tok)
 - `cards-2026-07-16.md` — 卡片① (~142 tok)
+- `cards-2026-07-17.md` — 卡片① (~134 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
 - `review-2026-07-16.md` — 夜间 PR 处理报告 — 2026-07-16 (~465 tok)
-- `today-pick.md` — 卡片① (~111 tok)
+- `review-2026-07-17.md` — 夜间 PR 审查报告 — 2026-07-17 (~814 tok)
+- `today-pick.md` — 卡片① (~286 tok)
 
 ## ../../.claude/plans/
 
@@ -187,9 +192,9 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71473 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~71568 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~60806 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~60818 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -340,7 +345,7 @@
 
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
-- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~11734 tok)
+- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~12174 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)
@@ -374,7 +379,7 @@
 - `book-filter-clear-all.test.js` — OPT-107 书单三个筛选维度（搜索词 / 状态 chip / 标签 chip）的「清除全部筛选」入口。 (~2476 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4598 tok)
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs cover to /api/books/ocr and fills bookForm title/author/tags only when empty (never overwrites user input). (~1500 tok)
-- `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~6007 tok)
+- `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~6017 tok)
 - `book-reading-dates.test.js` — OPT-074: book startedAt/finishedAt display in detail dialog + editable date inputs in edit dialog (~2600 tok)
 - `book-review-rating.test.js` — OPT-098: AI 读后感生成 + 星级评分（E159 + E160 合并 PR） (~3049 tok)
 - `clear-filters.test.js` — 「一键清除全部筛选」从书单页扩展到 记录 / 摘抄 / 关联 三页（呼应 07-11 signal）。 (~1551 tok)
@@ -435,8 +440,8 @@
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~386 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~831 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~386 tok)
