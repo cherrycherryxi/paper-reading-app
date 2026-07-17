@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T05:44:11.827Z
-> Files: 301 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T06:10:49.887Z
+> Files: 302 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -126,7 +126,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~609 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~830 tok)
+- `project_daily_loop_automation.md` (~982 tok)
 - `project_optimization_pipeline.md` (~549 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
@@ -144,8 +144,9 @@
 - `focus-midweek-check.sh` — 焦点中期检查(每周四 21:00,launchd com.huangnanqi.focus-midweek-check)。 (~562 tok)
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
-- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~691 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1289 tok)
+- `paper-dev-reload.sh` — paper-dev-reload.sh —— 合并 PR 后按需重启 dev 后端，让改动真正在 8787 上生效。 (~559 tok)
+- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~778 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1377 tok)
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)

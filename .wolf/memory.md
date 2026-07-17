@@ -3269,3 +3269,10 @@
 | 13:44 | 清积压: push #70 分支救回孤儿测试提交 f68af41 → 合并 #70；opt-118/119 推送并开 PR #71/#72（base=feature/agent）；today-pick 标 DONE | PR #70/#71/#72, ~/.claude/paper-loop/today-pick.md | done | ~4000 |
 | 13:45 | Session end: 3 writes across 3 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md) | 3 reads | ~1956 tok |
 | 14:05 | 闸门复审并合并 #71(OPT-118)/#72(OPT-119) —— CI 三项全绿含 claude-review，diff 聚焦、测试真跑源码；pull dev 并 kickstart paper-backend 让后端改动生效 | app_server.py, app.js, PR #71/#72 | merged+dev-live | ~5000 |
+| 14:09 | Created ../../.claude/scripts/paper-dev-reload.sh | — | ~559 |
+| 14:09 | Edited ../../.claude/scripts/paper-implement-poll.sh | 4→5 lines | ~63 |
+| 14:09 | Edited ../../.claude/scripts/paper-implement-poll.sh | 1→6 lines | ~76 |
+| 14:09 | Edited ../../.claude/scripts/paper-morning.sh | 2→3 lines | ~38 |
+| 14:09 | Edited ../../.claude/scripts/paper-morning.sh | 1→6 lines | ~77 |
+| 14:10 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→3 lines | ~210 |
+| 14:10 | 补自动化缺口: 新增 paper-dev-reload.sh —— morning/poll 合并后按需 kickstart dev（仅非 tests 的 .py 变动才重启），四条分支实测通过 | ~/.claude/scripts/paper-{dev-reload,implement-poll,morning}.sh | done | ~3500 |
