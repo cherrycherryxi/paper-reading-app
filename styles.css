@@ -3971,17 +3971,29 @@ body.is-admin .admin-only { display: revert; }
   accent-color: var(--color-ink);
 }
 
+/* Title on its own full-width line, author + note beneath it. Side by side the
+   two fields truncated long titles mid-name on a phone, which defeats the
+   confirm step — the user must be able to read what they're approving. */
 .shelf-ocr-fields {
   display: flex;
+  flex-direction: column;
   flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shelf-ocr-sub {
+  display: flex;
+  align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
 .shelf-ocr-title,
 .shelf-ocr-author {
+  width: 100%;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: var(--color-surface-alt);
@@ -3989,8 +4001,8 @@ body.is-admin .admin-only { display: revert; }
   font-size: 0.9rem;
 }
 
-.shelf-ocr-title { flex: 2; }
-.shelf-ocr-author { flex: 1; color: var(--color-ink-soft); }
+.shelf-ocr-title { font-weight: 600; }
+.shelf-ocr-author { flex: 1; color: var(--color-ink-soft); font-size: 0.82rem; }
 
 .shelf-ocr-title:focus,
 .shelf-ocr-author:focus {

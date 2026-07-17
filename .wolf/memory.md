@@ -3312,3 +3312,9 @@
 | 16:42 | Edited tests/agent/agent_backend_property_test.py | modified test_books_are_same_ignores_title_subtitle_separator_style() | ~515 |
 | 16:46 | Edited tests/frontend/book-duplicate.test.js | expanded (+18 lines) | ~493 |
 | 16:49 | OPT-118 真机实测两bug修复:checkbox被全局appearance:none压掉+isSameBook分隔符/作者简写不归一(已给owner库造4本重复,已清理) | styles.css,app.js,app_server.py,tests/ | 全绿 py381/js387;DB已备份;owner拍板简写=同一人 | ~9000 |
+| 16:50 | Session end: 33 writes across 20 files (CLAUDE.md, project_daily_loop_automation.md, feedback_pr_target_feature_agent.md, paper-dev-reload.sh, paper-implement-poll.sh) | 16 reads | ~192752 tok |
+| 17:04 | Edited app.js | added 2 condition(s) | ~402 |
+| 17:04 | Edited app_server.py | modified book_main_title_for_match() | ~470 |
+| 17:05 | Edited app.js | 9→13 lines | ~248 |
+| 17:05 | Edited tests/agent/agent_backend_property_test.py | modified test_books_are_same_matches_main_title_against_full_cover_title() | ~485 |
+| 17:07 | OPT-118 真机第二轮:副标题匹配(重走)+确认列表布局截断 | app.js,app_server.py,styles.css,tests/ | 全绿 py384/js390;变异验证锁住系列书防线;清理1本重复 | ~7000 |

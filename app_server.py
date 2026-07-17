@@ -943,15 +943,45 @@ def authors_are_compatible(author_a, author_b) -> bool:
     return all(token in longer for token in shorter)
 
 
+def book_main_title_for_match(title) -> str:
+    """Title with any subtitle dropped.
+
+    The part after a colon is a subtitle, not part of the name: a shelf photo
+    reads the full cover 「重走：在公路、河流和驿道上寻找西南联大」while the library
+    holds just 「重走」. Only ：/: count as subtitle markers — 「·」 separates a series
+    from its volume, and 羊道·春牧场 / 羊道·深山夏牧场 must stay different books.
+
+    Mirrors bookMainTitleForMatch in app.js.
+    """
+    bare = str(title or "").strip().strip("《》")
+    return normalize_book_title_for_match(re.split(r"[：:]", bare)[0] or bare)
+
+
+def titles_are_same(title_a, title_b) -> bool:
+    """Same title, or one side carries a subtitle the other omits.
+
+    Comparing each main title against the *whole* other title (rather than
+    main-vs-main) keeps same-series volumes apart: 明朝那些事儿：第一部 / 第二部
+    share a main title but neither equals the other in full, so they stay distinct.
+
+    Mirrors titlesAreSame in app.js.
+    """
+    ta = normalize_book_title_for_match(title_a)
+    tb = normalize_book_title_for_match(title_b)
+    if not ta or not tb:
+        return False
+    if ta == tb:
+        return True
+    return book_main_title_for_match(title_a) == tb or book_main_title_for_match(title_b) == ta
+
+
 def books_are_same(title_a, author_a, title_b, author_b) -> bool:
     """Two books match when titles match and authors are compatible.
 
     An empty author means "unspecified" and acts as a wildcard, so a title-only
     book still matches an existing same-title book that has an author.
     """
-    ta = normalize_book_title_for_match(title_a)
-    tb = normalize_book_title_for_match(title_b)
-    if not ta or ta != tb:
+    if not titles_are_same(title_a, title_b):
         return False
     return authors_are_compatible(author_a, author_b)
 

@@ -795,13 +795,32 @@ function authorsAreCompatible(authorA, authorB) {
   return shorter.every((token) => longer.includes(token));
 }
 
+// The part after a colon is a subtitle, not part of the name: a shelf photo reads
+// the full cover 「重走：在公路、河流和驿道上寻找西南联大」while the library holds
+// just 「重走」. Only ：/: count as subtitle markers — 「·」 separates a series from
+// its volume, and 羊道·春牧场 / 羊道·深山夏牧场 must stay different books.
+function bookMainTitleForMatch(title) {
+  const bare = normalizeBookTitle(title);
+  return normalizeBookTitleForMatch(bare.split(/[：:]/)[0] || bare);
+}
+
+// Same title, or one side carries a subtitle the other omits. Comparing each
+// main title against the *whole* other title (rather than main-vs-main) keeps
+// same-series volumes apart: 明朝那些事儿：第一部 / 第二部 share a main title but
+// neither equals the other in full, so they stay distinct.
+function titlesAreSame(titleA, titleB) {
+  const ta = normalizeBookTitleForMatch(titleA);
+  const tb = normalizeBookTitleForMatch(titleB);
+  if (!ta || !tb) return false;
+  if (ta === tb) return true;
+  return bookMainTitleForMatch(titleA) === tb || bookMainTitleForMatch(titleB) === ta;
+}
+
 // Two books are the same when titles match and authors are compatible.
 // An empty author means "unspecified" and acts as a wildcard, so adding a
 // title-only book still matches an existing same-title book that has an author.
 function isSameBook(titleA, authorA, titleB, authorB) {
-  const ta = normalizeBookTitleForMatch(titleA);
-  const tb = normalizeBookTitleForMatch(titleB);
-  if (!ta || ta !== tb) return false;
+  if (!titlesAreSame(titleA, titleB)) return false;
   return authorsAreCompatible(authorA, authorB);
 }
 
@@ -4519,13 +4538,17 @@ function renderShelfOcrList() {
     .map((c, i) => {
       const level = c.confidence >= SHELF_OCR_AUTO_CHECK_CONFIDENCE ? "high" : (c.confidence >= 0.5 ? "mid" : "low");
       const note = c.duplicate ? "书单已有" : (level === "high" ? "" : "请核对");
+      // Title gets its own full-width row: side by side with the author it was
+      // cut off mid-name on a phone, which defeats the point of a confirm step.
       return `<label class="shelf-ocr-row" data-level="${level}">
         <input type="checkbox" data-shelf-index="${i}"${c.checked ? " checked" : ""} />
         <span class="shelf-ocr-fields">
           <input type="text" class="shelf-ocr-title" data-shelf-title="${i}" value="${escapeHtml(c.title)}" aria-label="书名" />
-          <input type="text" class="shelf-ocr-author" data-shelf-author="${i}" value="${escapeHtml(c.author)}" placeholder="作者" aria-label="作者" />
+          <span class="shelf-ocr-sub">
+            <input type="text" class="shelf-ocr-author" data-shelf-author="${i}" value="${escapeHtml(c.author)}" placeholder="作者" aria-label="作者" />
+            ${note ? `<span class="shelf-ocr-note">${note}</span>` : ""}
+          </span>
         </span>
-        ${note ? `<span class="shelf-ocr-note">${note}</span>` : ""}
       </label>`;
     })
     .join("");

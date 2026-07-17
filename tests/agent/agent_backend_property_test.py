@@ -741,6 +741,32 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertTrue(app_server.books_are_same("羊道:春牧场", "李娟", "羊道·春牧场", "李娟"))
         self.assertTrue(app_server.books_are_same("羊道·前山夏牧场", "李娟", "羊道 前山夏牧场", "李娟"))
 
+    def test_books_are_same_matches_main_title_against_full_cover_title(self):
+        # Real bug (2026-07-17, OPT-118): the shelf photo read the full cover
+        # 「重走：在公路、河流和驿道上寻找西南联大」while the library held 「重走」,
+        # so a duplicate was created on top of a finished, 4-star book.
+        self.assertTrue(app_server.books_are_same(
+            "重走：在公路、河流和驿道上寻找西南联大", "杨潇", "重走", "杨潇"))
+        self.assertTrue(app_server.books_are_same(
+            "重走", "杨潇", "重走：在公路、河流和驿道上寻找西南联大", "杨潇"))
+
+    def test_titles_are_same_keeps_series_volumes_apart(self):
+        # The subtitle rule must not swallow a series: these share a main title
+        # (or a prefix) but are different volumes / different books.
+        self.assertFalse(app_server.titles_are_same("明朝那些事儿：第一部", "明朝那些事儿：第二部"))
+        self.assertFalse(app_server.titles_are_same("羊道·春牧场", "羊道·深山夏牧场"))
+        self.assertFalse(app_server.titles_are_same("第二性 I", "第二性 II"))
+        self.assertFalse(app_server.titles_are_same("花朵与探险", "花朵与探险2"))
+        # 「·」 is a series separator, not a subtitle marker, so it never truncates.
+        self.assertFalse(app_server.titles_are_same("羊道", "羊道·春牧场"))
+        # No separator at the boundary: two genuinely different books.
+        self.assertFalse(app_server.titles_are_same("活着", "活着为了讲述"))
+
+    def test_book_main_title_for_match_drops_only_the_subtitle(self):
+        self.assertEqual(app_server.book_main_title_for_match("重走：在公路上"), "重走")
+        self.assertEqual(app_server.book_main_title_for_match("《厌女：日本的女性嫌恶》"), "厌女")
+        self.assertEqual(app_server.book_main_title_for_match("羊道·春牧场"), "羊道春牧场")
+
     def test_books_are_same_accepts_abbreviated_translated_author(self):
         # Real bug (2026-07-17, OPT-118): 「[英] 哈耶克」/「[英] 弗里德里希·哈耶克」/
         # 「[英] 弗里德里希·奥古斯特·冯·哈耶克」are one person; a duplicate was created.

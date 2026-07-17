@@ -8798,6 +8798,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T08:46:59.280Z"
+    },
+    {
+      "id": "bug-527",
+      "timestamp": "2026-07-17T09:04:37.541Z",
+      "error_message": "Wrong operator: !== should be ===",
+      "file": "app.js",
+      "root_cause": "Used \"!==\" instead of \"===\"",
+      "fix": "Changed operator !== → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T09:04:37.541Z"
+    },
+    {
+      "id": "bug-528",
+      "timestamp": "2026-07-17T09:04:49.549Z",
+      "error_message": "Wrong operator: != should be ==",
+      "file": "app_server.py",
+      "root_cause": "Used \"!=\" instead of \"==\"",
+      "fix": "Changed operator != → ==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T09:04:49.549Z"
     }
   ]
 }
