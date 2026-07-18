@@ -3254,6 +3254,52 @@ showConfirmDialog({
 
 > 本次 run（2026-07-16）扫描焦点：OPT-105 后新字段在 UI 可见度的残余缺口 + 2026-07-16 信号（owner 不用「记录」页）对应的时序数据机会。新发现 4 条：E191（buildBookSearchCard 已读完不显 finishedAt，S，northstar 中-高，直接 3 行修复）、E186（addSession startedAt 追溯守卫缺失，S，northstar 中，补录语义正确性）、E187（deleteConnection thought 无声删除，S，northstar 中，OPT-106 对称延伸）、E192（quote createdAt 作为隐式阅读时序，M，northstar 高，需产品决策）。E190（all_books_summary 缺 doubanComment）上次已记录，今日提拔为 OPT-118；E191 今日提拔为 OPT-119。所有 S 级断言均基于实际代码读取，已标注 file:line。
 
+## 2026-07-17
+
+### E193 — `runShelfOcr()` 在 20 秒等待期间无加载状态：触发按钮不禁用、无 spinner，仅靠 2 秒 toast 提示 (S)
+
+**What:** `app.js:4556` 调用 `showToast("正在识别书架，约需 20 秒…")`，toast 2 秒后消失；随后 `await apiFetch(...)` 在 `app.js:4559` 发起请求、等待最长 20 秒，但这段时间内触发控件（`index.html:329` 的 `<label>` 包裹 `<input type="file" id="shelfOcrInput">`）没有任何禁用逻辑，也没有激活 spinner 或全局加载遮罩。若用户在等待期间误触「拍照/选图」按钮，将并发发起第二次 shelf OCR 请求（`runShelfOcr()` 里无并发守卫）。对比 `runOcr()`（`app.js:4488`）在 try 块内激活 `ocrSpinner`、finally 里关闭，`runShelfOcr()` 缺乏对称的 try/finally 加载态。
+
+**Why it matters:** OPT-118/PR #73 刚把「书架识别」作为核心新功能上线，且真机测试已证实一次识别要跑 16–20 秒（OPT-120 排查记录）。20 秒空白等待期没有视觉反馈，用户不知道是否还在运行、是否可以离开；加上按钮不禁用，误触重拍是真实风险。与 `runOcr()` 的加载态模式对称修复即可。
+
+**Complexity:** S — 在 `runShelfOcr()` 函数体加 `try { disableBtn / showSpinner } finally { enableBtn / hideSpinner }`，参照 `runOcr()` 已有模式（`app.js:4488-4540`）。需确认 `<label>` 触发器的禁用路径（`<label>` 本身不支持 `disabled`，需改为 `pointer-events:none` 或额外守卫变量）；约 8–10 行修改。
+
+**Files:** `app.js:4553-4598`（runShelfOcr）；`app.js:4488-4540`（runOcr，参照模式）；`index.html:329`（触发按钮）
+
+**northstar:** 中——Theme 1「采集顺滑」。OPT-118 新增的书架识别是 PR #73 重点功能，20 秒等待无反馈是上线后的明显体验漏洞；S 修复，已有 `runOcr()` 的对称代码模式可直接复用。
+
+---
+
+### E194 — `PromptBuilder.all_books_summary` 包含 `doubanComment` 但不含 `book.review`；用户手写读后感对跨书 AI 查询不可见 (S)
+
+**What:** `app_server.py:2607-2612`，`all_books_summary` 生成的每本书 dict 字段为 `id, title, author, status, rating, finishedAt, doubanComment`，其中 `doubanComment`（豆瓣评论）已在 OPT-118 中补入，但 `review`（用户自己写的读后感，2026-07-06 新增字段）缺席。单本书上下文（`app_server.py:2592` 直传完整 `book` 对象）没有此问题；缺口仅在跨书摘要路径。
+
+**Why it matters:** 用户通过「AI 根据笔记整理」生成或手写 `review` 字段后，询问 AI「帮我回顾一下最近读了哪些书，有什么感受」或「推荐给朋友一本」之类跨书问题时，AI 看不到这些读后感，无法引用用户自己的评价，只能回退到书名/作者层面泛泛而谈。OPT-105 豆瓣导入后 `doubanComment` 已补入 `all_books_summary`，`review` 应同步补齐，否则「用户自己写的」反而比「豆瓣上别人写的」更不可见。
+
+**Complexity:** S — `app_server.py:2611` 在 `all_books_summary` dict 追加一行 `"review": (b.get("review") or "")[:60]`（60 字截断保持 token 节约，与 `doubanComment` 截断长度对齐）。零 schema/API/前端变更。
+
+**Files:** `app_server.py:2607-2612`（all_books_summary dict）
+
+**northstar:** 中——Theme 2「回顾有价值」AI 查询层。S 单行修复，直接提升跨书回顾类问题的 AI 答复质量；`review` 字段是 2026-07-06 新增功能，此缺口是同批上线的遗漏，修复优先级高。
+
+---
+
+### E195 — `deleteBook()` 确认对话框只显示书名 + 通用警告文字；三类关联数据（N 次记录、M 条摘抄、K 条关联）的具体数量不展示，但辅助函数已全部就位 (S)
+
+**What:** `app.js:2714`：`els.deleteBookMessage.textContent = book.title;`——对话框消息仅设为书名。`index.html:636`：`<p class="delete-confirm-warning">⚠️ 同时删除该书的所有阅读记录、摘抄和探讨历史，无法恢复。</p>`——静态通用文字，不含数量。`deleteBook()` 在 `app.js:2740-2742` 同时级联删除 sessions、quotes 及涉及该书 quotes 的 connections。三个辅助函数已存在且低开销：`getBookSessions(bookId).length`（`app.js:930`）、`getQuoteCount(bookId)`（`app.js:946`）、`getConnectionCount(bookId)`（`app.js:950`）。
+
+**Why it matters:** 删书是最高破坏性操作（无法撤销，级联删三类数据），但警告是最模糊的——用户在点确认前不知道「到底会消失多少东西」。OPT-043（导入零内容守卫）、OPT-106（deleteQuote 级联透明度）已建立「破坏性操作前显示具体影响数量」的设计原则，`deleteBook()` 是同系列的最大缺口：一本有 30 条摘抄和 10 条关联的书，用户不知道确认按钮会炸掉多少内容。
+
+**Complexity:** S — 在 `app.js:2714` 之后读三个 count，拼进 `els.deleteBookMessage` 或修改 `.delete-confirm-warning` 的 textContent；例：「同时删除 5 次阅读记录、12 条摘抄、3 条关联，无法恢复。」约 6–8 行，0 API/schema 变更。
+
+**Files:** `app.js:2708-2715`（deleteBook 消息设置）；`index.html:636`（静态警告文字）；`app.js:930,946,950`（getBookSessions/getQuoteCount/getConnectionCount）
+
+**northstar:** 中——OPT-043/106「破坏性操作透明度」系列补全，S 修复且所有数据函数已就位；用户在删除高价值书目（如已有大量摘抄的书）时能看到具体损失，避免误操作。
+
+---
+
+> 本次 run（2026-07-17）扫描焦点：OPT-118 书架识别新上线后的体验漏洞 + OPT-105/豆瓣字段在 AI 上下文的完整性残余缺口 + 破坏性操作透明度系列补全。新发现 3 条：E193（runShelfOcr 无加载态，S，northstar 中，runOcr 对称修复）、E194（all_books_summary 缺 review 字段，S，northstar 中，1 行补全）、E195（deleteBook 对话框无具体数量，S，northstar 中，辅助函数已就位）。OPT-121 提拔 E194（1 行修复，直接影响 AI 回顾质量）；OPT-122 提拔 E186（addSession startedAt 追溯守卫，2026-07-16 遗留未促）。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。

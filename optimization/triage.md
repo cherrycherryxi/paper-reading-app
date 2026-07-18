@@ -2,30 +2,25 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-16
+Last triaged: 2026-07-17
 
 ## Next up
 
-**OPT-115 + OPT-116 — 书单卡面展示评分 + matchBooks 覆盖豆瓣短评（合并一 PR）**
+**本周实现预算已满（近 7 天已有 4 个 auto/ PR，上限 4），本次不指派。**
 
-预算状态：近 7 天 auto/ PR 共 **3 个**（PR #69 auto/opt-113-114 2026-07-16、PR #67 auto/opt-100-103-110 2026-07-14、PR #61 auto/opt-065 2026-07-11），上限 4，**本次可指派（3 < 4）**。
+预算状态：近 7 天 auto/ PR 共 **4 个**（PR #70 auto/opt-115-116 2026-07-16、PR #69 auto/opt-113-114 2026-07-16、PR #67 auto/opt-100-103-110 2026-07-14、PR #61 auto/opt-065 2026-07-11），已达上限 4，**不指派**。预算窗口最早于 2026-07-18（PR #61 滑出窗口）解冻。
 
 **状态更新（本次 triage）**：
-- OPT-104（PR #68）、OPT-106（PR #68）均 merged 2026-07-16，已在 backlog.md 标 done，从 in-progress 改为 done。
-- OPT-115、OPT-116：new → triaged（explore 2026-07-15 提拔）。
-- OPT-117：new → triaged（owner 渠道复盘 2026-07-16 直接提出）。P1、L 复杂度，涉及新后端端点（豆瓣爬取+频控）+ 新前端 onboarding 流程，**不适合夜间 implement agent**，标记供 owner 白天功能轨处理。
-- 今日新 signal（2026-07-16）：owner 很少显式新增「记录」，记录页面几乎不用，倾向以摘抄流替代——此为大方向架构信号，不产生单次可落地小项，记录在 signals.md，暂不出 OPT。
+- OPT-115（PR #70）、OPT-116（PR #70）merged 2026-07-16，in-progress → done。
+- OPT-118/doubanComment（PR #71）merged 2026-07-17，new → done。
+- OPT-119（PR #72）merged 2026-07-17，new → done。
+- OPT-118/shelf-OCR（PR #73）already done（2026-07-17，见前次 triage）。
+- OPT-120：new → triaged（P2, M）。真机实测（2026-07-17）后端 OCR 成功但 iOS 切屏断连导致结果丢失，owner 真实摩擦点。
+- 信号 2026-07-16「记录页面几乎不用，倾向以摘抄流替代」：大方向架构信号，不产生单次可落地小项，暂不出 OPT。
 
-**选题理由：**
+**若预算解冻，下一指派候选：OPT-053 + OPT-112（合并一 PR）**
 
-本周焦点 OPT-105（豆瓣导入）昨日落地（commit b978f9f），OPT-113+114（AI/书单两层消费）今日已合入（PR #69）。豆瓣导入数据链路三层已通：数据写入 → AI 可查 → 书单时序正确。但评分字段和豆瓣短评在两个常用入口仍「不可见/不可搜」：
-
-- **OPT-115**（`app.js:1303-1348`）：书单卡面从未展示 `book.rating`，用户无法一眼区分 5 星精读与 3 星随翻，OPT-099 评分字段在最高频视角透明度为零。约 2-3 行 JS + 1 行 CSS（.book-rating 徽章），参照已有 .status-badge 样式。**signal：2026-07-06**「评分是独立字段」。
-- **OPT-116**（`app.js:1239-1247`）：`matchBooks()` 的 fuzzyMatch 分支不含 `doubanComment`，豆瓣导入的 110 本书短评对书单搜索完全不可见；1 行追加，与 `book.review` 处理方式完全对称。**signal：2026-07-10**「豆瓣导入」（OPT-105 遗留数据可见性缺口）。
-
-两项合并一 PR：同文件 app.js 相邻区域，加 styles.css 1 行，共约 5-6 行，零后端/schema/API 变更，完成「豆瓣导入数据对用户浏览/搜索完全可见」的最后一公里。主题：Theme 2「回顾有价值」。
-
-**关键文件：** `app.js:1303-1348`（buildBookSearchCard 追加 ratingHtml）、`app.js:1239-1247`（matchBooks 追加 doubanComment 分支）、`styles.css`（.book-rating 徽章样式，1 行）
+OPT-053（Session 统计条默认显示，`app.js:1415-1425`，3 行）+ OPT-112（renderTimeline haystack 加 `s.date`，`app.js:1515`，1 行）：两项同区域同文件，合并 S 级 PR；均直接贡献北极星「回顾·检索操作次数」，与 Theme 2 强对齐；零后端/schema/API 变更；可在 PR #61（2026-07-11）滑出窗口后由 Agent2 优先执行。
 
 ## Prioritized backlog
 
@@ -41,8 +36,11 @@ Last triaged: 2026-07-16
 | OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **done** | PR #67（2026-07-14 merged）。与 OPT-103+OPT-110 合并一 PR。 |
 | OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **done** | PR #67（2026-07-14 merged）。 |
 | OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **done** | PR #67（2026-07-14 merged）。 |
-| OPT-115 | buildBookSearchCard() 不展示 book.rating——评分字段在最高频入口完全不可见 | P2 | S | **in-progress** | PR #70（与 OPT-116 合并一 PR）2026-07-16。 |
-| OPT-116 | matchBooks() 不含 book.doubanComment——OPT-105 豆瓣短评对搜索不可见 | P2 | S | **in-progress** | PR #70（与 OPT-115 合并一 PR）2026-07-16。 |
+| OPT-115 | buildBookSearchCard() 不展示 book.rating——评分字段在最高频入口完全不可见 | P2 | S | **done** | ✅ PR #70（与 OPT-116 合并一 PR）已合入 feature/agent [2026-07-16]。 |
+| OPT-116 | matchBooks() 不含 book.doubanComment——OPT-105 豆瓣短评对搜索不可见 | P2 | S | **done** | ✅ PR #70（与 OPT-115 合并一 PR）已合入 feature/agent [2026-07-16]。 |
+| OPT-118(a) | all_books_summary 缺 doubanComment——AI 跨书查询不可见豆瓣短评 | P2 | S | **done** | ✅ PR #71 已合入 feature/agent [2026-07-17]。 |
+| OPT-119 | buildBookSearchCard() 已读完书籍展示进度文字而非 finishedAt——读完日期不可见 | P2 | S | **done** | ✅ PR #72 已合入 feature/agent [2026-07-17]。 |
+| OPT-120 | 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走就白等 20s 并浪费 LLM 调用 | P2 | M | triaged | Theme 1「采集顺滑」；真机实测后端 OCR 成功但 iOS 断连丢结果；requestId+落库+visibilitychange 取回方案，改动量 M；不适合 agent（涉及新端点+schema）。 |
 | OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`，3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
 | OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，用户无法按时间段（"6月"/"2026-07"）搜索阅读动态 | P2 | S | triaged | Theme 2「检索」延伸；`app.js:1515`（renderTimeline haystack 加 s.date），约 1-2 行；与 OPT-053 同区域，可合并一 PR；signal 2026-07-03「按主题找书」搜索诉求的动态页对称缺口。 |
 | OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`，约 10-15 行，纯前端。 |

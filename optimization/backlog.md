@@ -1012,7 +1012,7 @@ Format per item:
 - why: 「最近读完了哪些书」是「回顾」场景最基础查询，豆瓣导入后「已读完」列表应按 `finishedAt` desc 呈现，当前按 `createdAt` 排序（导入批次顺序）直接割裂时序回顾体验；S 修复：status-aware 三分支替换当前单一二级键（`finished` → finishedAt，`reading` → lastReadAt，其余 → createdAt），约 5-8 行，纯前端，无后端/schema 变更。
 
 ### OPT-115 — `buildBookSearchCard()` 不展示 `book.rating`——评分字段在最高频入口完全不可见 — 由 explore E185 提拔 [2026-07-15]
-- status: triaged
+- status: done — PR #70（与 OPT-116 合并一 PR）已合入 feature/agent [2026-07-16]
 - area: frontend
 - priority: P2
 - size: S
@@ -1022,7 +1022,7 @@ Format per item:
 - how: `app.js:1303-1348`（buildBookSearchCard）：在 `statusBadge` 构建后追加 `const ratingHtml = book.rating ? \`<span class="book-rating">★ ${book.rating}</span>\` : ""`；注入到卡面 HTML；CSS `.book-rating` 参照 `.status-badge` 小徽章样式。Touch: `app.js:1303-1348`（buildBookSearchCard）、`styles.css`（book-rating 样式）。
 
 ### OPT-116 — `matchBooks()` 过滤器不含 `book.doubanComment`——OPT-105 导入的豆瓣短评内容不可搜索 — 由 explore E188 提拔 [2026-07-15]
-- status: triaged
+- status: done — PR #70（与 OPT-115 合并一 PR）已合入 feature/agent [2026-07-16]
 - area: frontend
 - priority: P2
 - size: S
@@ -1048,7 +1048,7 @@ Format per item:
   **若未来解冻**，触发条件：豆瓣开放官方 API/同步导出、或出现真实用户明确愿意接受书签脚本门槛（届时按 ③ 做，PC 端限定）。
 
 ### OPT-118 — `all_books_summary` 缺少 `doubanComment`——OPT-105 导入的 110 条豆瓣短评对 AI 跨书查询不可见 — 由 explore E190 提拔 [2026-07-16]
-- status: new
+- status: done — PR #71 已合入 feature/agent [2026-07-17]
 - area: backend
 - priority: P2
 - size: S
@@ -1058,7 +1058,7 @@ Format per item:
 - how: `app_server.py:2438`（dict 末尾）：追加 `"doubanComment": (b.get("doubanComment") or "")[:60]`（截 60 字节节省 token，与 finishedAt 截断策略对称）。1 行，无 schema/前端/接口变更。建议与 OPT-115/116 同批次 PR 或单独 S 级 PR（1 行后端改动，PR 成本极低）。Touch: `app_server.py:2434-2438`（all_books_summary 构建段）。
 
 ### OPT-119 — `buildBookSearchCard()` 对「已读完」书籍展示进度文字而非 `finishedAt` 日期——OPT-105 导入的 110 个读完日期在书单主视图不可见 — 由 explore E191 提拔 [2026-07-16]
-- status: new
+- status: done — PR #72 已合入 feature/agent [2026-07-17]
 - area: frontend
 - priority: P2
 - size: S
@@ -1068,7 +1068,7 @@ Format per item:
 - how: `app.js:1341-1356`（progressText 赋值段）：在现有赋值逻辑前插入 `if (book.status === "finished" && book.finishedAt) { progressText = \`读完 ${book.finishedAt.slice(0, 10)}\`; }` 分支，短路其余进度逻辑；或用三元合并（`book.status === "finished" && book.finishedAt ? \`读完...\` : <原逻辑>`）。约 3-4 行 JS，0 行 CSS 变更（`progressText` 已有容器样式）。建议与 OPT-115 合并为「已读完书卡信息完整度」PR。Touch: `app.js:1341-1356`（buildBookSearchCard progressText 构建段）。
 
 ### OPT-118 — 拍一张书架照片，批量识别书名一键建库——新用户 onboarding 的「即时兑现」钩子（替代 OPT-117） — owner 渠道复盘 + OPT-117 调研否决后提出 [2026-07-17]
-- status: new — **可行性已验证通过 [2026-07-17]**，可进入开发
+- status: done — PR #73 已合入 feature/agent [2026-07-17]
 - area: fullstack
 - priority: P1
 - size: M
@@ -1079,7 +1079,7 @@ Format per item:
 - how: ①后端：新增（或给现有书籍 OCR 端点加 `mode=shelf` 分支）批量提示词 `SHELF_OCR_PROMPT`——要求模型从书架照片中识别**多本**书脊/封面，返回 `[{title, author, confidence}]` 数组；复用 `call_kimi_vision()`；`parse_book_ocr_extraction()` 需扩展或新增数组版解析（容忍 markdown 围栏/缺字段，参照现有实现）。走已有 `ocr` 限流桶（PLAN_LIMITS，free 12/时 40/天），注意书架图信息密度高，可能需单独放宽或计多次。②前端：新入口（「我的」或空书架状态的显眼位置）→ 拍照/选图（复用 `resizeImageToDataUrl`，注意书架图需更高分辨率上限，现默认 1200px 可能不够识别书脊小字）→ 批量结果**勾选确认列表**（可编辑书名/作者、默认全选、去重：复用 `isSameBook()` 与已有书比对，已存在的标灰）→ 一键建库（复用 `importDoubanCsv` 同款 fill-if-empty 新增语义，`status` 默认 wishlist 或让用户选）。③风险/验证点：**书脊竖排文字 + 小字号是识别难点，必须先用 owner 真实书架照片做可行性验证**（识别率 <60% 则本方案价值大打折扣，应先验证再开发）；分辨率/压缩策略需实测；单张图书目过多时的 token 成本。Touch: `app_server.py`（SHELF_OCR_PROMPT + 数组解析 + 端点分支）、`app.js`（拍照入口 + 勾选确认 UI + 批量建库）、`index.html`（入口 + 确认列表 DOM）、`styles.css`。
 
 ### OPT-120 — 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走 App 就白等 20 秒并浪费一次 LLM 调用 — owner 真机实测暴露 [2026-07-17]
-- status: new
+- status: triaged
 - area: fullstack
 - priority: P2
 - size: M
@@ -1087,3 +1087,23 @@ Format per item:
 - description: 真机实测（2026-07-17）：owner 上传书架照片后切到其他 App，回来显示请求失败。排查确认后端 OCR 实际**成功**（16s，1373 字节结果，已入 model_logs），但回包时 socket 已被 iOS 断开（server_errors 留下 BrokenPipe 现场）。当前 `POST /api/books/shelf-ocr` 是**同步请求-响应**：结果只存在于那一次 HTTP 响应里，连接一断就永久丢失。已修复的部分：错误提示不再误导（"请求被中断…请回到本页重试"）、后端不再把断线误记为 OCR 失败（PR #73）——但**结果本身仍然被丢弃**。同类问题也影响 `/api/quotes/ocr` 与 `/api/chat`（长耗时端点通病）。
 - why: 「拍一张照 → 30 秒建库」是 OPT-118 的核心承诺，也是分享物料的兑现点。若用户切个屏就前功尽弃、还得重拍，承诺打折且白烧一次 vision 调用的钱。修复后：切走再回来能直接拿到结果，体验从「重来」变成「无感」。
 - how: 方案 A（推荐，改动可控）：结果留存 + 幂等取回。①前端生成 `requestId`（如 `crypto.randomUUID()`）随请求发送；②后端算完后把结果连同 `requestId` 落库（可复用 model_logs 或新建轻量 ocr_results 表，带 TTL/定期 GC，注意 `_run_gc()`）；③前端把「进行中的 requestId」存 localStorage，页面重新可见时（`visibilitychange` → visible）若存在未完成的 requestId，调 `GET /api/books/shelf-ocr/result?requestId=…` 取回结果并直接弹确认列表；④同一 requestId 重复提交直接返回已有结果（幂等），顺带防重复扣费。方案 B：改为 job 模式（POST 返回 jobId + 前端轮询）——更通用但改动大，且要处理 job 生命周期，暂不采纳。注意：前端已有 `lastHiddenAt` 可复用；TTL 建议短（如 1 小时），结果含用户书目属个人数据，取回必须校验 user_id 归属。Touch: `app_server.py`（结果落库 + 取回端点 + GC）、`app.js`（requestId 生成/持久化、visibilitychange 取回）。
+
+### OPT-121 — `PromptBuilder.all_books_summary` 缺 `book.review` 字段：用户手写读后感对跨书 AI 查询不可见——1 行补全 [2026-07-17]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值」AI 查询层。`review` 字段是 2026-07-06 新增功能，OPT-105 豆瓣导入后 `doubanComment` 已补入 `all_books_summary`，`review` 应同步对齐；1 行修复，直接提升跨书回顾类 AI 答复质量。
+- description: `app_server.py:2607-2612` 的 `all_books_summary` dict 包含 `id, title, author, status, rating, finishedAt, doubanComment`，但 `review`（用户手写或 AI 生成读后感）缺席。单本书上下文（line 2592 直传完整 book 对象）无此问题；缺口仅在跨书摘要路径。用户询问「帮我回顾最近读了什么」或「推荐一本」时，AI 看不到用户自己的读后感，只能泛泛而谈，而更低价值的 `doubanComment` 反而可见。
+- why: OPT-118 补入 `doubanComment` 时应同步补 `review`，属遗漏。修复后跨书回顾类对话可直接引用用户自己的评价，明显提升 Theme 2 回顾质量。
+- how: `app_server.py:2611`（all_books_summary dict 内）追加 `"review": (b.get("review") or "")[:60]`，截断长度与 `doubanComment` 保持一致；0 schema/API/前端变更。1 行修改，约 5 分钟实现。
+
+### OPT-122 — `addSession()` 的 `startedAt` 追溯补录守卫：`!book.startedAt` 只允许「首次写入」，补录更早日期时无法更新 [2026-07-17]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」补录路径正确性。`startedAt` 自动推算是 OPT-074 核心功能之一，但「追溯补录更早日期」的语义不正确：守卫只保护「空值写入」，把「写入更早日期以修正开始时间」的合法场景也阻断了。OPT-105 豆瓣导入后 owner 可能有大量历史书目需要逐本补录更早的阅读记录，此守卫会导致 `startedAt` 始终卡在「第一次补录时的日期」而非「实际最早日期」。
+- description: `app.js:2687`：`if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;`——条件 `!book.startedAt` 表示只在字段为空时写入，一旦已有值就永不更新。这对「防止新记录覆盖更早的开始日期」是正确的，但对「追溯补录一条日期早于现有 startedAt 的 session」是错误的：用户原本 startedAt=2026-06-01，现在追加一条 2026-05-15 的 session，期望 startedAt 自动更新为 2026-05-15，但守卫阻止了这个语义正确的更新。
+- why: 「开始阅读日期」应取所有 sessions 中最早的日期，而非首次自动填充时的日期。守卫逻辑应改为 `if (!book.startedAt || date < book.startedAt)`，在新 session 日期早于现有 startedAt 时允许更新。零 API/schema 变更，1 行条件修改，修复后补录路径语义正确。
+- how: `app.js:2687` 将条件 `!book.startedAt` 替换为 `!book.startedAt || date < book.startedAt`（同时保留 `finishedAt` 上界守卫）；同时在 `editSession()` 的 startedAt 重算逻辑中验证是否有对称需要（若 `editSession` 也有同名守卫需一并修改）。约 2 行修改，建议加一个 JS 单元测试覆盖「追溯更早日期」场景。

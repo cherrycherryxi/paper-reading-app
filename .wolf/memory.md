@@ -3356,3 +3356,24 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 23:30 | 收工：确认 OPT-118 书架照片批量识别已合入并 prod 发版（PR#73），当日流水记录 | .wolf/memory.md | done | 300 |
+
+## Session: 2026-07-17 17:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:07 | Edited optimization/backlog.md | 2→2 lines | ~48 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~49 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~47 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~51 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~46 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~31 |
+| 17:09 | Edited optimization/triage.md | 24→19 lines | ~264 |
+| 17:09 | Edited optimization/triage.md | 2→5 lines | ~200 |
+| 17:10 | Agent1 triage 2026-07-17: reconciled OPT-115/116/118/119 done, triaged OPT-120, budget EXHAUSTED (4/4), next candidate OPT-053+112 | optimization/triage.md optimization/backlog.md | committed+pushed to feature/agent (3227d81) | ~18k |
+
+## Session: 2026-07-17 19:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:18 | Edited optimization/explore.md | expanded (+46 lines) | ~1098 |
+| 19:18 | Agent3 Explore run 2026-07-17: added E193/E194/E195 to explore.md, promoted OPT-121 (all_books_summary missing review) and OPT-122 (addSession startedAt backfill guard) to backlog.md | optimization/explore.md optimization/backlog.md | success | ~4k |
