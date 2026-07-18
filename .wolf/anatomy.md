@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T05:34:08.962Z
-> Files: 309 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T07:21:07.264Z
+> Files: 317 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -17,6 +17,8 @@
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/
 
+- `com.huangnanqi.paper-xhs.plist` (~288 tok)
+- `paper-xhs-post.sh` — 每天 06:00（launchd）无人值守：为「又买了一本书」生成一篇小红书草稿（文案 + 配图）， (~1418 tok)
 - `reading-taste-card.html` — 阅读偏好画像 · 47 本书里的你 (~2929 tok)
 - `taste-poster.html` (~2477 tok)
 
@@ -100,6 +102,10 @@
 - `review-2026-07-17.md` — 夜间 PR 审查报告 — 2026-07-17 (~814 tok)
 - `today-pick.md` — 卡片① (~286 tok)
 
+## ../../.claude/paper-xhs/
+
+- `plan.md` — 小红书一周选题计划（第 3–7 篇，自动化按序取用） (~375 tok)
+
 ## ../../.claude/plans/
 
 - `agent-federated-pony.md` — 思想碰撞（Cross-Book Connection）功能实现计划 (~1250 tok)
@@ -126,10 +132,10 @@
 - `feedback_pr_target_feature_agent.md` (~318 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~664 tok)
+- `MEMORY.md` (~710 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~996 tok)
-- `project_optimization_pipeline.md` (~549 tok)
+- `project_daily_loop_automation.md` (~1204 tok)
+- `project_optimization_pipeline.md` (~784 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
 - `reference_global_playbook.md` (~332 tok)
@@ -152,7 +158,7 @@
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~960 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1093 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~896 tok)
@@ -320,11 +326,11 @@
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~54006 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~2040 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~2086 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~2060 tok)
+- `triage.md` — Triage (~2081 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -458,3 +464,11 @@
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+
+## 小红书物料/第2篇-拍照摘抄/
+
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~384 tok)
+- `img-1-封面.html` (~724 tok)
+- `img-2-痛点.html` (~619 tok)
+- `img-3-演示.html` (~815 tok)
+- `img-5-尾图.html` (~674 tok)

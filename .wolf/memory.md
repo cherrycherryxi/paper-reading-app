@@ -3390,3 +3390,42 @@
 | 13:27 | Created ../../.claude/daily-logs/2026-07-17.md | — | ~440 |
 | 13:34 | Edited ../../.claude/scripts/paper-wrapup.sh | expanded (+27 lines) | ~414 |
 | 13:35 | 修 bug-535: paper-wrapup 日报脚本级 git-log 兜底+Bark告警(不再押模型自觉);补写 07-17 缺失日报 | .wolf/buglog.json, ~/.claude/scripts/paper-wrapup.sh, ~/.claude/daily-logs/2026-07-17.md | fixed+tested | ~5000 |
+| 13:36 | Session end: 2 writes across 2 files (2026-07-17.md, paper-wrapup.sh) | 1 reads | ~915 tok |
+| 13:39 | Created 小红书物料/第2篇-拍照摘抄/文案.md | — | ~409 |
+| 13:39 | Created 小红书物料/第2篇-拍照摘抄/img-1-封面.html | — | ~724 |
+| 13:40 | Created 小红书物料/第2篇-拍照摘抄/img-2-痛点.html | — | ~619 |
+| 13:40 | Created 小红书物料/第2篇-拍照摘抄/img-3-演示.html | — | ~815 |
+| 13:40 | Created 小红书物料/第2篇-拍照摘抄/img-5-尾图.html | — | ~674 |
+| 13:43 | Created ../../.claude/paper-xhs/plan.md | — | ~400 |
+
+## Session: 2026-07-18 13:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:46 | Created ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/paper-xhs-post.sh | — | ~1395 |
+| 13:46 | Created ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/com.huangnanqi.paper-xhs.plist | — | ~288 |
+
+## Session: 2026-07-18 15:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:08 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→2 lines | ~196 |
+| 15:08 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | "launchctl load|unload ~/L" → "launchctl load|unload ~/L" | ~89 |
+| 15:08 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | inline fix | ~48 |
+| 15:08 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~69 |
+| 15:09 | 小红书每日帖自动化：手写第2篇(拍照摘抄,5图)+搭 paper-xhs launchd 6:00 生成第3-7篇草稿并邮件提醒,先跑一周 | 小红书物料/第2篇, ~/.claude/scripts/paper-xhs-post.sh, ~/.claude/paper-xhs/plan.md | 第2篇完成;自动化待owner用!装载(分类器拦常驻任务) | ~4k |
+| 15:09 | Edited ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/paper-xhs-post.sh | 2→3 lines | ~56 |
+| 15:10 | Session end: 5 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, paper-xhs-post.sh) | 2 reads | ~2531 tok |
+| 15:12 | Edited optimization/roadmap.md | inline fix | ~51 |
+| 15:12 | Edited optimization/roadmap.md | inline fix | ~55 |
+
+## Session: 2026-07-18 15:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:17 | Edited optimization/triage.md | 3→3 lines | ~94 |
+| 15:19 | Edited ../../.claude/scripts/paper-wrapup.sh | expanded (+11 lines) | ~152 |
+| 15:19 | Edited ../../.claude/scripts/paper-wrapup.sh | 5→5 lines | ~68 |
+| 15:20 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | 1→5 lines | ~290 |
+| 15:21 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~86 |
+| 15:21 | 预算阀4→8+日报无条件邮件: 改云端Agent1/2 prompt(RemoteTrigger)+roadmap§5.3+triage.md; wrapup手动日报也发信(按日marker幂等) | optimization/roadmap.md, optimization/triage.md, 云端routines, ~/.claude/scripts/paper-wrapup.sh | done+verified | ~14000 |
