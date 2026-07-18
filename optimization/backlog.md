@@ -418,7 +418,7 @@ Format per item:
 - how: 在 `app.js:1449` 的 `entry-card-cover` 内条件渲染 `<img>`：有 `quote.imageUrl` 时显示缩略图，无则保留 `entry-cover-fallback`。CSS 样式可沿用书卡已有 `book-card-cover img` 规则（`.entry-card-cover img { width:100%; height:100%; object-fit:cover; }` 约 2 行）。无后端改动。Touch: `app.js:1449-1452`；`styles.css`（2 行 CSS 规则可选）。
 
 ### OPT-053 — Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 — 由 explore E85 提拔
-- status: triaged
+- status: done (PR #74, 2026-07-18)
 - area: frontend
 - northstar: 中——直接佐证 Roadmap §2「可观测代理指标」（本周使用天数/新增摘抄数/回顾操作次数）；让阅读积累可见是「每天爱用」的正向循环基础；Theme 2「回顾有价值」预热。S 复杂度，3 行代码改动。
 - description: `app.js:1335-1342`：`if (searchRaw && sessions.length)` 使统计条（`#sessionStats`，`index.html:110`）仅在有搜索词时显示匹配集合的汇总数字。无搜索时始终 `is-hidden`，用户日常打开「记录」Tab 看不到「共 38 次阅读 · 2140 分钟 · 约 480 页」。对比书单 Tab 的 `renderHero()`（`app.js:934-940`）始终展示总书数/总分钟/总摘抄数。
@@ -989,7 +989,7 @@ Format per item:
 - how: ① `app.js:4613`：`(q.content || "").slice(0, 70)` → `(q.content || q.ocrText || "").slice(0, 70)`（1 行）；② `app.js:4622`：搜索加 `|| (item.ocrText || "").toLowerCase().includes(lower)` 分支（1 行）。Touch: `app.js:4613`（quoteLabel）、`app.js:4622`（filteredQuotes）
 
 ### OPT-112 — `renderTimeline()` 搜索 haystack 不含 `s.date`，用户无法按时间段（"6月"、"2026-07"）搜索阅读动态 — 由 explore E178 提拔 [2026-07-13]
-- status: triaged
+- status: done (PR #75, 2026-07-18)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」核心场景；「动态」Tab 是时序阅读记录的专用界面，按时间段回顾是自然需求，当前 haystack 不含日期字段使此路径完全阻断；S 级 1 行修复
 - description: `renderTimeline()`（`app.js:1515`）haystack：`[book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase()`，`s.date` 未被拼入；搜索「6月」「2026-07」时即便有匹配 session 也返回零结果
@@ -1089,7 +1089,7 @@ Format per item:
 - how: 方案 A（推荐，改动可控）：结果留存 + 幂等取回。①前端生成 `requestId`（如 `crypto.randomUUID()`）随请求发送；②后端算完后把结果连同 `requestId` 落库（可复用 model_logs 或新建轻量 ocr_results 表，带 TTL/定期 GC，注意 `_run_gc()`）；③前端把「进行中的 requestId」存 localStorage，页面重新可见时（`visibilitychange` → visible）若存在未完成的 requestId，调 `GET /api/books/shelf-ocr/result?requestId=…` 取回结果并直接弹确认列表；④同一 requestId 重复提交直接返回已有结果（幂等），顺带防重复扣费。方案 B：改为 job 模式（POST 返回 jobId + 前端轮询）——更通用但改动大，且要处理 job 生命周期，暂不采纳。注意：前端已有 `lastHiddenAt` 可复用；TTL 建议短（如 1 小时），结果含用户书目属个人数据，取回必须校验 user_id 归属。Touch: `app_server.py`（结果落库 + 取回端点 + GC）、`app.js`（requestId 生成/持久化、visibilitychange 取回）。
 
 ### OPT-121 — `PromptBuilder.all_books_summary` 缺 `book.review` 字段：用户手写读后感对跨书 AI 查询不可见——1 行补全 [2026-07-17]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
@@ -1099,7 +1099,7 @@ Format per item:
 - how: `app_server.py:2611`（all_books_summary dict 内）追加 `"review": (b.get("review") or "")[:60]`，截断长度与 `doubanComment` 保持一致；0 schema/API/前端变更。1 行修改，约 5 分钟实现。
 
 ### OPT-122 — `addSession()` 的 `startedAt` 追溯补录守卫：`!book.startedAt` 只允许「首次写入」，补录更早日期时无法更新 [2026-07-17]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
