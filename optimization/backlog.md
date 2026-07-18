@@ -1107,3 +1107,23 @@ Format per item:
 - description: `app.js:2687`：`if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;`——条件 `!book.startedAt` 表示只在字段为空时写入，一旦已有值就永不更新。这对「防止新记录覆盖更早的开始日期」是正确的，但对「追溯补录一条日期早于现有 startedAt 的 session」是错误的：用户原本 startedAt=2026-06-01，现在追加一条 2026-05-15 的 session，期望 startedAt 自动更新为 2026-05-15，但守卫阻止了这个语义正确的更新。
 - why: 「开始阅读日期」应取所有 sessions 中最早的日期，而非首次自动填充时的日期。守卫逻辑应改为 `if (!book.startedAt || date < book.startedAt)`，在新 session 日期早于现有 startedAt 时允许更新。零 API/schema 变更，1 行条件修改，修复后补录路径语义正确。
 - how: `app.js:2687` 将条件 `!book.startedAt` 替换为 `!book.startedAt || date < book.startedAt`（同时保留 `finishedAt` 上界守卫）；同时在 `editSession()` 的 startedAt 重算逻辑中验证是否有对称需要（若 `editSession` 也有同名守卫需一并修改）。约 2 行修改，建议加一个 JS 单元测试覆盖「追溯更早日期」场景。
+
+### OPT-123 — `deleteSession()` 删除记录后不重算 `book.currentPage`；新记录起始页自动填充显示过期值 — 由 explore E196 提拔 [2026-07-18]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」。`openNewSessionForBook()` 的起始页自动填充（`app.js:3421`：`book?.currentPage > 0 ? book.currentPage + 1 : ""`）是降低手动录入摩擦的核心 UX；但 `deleteSession()`（`app.js:3480-3495`）删除后不重算 `book.currentPage`，删除最近那条记录后该字段保留旧最大值，再次新建时起始页自动填入过期数字，用户被迫手动清空重填——与自动填充初衷相悖。
+- description: `app.js:3480-3495`，`deleteSession()` 仅过滤 `state.sessions` 并同步，不重算关联书籍的 `book.currentPage`。`addSession()`（`app.js:2671,2688`）通过 `Math.max(book.currentPage || 0, endPage)` 把最高到达页推高，但无对称的「删除后降回」逻辑。场景：endPage=200 的记录被删 → `book.currentPage` 保持 200 → 下次新建记录起始页自动填 201（书实际进度 120 页时即为错误值）。
+- why: 「打开新记录表单 → 起始页已填好」是 Theme 1 采集路径的关键便利；若该值是过期的历史最大值，用户会产生「自动填充更烦更不准」的印象，长期会让人放弃使用该功能。S 级修复且对称逻辑已在 `addSession()` 中存在，可直接参照。
+- how: `app.js:3484`（deleteSession onConfirm 内，sessions filter 之后）：（1）先找到被删 session 对应的 `bookId`，（2）从剩余 `state.sessions` 中求该书所有记录的 endPage 最大值，（3）`book.currentPage = Math.max(0, ...remainingEndPages)`；约 4-6 行，无 API/schema 变更。需同步在 `editSession()`→`addSession()` 的「edit 路径」验证是否有对称场景（endPage 编小时 currentPage 应同样向下修正）。Touch: `app.js:3480-3495`（deleteSession）；可选：`app.js:2662-2672`（edit 路径对称检查）。
+
+### OPT-124 — `_run_gc()` 不包含 `model_logs` 等五张观测表；LLM 全文 blob 无限累积，SQLite 文件长期膨胀 — 由 explore E197 提拔 [2026-07-18]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——基础设施可靠性。`model_logs` 是 `/debug/logs`（AI 交互唯一追溯入口）的数据源；表无限增长会拖慢该页面渲染，并在个人服务器上造成不可预期的磁盘压力；S 修复，新增 2 个 GC 函数 + `_run_gc()` 中各 1 行调用，保持服务器长期运行健康。
+- description: `app_server.py:5986-6004`，`_run_gc()` 每 6 小时调用 `gc_expired_sessions`、`gc_expired_password_reset_tokens`、`gc_old_server_errors`、`gc_old_rate_limit_rows` 四个辅助函数。`model_logs`（`app_server.py:456-468`，含 `prompt/input/output` 三个全文 LLM blob）、`agent_traces`（`app_server.py:470-486`）、`agent_actions`（`app_server.py:488-502`）、`agent_trace_events`（`app_server.py:504-511`）、`agent_metrics`（`app_server.py:513-523`）均无对应 GC 函数，仅在账号注销时整体删除（`app_server.py:5906,5949-5952`）。估算：日均 3-5 次对话 × 约 5-10 KB/行 model_logs ≈ 60-150 MB/年；agent trace 系列额外叠加。
+- why: E11（OPT-010，PR#13）修复了「4 个 GC 函数已定义但未调用」，但 model_logs 等表从未有对应 GC 函数——是该修复遗漏的 N+1 张表。个人常驻服务器典型长尾问题：短期不可见，1-2 年后 DB 文件膨胀数百 MB，影响备份速度与 `/debug/logs` 渲染性能。S 修复：2 个新 GC 函数参照 `gc_old_server_errors`（`app_server.py:2211-2216`）结构实现，保留近 90 天数据足够 debug 追溯。
+- how: `app_server.py:2211-2227` 附近新增两个函数：`gc_old_model_logs(conn, keep_days=90)` → `DELETE FROM model_logs WHERE created_at < ?`；`gc_old_agent_data(conn, keep_days=90)` → 串行执行 `DELETE FROM agent_metrics / agent_trace_events / agent_actions / agent_traces WHERE created_at < ?`（注意外键顺序：先删子表）；在 `_run_gc()`（`app_server.py:5993-5996`）添加两行调用并纳入日志打印。Touch: `app_server.py:2211-2227`（新 GC 函数）、`app_server.py:5993-5999`（`_run_gc` 调用 + 日志）。
