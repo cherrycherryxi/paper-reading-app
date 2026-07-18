@@ -3429,3 +3429,9 @@
 | 15:20 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | 1→5 lines | ~290 |
 | 15:21 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~86 |
 | 15:21 | 预算阀4→8+日报无条件邮件: 改云端Agent1/2 prompt(RemoteTrigger)+roadmap§5.3+triage.md; wrapup手动日报也发信(按日marker幂等) | optimization/roadmap.md, optimization/triage.md, 云端routines, ~/.claude/scripts/paper-wrapup.sh | done+verified | ~14000 |
+| 18:10 | Edited optimization/backlog.md | 2→2 lines | ~28 |
+| 18:10 | Edited optimization/backlog.md | 2→2 lines | ~42 |
+| 18:10 | Edited optimization/backlog.md | 2→2 lines | ~34 |
+| 18:11 | Edited optimization/backlog.md | 2→2 lines | ~32 |
+| 18:12 | Created optimization/triage.md | — | ~2238 |
+| 18:13 | Agent1 triage 2026-07-18: OPT-053+OPT-112 done; OPT-121+OPT-122 triaged & designated Next up; budget 4/8 | optimization/triage.md optimization/backlog.md | pushed to feature/agent | ~6k |

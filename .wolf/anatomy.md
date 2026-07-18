@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T07:21:07.264Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T18:12:49.144Z
 > Files: 317 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -320,7 +320,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~31657 tok)
+- `backlog.md` — Optimization Backlog (~32161 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
@@ -330,7 +330,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~2081 tok)
+- `triage.md` — Triage (~2098 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -459,16 +459,16 @@
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-拍照摘抄/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~384 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~815 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~384 tok)
