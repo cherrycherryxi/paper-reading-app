@@ -3377,3 +3377,7 @@
 |------|--------|---------|---------|--------|
 | 19:18 | Edited optimization/explore.md | expanded (+46 lines) | ~1098 |
 | 19:18 | Agent3 Explore run 2026-07-17: added E193/E194/E195 to explore.md, promoted OPT-121 (all_books_summary missing review) and OPT-122 (addSession startedAt backfill guard) to backlog.md | optimization/explore.md optimization/backlog.md | success | ~4k |
+| 13:09 | Edited app.js | modified formatDate() | ~134 |
+| 13:10 | Created tests/frontend/timeline-date-search.test.js | — | ~1948 |
+| 13:17 | OPT-053: renderTimeline session stats bar now shows during normal browsing (statSource=allSorted when not searching) | app.js tests/frontend/session-stats-always.test.js | PR #74 merged to feature/agent | ~400 |
+| 13:17 | OPT-112: renderTimeline search haystack now includes s.date + formatDate(s.date) so users can search by 2026-07 / 6月 | app.js tests/frontend/timeline-date-search.test.js | PR #75 merged to feature/agent | ~300 |

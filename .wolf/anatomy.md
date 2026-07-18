@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T19:18:01.406Z
-> Files: 306 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T05:10:53.161Z
+> Files: 307 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -197,7 +197,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~64486 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~64852 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -421,7 +421,9 @@
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
+- `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2400 tok)
 - `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~2565 tok)
+- `timeline-date-search.test.js` — OPT-112: renderTimeline search haystack includes the session date (~1948 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## tools/
