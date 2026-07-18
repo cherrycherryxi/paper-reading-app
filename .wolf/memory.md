@@ -3381,3 +3381,12 @@
 | 13:10 | Created tests/frontend/timeline-date-search.test.js | — | ~1948 |
 | 13:17 | OPT-053: renderTimeline session stats bar now shows during normal browsing (statSource=allSorted when not searching) | app.js tests/frontend/session-stats-always.test.js | PR #74 merged to feature/agent | ~400 |
 | 13:17 | OPT-112: renderTimeline search haystack now includes s.date + formatDate(s.date) so users can search by 2026-07 / 6月 | app.js tests/frontend/timeline-date-search.test.js | PR #75 merged to feature/agent | ~300 |
+| 13:18 | Session end: 4 writes across 3 files (app.js, session-stats-always.test.js, timeline-date-search.test.js) | 3 reads | ~73186 tok |
+
+## Session: 2026-07-18 13:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:27 | Created ../../.claude/daily-logs/2026-07-17.md | — | ~440 |
+| 13:34 | Edited ../../.claude/scripts/paper-wrapup.sh | expanded (+27 lines) | ~414 |
+| 13:35 | 修 bug-535: paper-wrapup 日报脚本级 git-log 兜底+Bark告警(不再押模型自觉);补写 07-17 缺失日报 | .wolf/buglog.json, ~/.claude/scripts/paper-wrapup.sh, ~/.claude/daily-logs/2026-07-17.md | fixed+tested | ~5000 |

@@ -8926,6 +8926,48 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T19:18:01.437Z"
+    },
+    {
+      "id": "bug-535",
+      "timestamp": "2026-07-18T13:30:00+08:00",
+      "error_message": "paper-wrapup 07-17 23:30 又没写日报（daily-logs/2026-07-17.md 不存在），但这次检测是对的、确实决定自动收工了",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "与 bug-446/452/453 不同——那三个是活动检测误判『在工作』而跳过；本次检测正确（无手动日报+无活跃会话→自动收工），倒在写文件步骤。日报内容由全局 settings.json 的 UserPromptSubmit 钩子注入指令、让 headless 模型用 Write 写 daily-logs/<date>.md。07-17 23:30 的 headless 会话跑了 31s，追加了 .wolf/memory.md 当日流水（memory.md:3358 为证）并输出两行签退，但始终没调 Write 建日报文件（无 session-limit 报错，纯属没执行那一步）。脚本第 65-71 行只做事后文件存在性检查、写一条『警告:未生成日报』进 log 就结束——不重试、不兜底、不告警。等于把日报生成押在『模型在长时段无头运行末尾肯不肯乖乖调一次 Write』上，单点失败且静默。此前 07-15 同一步倒在 session limit，是第 2 次 miss（原因各异，共性=无安全网）。",
+      "fix": "已修（2026-07-18）：paper-wrapup.sh 收尾块加脚本级确定性兜底——headless 模型跑完后若 daily-logs/<date>.md 仍不存在，脚本用 `git log --all --since/--until 当天 --pretty` 拼一份含全分支提交的最小日报写入，保证『每天必有』；并 Bark timeSensitive 告警（不再静默 log）。兜底后仍无文件则二次告警。已实测：兜底真能从 07-17 git log 生成完整日报、Bark 链路返回 code:200 success。护栏思路同 ask 墙(bug-517)/dev-reload：关键动作机器兜底，不押在模型自觉。另 07-17 缺失日报已依 git log+memory 事后补写。",
+      "tags": [
+        "paper-wrapup",
+        "daily-log",
+        "日报",
+        "automation",
+        "launchd",
+        "headless",
+        "no-fallback",
+        "hook",
+        "silent-failure"
+      ],
+      "related_bugs": [
+        "bug-446",
+        "bug-452",
+        "bug-453"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T13:30:00+08:00"
+    },
+    {
+      "id": "bug-536",
+      "timestamp": "2026-07-18T05:34:08.990Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-wrapup.sh",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→36 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T05:34:08.990Z"
     }
   ]
 }

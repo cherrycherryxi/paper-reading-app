@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T05:10:53.161Z
-> Files: 307 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T05:34:08.962Z
+> Files: 309 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -78,6 +78,7 @@
 - `2026-07-14.md` — 日报 2026-07-14 (~409 tok)
 - `2026-07-15.md` — 日报 2026-07-15 (~440 tok)
 - `2026-07-16.md` — 日报 2026-07-16 (~444 tok)
+- `2026-07-17.md` — 日报 2026-07-17 (~412 tok)
 
 ## ../../.claude/hooks/
 
@@ -151,7 +152,7 @@
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~634 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~960 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~896 tok)
@@ -419,9 +420,9 @@
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~3047 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
+- `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2400 tok)
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
-- `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2400 tok)
 - `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~2565 tok)
 - `timeline-date-search.test.js` — OPT-112: renderTimeline search haystack includes the session date (~1948 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
@@ -452,8 +453,8 @@
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
