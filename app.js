@@ -1728,12 +1728,15 @@ function renderTimeline() {
       })
     : allSorted.slice(0, sessionDisplayLimit);
 
-  // Stats bar
+  // Stats bar — OPT-053: show cumulative reading stats during normal browsing,
+  // not only while searching. When searching the stats reflect the filtered
+  // results; otherwise they cover every session (not just the paged slice).
   if (els.sessionStats) {
-    if (searchRaw && sessions.length) {
-      const totalMin = sessions.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
-      const totalPages = sessions.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0);
-      els.sessionStats.textContent = `${sessions.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
+    const statSource = searchRaw ? sessions : allSorted;
+    if (statSource.length) {
+      const totalMin = statSource.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
+      const totalPages = statSource.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0);
+      els.sessionStats.textContent = `${statSource.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
       els.sessionStats.classList.remove("is-hidden");
     } else {
       els.sessionStats.classList.add("is-hidden");
