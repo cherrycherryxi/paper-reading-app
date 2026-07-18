@@ -1723,7 +1723,10 @@ function renderTimeline() {
   const sessions = searchRaw
     ? allSorted.filter((s) => {
         const book = state.books.find((b) => b.id === s.bookId);
-        const haystack = [book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase();
+        // OPT-112: include the session date so users can search by time period.
+        // s.date is a raw ISO string (matches "2026-07"); formatDate adds the
+        // zh-CN form (matches "7月" / "2026年").
+        const haystack = [book?.title || "", book?.author || "", s.note || "", s.date || "", s.date ? formatDate(s.date) : ""].join(" ").toLowerCase();
         return haystack.includes(searchRaw);
       })
     : allSorted.slice(0, sessionDisplayLimit);
