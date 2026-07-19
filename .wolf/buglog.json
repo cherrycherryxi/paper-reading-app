@@ -9048,6 +9048,49 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-18T19:17:50.453Z"
+    },
+    {
+      "id": "bug-542",
+      "timestamp": "2026-07-19T00:00:00+08:00",
+      "error_message": "7-18 当天没有自动日报也没发邮件（daily-logs/2026-07-18.md 与 .emailed-2026-07-18 都不存在）",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "收工任务 23:30 触发时，检测到 23:11-23:13 有真实活跃会话（session 4c0b6911，落在最近30分钟窗口），按设计『不打断』跳过——判断本身正确（非误报）。但该跳过分支只是静默 exit 0，没有任何补偿：不重排、不补跑。于是只要 owner 工作到 23:00 之后，当天就永远不会有日报和邮件。这是三条路径里唯一会『彻底静默、当天零产出』的一条，与 bug-535（模型没写但有git兜底）不同。",
+      "fix": "给 paper-wrapup.sh 顶部加『次日补漏』段：每晚开跑先检查前3天，凡缺 daily-logs/<day>.md 且无 .emailed-<day> marker 的，用 git log 兜底补生成最小日报并补发邮件、打 marker 防重复。这样因『还在工作』被跳过的那天，次日 23:30 自动自愈。护栏架在机器上而非靠模型自觉。",
+      "tags": [
+        "paper-wrapup",
+        "日报",
+        "launchd",
+        "静默失败",
+        "自动化",
+        "补漏",
+        "设计缺口"
+      ],
+      "related_bugs": [
+        "bug-535"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T00:00:00+08:00"
+    },
+    {
+      "id": "bug-543",
+      "timestamp": "2026-07-19T06:01:00+08:00",
+      "error_message": "小红书自动化(paper-xhs)首跑第3篇 partial：截图成功但文案.md没生成，邮件报「生成不完整」",
+      "file": "~/.claude/scripts/paper-xhs-post.sh",
+      "root_cause": "定时在 06:00，正卡在账号用量 7am 重置之前——一天里额度最可能见底的时刻。取材(pick_material)和截图(shot_app,不耗claude额度)都成功，但写文案的 `claude -p` 撞上 session limit（日志明写 You've hit your session limit · resets 7am），没写出 文案.md。前一天(this session)重度交互用量也加剧了见底。非逻辑bug，是排期与用量窗口撞车；会每天复发。",
+      "fix": "①当次已手动补全第3篇文案(《月亮虎》摘抄)并记 used.log；②脚本按设计未把 partial 记 done/used，本可次日自动重试同篇(folder-count 只数含文案.md的)；③根治=把 launchd 触发从 06:00 挪到 7am 重置之后(建议 08:00)，跑在额度充裕窗口。plist 备在 scratchpad/com.huangnanqi.paper-xhs-0800.plist 待 owner 用 ! 覆盖+重载。",
+      "tags": [
+        "paper-xhs",
+        "小红书",
+        "session-limit",
+        "用量上限",
+        "launchd",
+        "排期",
+        "partial",
+        "自动化"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T06:01:00+08:00"
     }
   ]
 }
