@@ -3498,3 +3498,9 @@
 | 15:04 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | inline fix | ~72 |
 | 15:04 | Agent3 explore 顺移 03:00→05:00 CST(0 21 UTC)，跟随 Agent2 移到 04:00，恢复 explore 跑在 implement 之后 | 云端 trig_01EZ...(Agent3 cron) | 已改 next_run 07-20 05:06 CST；流水线顺序 Agent1(01)→Agent2(04)→Agent3(05) | ~1k |
 | 15:04 | Session end: 11 writes across 6 files (app_server.py, agent_backend_property_test.py, app.js, book-reading-dates.test.js, today-pick.md) | 6 reads | ~162585 tok |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~38 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~37 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~34 |
+| 17:08 | Edited optimization/backlog.md | 2→2 lines | ~35 |
+| 17:10 | Created optimization/triage.md | — | ~1584 |
+| 17:10 | daily triage 2026-07-19: OPT-121/122 done, OPT-123/124 triaged (124→P3), OPT-109 boosted P2→P1 (signal 2026-07-03), next up OPT-109 跨页OCR | optimization/triage.md, optimization/backlog.md | pushed to feature/agent | ~8k |
