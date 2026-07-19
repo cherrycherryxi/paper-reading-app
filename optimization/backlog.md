@@ -418,7 +418,7 @@ Format per item:
 - how: 在 `app.js:1449` 的 `entry-card-cover` 内条件渲染 `<img>`：有 `quote.imageUrl` 时显示缩略图，无则保留 `entry-cover-fallback`。CSS 样式可沿用书卡已有 `book-card-cover img` 规则（`.entry-card-cover img { width:100%; height:100%; object-fit:cover; }` 约 2 行）。无后端改动。Touch: `app.js:1449-1452`；`styles.css`（2 行 CSS 规则可选）。
 
 ### OPT-053 — Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 — 由 explore E85 提拔
-- status: triaged
+- status: done (PR #74, 2026-07-18)
 - area: frontend
 - northstar: 中——直接佐证 Roadmap §2「可观测代理指标」（本周使用天数/新增摘抄数/回顾操作次数）；让阅读积累可见是「每天爱用」的正向循环基础；Theme 2「回顾有价值」预热。S 复杂度，3 行代码改动。
 - description: `app.js:1335-1342`：`if (searchRaw && sessions.length)` 使统计条（`#sessionStats`，`index.html:110`）仅在有搜索词时显示匹配集合的汇总数字。无搜索时始终 `is-hidden`，用户日常打开「记录」Tab 看不到「共 38 次阅读 · 2140 分钟 · 约 480 页」。对比书单 Tab 的 `renderHero()`（`app.js:934-940`）始终展示总书数/总分钟/总摘抄数。
@@ -989,7 +989,7 @@ Format per item:
 - how: ① `app.js:4613`：`(q.content || "").slice(0, 70)` → `(q.content || q.ocrText || "").slice(0, 70)`（1 行）；② `app.js:4622`：搜索加 `|| (item.ocrText || "").toLowerCase().includes(lower)` 分支（1 行）。Touch: `app.js:4613`（quoteLabel）、`app.js:4622`（filteredQuotes）
 
 ### OPT-112 — `renderTimeline()` 搜索 haystack 不含 `s.date`，用户无法按时间段（"6月"、"2026-07"）搜索阅读动态 — 由 explore E178 提拔 [2026-07-13]
-- status: triaged
+- status: done (PR #75, 2026-07-18)
 - area: frontend
 - northstar: 中——Theme 2「回顾有价值」核心场景；「动态」Tab 是时序阅读记录的专用界面，按时间段回顾是自然需求，当前 haystack 不含日期字段使此路径完全阻断；S 级 1 行修复
 - description: `renderTimeline()`（`app.js:1515`）haystack：`[book?.title || "", book?.author || "", s.note || ""].join(" ").toLowerCase()`，`s.date` 未被拼入；搜索「6月」「2026-07」时即便有匹配 session 也返回零结果
@@ -1089,7 +1089,7 @@ Format per item:
 - how: 方案 A（推荐，改动可控）：结果留存 + 幂等取回。①前端生成 `requestId`（如 `crypto.randomUUID()`）随请求发送；②后端算完后把结果连同 `requestId` 落库（可复用 model_logs 或新建轻量 ocr_results 表，带 TTL/定期 GC，注意 `_run_gc()`）；③前端把「进行中的 requestId」存 localStorage，页面重新可见时（`visibilitychange` → visible）若存在未完成的 requestId，调 `GET /api/books/shelf-ocr/result?requestId=…` 取回结果并直接弹确认列表；④同一 requestId 重复提交直接返回已有结果（幂等），顺带防重复扣费。方案 B：改为 job 模式（POST 返回 jobId + 前端轮询）——更通用但改动大，且要处理 job 生命周期，暂不采纳。注意：前端已有 `lastHiddenAt` 可复用；TTL 建议短（如 1 小时），结果含用户书目属个人数据，取回必须校验 user_id 归属。Touch: `app_server.py`（结果落库 + 取回端点 + GC）、`app.js`（requestId 生成/持久化、visibilitychange 取回）。
 
 ### OPT-121 — `PromptBuilder.all_books_summary` 缺 `book.review` 字段：用户手写读后感对跨书 AI 查询不可见——1 行补全 [2026-07-17]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
@@ -1099,7 +1099,7 @@ Format per item:
 - how: `app_server.py:2611`（all_books_summary dict 内）追加 `"review": (b.get("review") or "")[:60]`，截断长度与 `doubanComment` 保持一致；0 schema/API/前端变更。1 行修改，约 5 分钟实现。
 
 ### OPT-122 — `addSession()` 的 `startedAt` 追溯补录守卫：`!book.startedAt` 只允许「首次写入」，补录更早日期时无法更新 [2026-07-17]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1107,3 +1107,23 @@ Format per item:
 - description: `app.js:2687`：`if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;`——条件 `!book.startedAt` 表示只在字段为空时写入，一旦已有值就永不更新。这对「防止新记录覆盖更早的开始日期」是正确的，但对「追溯补录一条日期早于现有 startedAt 的 session」是错误的：用户原本 startedAt=2026-06-01，现在追加一条 2026-05-15 的 session，期望 startedAt 自动更新为 2026-05-15，但守卫阻止了这个语义正确的更新。
 - why: 「开始阅读日期」应取所有 sessions 中最早的日期，而非首次自动填充时的日期。守卫逻辑应改为 `if (!book.startedAt || date < book.startedAt)`，在新 session 日期早于现有 startedAt 时允许更新。零 API/schema 变更，1 行条件修改，修复后补录路径语义正确。
 - how: `app.js:2687` 将条件 `!book.startedAt` 替换为 `!book.startedAt || date < book.startedAt`（同时保留 `finishedAt` 上界守卫）；同时在 `editSession()` 的 startedAt 重算逻辑中验证是否有对称需要（若 `editSession` 也有同名守卫需一并修改）。约 2 行修改，建议加一个 JS 单元测试覆盖「追溯更早日期」场景。
+
+### OPT-123 — `deleteSession()` 删除记录后不重算 `book.currentPage`；新记录起始页自动填充显示过期值 — 由 explore E196 提拔 [2026-07-18]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」。`openNewSessionForBook()` 的起始页自动填充（`app.js:3421`：`book?.currentPage > 0 ? book.currentPage + 1 : ""`）是降低手动录入摩擦的核心 UX；但 `deleteSession()`（`app.js:3480-3495`）删除后不重算 `book.currentPage`，删除最近那条记录后该字段保留旧最大值，再次新建时起始页自动填入过期数字，用户被迫手动清空重填——与自动填充初衷相悖。
+- description: `app.js:3480-3495`，`deleteSession()` 仅过滤 `state.sessions` 并同步，不重算关联书籍的 `book.currentPage`。`addSession()`（`app.js:2671,2688`）通过 `Math.max(book.currentPage || 0, endPage)` 把最高到达页推高，但无对称的「删除后降回」逻辑。场景：endPage=200 的记录被删 → `book.currentPage` 保持 200 → 下次新建记录起始页自动填 201（书实际进度 120 页时即为错误值）。
+- why: 「打开新记录表单 → 起始页已填好」是 Theme 1 采集路径的关键便利；若该值是过期的历史最大值，用户会产生「自动填充更烦更不准」的印象，长期会让人放弃使用该功能。S 级修复且对称逻辑已在 `addSession()` 中存在，可直接参照。
+- how: `app.js:3484`（deleteSession onConfirm 内，sessions filter 之后）：（1）先找到被删 session 对应的 `bookId`，（2）从剩余 `state.sessions` 中求该书所有记录的 endPage 最大值，（3）`book.currentPage = Math.max(0, ...remainingEndPages)`；约 4-6 行，无 API/schema 变更。需同步在 `editSession()`→`addSession()` 的「edit 路径」验证是否有对称场景（endPage 编小时 currentPage 应同样向下修正）。Touch: `app.js:3480-3495`（deleteSession）；可选：`app.js:2662-2672`（edit 路径对称检查）。
+
+### OPT-124 — `_run_gc()` 不包含 `model_logs` 等五张观测表；LLM 全文 blob 无限累积，SQLite 文件长期膨胀 — 由 explore E197 提拔 [2026-07-18]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——基础设施可靠性。`model_logs` 是 `/debug/logs`（AI 交互唯一追溯入口）的数据源；表无限增长会拖慢该页面渲染，并在个人服务器上造成不可预期的磁盘压力；S 修复，新增 2 个 GC 函数 + `_run_gc()` 中各 1 行调用，保持服务器长期运行健康。
+- description: `app_server.py:5986-6004`，`_run_gc()` 每 6 小时调用 `gc_expired_sessions`、`gc_expired_password_reset_tokens`、`gc_old_server_errors`、`gc_old_rate_limit_rows` 四个辅助函数。`model_logs`（`app_server.py:456-468`，含 `prompt/input/output` 三个全文 LLM blob）、`agent_traces`（`app_server.py:470-486`）、`agent_actions`（`app_server.py:488-502`）、`agent_trace_events`（`app_server.py:504-511`）、`agent_metrics`（`app_server.py:513-523`）均无对应 GC 函数，仅在账号注销时整体删除（`app_server.py:5906,5949-5952`）。估算：日均 3-5 次对话 × 约 5-10 KB/行 model_logs ≈ 60-150 MB/年；agent trace 系列额外叠加。
+- why: E11（OPT-010，PR#13）修复了「4 个 GC 函数已定义但未调用」，但 model_logs 等表从未有对应 GC 函数——是该修复遗漏的 N+1 张表。个人常驻服务器典型长尾问题：短期不可见，1-2 年后 DB 文件膨胀数百 MB，影响备份速度与 `/debug/logs` 渲染性能。S 修复：2 个新 GC 函数参照 `gc_old_server_errors`（`app_server.py:2211-2216`）结构实现，保留近 90 天数据足够 debug 追溯。
+- how: `app_server.py:2211-2227` 附近新增两个函数：`gc_old_model_logs(conn, keep_days=90)` → `DELETE FROM model_logs WHERE created_at < ?`；`gc_old_agent_data(conn, keep_days=90)` → 串行执行 `DELETE FROM agent_metrics / agent_trace_events / agent_actions / agent_traces WHERE created_at < ?`（注意外键顺序：先删子表）；在 `_run_gc()`（`app_server.py:5993-5996`）添加两行调用并纳入日志打印。Touch: `app_server.py:2211-2227`（新 GC 函数）、`app_server.py:5993-5999`（`_run_gc` 调用 + 日志）。

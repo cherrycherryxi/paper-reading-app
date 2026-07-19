@@ -9003,51 +9003,51 @@
     },
     {
       "id": "bug-539",
-      "timestamp": "2026-07-18T07:26:57.246Z",
-      "error_message": "Significant refactor of ",
-      "file": "小红书物料/第2篇-拍照摘抄/文案.md",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 3→3 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-18T07:26:57.246Z"
-    },
-    {
-      "id": "bug-540",
-      "timestamp": "2026-07-18T07:27:07.282Z",
-      "error_message": "Wrong reference: OCR should be AI",
-      "file": "小红书物料/第2篇-拍照摘抄/文案.md",
-      "root_cause": "Used \"OCR\" instead of \"AI\"",
-      "fix": "Changed OCR → AI",
+      "timestamp": "2026-07-18T18:10:47.582Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
       "tags": [
         "auto-detected",
         "wrong-reference",
         "md"
       ],
       "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-18T07:27:07.282Z"
+      "occurrences": 4,
+      "last_seen": "2026-07-18T18:11:01.871Z"
     },
     {
-      "id": "bug-541",
-      "timestamp": "2026-07-18T08:11:18.938Z",
-      "error_message": "Incorrect value in code",
-      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md",
-      "root_cause": "Had `~/.claude/paper-xhs/plan.md`",
-      "fix": "Changed to `~/.claude/paper-xhs/pick_material.py`",
+      "id": "bug-540",
+      "timestamp": "2026-07-18T19:17:05.936Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/explore.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
       "tags": [
         "auto-detected",
-        "wrong-value",
+        "null-safety",
         "md"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-07-18T08:11:18.938Z"
+      "last_seen": "2026-07-18T19:17:05.936Z"
+    },
+    {
+      "id": "bug-541",
+      "timestamp": "2026-07-18T19:17:50.453Z",
+      "error_message": "Null/undefined access in ",
+      "file": "optimization/backlog.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T19:17:50.453Z"
     },
     {
       "id": "bug-542",

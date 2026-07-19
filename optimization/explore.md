@@ -3300,6 +3300,60 @@ showConfirmDialog({
 
 > 本次 run（2026-07-17）扫描焦点：OPT-118 书架识别新上线后的体验漏洞 + OPT-105/豆瓣字段在 AI 上下文的完整性残余缺口 + 破坏性操作透明度系列补全。新发现 3 条：E193（runShelfOcr 无加载态，S，northstar 中，runOcr 对称修复）、E194（all_books_summary 缺 review 字段，S，northstar 中，1 行补全）、E195（deleteBook 对话框无具体数量，S，northstar 中，辅助函数已就位）。OPT-121 提拔 E194（1 行修复，直接影响 AI 回顾质量）；OPT-122 提拔 E186（addSession startedAt 追溯守卫，2026-07-16 遗留未促）。所有断言均基于实际代码读取，已标注 file:line。
 
+---
+
+## 2026-07-18
+
+### E196 — `deleteSession()` 删除记录后不重算 `book.currentPage`；下次新增记录的起始页自动填充将显示过期值 (S)
+
+**What:** `app.js:3480-3495`，`deleteSession()` 仅执行 `state.sessions = state.sessions.filter((item) => item.id !== sessionId)` 然后同步，整个函数体没有任何 `book.currentPage` 重算逻辑。与此形成对照的是，`addSession()`（`app.js:2671, 2688`）每次保存都用 `book.currentPage = Math.max(book.currentPage || 0, endPage)` 把最高到达页推高。删除操作只能让 sessions 缩短，但 `book.currentPage` 不会随之回退。
+
+`openNewSessionForBook()`（`app.js:3421`）用 `book?.currentPage > 0 ? book.currentPage + 1 : ""` 自动填充新记录的「起始页」。场景：用户误加了一条 endPage=200 的记录 → 立即删除 → 下次打开新记录表单，起始页自动填充 201（已过期）。如果该书实际当前进度是 120 页，用户必须手动清空并重填。
+
+**Why it matters:** 「新增记录」是 Theme 1「采集顺滑」的核心路径；自动填充「上次读到哪一页」是降低手动输入摩擦的关键 UX。但只要用户曾经删除过任意一条记录（误操作、重复录入均有可能），这个自动填充就会变成噪声而非助力。修复方案：删除后从剩余 sessions 中重算 `book.currentPage = Math.max(0, ...remainingSessions.filter(s => s.bookId === deletedSession.bookId).map(s => s.endPage))`，约 4-6 行，无 API/schema 变更。
+
+**Complexity:** S
+
+**Files:** `app.js:3480-3495`（deleteSession）；`app.js:3421`（openNewSessionForBook startPage 自动填充）；`app.js:2671,2688`（addSession 的 currentPage 推高逻辑，修复时的对称参照）
+
+**northstar:** 中——Theme 1「采集顺滑」。`openNewSessionForBook()` 的起始页自动填充是减少采集摩擦的具体实现；删除记录后填充失效直接增加「打开新记录 → 看到错误值 → 手动清空重填」的操作步骤；S 修复。
+
+---
+
+### E197 — `_run_gc()` 不包含 `model_logs`、`agent_traces`、`agent_actions`、`agent_trace_events`、`agent_metrics` 五张观测表；SQLite 将无限增长 (S)
+
+**What:** `app_server.py:5986-6004`，`_run_gc()` 每 6 小时调用四个辅助函数：`gc_expired_sessions`、`gc_expired_password_reset_tokens`、`gc_old_server_errors`、`gc_old_rate_limit_rows`。`app_server.py:456-523` 定义的五张观测表均不在 GC 范围内——且对应的 GC 函数根本不存在（grep `def gc_old_model|def gc_.*trace|def gc_agent` 零结果）。这五张表的行仅在用户彻底注销账号时才被批量删除（`app_server.py:5906, 5949-5952`）。
+
+增长估算：`model_logs` 每行存储完整 `prompt TEXT / input TEXT / output TEXT`（三个全文 LLM blob），每次 AI 对话写入 1 行；日常 3-5 次对话 × 约 3-10 KB/行 ≈ 5-15 MB/月、60-180 MB/年（不含 agent 流量）。`agent_trace_events` 每个 trace 写入多行事件；`agent_metrics` 每个 trace 写入多行指标——两者增长与对话量同步叠加。SQLite 单文件存储在个人服务器上，无外部存储扩展，DB 文件无限膨胀。
+
+**Why it matters:** 这是个人常驻服务器的典型长尾问题：短期不可见，1-2 年后 SQLite 文件可能膨胀到数百 MB，影响备份/恢复速度，且`/debug/logs`（全量 model_logs 渲染）会随行数增加而越来越卡。E11（OPT-010，PR#13）修复了「4 个 GC 函数已定义但从未调用」，但 model_logs/agent 观测表从未有对应 GC 函数，是该修复遗漏的 N+1 张表。S 修复：2-3 个 GC 函数 + `_run_gc()` 里的两行调用。
+
+**Complexity:** S
+
+**Files:** `app_server.py:5986-6004`（`_run_gc()`，添加两行调用）；`app_server.py:2201-2227`（已有 GC 函数，新函数仿照 `gc_old_server_errors` 结构实现）；`app_server.py:456-523`（目标表 schema，含 `created_at` 字段可用作 GC 基准）
+
+**northstar:** 中——基础设施可靠性。`model_logs`/`agent_traces` 是 Theme 2 回顾质量的观测基础（`/debug/logs` 是唯一的 AI 交互追溯入口）；表无限增长会逐步拖慢这个入口，并在某一天造成意外的磁盘压力。S 修复，保持个人服务器长期运行健康。
+
+---
+
+### E198 — 「记录」Tab 低参与度信号已明确（2026-07-16），手动录入 5 字段是阻力最高的采集路径；自动从 currentPage 变化推算 session 可大幅降低门槛 (M)
+
+**What:** `optimization/signals.md` 2026-07-16 记录："owner 很少显式新增「记录」,记录页面几乎不用 → 要么自动推算阅读时间段与页数，要么砍掉记录页面"。`index.html:787`，「记录」占据底部导航 6 个 Tab 之一，与「摘抄」/「聊天」并列——但参与度显著落后。`app.js:2627`，`addSession()` 要求手动填写 startPage/endPage/minutes/date/note 五个字段；`app.js:2590`，`saveBook()` 的书籍编辑对话框已有 `currentPage` 字段，用户每次手动更新读到哪页时，这个 delta（endPage = 新 currentPage，startPage = 旧 currentPage）完全可以自动生成一条 session stub。
+
+**Why it matters:** 「记录」的核心价值在「回顾节奏」，但手动录 5 个字段的成本远高于普通书籍进度更新（只需改一个数字）；实际使用中用户选择跳过「记录」而直接在书卡更新 currentPage。存在两条可行的降摩擦路径：
+- 路径 A（M）：`saveBook()` 检测到 `currentPage` 变化时，弹一个轻量的确认气泡（「刚才读到第 X 页，顺手记录一下？」），预填 endPage=新currentPage、startPage=旧currentPage，只需用户填 minutes 并确认。
+- 路径 B（S）：把「记录」从底部主导航下沉为书卡详情内的二级入口，腾出底部 Tab 给更高频操作，不改录入流程但降低视觉权重与误点率。
+
+**Complexity:** M（路径 A）/ S（路径 B）
+
+**Files:** `app.js:2585-2625`（saveBook，添加 currentPage delta 检测 + 轻量提示）；`index.html:787`（路径 B：底部 Tab 调整）；`app.js:3414-3431`（openNewSessionForBook，预填逻辑可复用）
+
+**northstar:** 高——直接对应「每周阅读记录新增数」北极星指标（roadmap §2）。2026-07-12 north star 显示该数字处于低位；路径 A 将录入摩擦从「5 字段主动填写」降至「1 字段（minutes）确认」，预期能把有效 session 录入率从几乎为零拉升到与 currentPage 更新同频。
+
+---
+
+> 本次 run（2026-07-18）扫描焦点：session 采集路径完整性（从 E198 signals 信号出发）+ 删除操作的状态一致性 + 后端 SQLite 长期健康。新发现 3 条：E196（deleteSession 不重算 book.currentPage，S，northstar 中，addSession 对称修复）、E197（observability 表无 GC，S，northstar 中，2-3 个新 GC 函数）、E198（记录 Tab 低参与度 / currentPage delta 自动推算，M，northstar 高，saveBook + openNewSessionForBook）。OPT-123 提拔 E196（S 级直接 bug，修复自动填充一致性）；OPT-124 提拔 E197（S 级基础设施，防 DB 无限膨胀）。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。

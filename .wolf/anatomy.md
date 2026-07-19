@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-18T23:25:41.261Z
 > Files: 328 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T19:17:50.428Z
+> Files: 317 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -331,17 +333,17 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~31657 tok)
+- `backlog.md` — Optimization Backlog (~32864 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~54006 tok)
+- `explore.md` — Exploration — new optimization directions (~55067 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2086 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~2081 tok)
+- `triage.md` — Triage (~2098 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -470,11 +472,11 @@
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -492,3 +494,4 @@
 ## 小红书物料/第3篇-一句被击中的话/
 
 - `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~384 tok)

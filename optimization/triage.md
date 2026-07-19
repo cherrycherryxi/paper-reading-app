@@ -2,48 +2,54 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-17
+Last triaged: 2026-07-18
 
 ## Next up
 
-**预算阀 2026-07-18 由 4 上调至 8（owner 面试备考期，夜间轨转自主推进，见 roadmap.md §5.3）。近 7 天 4 个 auto/ PR < 8，有余量，可指派。**
-
-预算状态：近 7 天 auto/ PR 共 **4 个**（PR #70 auto/opt-115-116 2026-07-16、PR #69 auto/opt-113-114 2026-07-16、PR #67 auto/opt-100-103-110 2026-07-14、PR #61 auto/opt-065 2026-07-11），上限已提到 **8**，剩 4 个额度。（本段由 owner 手工更正上限；Agent1 下次 01:00 运行会按新阈值重算并正式指派 Next up。）
+**预算状态（2026-07-18 本次 triage）：** 近 7 天 auto/ PR 共 **4 个**（PR #70 auto/opt-115-116 2026-07-16、PR #69 auto/opt-113-114 2026-07-16、PR #67 auto/opt-100-103-110 2026-07-14、PR #61 auto/opt-065 2026-07-11），上限 **8**，剩余 **4 个额度**，可指派。
 
 **状态更新（本次 triage）**：
-- OPT-115（PR #70）、OPT-116（PR #70）merged 2026-07-16，in-progress → done。
-- OPT-118/doubanComment（PR #71）merged 2026-07-17，new → done。
-- OPT-119（PR #72）merged 2026-07-17，new → done。
-- OPT-118/shelf-OCR（PR #73）already done（2026-07-17，见前次 triage）。
-- OPT-120：new → triaged（P2, M）。真机实测（2026-07-17）后端 OCR 成功但 iOS 切屏断连导致结果丢失，owner 真实摩擦点。
-- 信号 2026-07-16「记录页面几乎不用，倾向以摘抄流替代」：大方向架构信号，不产生单次可落地小项，暂不出 OPT。
+- OPT-053（PR #74）merged 2026-07-18，triaged → done。
+- OPT-112（PR #75）merged 2026-07-18，triaged → done。
+- OPT-121：new → triaged（P2, S）。`all_books_summary` 缺 `review` 字段，1 行补全，Theme 2 直接受益。
+- OPT-122：new → triaged（P2, S）。`addSession()` startedAt 追溯守卫逻辑错误，1-2 行修复，OPT-105 豆瓣导入后补录历史阅读记录时尤其需要。
 
-**若预算解冻，下一指派候选：OPT-053 + OPT-112（合并一 PR）**
+---
 
-OPT-053（Session 统计条默认显示，`app.js:1415-1425`，3 行）+ OPT-112（renderTimeline haystack 加 `s.date`，`app.js:1515`，1 行）：两项同区域同文件，合并 S 级 PR；均直接贡献北极星「回顾·检索操作次数」，与 Theme 2 强对齐；零后端/schema/API 变更；可在 PR #61（2026-07-11）滑出窗口后由 Agent2 优先执行。
+**指派：OPT-121 + OPT-122（合并一 PR）**
+
+**理由（2-3 行）：** OPT-121 是 1 行后端修复——`all_books_summary` dict 缺少 `review`（用户手写或 AI 生成读后感），与同次发现已补入的 `doubanComment` 对称遗漏；补入后 AI 跨书回顾类查询（「帮我回顾读了什么」「哪本书我最喜欢」）可直接引用用户自己的评价，直接拉升 Theme 2 北极星第三数。OPT-122 是 1-2 行前端修复——`addSession()` 的 `startedAt` 追溯守卫 `!book.startedAt` 阻断了「补录早于现有 startedAt 的历史 session」的合法场景；OPT-105 豆瓣导入后 owner 有大量历史书目待补录，此守卫会导致开始日期数据错误。两项均 S 级零后端/schema/API 外依赖，触碰不同文件（`app_server.py:2611` 与 `app.js:2687`），合并 PR 无冲突、代价最小。**Signal 佐证**：OPT-121 对应 2026-07-06 signal「AI 读后感字段」+ 2026-07-05 北极星主观「很想把之前读过的书的摘抄补全」；OPT-122 对应 OPT-105 豆瓣导入后的历史数据补录需求。
+
+**关键文件：**
+- OPT-121：`app_server.py:2611`（all_books_summary dict，追加 `"review": (b.get("review") or "")[:60]`，1 行）
+- OPT-122：`app.js:2687`（addSession 中的 startedAt 守卫，将 `!book.startedAt` 改为 `!book.startedAt || date < book.startedAt`，同时检查 `editSession` 是否有对称逻辑）
+
+**Roadmap 对齐：** OPT-121 → Theme 2「回顾有价值」；OPT-122 → Theme 1「采集顺滑」数据准确性（且 OPT-122 在 2026-07-16 signal「记录页面几乎不用」的背景下仍有价值——`startedAt` 字段被书卡展示和 AI 查询直接使用，与记录页是否保留无关）。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-118 | 拍书架照片批量识别书名一键建库——新用户 onboarding「即时兑现」钩子（替代 OPT-117） | P1 | M | **done** | ✅ PR #73 已合入 feature/agent [2026-07-17]。 ✅ **可行性已验证 2026-07-17**：owner 真实书架 3 张照片实测 kimi-k2.5，识别 57 本、书名准确率 ~90%+（门槛 60%），20-28s/张，图片需 2000px（现默认 1200 不足）。复用 `runBookOcr` + `call_kimi_vision` 扩成多本+勾选确认。**实测三个待处理问题**：副标题被拆成独立一本（提示词需禁止拆分）、平放/遮挡书会幻觉且 confidence 不可靠（勾选确认为必需项）、少量遗漏。**不适合夜间 agent**（新 UI+提示词调优），留白天功能轨。 |
-| OPT-117 | 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding「即时兑现」钩子 | ~~P1~~ **P3** | L | **blocked** | ❌ 2026-07-17 调研否决，降级搁置。①服务端代抓：实测 2.5s 间隔连抓 4 次即全部 403、封禁 >3.5 分钟（豆瓣按 IP 风控），多用户并发会长期封服务器 IP 并连带 prod——频控无法解决，架构不成立。②豆瓣官方「个人信息下载」：确实存在但**仅 App 内入口 + 承诺 15 个工作日 + 未列明数据项与格式**，无法做 onboarding。③bookmarklet：技术可行但手机端无法操作（小红书流量 95% 手机），目标不匹配。真问题改由 OPT-118 承接。解冻条件：豆瓣开放官方 API/同步导出。 |
-| OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **done** | ✅ 2026-07-15（commit b978f9f）; W29 焦点。4× signal boost（2026-06-26 读完日期、2026-07-06 评分、2026-07-06 AI 读后感、2026-07-10 显式请求）。 |
-| OPT-113 | PromptBuilder.all_books_summary 缺 rating/finishedAt，AI 无法回答跨书评分/读完时间查询 | P2 | S | **done** | ✅ PR #69（与 OPT-114 合并一 PR）已合入 feature/agent [2026-07-16]。 |
+| OPT-118 | 拍书架照片批量识别书名一键建库（替代 OPT-117） | P1 | M | **done** | ✅ PR #73 已合入 feature/agent [2026-07-17]。 |
+| OPT-117 | 豆瓣 ID 一键生成阅读偏好画像——onboarding「即时兑现」钩子 | ~~P1~~ **P3** | L | **blocked** | ❌ 2026-07-17 调研否决，降级搁置。服务端代抓 4 次即封 IP，官方数据下载无时效，bookmarklet 不适合手机端。解冻条件：豆瓣开放 API。 |
+| OPT-105 | 豆瓣阅读记录一键导入（读完日期 / 评分 / 读后感） | P1 | M | **done** | ✅ 2026-07-15（commit b978f9f）；4× signal boost（2026-06-26/07-06/07-06/07-10）。 |
+| OPT-121 | `all_books_summary` 缺 `book.review`——用户手写读后感对跨书 AI 查询不可见 | P2 | S | triaged | Theme 2「回顾」；`app_server.py:2611`，1 行追加；signal 2026-07-06「AI 读后感」佐证；与 OPT-122 合并 PR。 |
+| OPT-122 | `addSession()` startedAt 追溯守卫错误——补录早于现有日期的历史 session 时开始日期无法更新 | P2 | S | triaged | Theme 1 数据准确性；`app.js:2687`，1-2 行；OPT-105 豆瓣导入后影响历史补录场景；与 OPT-121 合并 PR。 |
+| OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | **done** | ✅ PR #74 已合入 feature/agent [2026-07-18]。 |
+| OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，无法按时间段搜索阅读动态 | P2 | S | **done** | ✅ PR #75 已合入 feature/agent [2026-07-18]。 |
+| OPT-113 | PromptBuilder.all_books_summary 缺 rating/finishedAt | P2 | S | **done** | ✅ PR #69（与 OPT-114 合并一 PR）已合入 feature/agent [2026-07-16]。 |
 | OPT-114 | compareBooksForList() 二级排序键为 createdAt——豆瓣导入后「已读完」组时序语义错乱 | P2 | S | **done** | ✅ PR #69（与 OPT-113 合并一 PR）已合入 feature/agent [2026-07-16]。 |
 | OPT-104 | 分享卡片 canvas 硬编码亮色调色板，深色模式下输出白底卡片体验割裂 | P2 | S | **done** | ✅ PR #68（2026-07-16 merged）；SHARE_CARD_DARK 调色板 + matchMedia 选色。 |
-| OPT-106 | deleteQuote() 确认弹窗不提及将级联删除关联，getConnectionCount() 已存在可直接复用 | P2 | S | **done** | ✅ PR #68（2026-07-16 merged）；**signal 2026-07-10** 佐证（E169 提拔）。 |
-| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 文本而非 book.rating——OPT-099 遗漏路径 | P2 | S | **done** | PR #67（2026-07-14 merged）。与 OPT-103+OPT-110 合并一 PR。 |
-| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review——OPT-100 对称遗漏 | P2 | S | **done** | PR #67（2026-07-14 merged）。 |
-| OPT-103 | MCP summary() 写入 book.notes 而非 book.review，OPT-098 上线后两条 AI 路径语义分裂 | P2 | S | **done** | PR #67（2026-07-14 merged）。 |
-| OPT-115 | buildBookSearchCard() 不展示 book.rating——评分字段在最高频入口完全不可见 | P2 | S | **done** | ✅ PR #70（与 OPT-116 合并一 PR）已合入 feature/agent [2026-07-16]。 |
+| OPT-106 | deleteQuote() 确认弹窗不提及将级联删除关联 | P2 | S | **done** | ✅ PR #68（2026-07-16 merged）；**signal 2026-07-10** 佐证。 |
+| OPT-100 | Excel 导入「喜欢程度」列仍写入 notes 而非 book.rating | P2 | S | **done** | ✅ PR #67（2026-07-14 merged）。 |
+| OPT-110 | Excel 导入模板无「读后感」列，importExcel() 不写 book.review | P2 | S | **done** | ✅ PR #67（2026-07-14 merged）。 |
+| OPT-103 | MCP summary() 写入 book.notes 而非 book.review | P2 | S | **done** | ✅ PR #67（2026-07-14 merged）。 |
+| OPT-115 | buildBookSearchCard() 不展示 book.rating | P2 | S | **done** | ✅ PR #70（与 OPT-116 合并一 PR）已合入 feature/agent [2026-07-16]。 |
 | OPT-116 | matchBooks() 不含 book.doubanComment——OPT-105 豆瓣短评对搜索不可见 | P2 | S | **done** | ✅ PR #70（与 OPT-115 合并一 PR）已合入 feature/agent [2026-07-16]。 |
 | OPT-118(a) | all_books_summary 缺 doubanComment——AI 跨书查询不可见豆瓣短评 | P2 | S | **done** | ✅ PR #71 已合入 feature/agent [2026-07-17]。 |
-| OPT-119 | buildBookSearchCard() 已读完书籍展示进度文字而非 finishedAt——读完日期不可见 | P2 | S | **done** | ✅ PR #72 已合入 feature/agent [2026-07-17]。 |
+| OPT-119 | buildBookSearchCard() 已读完书籍展示进度文字而非 finishedAt | P2 | S | **done** | ✅ PR #72 已合入 feature/agent [2026-07-17]。 |
 | OPT-120 | 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走就白等 20s 并浪费 LLM 调用 | P2 | M | triaged | Theme 1「采集顺滑」；真机实测后端 OCR 成功但 iOS 断连丢结果；requestId+落库+visibilitychange 取回方案，改动量 M；不适合 agent（涉及新端点+schema）。 |
-| OPT-053 | Session 统计条仅在搜索时显示——日常浏览看不到累计阅读数据 | P2 | S | triaged | northstar「中」；roadmap §2 可观测代理指标；`app.js:1415-1425`，3 行改动，无 HTML/CSS/后端变动。注：OPT-082 与本项完全重复，OPT-082 不另行指派。 |
-| OPT-112 | renderTimeline() 搜索 haystack 不含 s.date，用户无法按时间段（"6月"/"2026-07"）搜索阅读动态 | P2 | S | triaged | Theme 2「检索」延伸；`app.js:1515`（renderTimeline haystack 加 s.date），约 1-2 行；与 OPT-053 同区域，可合并一 PR；signal 2026-07-03「按主题找书」搜索诉求的动态页对称缺口。 |
-| OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`，约 10-15 行，纯前端。 |
+| OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | triaged | northstar 弱-中；OPT-084（startPage 预填）依赖 currentPage 准确性；`app.js:2583-2598`，约 10-15 行，纯前端。注：2026-07-16 signal「记录页面几乎不用」—— `currentPage` 字段仍被书卡和 AI 使用，此修复仍有意义。 |
 | OPT-094 | addSession() pagesRead 计算差一，统计数据永远少计一页 | P2 | S | triaged | northstar 弱（数据准确性）；`app.js:2311`（addSession）+ `app.js:2318`（editSession）+ `app.js:1456`（统计栏汇总）各漏 +1；纯前端 3 行。 |
 | OPT-095 | 新建摘抄对话框页码字段从不预填 book.currentPage | P2 | S | triaged | northstar 弱-中，Theme 1 小摩擦消除；`app.js:2520`，2-3 行，纯前端。 |
 | OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | P2 | S | triaged | northstar「中」，Theme 1「零等太久放弃」；摘抄 100+ 条后按键卡顿；`app.js:4175-4176/3956` 各加内联 debounce(fn, 250)，5 行改动。 |
