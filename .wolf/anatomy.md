@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T07:21:07.264Z
-> Files: 317 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T23:25:41.261Z
+> Files: 328 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -17,10 +17,20 @@
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/
 
+- `com.huangnanqi.paper-xhs-0800.plist` (~288 tok)
 - `com.huangnanqi.paper-xhs.plist` (~288 tok)
-- `paper-xhs-post.sh` — 每天 06:00（launchd）无人值守：为「又买了一本书」生成一篇小红书草稿（文案 + 配图）， (~1418 tok)
+- `install-paper-xhs.sh` — 安装/更新「小红书每日草稿」自动化（真实素材版）。owner 亲手运行这一步。 (~310 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1439 tok)
+- `paper-xhs-post.sh` — 每天 06:00（launchd）无人值守：为「又买了一本书」生成一篇小红书草稿并邮件提醒 owner 去发布。 (~1495 tok)
 - `reading-taste-card.html` — 阅读偏好画像 · 47 本书里的你 (~2929 tok)
+- `shot_connections.py` — 用 owner 真实登录态，截 App「连接」页的真实界面（非设计卡）。iPhone 12 视口。 (~521 tok)
 - `taste-poster.html` (~2477 tok)
+
+## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/1b0abba2-84c8-4b17-8769-73d72608774e/scratchpad/paper-xhs/
+
+- `pick_material.py` — 从 owner 真实阅读数据里，为当天帖子挑一个具体细节（编不出来的东西才动人）。 (~1469 tok)
+- `plan.md` — 小红书一周选题计划（第 3–7 篇 · 真实素材版） (~212 tok)
+- `shot_app.py` — 为小红书自动化截「又买了一本书」App 的真实界面（非设计卡）。 (~852 tok)
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/3bfa5118-bef4-4aee-b646-f659353e2f2c/scratchpad/pr54-fix/tests/frontend/
 
@@ -81,6 +91,7 @@
 - `2026-07-15.md` — 日报 2026-07-15 (~440 tok)
 - `2026-07-16.md` — 日报 2026-07-16 (~444 tok)
 - `2026-07-17.md` — 日报 2026-07-17 (~412 tok)
+- `2026-07-18.md` — 日报 2026-07-18 (~528 tok)
 
 ## ../../.claude/hooks/
 
@@ -134,7 +145,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~710 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~1204 tok)
+- `project_daily_loop_automation.md` (~1308 tok)
 - `project_optimization_pipeline.md` (~784 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
@@ -465,10 +476,19 @@
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
 
+## 小红书物料/第2篇-把书连成线/
+
+- `文案.md` — 第 2 篇 · 把书连成线（发布包） (~391 tok)
+
 ## 小红书物料/第2篇-拍照摘抄/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~384 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
-- `img-3-演示.html` (~815 tok)
+- `img-3-演示.html` (~940 tok)
+- `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+
+## 小红书物料/第3篇-一句被击中的话/
+
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
