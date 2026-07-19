@@ -1127,3 +1127,23 @@ Format per item:
 - description: `app_server.py:5986-6004`，`_run_gc()` 每 6 小时调用 `gc_expired_sessions`、`gc_expired_password_reset_tokens`、`gc_old_server_errors`、`gc_old_rate_limit_rows` 四个辅助函数。`model_logs`（`app_server.py:456-468`，含 `prompt/input/output` 三个全文 LLM blob）、`agent_traces`（`app_server.py:470-486`）、`agent_actions`（`app_server.py:488-502`）、`agent_trace_events`（`app_server.py:504-511`）、`agent_metrics`（`app_server.py:513-523`）均无对应 GC 函数，仅在账号注销时整体删除（`app_server.py:5906,5949-5952`）。估算：日均 3-5 次对话 × 约 5-10 KB/行 model_logs ≈ 60-150 MB/年；agent trace 系列额外叠加。
 - why: E11（OPT-010，PR#13）修复了「4 个 GC 函数已定义但未调用」，但 model_logs 等表从未有对应 GC 函数——是该修复遗漏的 N+1 张表。个人常驻服务器典型长尾问题：短期不可见，1-2 年后 DB 文件膨胀数百 MB，影响备份速度与 `/debug/logs` 渲染性能。S 修复：2 个新 GC 函数参照 `gc_old_server_errors`（`app_server.py:2211-2216`）结构实现，保留近 90 天数据足够 debug 追溯。
 - how: `app_server.py:2211-2227` 附近新增两个函数：`gc_old_model_logs(conn, keep_days=90)` → `DELETE FROM model_logs WHERE created_at < ?`；`gc_old_agent_data(conn, keep_days=90)` → 串行执行 `DELETE FROM agent_metrics / agent_trace_events / agent_actions / agent_traces WHERE created_at < ?`（注意外键顺序：先删子表）；在 `_run_gc()`（`app_server.py:5993-5996`）添加两行调用并纳入日志打印。Touch: `app_server.py:2211-2227`（新 GC 函数）、`app_server.py:5993-5999`（`_run_gc` 调用 + 日志）。
+
+### OPT-125 — `deleteBook()` 确认弹窗仅显示书名，不显示将被删除的记录/摘抄/关联数量；破坏性操作信息透明度缺口 — 由 explore E199 提拔 [2026-07-19]
+- status: triaged
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——破坏性操作透明度（OPT-043/106 系列延续）。删书会级联删除该书的所有 sessions、quotes（`app.js:2736-2743`）；若用户误删一本摘抄数较多的书，损失不可恢复。显示「将同时删除 N 条记录、M 条摘抄、K 条关联」让用户在确认前评估影响范围，与已上线的 OPT-043（删书有名称确认）和 OPT-106（删记录显示页码区间）保持语义一致，直接保护「新增摘抄」北极星的历史数据积累。
+- description: `app.js:2723-2730`，`deleteBook()` 仅设置 `els.deleteBookMessage.textContent = book.title`，无任何级联数量。`getBookSessions(bookId)`（`app.js:930`）、`getQuoteCount(bookId)`（`app.js:946`）、`getConnectionCount(bookId)`（`app.js:950`）三个辅助函数均已就位，可直接调用。对比 `deleteSession()` 确认弹窗（OPT-106，PR 已合入）已展示日期区间，`deleteBook()` 是信息密度最低的确认弹窗。
+- why: 三个辅助函数已就位，无需新增逻辑，约 2-3 行 template literal 变更。在已有「OPT-043/106 破坏性操作透明度」系列的基础上，本条是自然延伸，设计语义已定义、实现路径最短。
+- how: `app.js:2728-2729`（deleteBook，生成确认消息处）：替换 `.textContent = book.title` 为构造含数量的 innerHTML 或多行 textContent，如 `删除《${book.title}》将同时删除 ${sessions.length} 条记录、${quoteCount} 条摘抄、${connCount} 条关联，此操作不可撤销。`（空时省略对应项）；在消息构造前用三个辅助函数取值。Touch: `app.js:2723-2730`（deleteBook 确认消息）。
+
+### OPT-126 — `runShelfOcr()` 缺少 try/finally 加载态管理：20 秒等待期间无 spinner、按钮不禁用，与 `runOcr()` 对称实现相比存在明显缺口 — 由 explore E201 提拔 [2026-07-19]
+- status: triaged
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」。OPT-118（PR #73，2026-07-17）上线的书架 OCR 是新用户冷启动「即时兑现」的核心功能，但加载态管理在该 PR 中被遗漏。书架 OCR 耗时 20-28 秒（owner 真机实测）；这段时间触发按钮仍可点击（潜在重复提交）、toast 2 秒后消失（无持续进行中反馈），直接影响用户对功能稳定性的信任感，并加剧 OPT-120 所描述的「切走再回来白等」问题的发生频率。
+- description: `app.js:4568-4612`，`runShelfOcr()` 仅在函数入口调用 `showToast("正在识别书架，约需 20 秒…")`，进入 `try` 块后无加载状态更新，无 `finally` 块。对比 `runOcr()`（`app.js:4488-4540`）：`try { disableBtn() / showSpinner() } ... finally { enableBtn() / hideSpinner() }`，结构完整。两者均为 OCR 功能，但 `runShelfOcr()` 是 OPT-118 新上线功能，加载态管理在 PR 中被遗漏，造成同一功能族内行为不一致。
+- why: 修复模式在 `runOcr()` 中完全存在，直接复制 try/finally 结构约 6-8 行，无 API/schema 变更，无副作用风险。属于 OPT-118 上线后的遗漏补丁，独立可实现，与 OPT-120（服务端结果留存）解决不同层面的问题。
+- how: `app.js:4572-4612`（runShelfOcr try 块内）：参照 `runOcr()`（`app.js:4494-4540`）结构，在 `try` 块顶部添加 `disableShelfOcrBtn() / showShelfOcrSpinner()`，在 `finally` 块添加 `enableShelfOcrBtn() / hideShelfOcrSpinner()`；toast 由 2 秒 auto-dismiss 改为持续显示直到 `finally`（或保留现有 toast 行为，仅加 spinner）。触碰文件：`app.js:4568-4612`（runShelfOcr）；`index.html`（若 spinner DOM 元素需新增）；`styles.css`（若 spinner 样式需新增，可复用现有 `.ocr-spinner` 类）。
