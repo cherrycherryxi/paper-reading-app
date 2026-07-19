@@ -503,6 +503,67 @@ test("bug-346: a normal in-progress session still sets the start date", async ()
   assert.equal(h.isoToDateInput(book.startedAt), "2026-05-19", "no finishedAt → start date set normally");
 });
 
+test("OPT-122: 补录早于现有 startedAt 的历史 session 会把开始日期往前更新", async () => {
+  const h = createHarness();
+  authed(h);
+  const orig = new Date("2026-05-10T12:00:00").toISOString();
+  h.setState({
+    books: [{ id: "b1", title: "在读", totalPages: 0, currentPage: 0, status: "reading", startedAt: orig, finishedAt: null }],
+    sessions: [], quotes: [], connections: [],
+  });
+  await h.addSession(h.makeFormData({
+    bookId: "b1", startPage: "1", endPage: "10", minutes: "30", date: "2026-03-01", note: "",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(h.isoToDateInput(book.startedAt), "2026-03-01", "补录更早日期应把开始日期前移");
+});
+
+test("OPT-122: 补录晚于现有 startedAt 的 session 不会把开始日期往后推", async () => {
+  const h = createHarness();
+  authed(h);
+  const orig = new Date("2026-05-10T12:00:00").toISOString();
+  h.setState({
+    books: [{ id: "b1", title: "在读", totalPages: 0, currentPage: 0, status: "reading", startedAt: orig, finishedAt: null }],
+    sessions: [], quotes: [], connections: [],
+  });
+  await h.addSession(h.makeFormData({
+    bookId: "b1", startPage: "1", endPage: "10", minutes: "30", date: "2026-06-01", note: "",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(h.isoToDateInput(book.startedAt), "2026-05-10", "开始日期只前移、不后推");
+});
+
+test("OPT-122: 编辑已有 session 到更早日期，开始日期对称前移", async () => {
+  const h = createHarness();
+  authed(h);
+  const orig = new Date("2026-05-10T12:00:00").toISOString();
+  h.setState({
+    books: [{ id: "b1", title: "在读", totalPages: 0, currentPage: 0, status: "reading", startedAt: orig, finishedAt: null }],
+    sessions: [{ id: "s1", bookId: "b1", startPage: 1, endPage: 10, pagesRead: 9, minutes: 30, note: "", date: orig }],
+    quotes: [], connections: [],
+  });
+  await h.addSession(h.makeFormData({
+    id: "s1", bookId: "b1", startPage: "1", endPage: "10", minutes: "30", date: "2026-03-01", note: "",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(h.isoToDateInput(book.startedAt), "2026-03-01", "编辑到更早日期时开始日期同样前移");
+});
+
+test("OPT-122: 补录早于现有 startedAt 但仍受 bug-346 守卫——不越过 finishedAt", async () => {
+  const h = createHarness();
+  authed(h);
+  const finished = new Date("2025-09-02T12:00:00").toISOString();
+  h.setState({
+    books: [{ id: "b1", title: "月亮虎", totalPages: 0, currentPage: 0, status: "finished", startedAt: null, finishedAt: finished }],
+    sessions: [], quotes: [], connections: [],
+  });
+  await h.addSession(h.makeFormData({
+    bookId: "b1", startPage: "1", endPage: "10", minutes: "30", date: "2025-08-01", note: "",
+  }));
+  const book = h.getState().books[0];
+  assert.equal(h.isoToDateInput(book.startedAt), "2025-08-01", "早于读完日期的补录可作为开始日期");
+});
+
 test("bug-346: normalizeStateShape clears a start date that is later than the finish date", () => {
   const h = createHarness();
   const normalized = h.normalizeStateShape({
