@@ -2624,6 +2624,16 @@ async function addBook(formData) {
   }
 }
 
+// OPT-122: startedAt 追踪「最早一次阅读」。首次写入要设，补录/改到比现有更早的历史日期时
+// 也要往前更新（此前 `!book.startedAt` 只允许首次写入，补录早于现有 startedAt 的历史 session
+// 无法更新开始日期——OPT-105 豆瓣导入后补录历史阅读记录时尤其常见）。
+// bug-346 守卫保留：绝不把开始日期设到已知读完日期之后（如导入为「已读完」、finishedAt 更早的书）。
+// 只会把 startedAt 往更早拉、从不往后推，故新增/编辑两条路径共用、幂等安全。
+function maybeBackdateStartedAt(book, date) {
+  if (book.finishedAt && date > book.finishedAt) return;
+  if (!book.startedAt || date < book.startedAt) book.startedAt = date;
+}
+
 async function addSession(formData) {
   if (!requireAuth("记录阅读")) return;
 
@@ -2671,6 +2681,7 @@ async function addSession(formData) {
     book.currentPage = Math.max(book.currentPage || 0, endPage);
     book.lastReadAt = date;
     book.updatedAt = new Date().toISOString();
+    maybeBackdateStartedAt(book, date);
     if (book.totalPages && endPage >= book.totalPages) {
       book.status = "finished";
       if (!book.finishedAt) book.finishedAt = date;
@@ -2688,9 +2699,7 @@ async function addSession(formData) {
     book.currentPage = Math.max(book.currentPage || 0, endPage);
     book.lastReadAt = date;
     book.updatedAt = new Date().toISOString();
-    // bug-346: never auto-derive a start date that lands after a known finish date
-    // (e.g. a session/edit on a book imported as 已读完 with an earlier finishedAt).
-    if (!book.startedAt && !(book.finishedAt && date > book.finishedAt)) book.startedAt = date;
+    maybeBackdateStartedAt(book, date);
     if (book.totalPages && endPage >= book.totalPages) {
       book.status = "finished";
       if (!book.finishedAt) book.finishedAt = date;
