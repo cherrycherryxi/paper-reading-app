@@ -33,7 +33,7 @@ Last triaged: 2026-07-19
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-109 | 跨页 OCR：runOcrFromImage() 仅支持单图，拍两页无法拼成同一摘抄 | **P1** | M | triaged | **signal 2026-07-03**「拍 2 张照片一起 OCR」→ 优先级提升；新增摘抄 8/周（2026-07-19 北极星下滑）；Phase 1 纯前端 ~30-40 行；`app.js:4754`（runOcrFromImage）|
+| OPT-109 | 跨页 OCR：runOcrFromImage() 仅支持单图，拍两页无法拼成同一摘抄 | **P1** | M | **in-progress** | PR #78 auto/opt-109-multi-image-ocr [2026-07-19]；Phase 1 纯前端已实现：multiple file input + 串行两次 OCR + 拼接文本|
 | OPT-121 | all_books_summary 缺 book.review——用户手写读后感对跨书 AI 查询不可见 | P2 | S | **done** | ✅ PR #76 已合入 feature/agent [2026-07-19] |
 | OPT-122 | addSession() startedAt 追溯守卫错误——补录更早历史 session 时开始日期无法更新 | P2 | S | **done** | ✅ PR #77 已合入 feature/agent [2026-07-19] |
 | OPT-073 | 非超时类聊天流式错误无内联重试按钮，用户无一键恢复路径 | P2 | S | triaged | Theme 2 核心动作（AI 探讨 29/周）；OPT-069 后端重试已上，UI 无恢复入口；`chat.js:702-719` |
