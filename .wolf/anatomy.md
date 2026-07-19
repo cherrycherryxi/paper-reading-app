@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T06:54:11.078Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T07:04:20.190Z
 > Files: 329 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -146,7 +146,7 @@
 - `MEMORY.md` (~710 tok)
 - `project_brand_share_kit.md` (~327 tok)
 - `project_daily_loop_automation.md` (~1308 tok)
-- `project_optimization_pipeline.md` (~944 tok)
+- `project_optimization_pipeline.md` (~964 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
 - `reference_global_playbook.md` (~332 tok)

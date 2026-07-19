@@ -3493,3 +3493,8 @@
 | 14:53 | 诊断『夜间预算没生效』真因=Agent1/Agent2调度竞态(名义间隔1h被排队延迟颠倒→Agent2读到旧triage FRESHNESS跳过整晚)；改Agent2 cron 18→20 UTC(04:00 CST)拉开3h | 云端 trig_01LY...(Agent2 cron)、.wolf/buglog.json(bug-545) | 已改并验证 next_run 07-20 04:03 CST；预算8本身已生效非本因 | ~4k |
 | 14:53 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | inline fix | ~84 |
 | 14:54 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | 1→3 lines | ~178 |
+| 14:55 | Session end: 10 writes across 6 files (app_server.py, agent_backend_property_test.py, app.js, book-reading-dates.test.js, today-pick.md) | 5 reads | ~161970 tok |
+| 15:02 | Session end: 10 writes across 6 files (app_server.py, agent_backend_property_test.py, app.js, book-reading-dates.test.js, today-pick.md) | 6 reads | ~162508 tok |
+| 15:04 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | inline fix | ~72 |
+| 15:04 | Agent3 explore 顺移 03:00→05:00 CST(0 21 UTC)，跟随 Agent2 移到 04:00，恢复 explore 跑在 implement 之后 | 云端 trig_01EZ...(Agent3 cron) | 已改 next_run 07-20 05:06 CST；流水线顺序 Agent1(01)→Agent2(04)→Agent3(05) | ~1k |
+| 15:04 | Session end: 11 writes across 6 files (app_server.py, agent_backend_property_test.py, app.js, book-reading-dates.test.js, today-pick.md) | 6 reads | ~162585 tok |

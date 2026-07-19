@@ -9146,6 +9146,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-19T06:53:58.560Z"
+    },
+    {
+      "id": "bug-547",
+      "timestamp": "2026-07-19T07:04:20.218Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md",
+      "root_cause": "Had `0 19 * * *`",
+      "fix": "Changed to `0 21 * * *`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T07:04:20.218Z"
     }
   ]
 }
