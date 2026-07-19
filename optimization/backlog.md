@@ -1089,7 +1089,7 @@ Format per item:
 - how: 方案 A（推荐，改动可控）：结果留存 + 幂等取回。①前端生成 `requestId`（如 `crypto.randomUUID()`）随请求发送；②后端算完后把结果连同 `requestId` 落库（可复用 model_logs 或新建轻量 ocr_results 表，带 TTL/定期 GC，注意 `_run_gc()`）；③前端把「进行中的 requestId」存 localStorage，页面重新可见时（`visibilitychange` → visible）若存在未完成的 requestId，调 `GET /api/books/shelf-ocr/result?requestId=…` 取回结果并直接弹确认列表；④同一 requestId 重复提交直接返回已有结果（幂等），顺带防重复扣费。方案 B：改为 job 模式（POST 返回 jobId + 前端轮询）——更通用但改动大，且要处理 job 生命周期，暂不采纳。注意：前端已有 `lastHiddenAt` 可复用；TTL 建议短（如 1 小时），结果含用户书目属个人数据，取回必须校验 user_id 归属。Touch: `app_server.py`（结果落库 + 取回端点 + GC）、`app.js`（requestId 生成/持久化、visibilitychange 取回）。
 
 ### OPT-121 — `PromptBuilder.all_books_summary` 缺 `book.review` 字段：用户手写读后感对跨书 AI 查询不可见——1 行补全 [2026-07-17]
-- status: triaged
+- status: done (PR #76, 2026-07-19)
 - area: backend
 - priority: P2
 - size: S
@@ -1099,7 +1099,7 @@ Format per item:
 - how: `app_server.py:2611`（all_books_summary dict 内）追加 `"review": (b.get("review") or "")[:60]`，截断长度与 `doubanComment` 保持一致；0 schema/API/前端变更。1 行修改，约 5 分钟实现。
 
 ### OPT-122 — `addSession()` 的 `startedAt` 追溯补录守卫：`!book.startedAt` 只允许「首次写入」，补录更早日期时无法更新 [2026-07-17]
-- status: triaged
+- status: done (PR #77, 2026-07-19)
 - area: frontend
 - priority: P2
 - size: S
@@ -1109,7 +1109,7 @@ Format per item:
 - how: `app.js:2687` 将条件 `!book.startedAt` 替换为 `!book.startedAt || date < book.startedAt`（同时保留 `finishedAt` 上界守卫）；同时在 `editSession()` 的 startedAt 重算逻辑中验证是否有对称需要（若 `editSession` 也有同名守卫需一并修改）。约 2 行修改，建议加一个 JS 单元测试覆盖「追溯更早日期」场景。
 
 ### OPT-123 — `deleteSession()` 删除记录后不重算 `book.currentPage`；新记录起始页自动填充显示过期值 — 由 explore E196 提拔 [2026-07-18]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1119,7 +1119,7 @@ Format per item:
 - how: `app.js:3484`（deleteSession onConfirm 内，sessions filter 之后）：（1）先找到被删 session 对应的 `bookId`，（2）从剩余 `state.sessions` 中求该书所有记录的 endPage 最大值，（3）`book.currentPage = Math.max(0, ...remainingEndPages)`；约 4-6 行，无 API/schema 变更。需同步在 `editSession()`→`addSession()` 的「edit 路径」验证是否有对称场景（endPage 编小时 currentPage 应同样向下修正）。Touch: `app.js:3480-3495`（deleteSession）；可选：`app.js:2662-2672`（edit 路径对称检查）。
 
 ### OPT-124 — `_run_gc()` 不包含 `model_logs` 等五张观测表；LLM 全文 blob 无限累积，SQLite 文件长期膨胀 — 由 explore E197 提拔 [2026-07-18]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
