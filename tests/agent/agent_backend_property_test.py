@@ -486,6 +486,33 @@ class AgentBackendPropertyTests(unittest.TestCase):
         # 系统提示必须解释 doubanComment 的语义（关键词够稳，不锁死整句措辞）。
         self.assertIn("doubanComment", prompt)
 
+    def test_all_books_summary_includes_review(self):
+        """OPT-121: 用户为整本书保存的 review(读后感/评价) 是跨书回顾类查询最该引用的原声，
+        但 all_books_summary 缺这个字段——「帮我回顾读了什么」「哪本我最喜欢」只能靠书名瞎猜。
+        修复：summary 带上 review(截 120 字符控 token)，系统提示说明其语义。与 doubanComment 对称。"""
+        builder = app_server.PromptBuilder()
+        long_review = "感" * 200
+        books = [
+            {"id": "b1", "title": "有读后感的书", "author": "A", "status": "finished",
+             "review": "读完久久不能平静，像被人轻轻拍了拍肩", "updatedAt": "2026-01-03T00:00:00Z"},
+            {"id": "b2", "title": "没读后感的书", "author": "B", "status": "finished",
+             "updatedAt": "2026-01-02T00:00:00Z"},
+            {"id": "b3", "title": "长读后感的书", "author": "C", "status": "finished",
+             "review": long_review, "updatedAt": "2026-01-01T00:00:00Z"},
+        ]
+        state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
+
+        prompt = builder.build_chat_prompt(state, "", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        summary = json.loads(user_data_json)["all_books_summary"]
+        by_id = {b["id"]: b for b in summary}
+
+        self.assertEqual(by_id["b1"]["review"], "读完久久不能平静，像被人轻轻拍了拍肩")
+        self.assertEqual(by_id["b2"]["review"], "", "没写读后感的书应为空串，交给模型忽略")
+        self.assertEqual(by_id["b3"]["review"], "感" * 120, "过长读后感应截到 120 字符控 token")
+        # 系统提示必须解释 review 的语义（关键词够稳，不锁死整句措辞）。
+        self.assertIn("review", prompt)
+
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()
         state["quotes"] = [
