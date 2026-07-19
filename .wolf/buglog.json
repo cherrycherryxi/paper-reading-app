@@ -9178,6 +9178,86 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-07-19T17:08:38.631Z"
+    },
+    {
+      "id": "bug-549",
+      "timestamp": "2026-07-19T20:09:27.819Z",
+      "error_message": "Wrong reference: lastQuoteBookId should be pendingQuoteImage2",
+      "file": "app.js",
+      "root_cause": "Used \"lastQuoteBookId\" instead of \"pendingQuoteImage2\"",
+      "fix": "Changed lastQuoteBookId → pendingQuoteImage2",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T20:09:27.819Z"
+    },
+    {
+      "id": "bug-550",
+      "timestamp": "2026-07-19T20:09:55.379Z",
+      "error_message": "Missing error handling in function",
+      "file": "app.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: // OPT-109: second page OCR — serially OCR the second image ; let didSecondPage = false;",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-19T20:10:21.821Z"
+    },
+    {
+      "id": "bug-551",
+      "timestamp": "2026-07-19T20:10:27.354Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→17 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T20:10:27.354Z"
+    },
+    {
+      "id": "bug-552",
+      "timestamp": "2026-07-19T20:10:46.575Z",
+      "error_message": "CSS fix: display, width",
+      "file": "styles.css",
+      "root_cause": "display: block → flex; width: 100% → auto",
+      "fix": "Changed display: block → flex; width: 100% → auto",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T20:10:46.575Z"
+    },
+    {
+      "id": "bug-553",
+      "timestamp": "2026-07-19T20:11:53.740Z",
+      "error_message": "Wrong reference: opts should be firstResponseStatus",
+      "file": "tests/frontend/ocr-multi-image.test.js",
+      "root_cause": "Used \"opts\" instead of \"firstResponseStatus\"",
+      "fix": "Changed opts → firstResponseStatus",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T20:11:53.740Z"
     }
   ]
 }
