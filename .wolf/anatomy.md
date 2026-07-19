@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T23:25:41.261Z
-> Files: 328 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-18T19:17:50.428Z
-> Files: 317 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T06:54:11.078Z
+> Files: 329 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -113,7 +111,7 @@
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
 - `review-2026-07-16.md` — 夜间 PR 处理报告 — 2026-07-16 (~465 tok)
 - `review-2026-07-17.md` — 夜间 PR 审查报告 — 2026-07-17 (~814 tok)
-- `today-pick.md` — 卡片① (~286 tok)
+- `today-pick.md` — 卡片① (~96 tok)
 
 ## ../../.claude/paper-xhs/
 
@@ -148,7 +146,7 @@
 - `MEMORY.md` (~710 tok)
 - `project_brand_share_kit.md` (~327 tok)
 - `project_daily_loop_automation.md` (~1308 tok)
-- `project_optimization_pipeline.md` (~784 tok)
+- `project_optimization_pipeline.md` (~944 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
 - `reference_global_playbook.md` (~332 tok)
@@ -472,11 +470,11 @@
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 

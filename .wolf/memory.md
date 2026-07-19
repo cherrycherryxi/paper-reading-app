@@ -3486,3 +3486,10 @@
 | 19:17 | Edited optimization/explore.md | added optional chaining | ~1235 |
 | 19:17 | Edited optimization/backlog.md | added optional chaining | ~810 |
 | 19:18 | Agent3 Explore 2026-07-18: found E196 (deleteSession stale currentPage), E197 (observability GC missing), E198 (session tab low engagement); promoted OPT-123 + OPT-124 to backlog | optimization/explore.md, optimization/backlog.md | success | ~8k |
+| 14:08 | Edited ../../.claude/paper-loop/today-pick.md | inline fix | ~4 |
+| 14:08 | 实现今日选题 OPT-121(all_books_summary 补 review 字段)+OPT-122(addSession startedAt 补录更早日期前移守卫)，各一 PR 合入 feature/agent | app_server.py, app.js, tests/agent/agent_backend_property_test.py, tests/frontend/book-reading-dates.test.js | PR #76/#77 均 squash 合并；394 py + 35 js 全绿 | ~40k |
+| 14:08 | Session end: 8 writes across 5 files (app_server.py, agent_backend_property_test.py, app.js, book-reading-dates.test.js, today-pick.md) | 5 reads | ~161689 tok |
+| 14:44 | Session end: 8 writes across 5 files (app_server.py, agent_backend_property_test.py, app.js, book-reading-dates.test.js, today-pick.md) | 5 reads | ~161689 tok |
+| 14:53 | 诊断『夜间预算没生效』真因=Agent1/Agent2调度竞态(名义间隔1h被排队延迟颠倒→Agent2读到旧triage FRESHNESS跳过整晚)；改Agent2 cron 18→20 UTC(04:00 CST)拉开3h | 云端 trig_01LY...(Agent2 cron)、.wolf/buglog.json(bug-545) | 已改并验证 next_run 07-20 04:03 CST；预算8本身已生效非本因 | ~4k |
+| 14:53 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | inline fix | ~84 |
+| 14:54 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md | 1→3 lines | ~178 |

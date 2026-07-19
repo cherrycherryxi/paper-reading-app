@@ -9091,6 +9091,61 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-19T06:01:00+08:00"
+    },
+    {
+      "id": "bug-544",
+      "timestamp": "2026-07-19T06:08:03.980Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T06:08:03.980Z"
+    },
+    {
+      "id": "bug-545",
+      "timestamp": "2026-07-19T15:00:00+08:00",
+      "error_message": "owner 报『夜间Agent预算似乎没生效，昨晚还是没预算』；晨间邮件显示『无待处理PR』",
+      "file": "云端 routine trig_01LY3fd6MZ9XHM8A5GHpZN9U (Agent2 implement) cron",
+      "root_cause": "非预算问题，是调度竞态：Agent1(triage,cron 17:00 UTC)与Agent2(implement,cron 18:00 UTC)名义仅隔1h。07-18夜Agent1排队延迟68min(实际18:08 UTC落地)、Agent2仅延迟3min(18:03)，顺序颠倒——Agent2抢先跑，读到的triage.md仍是前一天(07-17)的Last triaged，FRESHNESS CHECK判过期→整晚STOP零产出。近几天#74-#77其实全是人工轨(owner回复both→轮询器实现)，自主轨一直在此竞态里空转；owner一旦不回信项目就停。晨间邮件『无待处理PR』只报当刻open队列(10:00时轮询器还没动手)，非故障但措辞误导。",
+      "fix": "把Agent2 cron由 0 18 * * * 改为 0 20 * * *(02:00→04:00 CST)，与Agent1(01:00 CST)拉开3h缓冲，可吸收观测到的~1h排队延迟；20:00 UTC产出的PR次日10:00 CST晨间任务照常审+合。同步更新routine显示名。改动经RemoteTrigger update，next_run_at=2026-07-19T20:03 UTC(07-20 04:03 CST)。预算(每周8)本身已验证生效，非本bug。",
+      "tags": [
+        "automation",
+        "routines",
+        "cron",
+        "race-condition",
+        "scheduling",
+        "freshness-check",
+        "agent2",
+        "triage"
+      ],
+      "related_bugs": [
+        "bug-517"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:00:00+08:00"
+    },
+    {
+      "id": "bug-546",
+      "timestamp": "2026-07-19T06:53:58.560Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md",
+      "root_cause": "Had `0 18 * * *`",
+      "fix": "Changed to `0 20 * * *`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T06:53:58.560Z"
     }
   ]
 }
