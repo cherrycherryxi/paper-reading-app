@@ -3415,6 +3415,14 @@ async function shareBookCard(bookId) {
   }
 }
 
+// OPT-095: 新建摘抄默认填当前阅读页——摘抄记的通常就是「正在读的这一页」，
+// 与「记录阅读」用 currentPage+1（下一页起读）不同，这里不 +1。无书或尚未开
+// 读（currentPage 为 0）则留空。
+function quotePagePrefill(bookId) {
+  const book = state.books.find((b) => b.id === bookId);
+  return book && book.currentPage > 0 ? book.currentPage : "";
+}
+
 function openNewQuoteForBook(bookId) {
   if (!requireAuth("新增摘抄")) return;
   activateTab("quote");
@@ -3422,7 +3430,7 @@ function openNewQuoteForBook(bookId) {
   document.getElementById("quoteId").value = "";
   els.quoteForm.querySelector('[name="bookId"]').value = bookId;
   document.querySelector("#quoteBookCombobox")?._comboboxSetValue?.(bookId);
-  els.quoteForm.querySelector('[name="page"]').value = "";
+  els.quoteForm.querySelector('[name="page"]').value = quotePagePrefill(bookId);
   els.quoteForm.querySelector('[name="kind"]').value = "quote";
   renderQuoteTagPicker([]);
   document.getElementById("quoteContent").value = "";
@@ -5475,6 +5483,7 @@ function bindEvents() {
     if (lastQuoteBookId) {
       els.quoteForm.querySelector('[name="bookId"]').value = lastQuoteBookId;
       quoteComboWrap?._comboboxSetValue?.(lastQuoteBookId);
+      els.quoteForm.querySelector('[name="page"]').value = quotePagePrefill(lastQuoteBookId);
     }
     els.quoteDialog.showModal();
   });
