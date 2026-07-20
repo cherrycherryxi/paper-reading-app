@@ -612,3 +612,49 @@ test("e2e: a stalled stream is aborted after the idle timeout and shows a retry 
   assert.ok(retryBtn, "expected an inline retry control");
   assert.equal(retryBtn.textContent, "重试");
 });
+
+// OPT-073: a non-timeout streaming error (a server-sent `data: {error}` event,
+// a dropped connection, an HTTP failure) must also surface an inline retry
+// control — not just the idle-timeout path.
+test("e2e: a non-timeout streaming error shows an inline retry control", async () => {
+  const encoder = new TextEncoder();
+  let readCount = 0;
+  // Streams one SSE error event then closes; chat.js throws on evt.error and
+  // lands in the generic (non-AbortError) catch branch.
+  const errorFetch = () =>
+    Promise.resolve({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: () => {
+            readCount += 1;
+            if (readCount === 1) {
+              return Promise.resolve({
+                done: false,
+                value: encoder.encode('data: {"error": "上游服务异常"}\n'),
+              });
+            }
+            return Promise.resolve({ done: true, value: undefined });
+          },
+        }),
+      },
+    });
+
+  const harness = createStreamHarness({ stallingFetch: errorFetch });
+  harness.input.value = "hello";
+
+  await harness.sendBtn.dispatch("click");
+
+  const bubbles = harness.messages.children.filter((c) =>
+    (c.className || "").includes("chat-bubble-assistant"),
+  );
+  const thinking = bubbles[bubbles.length - 1];
+  assert.ok(thinking, "expected an assistant bubble");
+  assert.ok(thinking.textContent.includes("出错了"), `expected error text, got: ${thinking.textContent}`);
+  assert.ok(thinking.classList.contains("chat-error"), "expected chat-error class");
+  assert.ok(!thinking.classList.contains("chat-bubble-loading"), "loading class should be cleared on error");
+
+  const retryBtn = thinking.children.find((c) => (c.className || "").includes("chat-retry-btn"));
+  assert.ok(retryBtn, "expected an inline retry control on a non-timeout error");
+  assert.equal(retryBtn.textContent, "重试");
+});

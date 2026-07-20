@@ -719,8 +719,13 @@
           thinking.textContent = error.message;
           thinking.classList.add("chat-rate-limited");
         } else {
+          // OPT-073: non-timeout streaming errors (server-sent evt.error, a
+          // dropped connection, an HTTP failure) also need a one-tap recovery
+          // path — otherwise an error dead-ends the chat with no way back.
+          thinking.classList.remove("chat-bubble-loading");
           thinking.textContent = `出错了：${error.message}`;
           thinking.classList.add("chat-error");
+          appendRetryControl(thinking, text);
         }
         window.paperReadingApp.loadRemoteLogs?.();
       }
@@ -733,7 +738,14 @@
     thinking.classList.remove("chat-bubble-loading");
     thinking.textContent = "请求超时";
     thinking.classList.add("chat-error");
+    appendRetryControl(thinking, text);
+  }
 
+  // E24 / OPT-073: attach an inline「重试」control to a failed assistant bubble.
+  // Clicking it clears the error state in place and re-streams the original
+  // message through the same path. Call *after* setting the bubble's error text
+  // (this appends a child; a later textContent assignment would wipe it).
+  function appendRetryControl(thinking, text) {
     const retryBtn = document.createElement("button");
     retryBtn.className = "chat-action-btn chat-retry-btn";
     retryBtn.type = "button";
