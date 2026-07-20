@@ -194,6 +194,7 @@ let pendingBookEditImage = null;
 // AI 来源（book.reviewIsAi），用户改过就算自己写的——展示时要与手写读后感区分。
 let pendingAiReview = null;
 let pendingQuoteImage = null;
+let pendingQuoteImage2 = null;
 let lastQuoteBookId = "";
 // Whether the open quote dialog is for a brand-new quote (vs editing an
 // existing one). OCR assigns the draft a real id mid-session, so existingId
@@ -1994,6 +1995,7 @@ function renderImagePreview() {
   if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
     if (els.quotePreviewImg) els.quotePreviewImg.removeAttribute("src");
+    els.quoteImagePreview.querySelectorAll(".quote-preview-img2").forEach((el) => el.remove());
     return;
   }
   // iOS Safari caches Live Text recognition per DOM element, not per src.
@@ -2006,6 +2008,16 @@ function renderImagePreview() {
   newImg.src = src;
   els.quotePreviewImg.replaceWith(newImg);
   els.quotePreviewImg = newImg;
+  // OPT-109: show second page preview when two images are loaded
+  els.quoteImagePreview.querySelectorAll(".quote-preview-img2").forEach((el) => el.remove());
+  const src2 = pendingQuoteImage2?.objectUrl || pendingQuoteImage2?.dataUrl || "";
+  if (src2) {
+    const img2 = document.createElement("img");
+    img2.className = "quote-preview-img2";
+    img2.alt = "摘抄第二页预览";
+    img2.src = src2;
+    els.quoteImagePreview.appendChild(img2);
+  }
   els.quoteImagePreview.classList.remove("is-hidden");
 }
 
@@ -2518,6 +2530,8 @@ function hideOcrLineSelector() {
 function resetQuoteDraft() {
   if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   pendingQuoteImage = null;
+  if (pendingQuoteImage2?.objectUrl) URL.revokeObjectURL(pendingQuoteImage2.objectUrl);
+  pendingQuoteImage2 = null;
   els.quoteForm.reset();
   delete els.quoteForm.dataset.ocrBaseContent;
   delete els.quoteForm.dataset.ocrQuoteId;
@@ -3415,6 +3429,8 @@ function openNewQuoteForBook(bookId) {
   els.quoteForm.querySelector('[name="reflection"]').value = "";
   if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   pendingQuoteImage = null;
+  if (pendingQuoteImage2?.objectUrl) URL.revokeObjectURL(pendingQuoteImage2.objectUrl);
+  pendingQuoteImage2 = null;
   renderImagePreview();
   els.quoteDialog.showModal();
   requestAnimationFrame(() => document.getElementById("quoteContent")?.focus?.());
@@ -3456,6 +3472,8 @@ function editQuote(quoteId) {
   pendingQuoteImage = quote.imageUrl
     ? { name: "existing-quote-image", savedUrl: quote.imageUrl, dataUrl: null, objectUrl: "", ocrSource: quote.ocrSource || "" }
     : null;
+  if (pendingQuoteImage2?.objectUrl) URL.revokeObjectURL(pendingQuoteImage2.objectUrl);
+  pendingQuoteImage2 = null;
   renderImagePreview();
   els.quoteDialog.showModal();
   requestAnimationFrame(() => document.getElementById("quoteContent")?.focus?.());
@@ -4751,6 +4769,23 @@ async function handleQuoteImageChange(file) {
   }).catch(() => {});
 }
 
+async function handleQuoteImage2Change(file) {
+  if (pendingQuoteImage2?.objectUrl) URL.revokeObjectURL(pendingQuoteImage2.objectUrl);
+  if (!file) {
+    pendingQuoteImage2 = null;
+    renderImagePreview();
+    return;
+  }
+  const objectUrl = URL.createObjectURL(file);
+  pendingQuoteImage2 = { name: file.name, objectUrl, dataUrl: null, ocrSource: "" };
+  renderImagePreview();
+  const compressionPromise = resizeImageToDataUrl(file, QUOTE_IMAGE_MAX_PX, QUOTE_IMAGE_QUALITY);
+  pendingQuoteImage2.compressionPromise = compressionPromise;
+  compressionPromise.then((dataUrl) => {
+    if (pendingQuoteImage2) pendingQuoteImage2.dataUrl = dataUrl;
+  }).catch(() => {});
+}
+
 async function runOcrFromImage(engine = "fast") {
   if (!requireAuth("执行 OCR")) return;
   const isAi = engine === "ai";
@@ -4855,8 +4890,47 @@ async function runOcrFromImage(engine = "fast") {
         // poll path), so wire the line-delete panel directly into this branch.
         renderOcrLineSelector(recognized);
       }
+      // OPT-109: second page OCR — serially OCR the second image and concatenate.
+      let didSecondPage = false;
+      if (pendingQuoteImage2) {
+        let dataUrl2 = pendingQuoteImage2.dataUrl || "";
+        if (!dataUrl2 && pendingQuoteImage2.compressionPromise) {
+          dataUrl2 = await pendingQuoteImage2.compressionPromise;
+        }
+        if (dataUrl2) {
+          els.ocrStatus.textContent = "正在识别第二页…";
+          try {
+            const data2 = await apiFetch("/api/quotes/ocr", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                quoteId: String(els.quoteForm.querySelector('[name="id"]')?.value || ""),
+                bookId, engine: "fast",
+                page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
+                kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
+                content: "", reflection: "", tags: [],
+                imageDataUrl: dataUrl2, imageUrl: "",
+                filename: pendingQuoteImage2.name || "quote-image-2",
+              }),
+            }, true);
+            if (data2.state) state = normalizeStateShape(data2.state);
+            const text2 = String(data2.recognizedText || "");
+            if (text2) {
+              const merged = [normalizeOcrText(els.quoteContent.value), text2].filter(Boolean).join("\n\n");
+              els.quoteContent.value = merged;
+              renderOcrLineSelector(merged);
+              didSecondPage = true;
+            }
+          } catch (e2) {
+            showToast("第二页识别失败：" + e2.message);
+          }
+        }
+      }
       await loadRemoteLogs();
-      if (data.status === "done" && recognized) {
+      if (didSecondPage) {
+        els.ocrStatus.textContent = "两页识别完成，文字已拼接。";
+        showToast("两页识别完成");
+      } else if (data.status === "done" && recognized) {
         els.ocrStatus.textContent = "整页识别完成，可继续编辑；只想要划线句可点「AI 精识别」。";
         showToast("整页识别完成");
       } else {
@@ -5837,10 +5911,18 @@ function bindEvents() {
   });
 
   els.quoteImageInput?.addEventListener("change", async (event) => {
-    const [file] = event.target.files || [];
-    if (!file) return;
+    const files = [...(event.target.files || [])].slice(0, 2);
+    if (!files.length) return;
     try {
-      await handleQuoteImageChange(file);
+      await handleQuoteImageChange(files[0]);
+      if (files[1]) {
+        await handleQuoteImage2Change(files[1]);
+        showToast("已载入 2 张图片，OCR 将拼接两页内容");
+      } else {
+        if (pendingQuoteImage2?.objectUrl) URL.revokeObjectURL(pendingQuoteImage2.objectUrl);
+        pendingQuoteImage2 = null;
+        renderImagePreview();
+      }
     } catch {
       showToast("图片读取失败");
     }
