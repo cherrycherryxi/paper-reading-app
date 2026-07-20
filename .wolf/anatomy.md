@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-20T01:08:01.336Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-20T01:09:59.836Z
 > Files: 331 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -57,7 +57,7 @@
 
 - `bark-key.txt` (~6 tok)
 - `CLAUDE.md` — 全局工作约定（跨项目） (~421 tok)
-- `product-owner-latest.md` — 产品负责人周报 — 2026-W29(7/13 周一仪式) (~234 tok)
+- `product-owner-latest.md` — 产品负责人周一焦点 — 2026-W30（7/20） (~206 tok)
 - `settings.json` (~2125 tok)
 - `statusline-command.sh` — Claude Code status line (~335 tok)
 
