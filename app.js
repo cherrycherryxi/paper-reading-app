@@ -1747,16 +1747,48 @@ function renderTimeline() {
     }
   }
 
-  if (!sessions.length) {
+  // OPT-077: Collect book milestone events (startedAt / finishedAt) for non-search view.
+  // Milestones are skipped during search so they don't pollute session-specific results.
+  const milestoneItems = [];
+  if (!searchRaw) {
+    state.books.forEach((book) => {
+      if (book.startedAt) milestoneItems.push({ itemType: "milestone", milestoneType: "started", date: book.startedAt, book });
+      if (book.finishedAt) milestoneItems.push({ itemType: "milestone", milestoneType: "finished", date: book.finishedAt, book });
+    });
+  }
+
+  if (!sessions.length && !milestoneItems.length) {
     els.timeline.className = "timeline empty-state";
     els.timeline.textContent = searchRaw ? "没有匹配的阅读记录。" : "还没有阅读会话，点左上角加号记录一次。";
     return;
   }
 
+  // Build a unified timeline: paged sessions + all milestones, sorted newest-first.
+  const timelineItems = [
+    ...sessions.map((s) => ({ itemType: "session", session: s })),
+    ...milestoneItems,
+  ].sort((a, b) => {
+    const da = Date.parse(a.itemType === "session" ? a.session.date : a.date) || 0;
+    const db = Date.parse(b.itemType === "session" ? b.session.date : b.date) || 0;
+    return db - da;
+  });
+
   els.timeline.className = "timeline";
   els.timeline.innerHTML = "";
-  sessions.forEach((session) => {
-    const book = state.books.find((item) => item.id === session.bookId);
+  timelineItems.forEach((item) => {
+    if (item.itemType === "milestone") {
+      const { milestoneType, date, book } = item;
+      const card = document.createElement("article");
+      card.className = `timeline-milestone timeline-milestone--${milestoneType}`;
+      const icon = milestoneType === "finished" ? "🎉" : "📖";
+      const label = milestoneType === "finished" ? "读完了" : "开始读";
+      card.innerHTML = `<div class="milestone-icon">${icon}</div><div class="milestone-body"><span class="milestone-label">${label}</span><strong class="milestone-title">${formatBookTitle(book.title || "")}</strong><time class="milestone-date">${formatDate(date)}</time></div>`;
+      els.timeline.appendChild(card);
+      return;
+    }
+
+    const session = item.session;
+    const book = state.books.find((b) => b.id === session.bookId);
     const article = document.createElement("article");
     article.className = "session-grid-card";
     article.dataset.sessionId = session.id;
