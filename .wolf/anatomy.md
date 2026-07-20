@@ -1,6 +1,7 @@
 # anatomy.md
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-19T22:01:31.537Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T21:23:20.335Z
 > Files: 330 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -215,7 +216,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~64852 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~65988 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -226,7 +227,7 @@
 - `CLAUDE.md` — OpenWolf (~1489 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~12162 tok)
+- `index.html` — 🐛 又买了一本书 (~12165 tok)
 - `index.html` — 🐛 又买了一本书 (~10088 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
@@ -234,7 +235,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary (~4374 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~24279 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~24555 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -331,17 +332,17 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~32864 tok)
+- `backlog.md` — Optimization Backlog (~33469 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
-- `explore.md` — Exploration — new optimization directions (~55067 tok)
+- `explore.md` — Exploration — new optimization directions (~56323 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2086 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~2098 tok)
+- `triage.md` — Triage (~1482 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -424,6 +425,7 @@
 - `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)
 - `ocr-fast-panel-integration.test.js` — Integration test for the FAST OCR path (runOcrFromImage("fast")): (~1884 tok)
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4036 tok)
+- `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~2178 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-card-image-thumb.test.js` — OPT-052: quote card shows image thumbnail when quote.imageUrl is present, (~1647 tok)
 - `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~1796 tok)

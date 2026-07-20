@@ -3354,6 +3354,88 @@ showConfirmDialog({
 
 > 本次 run（2026-07-18）扫描焦点：session 采集路径完整性（从 E198 signals 信号出发）+ 删除操作的状态一致性 + 后端 SQLite 长期健康。新发现 3 条：E196（deleteSession 不重算 book.currentPage，S，northstar 中，addSession 对称修复）、E197（observability 表无 GC，S，northstar 中，2-3 个新 GC 函数）、E198（记录 Tab 低参与度 / currentPage delta 自动推算，M，northstar 高，saveBook + openNewSessionForBook）。OPT-123 提拔 E196（S 级直接 bug，修复自动填充一致性）；OPT-124 提拔 E197（S 级基础设施，防 DB 无限膨胀）。所有断言均基于实际代码读取，已标注 file:line。
 
+---
+
+## 2026-07-19
+
+### E199 — `deleteBook()` 确认对话框仅展示书名，不显示关联数据量；用户不知道将同时删去多少条记录与摘抄 (S)
+
+**What:** `app.js:2723-2730`，`deleteBook()` 构造确认对话框时只设置 `els.deleteBookMessage.textContent = book.title`，无任何级联数量说明。`getBookSessions(bookId)`（`app.js:930`）、`getQuoteCount(bookId)`（`app.js:946`）、`getConnectionCount(bookId)`（`app.js:950`）三个辅助函数已存在且可直接调用，返回记录数/摘抄数/关联数。
+
+**Why it matters:** 删书是不可逆操作，同时会从 `state.sessions`、`state.quotes` 中清理所有关联行（`app.js:2736-2743`）。如果用户书单很大或存在大量历史摘抄，误删一本的代价极高，但现有弹窗给不出任何数量提示——用户只看到书名，无法在删前评估。OPT-043（删书确认）和 OPT-106（删记录透明度）已奠定了「破坏性操作显示影响范围」的产品语义，本条是该系列的自然延伸，3 个辅助函数均已就位，约 2-3 行 template literal 变更。
+
+**Complexity:** S
+
+**Files:** `app.js:2723-2730`（deleteBook 确认消息构造）；`app.js:930, 946, 950`（getBookSessions / getQuoteCount / getConnectionCount，可直接调用）
+
+**northstar:** 中——破坏性操作透明度（OPT-043/106 系列延续）；删书是低频但高风险操作，显示级联数量能防止误删摘抄数据，间接保护「新增摘抄」北极星的历史积累。
+
+---
+
+### E200 — `deleteConnection()` 确认对话框不显示 `connection.thought`；用户的手写关联想法在确认前不可见 (S)
+
+**What:** `app.js:5315-5325`，`deleteConnection()` 调用 `showConfirmDialog({ message: "确定删除这条关联记录吗？", ... })`。`connection.thought` 字段存储用户手写的关联思考笔记（如「这两本书都强调了 X 概念」），在确认删除前完全不展示。相比之下，`deleteBook()` 至少展示书名，`deleteSession()` 在确认时展示记录日期范围。
+
+**Why it matters:** `connection.thought` 是关联关系中唯一由用户亲写的内容，删除后不可恢复；但确认弹窗仅显示泛用文本，用户必须靠记忆判断「这条关联是否值得保留」。若用户在关联列表中误点删除，没有任何视觉回调能帮助他们识别这是哪条记录。修复：在 `showConfirmDialog` 的 `message` 中加入 `connection.thought` 的前 40 字预览（空时降级为两端节点描述），约 3-4 行。
+
+**Complexity:** S
+
+**Files:** `app.js:5315-5325`（deleteConnection，showConfirmDialog 调用）；`app.js:5109-5130`（quoteLabel 辅助函数，可用于生成关联节点描述）
+
+**northstar:** 中——与 OPT-106「破坏性操作透明度」对称，保护用户的手写思考笔记不被误删。关联是 Theme 2「回顾有价值」的核心数据结构，现有 connections 存量不高但每条都含用户心血。
+
+---
+
+### E201 — `runShelfOcr()` 无 try/finally 加载态管理：20 秒等待期间按钮不禁用、无 spinner，与 `runOcr()` 对称实现相比存在明显缺口 (S)
+
+**What:** `app.js:4568-4612`，`runShelfOcr()` 仅在函数开头调用 `showToast("正在识别书架，约需 20 秒…")`（2 秒后自动消失），进入 `try` 块后无任何加载状态更新，也没有 `finally` 块来恢复按钮或隐藏 spinner。对比：`runOcr()`（`app.js:4488-4540`）有完整的 `try { disableBtn() / showSpinner() } finally { enableBtn() / hideSpinner() }` 结构，OCR 期间按钮灰化、toast 持续可见。`runShelfOcr()` 是 OPT-118（PR #73，2026-07-17）新上线的功能，加载态管理在 PR 中被遗漏。
+
+**Why it matters:** 书架 OCR 耗时 20-28 秒（owner 真机实测，optimization/signals.md 2026-07-17）。这段时间用户没有任何持续进行中的视觉反馈：toast 2 秒后消失、触发按钮仍可点击（可能触发重复提交）、无 spinner。与 `runOcr()` 对比，用户体验明显不一致：同为 OCR 功能，单本封面 OCR 有完整的加载态，书架 OCR 没有。修复模式已在 `runOcr()` 中存在，直接复制 try/finally 结构约 6-8 行。
+
+**Complexity:** S
+
+**Files:** `app.js:4568-4612`（runShelfOcr，加 try/finally 加载态）；`app.js:4488-4540`（runOcr，参照对称实现）
+
+**northstar:** 中——Theme 1「采集顺滑」。OPT-118 书架 OCR 是新用户冷启动的「即时兑现」钩子，20 秒等待期间有无反馈直接影响用户对功能的信任感；无 spinner 时用户会怀疑是否在处理，可能重复点击或刷新页面，导致 OPT-120 所描述的断线丢结果问题更频繁。
+
+---
+
+### E202 — `renderQuotes()` 每条摘抄调用 `getConnectionCount()` 两次：三元 ternary 的条件分支各一次，O(n×m) filter 翻倍 (S)
+
+**What:** `app.js:1880`，摘抄列表模板的关联徽章渲染：
+
+```js
+${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${getConnectionCount(quote.id)}</span>` : ""}
+```
+
+同一个 `quote.id` 在同一行被调用两次。`getConnectionCount()`（`app.js:950`）内部执行 `(state.connections || []).filter((c) => c.source === id || c.target === id).length`——每次调用是 O(m)（m = connections 总数）全量 filter。`renderQuotes()` 遍历 n 条摘抄时，这个 filter 执行 2n 次（而非 n 次）。
+
+**Why it matters:** 摘抄列表是 Theme 2「回顾有价值」的核心视图，每次过滤/切换 tag/搜索都触发 `renderQuotes()` 全量重建。目前 n×m 规模较小（摘抄 <200、connections <50），但 2x 冗余可通过 `const connCount = getConnectionCount(quote.id)` 缓存一行消除，属于无风险低成本修复。
+
+**Complexity:** S（1 行修复）
+
+**Files:** `app.js:1880`（renderQuotes，ternary 内双调用）；`app.js:950`（getConnectionCount，O(m) filter）
+
+**northstar:** 弱——纯性能，当前规模无感知；但「摘抄增长 + 关联增长」是北极星的正向指标，理应让渲染复杂度随数量线性而非 2x 线性增长。
+
+---
+
+### E203 — `buildQuoteSearchCard()`（`app.js:1519`）是死代码：grep 全库零调用点；OPT-070「全局搜索摘抄结果显灰色占位图」以此为修复目标，照此实现后用户仍不可见（需重新定位实际渲染路径）
+
+**What:** `app.js:1519` 定义了 `function buildQuoteSearchCard(quote, book)`，但 grep 全仓库（包含 `app.js`、`chat.js`、`index.html`）结果为该函数名**零调用**。OPT-070 在 triage.md 中描述「全局搜索摘抄结果永远显示灰色占位图」，并将修复目标指向 `` `app.js:1519`（entry-card-cover 未填图）``。但该函数从未被调用，即使修复了函数体，用户也不会看到任何变化——问题的实际根源在别处（全局搜索的摘抄结果可能通过另一个渲染路径或 DOM 模板直接生成，而非经由 `buildQuoteSearchCard()`）。
+
+**Why it matters:** OPT-070 是 triage.md 中 P2 triaged 的条目，下一轮 Agent2 实现时若直接按目前描述动手，将产生一个无用的修改——函数从不被调用，改了也不解决用户看到的问题。在指派前需重新 locate 全局搜索摘抄结果的实际渲染路径（`globalSearch()` 函数或其下游的摘抄结果 DOM 生成逻辑）并更新 backlog 条目中的 `app.js` 行号。
+
+**Complexity:** S（重新定位 + 修复；但需先验证实际渲染路径后才能估算）
+
+**Files:** `app.js:1519`（buildQuoteSearchCard，死代码）；需定位 `globalSearch()` 下游摘抄渲染路径
+
+**northstar:** 中——Theme 2 搜索视觉（triage.md OPT-070 原有优先级）；本条价值在于**防止浪费一次 PR 额度**在无效修复上，同时触发对实际问题路径的重新定位。
+
+---
+
+> 本次 run（2026-07-19）扫描焦点：破坏性操作透明度系列（OPT-043/106 已有基础）、OPT-118 书架 OCR 新功能遗漏加载态、渲染性能低垂果实、backlog 准确性验证（OPT-070 目标函数死代码）。新发现 5 条：E199（deleteBook 无级联数量，S，northstar 中）、E200（deleteConnection 无 thought 预览，S，northstar 中）、E201（runShelfOcr 无 try/finally 加载态，S，northstar 中，runOcr 对称实现已存在）、E202（renderQuotes 双重 getConnectionCount，S，northstar 弱）、E203（buildQuoteSearchCard 死代码，OPT-070 修复目标失效，需重新定位）。提拔 OPT-125（E199，deleteBook 级联透明度，S，三辅助函数已就位）、OPT-126（E201，runShelfOcr 加载态，S，runOcr 已有对称实现）。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
