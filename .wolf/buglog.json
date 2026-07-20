@@ -7653,7 +7653,7 @@
       "error_message": "周日北极星周记行(2026-07-12)未出现在 feature/agent 的 optimization/signals.md 里",
       "file": "optimization/signals.md",
       "root_cause": "周日 18:00 自动统计脚本在当时 checkout 的分支上直接 commit,而本机仓库当时停在 PR #62 的 opt-076-timeline-load-more 分支 → commit 4100728 落在特性分支上,从未进入 feature/agent。脚本未固定目标分支。",
-      "fix": "周一 PO 仪式手工把该行补回 feature/agent 的 signals.md;脚本侧待加固:提交前先 checkout feature/agent(或用 git commit 指定分支/worktree),不要依赖仓库当前所在分支。",
+      "fix": "周一 PO 仪式手工把该行补回 feature/agent 的 signals.md;脚本侧已于 2026-W30 PO 仪式加固:weekly-report.sh 提交前 git symbolic-ref 判断当前分支,若非 feature/agent 则用临时 worktree(mktemp -d)提交到 feature/agent,不再依赖仓库当前所在分支、也不扰动 owner 工作区。bash -n 语法自检通过,待随 dotfiles 私有库提交。",
       "tags": [
         "signals",
         "automation",
@@ -9258,6 +9258,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-19T20:11:53.740Z"
+    },
+    {
+      "id": "bug-554",
+      "timestamp": "2026-07-20T01:07:21.511Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/roadmap.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→14 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-20T01:07:21.511Z"
     }
   ]
 }

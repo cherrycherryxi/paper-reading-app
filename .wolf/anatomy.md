@@ -1,8 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T22:01:31.537Z
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T21:23:20.335Z
-> Files: 330 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-20T01:08:01.336Z
+> Files: 331 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -179,7 +178,7 @@
 - `send-email.py` — Send a text file as an email via Gmail SMTP. (~1100 tok)
 - `sync-configs.sh` — 把散落在系统各处的个人配置快照进本仓库 configs/，供备份+版本历史。 (~271 tok)
 - `tunnel-watchdog.sh` — 隧道/后端看门狗：KeepAlive 只在进程退出时重启，但 cloudflared 常出现「进程活着、 (~322 tok)
-- `weekly-report.sh` (~897 tok)
+- `weekly-report.sh` (~1146 tok)
 
 ## ../../.claude/skills/organize-downloads/
 
@@ -332,13 +331,13 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~33469 tok)
+- `backlog.md` — Optimization Backlog (~33533 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
 - `explore.md` — Exploration — new optimization directions (~56323 tok)
 - `explore.md` — Exploration — new optimization directions (~29517 tok)
-- `roadmap.md` — 项目推进方案(roadmap) (~2086 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~2411 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)

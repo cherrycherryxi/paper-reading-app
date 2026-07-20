@@ -648,7 +648,7 @@ Format per item:
 - status: triaged
 - area: frontend
 - northstar: 中——OPT-074 已使 startedAt/finishedAt 可靠落盘且在详情页可见；将这两个里程碑纳入时间线，让「记录」Tab 从「session 日志」升级为「阅读历程图」，是 Theme 2「回顾有价值」的核心基础设施；北极星代理指标「本周回顾操作次数」依赖时间线能反映完整阅读历程。
-- priority: P2
+- priority: P1 (2026-W30 PO 焦点，夜间轨执行：OPT-105 已导入 110 本 finishedAt，但时间线未显示里程碑；回顾操作 7/12→7/19 由 20 回升到 29，再涨一周即达 Theme 2 验收；并回应 7/16 signal「记录页面死重」。)
 - size: M
 - description: `renderTimeline()`（`app.js:1321-1399`）的 `allSorted` 数组仅由 `state.sessions` 构成（`app.js:1321-1333`）：`const allSorted = (state.sessions || []).slice().sort(...)` — 书籍的 `startedAt`/`finishedAt` 里程碑从未出现在时间线中。OPT-074 上线（PR #53, 2026-06-27）后，书籍「开始阅读」和「读完」日期已可靠自动填充并在详情弹窗展示，但时间线依然看不到这些里程碑。用户读完一本书，时间线只有若干 session 卡片，没有「📖 开始阅读《XXX》」和「✅ 读完《XXX》」里程碑节点，无法一眼把握某本书的完整读书区间。
 - why: Theme 2 的核心场景是「什么时候读完这本书」「某段时间我读了什么」——当前时间线只回答了「某段时间我读了多少分钟」，不回答「书籍维度的阅读历程」。里程碑事件是时间线产品价值的质变点：它将阅读体验从「打卡日志」升级为「阅读历程回顾」，直接支撑北极星「不假思索的默认工具」。OPT-074 的数据已到位，现在是展示层的闭环。
@@ -953,7 +953,7 @@ Format per item:
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
 
 ### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
-- status: triaged
+- status: in-progress (PR #78 auto/opt-109-multi-image-ocr OPEN, 2026-07-19 — Agent2 已实现 multiple file input + 串行两次 OCR + 拼接文本；待真机发布 QA 后合并)
 - area: frontend
 - priority: P2
 - size: M
