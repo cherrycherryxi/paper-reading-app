@@ -1138,6 +1138,26 @@ Format per item:
 - why: 三个辅助函数已就位，无需新增逻辑，约 2-3 行 template literal 变更。在已有「OPT-043/106 破坏性操作透明度」系列的基础上，本条是自然延伸，设计语义已定义、实现路径最短。
 - how: `app.js:2728-2729`（deleteBook，生成确认消息处）：替换 `.textContent = book.title` 为构造含数量的 innerHTML 或多行 textContent，如 `删除《${book.title}》将同时删除 ${sessions.length} 条记录、${quoteCount} 条摘抄、${connCount} 条关联，此操作不可撤销。`（空时省略对应项）；在消息构造前用三个辅助函数取值。Touch: `app.js:2723-2730`（deleteBook 确认消息）。
 
+### OPT-128 — `addSession()` 编辑路径 `book.currentPage` 单调递增：`endPage` 缩小后驻留旧值，下次新记录起始页自动填充显示过期数 — 由 explore E204 提拔 [2026-07-20]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 1「采集顺滑」，与 OPT-123 delete-path 同向。`openNewSessionForBook()` 起始页自动填充（`app.js:3454`）是降低手动录入摩擦的核心 UX；编辑路径的 `Math.max` 只往高推，用户把 endPage 从 200 改为 100 后再开新记录，自动填充仍显示 201，等于「纠错操作反制造新错误」。S 修复，完全对称 OPT-123 的 delete-path 逻辑，建议合并同一 PR 以节省额度。
+- description: `app.js:2695`，`addSession()` 编辑路径执行 `book.currentPage = Math.max(book.currentPage || 0, endPage)`，单调递增，无「编辑缩小 endPage 后向下修正」逻辑。OPT-123 的 `how` 注释已预告「需同步在 editSession()→addSession() 的 edit 路径验证是否有对称场景（endPage 编小时 currentPage 应同样向下修正）」，本条正是该预期遗漏。`openNewSessionForBook()`（`app.js:3454`）消费 `book.currentPage + 1` 作为起始页建议值；stale 后用户必须手动清空重填，与自动填充初衷相悖。
+- why: OPT-123 已修复删除路径，但用户仍可通过「编辑 → 缩小 endPage」触发同款问题；两条路径应保持同等的 currentPage 重算语义。修复逻辑：编辑保存后，取该书所有 sessions（含刚编辑过的那条）的 endPage 最大值赋给 `book.currentPage`，约 4-6 行，甚至可以抽取 `recomputeCurrentPage(bookId)` 辅助函数供 edit 和 delete 两处复用——若合并 OPT-123 同一 PR，双路径统一修复且节省 1 个 PR 额度。
+- how: `app.js:2694-2695`（addSession 编辑路径，`state.sessions[idx] = {...}` 之后）：替换 `book.currentPage = Math.max(book.currentPage || 0, endPage)` 为从 `state.sessions` 中筛出同 `bookId` 的所有记录、取 `endPage` 最大值赋给 `book.currentPage`；可选：抽 `recomputeCurrentPage(bookId)` 并在 deleteSession 的 OPT-123 fix 处复用。建议与 OPT-123 合并同一 PR 一次修清两条路径。Touch: `app.js:2694-2695`（addSession 编辑路径）；可选合并 `app.js:3519-3520`（deleteSession，OPT-123）。
+
+### OPT-127 — `resolveConnectionSide()` 缺 `ocrText` 回落：OCR 摘抄作为关联节点时标签显示为空引号 — 由 explore E205 提拔 [2026-07-20]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——OCR 采集（Theme 1）与关联回顾（Theme 2）两条核心路径的交叉点 bug。OCR 摘抄 `content` 为空时 `ocrText` 才是实际文本；`resolveConnectionSide()` 不回落导致关联卡片节点标签显示为空引号，用户无法通过关联列表识别这条关联指向哪条摘抄。全仓库其他所有摘抄文本展示路径均已有 `content || ocrText` 口径，本函数是漏网的唯一一处；1-2 行修复，零风险。
+- description: `app.js:968`，`resolveConnectionSide()` 生成摘抄侧关联节点标签用 `(quote.content || "").slice(0, 36)`，无 `ocrText` 回落。`app.js:5200` 注释明确说明「OCR 摘抄正文只存在 ocrText 里（content 为空）」；`quoteText()` helper（`app.js:5202`）规范了全仓库口径 `q.content || q.ocrText || ""`；`renderQuotes()`（`app.js:1855`）、`openQuoteDetail()`（`app.js:3477`）、分享卡（`app.js:3092`）、quote combobox 均已对齐该口径。`resolveConnectionSide()` 是漏网的唯一函数，后果：OCR 摘抄（content 为空）被建立关联后，关联卡 `buildConnectionCard()`（`app.js:973`）通过 `resolveConnectionSide()` 取到 label = `""…""`，节点不可识别。
+- why: 修复为 1 处代码、1-2 行修改（加 `|| quote.ocrText`），与全仓库现有口径完全对齐，无 API/schema 变更，无副作用。OCR 摘抄若无法在关联卡中正确显示，用户建立的关联回顾价值归零；这是一个「已有设计+已有口径+已有注释」均指向正确答案、只有一处函数漏掉的 gap。
+- how: `app.js:968`（resolveConnectionSide，quote 分支）：将 `(quote.content || "").slice(0, 36)` 改为 `(quote.content || quote.ocrText || "").slice(0, 36)`，同时将省略号判断 `quote.content?.length > 36` 改为 `(quote.content || quote.ocrText || "").length > 36`，保持一致性。约 2 行修改。可顺带验证 `buildQuoteSearchCard()`（`app.js:1519`，当前死代码）若日后复活是否也需要同样回落。Touch: `app.js:968`（resolveConnectionSide）。
+
 ### OPT-126 — `runShelfOcr()` 缺少 try/finally 加载态管理：20 秒等待期间无 spinner、按钮不禁用，与 `runOcr()` 对称实现相比存在明显缺口 — 由 explore E201 提拔 [2026-07-19]
 - status: triaged
 - area: frontend

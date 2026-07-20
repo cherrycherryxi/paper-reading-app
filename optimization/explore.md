@@ -3436,6 +3436,58 @@ ${getConnectionCount(quote.id) > 0 ? ` <span class="quote-conn-badge">🔗 ${get
 
 > 本次 run（2026-07-19）扫描焦点：破坏性操作透明度系列（OPT-043/106 已有基础）、OPT-118 书架 OCR 新功能遗漏加载态、渲染性能低垂果实、backlog 准确性验证（OPT-070 目标函数死代码）。新发现 5 条：E199（deleteBook 无级联数量，S，northstar 中）、E200（deleteConnection 无 thought 预览，S，northstar 中）、E201（runShelfOcr 无 try/finally 加载态，S，northstar 中，runOcr 对称实现已存在）、E202（renderQuotes 双重 getConnectionCount，S，northstar 弱）、E203（buildQuoteSearchCard 死代码，OPT-070 修复目标失效，需重新定位）。提拔 OPT-125（E199，deleteBook 级联透明度，S，三辅助函数已就位）、OPT-126（E201，runShelfOcr 加载态，S，runOcr 已有对称实现）。所有断言均基于实际代码读取，已标注 file:line。
 
+---
+
+## 2026-07-20
+
+### E204 — `addSession()` 编辑路径 `book.currentPage` 单调递增：`endPage` 缩小后驻留旧值，下次新记录起始页自动填充显示过期数 (S)
+
+**What:** `app.js:2695`，`addSession()` 的编辑路径（`existingId` 不为空时）执行 `book.currentPage = Math.max(book.currentPage || 0, endPage)`。`Math.max` 的语义是「只往高推」——用户把某条记录的 `endPage` 从 200 改为 100 时，`book.currentPage` 保持 200，下次调用 `openNewSessionForBook()`（`app.js:3454`）时起始页自动填充 `book.currentPage > 0 ? book.currentPage + 1 : ""`，显示 201（而非 101）。OPT-123（已 triaged）修复了**删除路径**（`deleteSession()` 删后不重算 `currentPage`），但同款问题在**编辑路径**未覆盖；OPT-123 的 `how` 注释本身已预告「需同步在 editSession()→addSession() 的 edit 路径验证是否有对称场景（endPage 编小时 currentPage 应同样向下修正）」，说明这一分支是已知的遗漏。
+
+**Why it matters:** 「打开新记录表单 → 起始页已填好」是 Theme 1 采集路径的关键便利，降低用户每次记录时的手工输入量。用户有时需要纠正之前填错的页码（如结束页多填了 100 页），但编辑缩小 `endPage` 后再开新记录，自动填充仍显示修正前的最大值，等于「自动填充帮倒忙」。修复与 OPT-123 delete-path 完全对称：编辑保存后扫描该书所有剩余 sessions，取最大 endPage 赋给 `book.currentPage`，约 4-6 行，甚至可以抽取 `recomputeCurrentPage(bookId)` 辅助函数供两处复用。
+
+**Complexity:** S
+
+**Files:** `app.js:2686-2705`（addSession 编辑路径，`Math.max` 单调递增处）；`app.js:3454`（openNewSessionForBook，起始页自动填充消费 `currentPage`）；参照 OPT-123 delete-path 逻辑（`app.js:3515-3530`）
+
+**northstar:** 中——Theme 1「采集顺滑」，与 OPT-123 同向。起始页自动填充是录入降摩擦核心；编辑路径的 `Math.max` 让「纠错操作」（编辑缩小 endPage）反而制造新错误（过期自动填充），长期会降低用户对该功能的信赖。
+
+---
+
+### E205 — `resolveConnectionSide()` 缺 `ocrText` 回落：OCR 摘抄作为关联节点时标签显示为空引号 (S)
+
+**What:** `app.js:968`，`resolveConnectionSide()` 生成摘抄侧关联节点标签：
+```js
+return { label: `"${(quote.content || "").slice(0, 36)}${quote.content?.length > 36 ? "…" : ""}"`, sub: ... };
+```
+只用 `quote.content`，无 `ocrText` 回落。然而 `app.js:5200` 注释明确写道「OCR 摘抄正文只存在 ocrText 里（content 为空），回落后标签才不会退化成「书名 · 」，搜索也才命中得到（OPT-111，与列表/详情/分享卡的 content || ocrText 口径一致）」，并在 `quoteText()` helper（`app.js:5202`）中规范化为 `q.content || q.ocrText || ""`。全仓库其他展示摘抄文本的路径——`renderQuotes()`（`app.js:1855`）、`openQuoteDetail()`（`app.js:3477`）、分享卡（`app.js:3092`）、quote combobox（`app.js:5202`）——均已有 `content || ocrText` 口径；`resolveConnectionSide()` 是全仓库唯一读取 `quote.content` 用于展示却未回落的函数。结果：拍照后内容仍在 `ocrText`（`content` 为 `""`）的摘抄若被建立关联，关联卡片该侧节点显示为 `""…""`（空引号 + 省略号），无法识别是哪条摘抄。
+
+**Why it matters:** OCR 是该 app 的核心摘抄路径（Theme 1「采集顺滑」）；「建立关联」是 Theme 2「回顾有价值」的核心互动。两者交叉时——OCR 摘抄作为关联节点——因标签显示空文本，关联列表中对应条目完全无法识别指向哪条摘抄，令已建立的关联回顾价值归零。修复为 1 处代码、2 处字符级改动（加 `|| quote.ocrText`），与全仓库现有口径对齐，零风险零副作用。
+
+**Complexity:** S（1 处代码，1-2 行修改）
+
+**Files:** `app.js:968`（resolveConnectionSide，缺 ocrText 回落）；参照 `app.js:5202`（quoteText helper，已有正确口径）
+
+**northstar:** 中——OCR 采集（Theme 1）与关联回顾（Theme 2）两条核心路径的交叉点 bug；修复后 OCR 摘抄才能完整参与 Theme 2 关联网络并在回顾时正确显示，属于「解锁已建立关联的可用性」。
+
+---
+
+### E206 — `renderTimeline()` stats bar 在 OPT-077 落地后存在 NaN 风险：若里程碑对象混入 `allSorted` 将导致统计数字损坏 (S)
+
+**What:** `app.js:1723`，`renderTimeline()` 中 `allSorted = [...state.sessions].sort(...)` 是纯 sessions 数组；stats bar（`app.js:1741-1742`）对 `statSource`（= `searchRaw ? sessions : allSorted`）全量 reduce 求 `totalMin = statSource.reduce((sum, s) => sum + Number(s.minutes || 0), 0)` 和 `totalPages = statSource.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0)`。OPT-077（PR #81，in-progress）将在时间线中插入书籍里程碑卡（startedAt/finishedAt 事件）。若里程碑对象被混入 `allSorted`（例如作为带 `type: "milestone"` 标记的扁平数组元素），这些对象无 `minutes`/`endPage`/`startPage` 字段，`Number(undefined) = NaN`，reduce 将对整条 `totalMin`/`totalPages` 产出 NaN，stats bar 显示「NaN 次记录 · NaN 分钟 · NaN 页」。若 OPT-077 只在 DOM 渲染层插入里程碑（不进 `allSorted`），则无影响。此条是**预防性提示**，需在 PR #81 review 时核实里程碑对象是否混入 `allSorted`。
+
+**Why it matters:** OPT-077 是 W30 夜间轨显式焦点，预计本周内合并。stats bar 是时间线视图唯一的量化阅读统计入口（Theme 2 回顾量化锚点），若被 NaN 污染，回顾视图的数字区域将完全失效，且错误静默（显示 NaN 而非报错，难以察觉）。修复方式极轻量：若里程碑确实混入 `allSorted`，在 stats bar reduce 前加 `.filter(s => s.minutes !== undefined)` 守卫即可（1 行），应在 OPT-077 PR review 时同步确认并按需加 guard。
+
+**Complexity:** S（预防性 guard，1 行 filter；取决于 OPT-077 的实现选择）
+
+**Files:** `app.js:1723`（allSorted 定义）；`app.js:1739-1742`（stats bar reduce，需加 filter guard）；OPT-077 PR #81
+
+**northstar:** 中——保护 Theme 2 回顾视图的量化统计不被 NaN 污染；此条价值在于防止 OPT-077 合并后引入静默回归，应作为 PR review checklist 项。
+
+---
+
+> 本次 run（2026-07-20）扫描焦点：addSession 编辑路径状态一致性（OPT-123 delete-path 的对称遗漏）、OCR 摘抄在关联卡中的 content/ocrText 口径一致性、OPT-077 里程碑落地前的 stats bar NaN 防御。新发现 3 条：E204（addSession 编辑路径 currentPage 单调递增，S，northstar 中，OPT-123 edit-path 对称遗漏）、E205（resolveConnectionSide 缺 ocrText 回落，S，northstar 中，1-2 行修复，全仓库唯一漏网函数）、E206（renderTimeline stats bar NaN 预警，S，northstar 中，OPT-077 落地前预防性提示）。提拔 OPT-127（E205，resolveConnectionSide ocrText 回落，S，最小改动 × 最高可用性恢复）、OPT-128（E204，addSession 编辑路径 currentPage，S，OPT-123 的自然延伸，建议合并同一 PR 实现）。所有断言均基于实际代码读取，已标注 file:line。
+
 ## 已归档
 
 > 2026-07-06 月度 prune(roadmap §5 规则3)。归档标准:问题已被已合并 PR 修掉,或已列 ⛔ 排除表。
