@@ -615,7 +615,7 @@ Format per item:
 - how: 最小修复（S）：在 `app.js:2556` 的 `bookDetailMeta` 末尾追加 `startedAt`/`finishedAt` 显示（调用 `formatDate()`，形如「开始：2026-05-01 · 读完：2026-06-26」）；可选在 `buildBookSearchCard()` 进度文案（`app.js:1123-1126`）追加 `lastReadAt`。可选升级（M）：在书籍 dialog（`index.html:386-419`）增加两个 `type="date"` 输入字段，支持手动设置/修正日期（处理「读完但没记 session」场景）。Touch: `app.js:2551-2560`（`openBookDetailDialog`）；可选 `app.js:1123-1126`（`buildBookSearchCard`）；可选 `index.html:386-419`（书籍 dialog）。
 
 ### OPT-073 — 非超时类聊天流式错误无内联重试按钮，用户无一键恢复路径 — 由 explore E117 提拔
-- status: triaged
+- status: done (PR #79, merged 2026-07-20)
 - area: frontend
 - priority: P2
 - size: S
@@ -834,7 +834,7 @@ Format per item:
 - how: 将 `app.js:2311`、`app.js:2318`、`app.js:1456` 三处的 `endPage - startPage` 改为 `endPage - startPage + 1`。纯前端，3 处均为单行修改，无 DB schema 变更，无后端改动。Touch: `app.js:2311, 2318`（addSession/editSession）；`app.js:1456`（统计栏）。
 
 ### OPT-095 — 新建摘抄对话框页码字段从不预填 `book.currentPage` — 由 explore E155 提拔 [2026-07-05]
-- status: triaged
+- status: done (PR #80, merged 2026-07-20)
 - area: frontend
 - priority: P2
 - size: S
@@ -953,7 +953,7 @@ Format per item:
 - how: `app.js:2317`：将提示词中「100-200字」改为「80-120字」（留充分余量确保 AI 输出低于 150 字截断门槛），可在提示词末追加「请严格控制在 120 字以内」；如未来分享卡设计调整截断长度，同步更新提示词上限即可。Touch: `app.js:2317`（generateBookReview LLM message）；参照 `app.js:2950`（truncateForShare 截断门槛）。
 
 ### OPT-109 — 跨页 OCR：`runOcrFromImage()` 仅支持单图，拍两页无法拼成同一摘抄 — 由 explore E151/E181 提拔 [2026-07-12]
-- status: in-progress (PR #78 auto/opt-109-multi-image-ocr OPEN, 2026-07-19 — Agent2 已实现 multiple file input + 串行两次 OCR + 拼接文本；待真机发布 QA 后合并)
+- status: done (PR #78, merged 2026-07-20)
 - area: frontend
 - priority: P2
 - size: M
