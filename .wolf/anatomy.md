@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T07:04:20.190Z
-> Files: 329 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-19T22:01:31.537Z
+> Files: 330 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -470,11 +470,11 @@
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -482,14 +482,18 @@
 
 ## 小红书物料/第2篇-拍照摘抄/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第3篇-一句被击中的话/
 
 - `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~384 tok)
+
+## 小红书物料/第4篇-两本书接上头/
+
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
