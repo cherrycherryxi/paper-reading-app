@@ -32,7 +32,7 @@ Last triaged: 2026-07-20
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-077 | renderTimeline() 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 | **P1** | M | triaged | W30 夜间轨显式焦点（roadmap §2）；signal 2026-06-26 + 2026-07-16；Theme 2「回顾有价值」；`app.js:1321-1399` + `styles.css` |
+| OPT-077 | renderTimeline() 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 | **P1** | M | **in-progress** | PR #81 [2026-07-20]；W30 夜间轨显式焦点（roadmap §2）；signal 2026-06-26 + 2026-07-16；Theme 2「回顾有价值」 |
 | OPT-070 | buildQuoteSearchCard() OPT-052 后未同步：全局搜索摘抄结果永远显示灰色占位图 | P2 | S | triaged | Theme 2 搜索视觉；`app.js:1519`（entry-card-cover 未填图）；可与 OPT-071 合并 PR |
 | OPT-071 | 摘抄卡片与详情弹窗图片缺少 onerror 回退：URL 失效时显示浏览器破图图标 | P2 | S | triaged | OPT-052 遗漏错误处理；可与 OPT-070 合并；`app.js` 摘抄卡面+详情 img |
 | OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | P2 | S | triaged | northstar 中；Theme 1/2 可用性；摘抄 100+ 条后按键卡顿；`app.js` 搜索事件，5 行 debounce(250ms) |
