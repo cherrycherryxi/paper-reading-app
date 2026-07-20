@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-20T17:07:33.985Z
-> Files: 331 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-20T20:12:22.266Z
+> Files: 332 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -215,7 +215,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~65988 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~66588 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -234,7 +234,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary (~4374 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~24555 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~24866 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -341,7 +341,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1538 tok)
+- `triage.md` — Triage (~1536 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -443,6 +443,7 @@
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
 - `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~2565 tok)
 - `timeline-date-search.test.js` — OPT-112: renderTimeline search haystack includes the session date (~1948 tok)
+- `timeline-milestone.test.js` — OPT-077: renderTimeline() book milestone events (startedAt / finishedAt) (~3246 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## tools/
