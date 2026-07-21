@@ -965,7 +965,8 @@ function resolveConnectionSide(type, id) {
   const quote = state.quotes.find((q) => q.id === id);
   if (!quote) return { label: "（已删除）", sub: "" };
   const book = state.books.find((b) => b.id === quote.bookId);
-  return { label: `"${(quote.content || "").slice(0, 36)}${quote.content?.length > 36 ? "…" : ""}"`, sub: book ? formatBookTitle(book.title) : "" };
+  const _qt = quote.content || quote.ocrText || "";
+  return { label: `"${_qt.slice(0, 36)}${_qt.length > 36 ? "…" : ""}"`, sub: book ? formatBookTitle(book.title) : "" };
 }
 
 const KIND_LABELS = { "异曲同工": "异曲同工", "引用": "引用", "对比": "对比", "影响": "影响", "延伸": "延伸" };
