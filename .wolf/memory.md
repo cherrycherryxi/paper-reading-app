@@ -3621,3 +3621,7 @@
 | 17:10 | Edited optimization/backlog.md | 2→2 lines | ~39 |
 | 17:10 | Edited optimization/backlog.md | 2→2 lines | ~34 |
 | 17:11 | Created optimization/triage.md | — | ~1690 |
+| 20:05 | Edited app.js | modified formatBookTitle() | ~97 |
+| 20:06 | Created tests/frontend/resolve-connection-side-ocr.test.js | — | ~1646 |
+| 20:09 | Edited optimization/triage.md | inline fix | ~46 |
+| 20:09 | OPT-127: fix resolveConnectionSide() ocrText fallback for OCR quote connection labels | app.js:968, tests/frontend/resolve-connection-side-ocr.test.js | PR #84 opened; 394 Python + all JS tests pass | ~3k |
