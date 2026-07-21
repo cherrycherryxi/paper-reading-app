@@ -1524,7 +1524,9 @@ function buildQuoteSearchCard(quote) {
   card.className = "quote-grid-card";
   card.innerHTML = `
     <div class="entry-card-cover">
-      <div class="entry-cover-fallback"></div>
+      ${quote.imageUrl
+        ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" />`
+        : '<div class="entry-cover-fallback"></div>'}
     </div>
     <div class="entry-card-body">
       <h3>${book ? formatBookTitle(book.title) : "未知书籍"} <span class="entry-type-chip">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span></h3>
