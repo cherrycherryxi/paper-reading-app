@@ -1525,7 +1525,7 @@ function buildQuoteSearchCard(quote) {
   card.innerHTML = `
     <div class="entry-card-cover">
       ${quote.imageUrl
-        ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" />`
+        ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" onerror="this.classList.add('is-hidden')" />`
         : '<div class="entry-cover-fallback"></div>'}
     </div>
     <div class="entry-card-body">
@@ -1904,7 +1904,7 @@ function renderQuotes() {
           </ul>
           <div class="entry-card-cover">
             ${quote.imageUrl
-              ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" />`
+              ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" onerror="this.classList.add('is-hidden')" />`
               : '<div class="entry-cover-fallback"></div>'}
             <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
@@ -2861,9 +2861,13 @@ function openQuoteDetail(quoteId) {
   const imgWrap = document.getElementById("quoteDetailImage");
   const img = document.getElementById("quoteDetailImg");
   if (quote.imageUrl) {
+    // OPT-071: URL 失效（隧道域名变化/图片被删）时别把浏览器破图图标塞进详情弹窗，
+    // 直接把图片区整块收起，弹窗退回纯文字视图。
+    img.onerror = () => { imgWrap.classList.add("is-hidden"); };
     img.src = resolveImageUrl(quote.imageUrl);
     imgWrap.classList.remove("is-hidden");
   } else {
+    img.onerror = null;
     imgWrap.classList.add("is-hidden");
     img.removeAttribute("src");
   }
