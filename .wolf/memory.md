@@ -3615,3 +3615,9 @@
 | 19:07 | Created tests/frontend/quote-image-onerror.test.js | — | ~1526 |
 | 19:09 | Edited ../../.claude/paper-loop/today-pick.md | inline fix | ~4 |
 | 19:10 | OPT-070/071 双 PR：buildQuoteSearchCard 补取图 + 摘抄卡面/详情弹窗 img 补 onerror 优雅降级 | app.js, tests/frontend/quote-search-card-image.test.js, tests/frontend/quote-image-onerror.test.js | PR #82 #83 均已 squash 合入 feature/agent，全量测试绿 | ~2k |
+| 17:09 | Edited optimization/backlog.md | 2→2 lines | ~34 |
+| 17:09 | Edited optimization/backlog.md | 2→2 lines | ~32 |
+| 17:10 | Edited optimization/backlog.md | 2→2 lines | ~38 |
+| 17:10 | Edited optimization/backlog.md | 2→2 lines | ~39 |
+| 17:10 | Edited optimization/backlog.md | 2→2 lines | ~34 |
+| 17:11 | Created optimization/triage.md | — | ~1690 |
