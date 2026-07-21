@@ -30,7 +30,7 @@ Last triaged: 2026-07-21
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-127 | resolveConnectionSide() 缺 ocrText 回落：OCR 摘抄关联节点标签显示为空引号 | **P2** | S | triaged | Theme 1+2 交叉 bug；全仓库唯一漏网点；1-2 行，零风险；`app.js:968` |
+| OPT-127 | resolveConnectionSide() 缺 ocrText 回落：OCR 摘抄关联节点标签显示为空引号 | **P2** | S | **in-progress** | PR #84 [2026-07-21]；Theme 1+2 交叉 bug；全仓库唯一漏网点；1-2 行，零风险；`app.js:968` |
 | OPT-123 | deleteSession() 删除记录后不重算 book.currentPage；新记录起始页自动填充显示过期值 | P2 | S | triaged | Theme 1；`app.js:3480-3495`；约 4-6 行；建议与 OPT-128 合并 |
 | OPT-128 | addSession() 编辑路径 currentPage 单调递增：endPage 缩小后驻留旧值，下次起始页自动填充过期数 | P2 | S | triaged | Theme 1，OPT-123 对称路径；`app.js:2694-2695`；建议合并 OPT-123 同一 PR |
 | OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | P2 | S | triaged | Theme 2 搜索可用性；摘抄 100+ 条后卡顿；`app.js:3956, 4175-4176`，5 行 debounce(250ms) |
