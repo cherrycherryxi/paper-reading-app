@@ -3610,3 +3610,8 @@
 |------|--------|---------|---------|--------|
 | 18:27 | 重构 paper-wrapup.sh：日报改模型 stdout 捕获、彻底去 git 兜底、发信加便携超时+补漏补发；修 ${out} 紧贴全角 set-u 崩溃 | ~/.claude/scripts/paper-wrapup.sh | 单元+集成(mock真脚本)+真实claude冒烟全绿；已推 dotfiles 75236a3 | ~14k |
 | 18:28 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | inline fix | ~183 |
+| 19:05 | Edited app.js | inline fix | ~42 |
+| 19:06 | Edited app.js | modified if() | ~106 |
+| 19:07 | Created tests/frontend/quote-image-onerror.test.js | — | ~1526 |
+| 19:09 | Edited ../../.claude/paper-loop/today-pick.md | inline fix | ~4 |
+| 19:10 | OPT-070/071 双 PR：buildQuoteSearchCard 补取图 + 摘抄卡面/详情弹窗 img 补 onerror 优雅降级 | app.js, tests/frontend/quote-search-card-image.test.js, tests/frontend/quote-image-onerror.test.js | PR #82 #83 均已 squash 合入 feature/agent，全量测试绿 | ~2k |

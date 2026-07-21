@@ -9498,6 +9498,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-21T10:28:17.751Z"
+    },
+    {
+      "id": "bug-568",
+      "timestamp": "2026-07-21T11:05:44.102Z",
+      "error_message": "Incorrect value in code",
+      "file": "app.js",
+      "root_cause": "Had \" />`",
+      "fix": "Changed to \" onerror=\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T11:05:44.102Z"
+    },
+    {
+      "id": "bug-569",
+      "timestamp": "2026-07-21T11:09:49.062Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T11:09:49.062Z"
     }
   ]
 }

@@ -18,6 +18,7 @@
 
 - [2026-07-15] **豆瓣导入(OPT-105)：豆瓣无官方导出、第三方扩展(豆伴/tofu)已停维护且解析失效(GitHub #114/120/122)、油猴脚本停在2019——都不可靠。可行方案=本地小脚本抓 `book.douban.com/people/<id>/collect`(读书列表默认公开、无需 cookie)，当前结构是 `li.item > .title/.date(含 rating{N}-t)/.intro(作者)/.comment(短评)`(2026 版, 老的 subject-item/pub 已废)。脚本在 tools/douban_export.py。导入器只填空缺、不覆盖已填(评分/读完日期/读后感字段已存在, 走 syncState 零后端改动)。
 - [2026-07-15] **前端测试坑：`assert.deepStrictEqual` 比较『vm.runInNewContext 内产生的数组』与测试 realm 的数组字面量会失败**，报「Values have same structure but are not reference-equal」——因为 vm 内 `[]` 用的是它自己 realm 的 Array.prototype，跨 realm 原型不等。改用 `arr.join("|")` 等原始值比较即可(字符串跨 realm 相等)。别为此以为被测代码有 bug。
+- [2026-07-21] **摘抄图片有两套渲染/兜底路径，改一处要想到全部三处(OPT-052/070/071)。** ①列表卡 `renderQuotes()`(app.js~1907) + ②搜索卡 `buildQuoteSearchCard()`(~1528)都是 **innerHTML 字符串**拼的，图片走 `quote.imageUrl ? <img src=resolveImageUrl(...)> : <div class=entry-cover-fallback>`，加载失败兜底用**内联 `onerror="this.classList.add('is-hidden')"`**(`is-hidden`=`display:none!important`，露出 `.entry-card-cover` 的粉底=与无图占位视觉一致)；③详情弹窗 `openQuoteDetail()`(~2864)是 **JS 建的单例 img**，兜底用 `img.onerror=()=>imgWrap.classList.add("is-hidden")`(**必须在赋 src 前挂**，且无图分支要 `img.onerror=null` 清理，因单例跨次复用)。书封面(`bindBookCoverImageFallback`)是另一套 per-card `addEventListener("error")`+退默认封面，别混。OPT-070=给②补取图(此前它 dead code 但恒占位)；OPT-071=给①②③补 onerror。
 
 - **Project:** paper-reading-app
 - **Description:** 一个面向手机网页的纸质书阅读工具，当前优先适配 iPhone 12。
