@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T07:59:59.561Z
-> Files: 335 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T10:28:17.721Z
+> Files: 336 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -39,6 +39,7 @@
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/4c0b6911-000f-4552-9bf0-b7884f448f0f/scratchpad/
 
 - `wolfsync_test.sh` — 复现「本地 hook 写 + 远端夜间 agent 写」双写 buglog.json/memory.md 冲突， (~742 tok)
+- `wrapup_integ.sh` — 集成测试：用 mock 注入跑真实 paper-wrapup.sh，验证补漏路径的生成→写文件→发信→marker， (~928 tok)
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/9f13dddc-a421-447a-b1d7-8ed45193951b/scratchpad/
 
@@ -151,7 +152,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~710 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~1488 tok)
+- `project_daily_loop_automation.md` (~1630 tok)
 - `project_optimization_pipeline.md` (~964 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
@@ -175,7 +176,7 @@
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1093 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1549 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~896 tok)

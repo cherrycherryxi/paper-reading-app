@@ -3591,3 +3591,22 @@
 | 15:47 | Edited ../../.claude/scripts/paper-implement-poll.sh | inline fix | ~90 |
 | 15:59 | 把 .wolf 记账推送/清理做成确定性：加固 sync-knowledge.sh(逐个add)+晨间/轮询两处 git pull 全换成它并提前 push+模型 prompt 禁 reset --hard | .wolf/sync-knowledge.sh, ~/.claude/scripts/paper-{morning,implement-poll}.sh | scratch冲突复现+集成冒烟全绿；跑完本地==远端无分叉 | ~9k |
 | 15:59 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→3 lines | ~211 |
+| 16:27 | Session end: 11 writes across 5 files (cards-2026-07-21.md, wolfsync_test.sh, paper-morning.sh, paper-implement-poll.sh, project_daily_loop_automation.md) | 4 reads | ~4143 tok |
+| 16:31 | Session end: 11 writes across 5 files (cards-2026-07-21.md, wolfsync_test.sh, paper-morning.sh, paper-implement-poll.sh, project_daily_loop_automation.md) | 4 reads | ~4143 tok |
+| 16:45 | Created ../../.claude/scripts/paper-wrapup.sh | — | ~1487 |
+| 16:48 | Edited ../../.claude/scripts/paper-wrapup.sh | 5→8 lines | ~126 |
+| 16:48 | Edited ../../.claude/scripts/paper-wrapup.sh | modified alert() | ~106 |
+| 16:49 | Created ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/4c0b6911-000f-4552-9bf0-b7884f448f0f/scratchpad/wrapup_integ.sh | — | ~928 |
+| 17:49 | Edited ../../.claude/scripts/paper-wrapup.sh | 2→2 lines | ~35 |
+
+## Session: 2026-07-21 17:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-21 18:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:27 | 重构 paper-wrapup.sh：日报改模型 stdout 捕获、彻底去 git 兜底、发信加便携超时+补漏补发；修 ${out} 紧贴全角 set-u 崩溃 | ~/.claude/scripts/paper-wrapup.sh | 单元+集成(mock真脚本)+真实claude冒烟全绿；已推 dotfiles 75236a3 | ~14k |
+| 18:28 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | inline fix | ~183 |

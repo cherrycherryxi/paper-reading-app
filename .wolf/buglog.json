@@ -9424,6 +9424,80 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-21T07:59:59.595Z"
+    },
+    {
+      "id": "bug-564",
+      "timestamp": "2026-07-21T08:48:24.416Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-wrapup.sh",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 5→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T08:48:24.416Z"
+    },
+    {
+      "id": "bug-565",
+      "timestamp": "2026-07-21T09:49:47.261Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/paper-wrapup.sh",
+      "root_cause": "Had \"[$(date)] 日报已由脚本捕获模型输出写入：$out（$(wc -c < \"",
+      "fix": "Changed to \"[$(date)] 日报已由脚本捕获模型输出写入：${out}（$(wc -c < \"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T09:49:47.261Z"
+    },
+    {
+      "id": "bug-547-wrapup-nogit",
+      "timestamp": "2026-07-21T18:00:00+08:00",
+      "error_message": "每天23:30自动日报不可靠：headless 模型常不执行 Write→当天没日报，兜底又退化成无分析的 git-log 列表；且发信是最后一步、被打断即永久丢件(07-19)",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "生成日报押在『模型主动用 Write 工具写文件』这个副作用上（headless 常跳过，bug-535 已3次）；失败兜底用 git log 拼报告（owner 明确不要）；发信无重试、无超时。",
+      "fix": "重构 paper-wrapup.sh：gen_report() 让模型把日报放 <<<REPORT_START/END>>> 标记间作为回复正文输出，脚本捕获 stdout 确定性写文件（文件由脚本写，内容仍是模型分析，git log 只作模型输入非最终报告）；无标记 sed 从 '# 日报' 兜底；校验标题+≥200字节，不合格→Bark 告警，绝不 git 兜底。send_report() 发信加 perl alarm 便携超时（macOS 无 timeout/gtimeout）、成功才打 marker。补漏/补发最近3天：缺文件→模型补生成，有文件缺 marker→补发(治07-19丢件)。开发中撞 set -u：$out 紧贴全角（→unbound、写完文件却崩在发信前（2026-07-12老坑复发，改 ${out}）。单元+集成(mock真脚本3场景)+真实 claude 冒烟全绿。",
+      "tags": [
+        "automation",
+        "daily-report",
+        "wrapup",
+        "determinism",
+        "stdout-capture",
+        "set-u",
+        "unbound-variable",
+        "email",
+        "timeout"
+      ],
+      "related_bugs": [
+        "bug-535",
+        "bug-545",
+        "bug-546-wolfsync"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T18:00:00+08:00"
+    },
+    {
+      "id": "bug-567",
+      "timestamp": "2026-07-21T10:28:17.751Z",
+      "error_message": "Wrong reference: headless should be 2026",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md",
+      "root_cause": "Used \"headless\" instead of \"2026\"",
+      "fix": "Changed headless → 2026",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T10:28:17.751Z"
     }
   ]
 }
