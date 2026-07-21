@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-20T21:20:14.879Z
-> Files: 332 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T07:59:59.561Z
+> Files: 335 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -35,6 +35,10 @@
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/3bfa5118-bef4-4aee-b646-f659353e2f2c/scratchpad/pr54-fix/tests/frontend/
 
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2153 tok)
+
+## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/4c0b6911-000f-4552-9bf0-b7884f448f0f/scratchpad/
+
+- `wolfsync_test.sh` — 复现「本地 hook 写 + 远端夜间 agent 写」双写 buglog.json/memory.md 冲突， (~742 tok)
 
 ## ../../../../private/tmp/claude-501/-Users-huangnanqi-CursorProjects-paper-reading-app/9f13dddc-a421-447a-b1d7-8ed45193951b/scratchpad/
 
@@ -106,11 +110,13 @@
 - `cards-2026-07-15.md` — 卡片① (~89 tok)
 - `cards-2026-07-16.md` — 卡片① (~142 tok)
 - `cards-2026-07-17.md` — 卡片① (~134 tok)
+- `cards-2026-07-21.md` — 卡片① (~125 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
 - `review-2026-07-16.md` — 夜间 PR 处理报告 — 2026-07-16 (~465 tok)
 - `review-2026-07-17.md` — 夜间 PR 审查报告 — 2026-07-17 (~814 tok)
+- `review-2026-07-21.md` — 夜间 PR 审查报告 — 2026-07-21 (~484 tok)
 - `today-pick.md` — 卡片① (~96 tok)
 
 ## ../../.claude/paper-xhs/
@@ -145,7 +151,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~710 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~1308 tok)
+- `project_daily_loop_automation.md` (~1488 tok)
 - `project_optimization_pipeline.md` (~964 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
@@ -164,8 +170,8 @@
 - `newproj.sh` — newproj — 显式、可交互、安全地为新项目铺设 OpenWolf + roadmap/signals 脚手架。 (~922 tok)
 - `northstar-metrics.py` — 北极星三数周计算(paper-reading-app roadmap §2)。 (~1042 tok)
 - `paper-dev-reload.sh` — paper-dev-reload.sh —— 合并 PR 后按需重启 dev 后端，让改动真正在 8787 上生效。 (~559 tok)
-- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~778 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1377 tok)
+- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~875 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1500 tok)
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
@@ -472,11 +478,11 @@
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -484,12 +490,12 @@
 
 ## 小红书物料/第2篇-拍照摘抄/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第3篇-一句被击中的话/
 

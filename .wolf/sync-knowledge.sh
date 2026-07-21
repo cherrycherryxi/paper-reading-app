@@ -31,7 +31,9 @@ if [ -n "$non_wolf" ]; then
   exit 1
 fi
 if [ -n "$(git status --porcelain -- $knowledge 2>/dev/null)" ]; then
-  git add $knowledge
+  # 只 add 真实存在的文件：`git add a b c d` 是原子的，任一路径不存在会整体失败、
+  # 什么都不暂存 → pre-sync 提交落空 → 后续 merge 拿脏工作区乱套（丢远端条目）。
+  for f in $knowledge; do [ -e "$f" ] && git add "$f"; done
   git commit -q -m "chore(wolf): pre-sync knowledge snapshot
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"

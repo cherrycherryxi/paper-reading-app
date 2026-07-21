@@ -9354,6 +9354,76 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-20T21:20:14.897Z"
+    },
+    {
+      "id": "bug-560",
+      "timestamp": "2026-07-21T07:44:54.703Z",
+      "error_message": "Wrong operator: && should be ==",
+      "file": "../../.claude/scripts/paper-morning.sh",
+      "root_cause": "Used \"&&\" instead of \"==\"",
+      "fix": "Changed operator && → ==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T07:44:54.703Z"
+    },
+    {
+      "id": "bug-561",
+      "timestamp": "2026-07-21T07:47:00.345Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/scripts/paper-implement-poll.sh",
+      "root_cause": "Had `git checkout feature/agent && git pull --no-edit ",
+      "fix": "Changed to `git checkout feature/agent && bash .wolf/sync-kno",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T07:47:00.345Z"
+    },
+    {
+      "id": "bug-546-wolfsync",
+      "timestamp": "2026-07-21T16:30:00+08:00",
+      "error_message": "晨间/轮询任务反复因 .wolf/buglog.json merge 冲突 reset --hard 丢弃未推送记账提交；未提交 .wolf 改动日积月累堵塞次日 git pull",
+      "file": "~/.claude/scripts/paper-morning.sh, paper-implement-poll.sh, .wolf/sync-knowledge.sh",
+      "root_cause": "确定性对账器 .wolf/sync-knowledge.sh 早已存在（union 合 md + jq 按 .id 去重 buglog）但自动化没用它——两脚本用原始 git add -A .wolf + git pull，撞 buglog.json 冲突后靠模型 reset --hard 收场；且 pre-morning 快照提交直到脚本末尾才推，模型合 PR 时本地/远端已在 .wolf 上分叉。另：sync-knowledge.sh 的 git add 一次性 add 4 个知识文件，缺任一会原子失败、pre-sync 提交落空。",
+      "fix": "①加固 sync-knowledge.sh：改为逐个只 add 存在的文件。②paper-morning.sh/paper-implement-poll.sh 两处原始 git pull 全替换为 bash .wolf/sync-knowledge.sh，并在预处理阶段紧跟一次 git push（本地==远端后再进模型阶段，消除分叉）。③两脚本的模型 prompt step5 明令：严禁 reset --hard/rebase 解 .wolf 冲突、严禁丢弃本地 .wolf 提交，一律交 sync-knowledge.sh。scratch 复现双写冲突 + 集成冒烟均验证：三条 bug 零丢失、合法 JSON、无冲突标记、跑完本地HEAD==远端HEAD。",
+      "tags": [
+        "automation",
+        "wolf",
+        "git",
+        "merge-conflict",
+        "determinism",
+        "sync-knowledge",
+        "reset-hard"
+      ],
+      "related_bugs": [
+        "bug-545"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T16:30:00+08:00"
+    },
+    {
+      "id": "bug-563",
+      "timestamp": "2026-07-21T07:59:59.595Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md",
+      "root_cause": "Had `jq -n '",
+      "fix": "Changed to `.wolf/sync-knowledge.sh`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T07:59:59.595Z"
     }
   ]
 }
