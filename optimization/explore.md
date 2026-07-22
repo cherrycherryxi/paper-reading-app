@@ -3629,3 +3629,88 @@ els.connectionSearch?.addEventListener("input", renderConnections);
 ---
 
 > 本次 run（2026-07-21）扫描焦点：OPT-077 落地后的里程碑相关回归与缺口、OCR 摘抄在聊天路径的 ocrText 口径遗漏、搜索防抖覆盖度。新发现 4 条：E207（chat.js quotePreview 缺 ocrText，S，northstar 中，1 行修复）、E208（OPT-077 里程碑无分页，S/M，northstar 中，110 本豆瓣书首渲 110 DOM 节点）、E209（里程碑卡无点击导航，S，northstar 中，1 行 addEventListener）、E210（session/connection 搜索缺防抖，S，northstar 弱，建议合并 OPT-072）。提拔 OPT-129（E207，chat.js quotePreview ocrText，S，1 行修复，最小改动高优先级）、OPT-130（E208，OPT-077 里程碑分页，S/M，OPT-077 规模化使用后的必要跟进）。所有断言均基于实际代码读取，已标注 file:line。
+
+---
+
+## 2026-07-22
+
+### E211 — 书籍详情对话框摘抄预览缺 ocrText 回落：OCR 摘抄在「最近摘抄」栏显示为空白 — 2026-07-22
+
+**What:** `openBookDetailDialog()` 渲染「最近摘抄」预览（最多 2 条）时，使用 `quote.content || ""` 而无 `ocrText` 回落。OCR 摘抄（`content` 为空，文本存于 `ocrText`）在此处显示为空字符串，按钮仅剩元信息行（页码 / 日期），主体内容完全不可见。
+
+**Evidence:**
+- `app.js:3825`：`<span class="book-detail-quote-content">${escapeHtml(quote.content || "")}</span>` — 无 ocrText 分支
+- 对比同一对话框打开 quoteDetail 的路径，`app.js:2891`：`quote.content || quote.ocrText ||` — 已正确回落
+- 对比同文件其他展示路径均已修复（`app.js:968`、`app.js:1890`、`app.js:3145`、`app.js:3530`）
+- 书籍详情「摘抄/笔记」区域是用户回顾一本书时最先触达的内容快照，OCR 摘抄在此处空白直接破坏 Theme 2 回顾体验
+
+**Why it matters:** 主采集路径（拍照 OCR）产生的摘抄恰好是 ocrText-only；书籍详情是 Theme 2 「回顾」核心入口；预览区最多 2 条，OCR 摘抄为主时这 2 条全空，等于完全失效。1 行修复，零副作用，与文件内已有口径完全对齐。
+
+**Complexity:** S（1 行：`quote.content || ""` → `quote.content || quote.ocrText || ""`）
+
+**Files:** `app.js:3825`
+
+**northstar:** 中——书籍详情摘抄预览是 Theme 2「回顾有价值」最直接的展示窗口；OCR 采集是主路径；两者交叉点的展示缺陷修复即为 northstar 贡献。
+
+---
+
+### E212 — OPT-077 里程碑卡无点击导航：点击「读完了」无任何响应，无法跳转书籍详情 — 2026-07-22
+
+**What:** OPT-077（PR #81）引入的里程碑卡（startedAt / finishedAt）仅创建 `article` 元素并设置 innerHTML，无 `addEventListener("click", ...)`。用户点击「🎉 读完了《深度工作》」卡片，页面无任何响应。相邻的 session 卡在同一渲染循环中有明确的点击处理：`app.js:1539`（article.addEventListener click → openSessionDetail）。
+
+**Evidence:**
+- `app.js:1784-1790`（里程碑分支）：`card.className = ...; card.innerHTML = ...; els.timeline.appendChild(card); return;` — 全段无 `addEventListener`
+- `app.js:1539`（session 分支）：`article.addEventListener("click", () => { openSessionDetail(session.id); })` — 对比鲜明
+- `openBookDetailDialog(bookId)` 函数已存在（`app.js:3760` 附近），只需 1 行调用
+- 里程碑卡携带 `book` 对象（`item.book`，见 `app.js:1783`），bookId 随手可得
+
+**Why it matters:** 时间线作为「阅读足迹入口」，里程碑是用户最自然的「我想重温这本书」触发点——「读完了」一栏本身就是回顾欲望最高的时刻。无点击行为使里程碑从可交互组件退化为纯装饰文字，错失 Theme 2「读完 → 回顾」最顺手的跳转路径。1 行修复。
+
+**Complexity:** S（1 行：在 `els.timeline.appendChild(card)` 之前加 `card.addEventListener("click", () => openBookDetailDialog(book.id))`）
+
+**Files:** `app.js:1789`（里程碑渲染块末尾，`appendChild` 前）
+
+**northstar:** 中——Theme 2；时间线里程碑「点击进入书籍详情 → 回顾摘抄/笔记/评分」是「默认工具」体验的核心交互闭环，当前缺失。
+
+---
+
+### E213 — `reading_mcp_server.py` `_save_state()` 绕过乐观锁：MCP 工具写入与 Web App 并发时可静默覆盖对方状态 — 2026-07-22
+
+**What:** `reading_mcp_server.py:75-80`，`_save_state()` 直接执行 `UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?`，不读取当前版本号、不做比较。`app_server.py` 的 `save_state_checked()`（OPT-030 引入）使用版本条件 UPDATE（`state_version` 字段）防止并发覆盖。MCP server 被所有 6 个工具调用（`_save_state` 出现在 `reading_mcp_server.py:226/285/328/369/412/500`），任何一次 Claude Desktop MCP 调用与用户同时在 Web App 编辑均存在竞态。
+
+**Evidence:**
+- `reading_mcp_server.py:75-80`：盲 UPDATE，无版本字段
+- 对比 `app_server.py` 中 `save_state_checked()`（OPT-030）：有 version 读取 + compare + conditional UPDATE 机制
+- MCP 工具覆盖范围：6 处调用（`add_book`、`add_session`、`add_quote`、`tag_book`、`update_book`、`update_reading_status`）
+
+**Why it matters:** 数据完整性；用户同时用 Claude Desktop MCP 和 Web App 时，后写入方静默覆盖先写入方。当前 owner 处于「豆瓣大批量导入」阶段，并发写入风险最高。northstar 贡献弱（工程卫生为主），但潜在数据丢失风险值得记录。
+
+**Complexity:** S（每个写入点前增加 version 读取 + 比较，约 10-15 行；或提取公共 `_save_state_checked()` helper，约 20 行）
+
+**Files:** `reading_mcp_server.py:75-80`（`_save_state`），所有 6 处调用点
+
+**northstar:** 弱——工程卫生 / 数据完整性；与 northstar 主路径无直接关联，但属于「不出问题的基础」。
+
+---
+
+### E214 — 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要 — 2026-07-22
+
+**What:** `index.html` 中 `#bookDetailDialog` 包含：标题/作者/状态、开始/读完日期、notes/评分/读后感、关联问题、最近摘抄（2 条）、关联关系列表——但无任何 sessions 信息。`app.js:3761-3840`（`openBookDetailDialog()`）完整实现中无一处读取 `state.sessions`（仅 `app.js:931` `getBookSessions()` 定义，从未在书籍详情内调用）。用户进入书籍详情无法看到「读了几次、每次读到哪页、花了多少时间」的汇总。
+
+**Evidence:**
+- `app.js:3761-3840`：全函数无 `getBookSessions` / `state.sessions` 调用
+- `app.js:931`：`getBookSessions(bookId)` 已封装，返回 `state.sessions.filter((item) => item.bookId === bookId)`，可直接使用
+- `index.html:410-433`（bookDetailDialog HTML 骨架）：无 session 相关容器
+- 对比：时间线（OPT-077）已有里程碑，但书籍详情无「该书 sessions 小列表」——两者信息不互通
+
+**Why it matters:** Theme 2 核心场景：「这本书我读了多久？分几次？每次读到哪里？」无法在书籍详情内一眼看到。`getBookSessions()` 已封装，新增一个 sessions 摘要区（3-5 条最近阅读记录：日期 + 页范围 + 时长）约 M 复杂度（新增 HTML 容器 + JS 渲染逻辑 + CSS），但能显著提升书级回顾密度。
+
+**Complexity:** M（新增 HTML section + JS 渲染约 20-30 行 + CSS 若干行）
+
+**Files:** `index.html:410-433`（新增 section 骨架）、`app.js:3820` 区域（新增 sessions 渲染）、`styles.css`
+
+**northstar:** 中——Theme 2；书籍详情 = 最重要的书级回顾页，补充阅读记录概览使之从「摘抄+评价」升级为「完整阅读档案」，直接服务 owner 希望「事后回顾」的 northstar 场景。
+
+---
+
+> 本次 run（2026-07-22）扫描焦点：OPT-077 里程碑落地后的交互完整性（点击行为）、ocrText 口径在书籍详情路径的覆盖度、MCP 写入路径的数据完整性、Theme 2 书级回顾信息密度。新发现 4 条：E211（书籍详情摘抄预览缺 ocrText，S，1 行，northstar 中——直接 Theme 2 回顾表面）、E212（OPT-077 里程碑无点击导航，S，1 行，northstar 中——闭合「时间线→书籍详情」跳转闭环）、E213（MCP `_save_state` 绕过乐观锁，S，northstar 弱，数据完整性风险）、E214（书籍详情无 sessions 摘要，M，northstar 中，Theme 2 回顾信息补全）。提拔 OPT-131（E211，S，最小改动，ocrText 口径收尾）、OPT-132（E212，S，里程碑点击补全，1 行，Theme 2 交互闭环）。所有断言均基于实际代码读取，已标注 file:line。

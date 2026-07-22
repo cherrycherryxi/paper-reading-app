@@ -1187,3 +1187,23 @@ Format per item:
 - description: `app.js:1754-1758`（OPT-077 引入，PR #81），里程碑收集对 `state.books` 全量遍历，无条数上限。`app.js:229`，`SESSION_PAGE_SIZE = 10` 约束初始会话渲染量；`app.js:1769-1771`，`timelineItems` = 全量里程碑 + 前 10 条会话。Owner 通过 OPT-105 Douban CSV 导入 ~110 本书，每本有 `finishedAt`，即首次打开时间线渲染 ~110 个里程碑 article 元素（含子元素 ~550+ DOM 节点）。`app.js:1834-1844`（加载更多按钮）只判断 `allSorted.length > sessionDisplayLimit`（纯会话溢出），与里程碑数量无关，里程碑无法通过现有「加载更多」机制分批展示。
 - why: 110 DOM 节点初次渲染有可感知的延迟，且里程碑覆盖率 11:1（里程碑 vs 会话卡）破坏了时间线的信息层次——用户看到的是「完书事件流」而非「阅读进度记录」。合理修复：首次渲染仅展示最近 N（如 12）条里程碑，其余通过「加载更多」联动展开，与 SESSION_PAGE_SIZE 语义对齐；或单独「显示全部里程碑」开关。约 10-15 行修改。
 - how: `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）：在 milestoneItems 时间排序后，按 `SESSION_PAGE_SIZE` 或独立常量（如 `MILESTONE_INITIAL_LIMIT = 12`）截断；同步更新 `app.js:1834-1844`（加载更多按钮），将溢出判断由 `allSorted.length > sessionDisplayLimit` 扩展为同时检测 milestoneItems 是否有未展示条目，或新增独立「加载更多里程碑」逻辑。Touch: `app.js:1754-1771`（milestoneItems 截断）、`app.js:1834-1844`（加载更多条件联动）、`app.js:229`（SESSION_PAGE_SIZE 参照）。
+
+### OPT-131 — 书籍详情摘抄预览缺 ocrText 回落：OCR 摘抄在「最近摘抄」栏显示为空白 — 由 explore E211 提拔 [2026-07-22]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——书籍详情摘抄预览是 Theme 2「回顾有价值」最直接的展示窗口；OCR 采集（拍照）是主路径；两者交叉点的 1 行修复直接提升 Theme 2 回顾体验，ocrText 口径最后一处已知遗漏。
+- description: `app.js:3825`，`openBookDetailDialog()` 渲染「最近摘抄」预览区（最多 2 条）时使用 `escapeHtml(quote.content || "")` 无 ocrText 回落。OCR 摘抄（`content` 为空、文本在 `ocrText`）在此处显示为空白内容，按钮仅剩元信息行（页码/日期），主体内容完全不可见。对比：同一对话框打开 quoteDetail 路径（`app.js:2891`）已正确使用 `quote.content || quote.ocrText`；同文件其他展示路径（`app.js:968`、`app.js:1890`、`app.js:3145`、`app.js:3530`）均已修复，`app.js:3825` 是最后一处已知遗漏。
+- why: 1 行修复，零副作用，与文件内已有口径完全对齐。主采集路径（拍照 OCR）产生的摘抄恰好是 ocrText-only；书籍详情最近摘抄预览是用户进入书籍回顾时第一眼触达的内容，空白直接破坏体验。
+- how: `app.js:3825`：将 `escapeHtml(quote.content || "")` 改为 `escapeHtml(quote.content || quote.ocrText || "")`，1 行修改。Touch: `app.js:3825` 仅此 1 处。
+
+### OPT-132 — OPT-077 里程碑卡无点击导航：点击「读完了」无响应，缺失「时间线→书籍详情」跳转闭环 — 由 explore E212 提拔 [2026-07-22]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2；时间线里程碑是「读完 → 回顾」最自然的触发点；点击「读完了《XX》」直接打开书籍详情（摘抄/评价/关联）是 Theme 2 核心交互闭环的最后一环，当前缺失使里程碑从可交互组件退化为纯装饰文字。
+- description: `app.js:1784-1790`（OPT-077 PR #81 引入的里程碑渲染分支）：创建 `card` article、设置 className + innerHTML、执行 `els.timeline.appendChild(card)` 后直接 `return`——全段无 `addEventListener`。相邻 session 卡在 `app.js:1539` 有 `article.addEventListener("click", () => openSessionDetail(session.id))`，行为对比鲜明。`openBookDetailDialog(bookId)` 函数已存在，里程碑渲染时 `book` 对象（含 `book.id`）已通过 `item.book` 解构（`app.js:1783`），bookId 随手可得。
+- why: 1 行修复。「读完了」里程碑是回顾欲望最高的时刻——用户看到「读完了《深度工作》」想了解这本书时，点击无反应是强摩擦。`openBookDetailDialog` 已封装完毕，接入成本为零。
+- how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
