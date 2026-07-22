@@ -2739,7 +2739,9 @@ async function addSession(formData) {
       pagesRead: endPage - startPage,
       minutes, note, date,
     };
-    book.currentPage = Math.max(book.currentPage || 0, endPage);
+    // OPT-128: 编辑不能只往高推——用户把 endPage 改小是在纠错，Math.max 会驻留旧值，
+    // 反噬起始页预填。从全部 sessions（已含本次改动）重算，让 currentPage 跟着回落。
+    recomputeCurrentPage(bookId);
     book.lastReadAt = date;
     book.updatedAt = new Date().toISOString();
     maybeBackdateStartedAt(book, date);
