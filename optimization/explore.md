@@ -3536,3 +3536,96 @@ return { label: `"${(quote.content || "").slice(0, 36)}${quote.content?.length >
 - E119 — 书籍 `startedAt`/`finishedAt` 字段数据已自动填充但从未在 UI 展示，与 2026-06-26 信号直接对应 (S) [signal-backed] — 归档:已修 OPT-074 (PR#53)
 - E123 — `saveBookEdit()` 手动将状态设为「已读完」时不自动写入 `finishedAt`，OPT-074 上线后将出现日期展示空洞 (S) — 归档:已修 OPT-074/075 (PR#53)
 - E125 — 书籍编辑对话框无 `startedAt`/`finishedAt` 日期输入字段，用户无法手动修正自动填充的日期 (S/M) — 归档:已修 OPT-074 (PR#53, 含编辑日期字段)
+
+## 2026-07-21
+
+### E207 — `chat.js:92` `quotePreview()` 缺 `ocrText` 回落：OCR 摘抄钉选时聊天欢迎屏幕显示「书名 · 」(S)
+
+**What:** `chat.js:92`，`quotePreview()` 函数：
+```js
+function quotePreview(quote) {
+  const text = String(quote?.content || "").replace(/\s+/g, " ").trim();
+  return text.length > 36 ? `${text.slice(0, 36)}...` : text;
+}
+```
+未回落到 `quote?.ocrText`。`chat.js:131` 同文件 `renderChatMessages()` 中已有正确口径：`const content = String(quote.content || quote.ocrText || "").trim()`——同一文件、4 行之差，模式已存在但未应用于 `quotePreview()`。`chat.js:279`（聊天欢迎屏幕副标题）调用 `quotePreview(quote)` 生成 `"书名 · <preview>"`；当 OCR 摘抄 `content` 为空时，`quotePreview()` 返回 `""`，副标题显示为 `"书名 · "`，末尾 dot 后内容为空，视觉上明显破损。`chat.js:121`（上下文栏）用 `preview || "当前摘抄"` 回落，部分遮盖了问题，但欢迎屏幕无此回落。
+
+**Why it matters:** 拍照 OCR 是该 app 的主要摘抄路径（Theme 1 核心）；「将摘抄钉选到聊天」是 Theme 2 的核心互动——用户围绕这条摘抄讨论内容。两者交汇点（OCR 摘抄钉选后聊天欢迎屏）显示空预览，不仅影响沉浸感，更让用户无法在进入对话前确认正确摘抄已被选中。修复为 1 行：加 `|| quote?.ocrText`，与文件内第 131 行已有口径完全对齐。
+
+**Complexity:** S（1 行修改）
+
+**Files:** `chat.js:92`（quotePreview，加 ocrText 回落）；参照 `chat.js:131`（已有正确口径）
+
+**northstar:** 中——OCR 采集（Theme 1）与围绕摘抄的聊天讨论（Theme 2）两条核心路径的交叉点；欢迎屏副标题空白直接破坏「摘抄已钉选」的视觉确认感。
+
+---
+
+### E208 — OPT-077 里程碑条目无分页：110 本豆瓣书 → 首次渲染 110 个里程碑 DOM 节点 vs `SESSION_PAGE_SIZE = 10` (S/M)
+
+**What:** `app.js:229`，`const SESSION_PAGE_SIZE = 10`——会话初始渲染上限。`app.js:1754-1758`，里程碑收集（OPT-077 引入，PR #81 合并）：
+```js
+const milestoneItems = [];
+if (!searchRaw) {
+  state.books.forEach((book) => {
+    if (book.startedAt) milestoneItems.push({ ... });
+    if (book.finishedAt) milestoneItems.push({ ... });
+  });
+}
+```
+**全量无上限**——owner 通过 OPT-105 Douban CSV 导入约 110 本书，每本设置 `finishedAt`（未设 `startedAt`），即第一次打开时间线就会追加 ~110 个里程碑 DOM 节点。`app.js:1769-1771`，`timelineItems` = 全量里程碑 + 前 10 条会话；「加载更多」按钮（`app.js:1834-1844`）只判断 `allSorted.length > sessionDisplayLimit`（纯会话溢出），与里程碑数量无关。里程碑无法被「加载更多」控制，也无独立分页机制。
+
+**Why it matters:** 110 DOM 节点不会让浏览器崩溃，但：(1) 初次渲染体感延迟可感知（每节点含 `article + div + h3 + p + time` 等子元素，实际节点数 ~550+）；(2) 时间线变成「里程碑海」，10 条会话卡被 110 张里程碑卡淹没，回顾主线（会话进度）可视比例大幅下降；(3) OPT-077 的初衷是「点睛」而非「主角」，无上限破坏了该初衷。合理修复：首次渲染仅展示最近 N（如 12）条里程碑，其余通过「加载更多」或独立「显示更多里程碑」控件展开，与 SESSION_PAGE_SIZE 语义对齐。
+
+**Complexity:** S/M（逻辑 S，但需确认「加载更多」按钮的条件联动，约 10-15 行）
+
+**Files:** `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）；`app.js:1834-1844`（加载更多按钮，需同步更新溢出判断条件）；`app.js:229`（SESSION_PAGE_SIZE 参照常量）
+
+**northstar:** 中——Theme 2「回顾有价值」；OPT-077 里程碑是 W30 焦点，规模化后应保持视觉比例合理，避免把真正的阅读进度卡埋在里程碑堆中。
+
+---
+
+### E209 — OPT-077 里程碑卡片无点击导航：点击「🎉 读完了《书名》」无反应 (S)
+
+**What:** `app.js:1783-1789`，里程碑卡片渲染：
+```js
+const card = document.createElement("article");
+card.className = `timeline-milestone timeline-milestone--${milestoneType}`;
+card.innerHTML = `<div class="milestone-icon">${icon}</div>...`;
+els.timeline.appendChild(card);
+return;  // 无 addEventListener
+```
+无 `click` 事件监听器。对比：`app.js:1825-1829`，会话卡有完整点击处理：`article.addEventListener("click", () => { ...; openSessionDetail(session.id); })`。里程碑卡展示「🎉 读完了《深度工作》」等信息，自然语义是「点击 → 打开书籍详情」，但实际点击无响应，卡片视觉上和会话卡形态相近，交互预期落空。
+
+**Why it matters:** 里程碑是 OPT-077 引入的入口点，点击应能导航到书籍详情（书名、状态、完读日期等），是 Theme 2「书籍完读回顾」路径的自然延伸。一行修复即可：`card.addEventListener("click", () => openBookDetailDialog(book.id))`，与会话卡的 `openSessionDetail()` 模式完全对称，无 API 变更。
+
+**Complexity:** S（1 行 addEventListener）
+
+**Files:** `app.js:1783-1789`（里程碑卡渲染，加 click → openBookDetailDialog）
+
+**northstar:** 中——Theme 2 回顾路径；里程碑作为「书籍人生阶段」标记，可点击才能形成完整的「时间线 → 书籍详情 → 重温」回顾闭环。
+
+---
+
+### E210 — Session 搜索框和关联搜索框缺防抖：每次按键触发全量 DOM 重建 (S)
+
+**What:** `app.js:5786`：
+```js
+els.sessionSearch?.addEventListener("input", renderTimeline);
+```
+`app.js:5554`：
+```js
+els.connectionSearch?.addEventListener("input", renderConnections);
+```
+两处均无防抖。`renderTimeline()` 在 OPT-077 合并后（PR #81）每次执行需收集里程碑、合并 timelineItems、批量创建 DOM 节点，成本比之前更高。`renderConnections()` 类似。OPT-072（triaged，P2）已覆盖摘抄搜索防抖（`app.js:5787`），但 session 搜索和关联搜索不在其 scope 内。
+
+**Why it matters:** 当前 owner 书库规模（~110 本 + 若干 sessions）下体感影响轻微，但 OPT-077 的里程碑 DOM 生成使 `renderTimeline()` 在大书库下变得更重，与 E208 联动形成叠加效应。防抖是标准 input 事件优化，约 2-3 行（复用 `debounce()` 函数若已存在，否则 3-5 行添加 helper），与 OPT-072 的摘抄搜索防抖完全对称，建议同一 PR 一次修清三个搜索框。
+
+**Complexity:** S（2-5 行，可合并入 OPT-072）
+
+**Files:** `app.js:5786`（sessionSearch，加防抖）；`app.js:5554`（connectionSearch，加防抖）；可合并 OPT-072 scope
+
+**northstar:** 弱——当前规模下体感轻微；但 E208（里程碑无分页）使 renderTimeline() 变重，两者若同时在场会放大键入响应延迟；建议与 OPT-072 合并处理以节省 PR 额度。
+
+---
+
+> 本次 run（2026-07-21）扫描焦点：OPT-077 落地后的里程碑相关回归与缺口、OCR 摘抄在聊天路径的 ocrText 口径遗漏、搜索防抖覆盖度。新发现 4 条：E207（chat.js quotePreview 缺 ocrText，S，northstar 中，1 行修复）、E208（OPT-077 里程碑无分页，S/M，northstar 中，110 本豆瓣书首渲 110 DOM 节点）、E209（里程碑卡无点击导航，S，northstar 中，1 行 addEventListener）、E210（session/connection 搜索缺防抖，S，northstar 弱，建议合并 OPT-072）。提拔 OPT-129（E207，chat.js quotePreview ocrText，S，1 行修复，最小改动高优先级）、OPT-130（E208，OPT-077 里程碑分页，S/M，OPT-077 规模化使用后的必要跟进）。所有断言均基于实际代码读取，已标注 file:line。

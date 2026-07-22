@@ -575,7 +575,7 @@ Format per item:
 - how: 在 `call_deepseek_stream()`（`app_server.py:3222-3265`）中：将 `urlopen()` 调用放入 `for attempt in range(DEEPSEEK_MAX_ATTEMPTS):` 循环，retryable codes 判断和 `time.sleep` 退避逻辑镜像 `call_deepseek()` 模式（`app_server.py:3195-3211`）。同时在 `tests/agent/deepseek_retry_test.py` 新增 `DeepseekStreamRetryTest` 类覆盖 streaming 路径的 429/503 重试及最大次数耗尽。Touch: `app_server.py:3222-3265`；`tests/agent/deepseek_retry_test.py`。
 
 ### OPT-070 — `buildQuoteSearchCard()` OPT-052 后未同步：全局搜索摘抄结果永远显示灰色占位图 — 由 explore E113 提拔
-- status: triaged
+- status: done (PR #82, 2026-07-21)
 - area: frontend
 - priority: P2
 - size: S
@@ -585,7 +585,7 @@ Format per item:
 - how: 将 `buildQuoteSearchCard`（`app.js:1199-1201`）的封面区域改为条件渲染，逻辑与 `renderQuotes` 中的 `app.js:1454-1457` 相同；同时在图片加载后绑定 `onerror` 回退（可与 OPT-071 合并为单 PR）。Touch: `app.js:1193-1215`。
 
 ### OPT-071 — 摘抄卡片与详情弹窗图片缺少 `onerror` 回退：URL 失效时显示浏览器破图图标 — 由 explore E112/E114 提拔
-- status: triaged
+- status: done (PR #83, 2026-07-21)
 - area: frontend
 - priority: P2
 - size: S
@@ -645,7 +645,7 @@ Format per item:
 - how: 方案 B（推荐，M 复杂度）：在截断处改为 `allSorted.slice(0, displayLimit)`（初始值 10），渲染后若 `allSorted.length > displayLimit` 则追加「加载更多（共 N 条）」按钮；点击递增 `displayLimit` 并重渲。添加 `let sessionDisplayLimit = 10` 为模块级变量，`renderTimeline()` 使用并在「加载更多」click 后重调。Touch: `app.js:1337`（截断逻辑）；`app.js:1351-1399`（DOM 渲染，加载更多按钮插入点）。
 
 ### OPT-077 — `renderTimeline()` 不含书籍里程碑事件（startedAt/finishedAt），阅读历程图不完整 — 由 explore E122 提拔 [2026-06-28]
-- status: triaged
+- status: done (PR #81, 2026-07-20)
 - area: frontend
 - northstar: 中——OPT-074 已使 startedAt/finishedAt 可靠落盘且在详情页可见；将这两个里程碑纳入时间线，让「记录」Tab 从「session 日志」升级为「阅读历程图」，是 Theme 2「回顾有价值」的核心基础设施；北极星代理指标「本周回顾操作次数」依赖时间线能反映完整阅读历程。
 - priority: P1 (2026-W30 PO 焦点，夜间轨执行：OPT-105 已导入 110 本 finishedAt，但时间线未显示里程碑；回顾操作 7/12→7/19 由 20 回升到 29，再涨一周即达 Theme 2 验收；并回应 7/16 signal「记录页面死重」。)
@@ -1139,7 +1139,7 @@ Format per item:
 - how: `app.js:2728-2729`（deleteBook，生成确认消息处）：替换 `.textContent = book.title` 为构造含数量的 innerHTML 或多行 textContent，如 `删除《${book.title}》将同时删除 ${sessions.length} 条记录、${quoteCount} 条摘抄、${connCount} 条关联，此操作不可撤销。`（空时省略对应项）；在消息构造前用三个辅助函数取值。Touch: `app.js:2723-2730`（deleteBook 确认消息）。
 
 ### OPT-128 — `addSession()` 编辑路径 `book.currentPage` 单调递增：`endPage` 缩小后驻留旧值，下次新记录起始页自动填充显示过期数 — 由 explore E204 提拔 [2026-07-20]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1149,7 +1149,7 @@ Format per item:
 - how: `app.js:2694-2695`（addSession 编辑路径，`state.sessions[idx] = {...}` 之后）：替换 `book.currentPage = Math.max(book.currentPage || 0, endPage)` 为从 `state.sessions` 中筛出同 `bookId` 的所有记录、取 `endPage` 最大值赋给 `book.currentPage`；可选：抽 `recomputeCurrentPage(bookId)` 并在 deleteSession 的 OPT-123 fix 处复用。建议与 OPT-123 合并同一 PR 一次修清两条路径。Touch: `app.js:2694-2695`（addSession 编辑路径）；可选合并 `app.js:3519-3520`（deleteSession，OPT-123）。
 
 ### OPT-127 — `resolveConnectionSide()` 缺 `ocrText` 回落：OCR 摘抄作为关联节点时标签显示为空引号 — 由 explore E205 提拔 [2026-07-20]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1167,3 +1167,23 @@ Format per item:
 - description: `app.js:4568-4612`，`runShelfOcr()` 仅在函数入口调用 `showToast("正在识别书架，约需 20 秒…")`，进入 `try` 块后无加载状态更新，无 `finally` 块。对比 `runOcr()`（`app.js:4488-4540`）：`try { disableBtn() / showSpinner() } ... finally { enableBtn() / hideSpinner() }`，结构完整。两者均为 OCR 功能，但 `runShelfOcr()` 是 OPT-118 新上线功能，加载态管理在 PR 中被遗漏，造成同一功能族内行为不一致。
 - why: 修复模式在 `runOcr()` 中完全存在，直接复制 try/finally 结构约 6-8 行，无 API/schema 变更，无副作用风险。属于 OPT-118 上线后的遗漏补丁，独立可实现，与 OPT-120（服务端结果留存）解决不同层面的问题。
 - how: `app.js:4572-4612`（runShelfOcr try 块内）：参照 `runOcr()`（`app.js:4494-4540`）结构，在 `try` 块顶部添加 `disableShelfOcrBtn() / showShelfOcrSpinner()`，在 `finally` 块添加 `enableShelfOcrBtn() / hideShelfOcrSpinner()`；toast 由 2 秒 auto-dismiss 改为持续显示直到 `finally`（或保留现有 toast 行为，仅加 spinner）。触碰文件：`app.js:4568-4612`（runShelfOcr）；`index.html`（若 spinner DOM 元素需新增）；`styles.css`（若 spinner 样式需新增，可复用现有 `.ocr-spinner` 类）。
+
+### OPT-129 — `chat.js:92` `quotePreview()` 缺 `ocrText` 回落：OCR 摘抄钉选时聊天欢迎屏幕副标题显示为「书名 · 」(空) — 由 explore E207 提拔 [2026-07-21]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——OCR 采集（Theme 1）与围绕摘抄的聊天讨论（Theme 2）两条核心路径的交叉点；欢迎屏副标题空白直接破坏「摘抄已钉选」的视觉确认感，用户无法确认正确摘抄已选中即进入对话。
+- description: `chat.js:92`，`quotePreview()` 使用 `String(quote?.content || "")` 生成摘抄预览文本，无 `ocrText` 回落。当 OCR 摘抄 `content` 为空、文本存于 `ocrText` 时，`quotePreview()` 返回 `""`；`chat.js:279`（聊天欢迎屏幕副标题）使用该函数生成 `"书名 · <preview>"`，结果为 `"书名 · "`，末尾内容为空。同一文件 `chat.js:131` 已有正确口径 `String(quote.content || quote.ocrText || "").trim()`——同文件 4 行之差，模式已存在但未应用于 `quotePreview()`。`chat.js:121`（上下文栏）虽有 `preview || "当前摘抄"` 回落掩盖了问题，但欢迎屏无此保护。
+- why: 修复为 1 行（加 `|| quote?.ocrText`），与文件内已有口径完全对齐，零风险零副作用。OCR 摘抄是主要摘抄路径，钉选到聊天是 Theme 2 核心互动，两者交汇点的空预览直接影响使用信心。
+- how: `chat.js:92`：将 `String(quote?.content || "")` 改为 `String(quote?.content || quote?.ocrText || "")`，约 1 行修改。Touch: `chat.js:92`（quotePreview 函数）。
+
+### OPT-130 — OPT-077 里程碑条目无分页：大书库首次渲染全量里程碑 DOM 节点，淹没会话卡并突破 `SESSION_PAGE_SIZE = 10` 语义 — 由 explore E208 提拔 [2026-07-21]
+- status: new
+- area: frontend
+- priority: P2
+- size: S/M
+- northstar: 中——Theme 2「回顾有价值」；OPT-077 里程碑是 W30 焦点，规模化后须保持视觉比例合理——里程碑是「点睛」而非「主角」，无分页上限使 ~110 本豆瓣书导入后里程碑淹没实际阅读进度卡，回顾主线可视比例大幅下降。
+- description: `app.js:1754-1758`（OPT-077 引入，PR #81），里程碑收集对 `state.books` 全量遍历，无条数上限。`app.js:229`，`SESSION_PAGE_SIZE = 10` 约束初始会话渲染量；`app.js:1769-1771`，`timelineItems` = 全量里程碑 + 前 10 条会话。Owner 通过 OPT-105 Douban CSV 导入 ~110 本书，每本有 `finishedAt`，即首次打开时间线渲染 ~110 个里程碑 article 元素（含子元素 ~550+ DOM 节点）。`app.js:1834-1844`（加载更多按钮）只判断 `allSorted.length > sessionDisplayLimit`（纯会话溢出），与里程碑数量无关，里程碑无法通过现有「加载更多」机制分批展示。
+- why: 110 DOM 节点初次渲染有可感知的延迟，且里程碑覆盖率 11:1（里程碑 vs 会话卡）破坏了时间线的信息层次——用户看到的是「完书事件流」而非「阅读进度记录」。合理修复：首次渲染仅展示最近 N（如 12）条里程碑，其余通过「加载更多」联动展开，与 SESSION_PAGE_SIZE 语义对齐；或单独「显示全部里程碑」开关。约 10-15 行修改。
+- how: `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）：在 milestoneItems 时间排序后，按 `SESSION_PAGE_SIZE` 或独立常量（如 `MILESTONE_INITIAL_LIMIT = 12`）截断；同步更新 `app.js:1834-1844`（加载更多按钮），将溢出判断由 `allSorted.length > sessionDisplayLimit` 扩展为同时检测 milestoneItems 是否有未展示条目，或新增独立「加载更多里程碑」逻辑。Touch: `app.js:1754-1771`（milestoneItems 截断）、`app.js:1834-1844`（加载更多条件联动）、`app.js:229`（SESSION_PAGE_SIZE 参照）。
