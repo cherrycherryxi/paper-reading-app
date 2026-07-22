@@ -145,6 +145,35 @@ test("OPT-045: addSession with an id edits the existing session in place", async
   assert.equal(st.sessions[0].note, "改");
 });
 
+test("OPT-128: editing a session's endPage smaller recomputes currentPage down, not stale-high", async () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(),
+    books: [{ id: "b1", title: "三体", currentPage: 200, totalPages: 300, status: "reading" }],
+    sessions: [{ id: "s1", bookId: "b1", startPage: 1, endPage: 200, pagesRead: 199, minutes: 30, note: "旧", date: "2026-06-10T12:00:00.000Z" }],
+  });
+  await h.addSession(form({ id: "s1", bookId: "b1", startPage: "1", endPage: "100", minutes: "45", date: "2026-06-11", note: "改小" }));
+  await flush();
+  const book = h.getState().books.find((b) => b.id === "b1");
+  assert.equal(book.currentPage, 100, "currentPage follows the shrunken endPage down, not the stale 200");
+});
+
+test("OPT-128: editing one session down keeps currentPage at another session's higher endPage", async () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(),
+    books: [{ id: "b1", title: "三体", currentPage: 200, totalPages: 300, status: "reading" }],
+    sessions: [
+      { id: "s1", bookId: "b1", startPage: 1, endPage: 200, pagesRead: 199, minutes: 30, note: "", date: "2026-06-10T12:00:00.000Z" },
+      { id: "s2", bookId: "b1", startPage: 60, endPage: 180, pagesRead: 120, minutes: 30, note: "", date: "2026-06-11T12:00:00.000Z" },
+    ],
+  });
+  await h.addSession(form({ id: "s1", bookId: "b1", startPage: "1", endPage: "50", minutes: "45", date: "2026-06-12", note: "改小" }));
+  await flush();
+  const book = h.getState().books.find((b) => b.id === "b1");
+  assert.equal(book.currentPage, 180, "currentPage recomputes to the surviving max endPage (s2), not 50 and not stale 200");
+});
+
 // --- deleteSession ---
 
 test("OPT-045: deleteSession removes the session only after confirm", async () => {

@@ -388,7 +388,9 @@ function loadApp(ctx) {
     const existingBranchEnd = fnBody.indexOf("} else {", existingBranchStart);
     const existingBranch = fnBody.slice(existingBranchStart, existingBranchEnd);
 
-    assert.ok(existingBranch.includes("book.currentPage"), "edit branch must update book.currentPage");
+    // OPT-128: the edit branch now recomputes currentPage from all sessions
+    // (so a shrunken endPage falls back down) instead of the old monotonic Math.max.
+    assert.ok(existingBranch.includes("recomputeCurrentPage"), "edit branch must recompute book.currentPage from sessions (OPT-128)");
     assert.ok(existingBranch.includes("book.lastReadAt"), "edit branch must update book.lastReadAt");
     assert.ok(existingBranch.includes("book.updatedAt"), "edit branch must update book.updatedAt");
     console.log("  PASS:", test);
@@ -408,9 +410,10 @@ function loadApp(ctx) {
     const book = { id: "book-1", currentPage: 50, lastReadAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", status: "reading", totalPages: 200, finishedAt: null };
     const endPage = 80;
     const date = "2026-07-07T12:00:00.000Z";
+    const sessions = [{ bookId: "book-1", endPage }]; // the edited session, already written back
 
-    // This mirrors the new edit-branch logic
-    book.currentPage = Math.max(book.currentPage || 0, endPage);
+    // This mirrors the new edit-branch logic: recomputeCurrentPage(bookId) = max endPage over the book's sessions (OPT-128)
+    book.currentPage = sessions.filter((s) => s.bookId === book.id).reduce((m, s) => Math.max(m, Number(s.endPage) || 0), 0);
     book.lastReadAt = date;
     book.updatedAt = new Date().toISOString();
     if (book.totalPages && endPage >= book.totalPages) {
@@ -438,8 +441,9 @@ function loadApp(ctx) {
     const book = { id: "book-1", currentPage: 150, lastReadAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", status: "reading", totalPages: 200, finishedAt: null };
     const endPage = 200;
     const date = "2026-07-07T12:00:00.000Z";
+    const sessions = [{ bookId: "book-1", endPage }]; // the edited session, already written back
 
-    book.currentPage = Math.max(book.currentPage || 0, endPage);
+    book.currentPage = sessions.filter((s) => s.bookId === book.id).reduce((m, s) => Math.max(m, Number(s.endPage) || 0), 0);
     book.lastReadAt = date;
     book.updatedAt = new Date().toISOString();
     if (book.totalPages && endPage >= book.totalPages) {
