@@ -1,8 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T22:01:52.957Z
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T20:09:29.332Z
-> Files: 339 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T04:03:17.076Z
+> Files: 342 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -113,13 +112,15 @@
 - `cards-2026-07-16.md` — 卡片① (~142 tok)
 - `cards-2026-07-17.md` — 卡片① (~134 tok)
 - `cards-2026-07-21.md` — 卡片① (~125 tok)
+- `cards-2026-07-22.md` — 卡片① (~184 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
 - `review-2026-07-16.md` — 夜间 PR 处理报告 — 2026-07-16 (~465 tok)
 - `review-2026-07-17.md` — 夜间 PR 审查报告 — 2026-07-17 (~814 tok)
 - `review-2026-07-21.md` — 夜间 PR 审查报告 — 2026-07-21 (~484 tok)
-- `today-pick.md` — 卡片① (~140 tok)
+- `review-2026-07-22.md` — 夜间 PR 处理报告 — 2026-07-22 (~354 tok)
+- `today-pick.md` — 卡片① (~199 tok)
 
 ## ../../.claude/paper-xhs/
 
@@ -223,7 +224,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~66706 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~66937 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -425,7 +426,7 @@
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
 - `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1705 tok)
-- `entry-bundle-opt058-061-066-090-084-091.test.js` — OPT-058: quoteDialog focus after showModal (openNewQuoteForBook / editQuote) (~5475 tok)
+- `entry-bundle-opt058-061-066-090-084-091.test.js` — OPT-058: quoteDialog focus after showModal (openNewQuoteForBook / editQuote) (~5644 tok)
 - `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1716 tok)
 - `global-search.test.js` — test: createElementStub, innerHTML, innerHTML + 11 more (~4466 tok)
 - `login-fast-and-retry-btn.test.js` — 两个移动端体验修复： (~698 tok)
@@ -446,7 +447,7 @@
 - `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2729 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~3886 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~4258 tok)
-- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~3047 tok)
+- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~4202 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
 - `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2400 tok)

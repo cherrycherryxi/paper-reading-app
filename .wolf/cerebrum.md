@@ -91,6 +91,8 @@
 
 - **[2026-05-13] 静态文件必须带 `Cache-Control: no-store` 响应头。** iPhone Safari 极度激进地缓存 JS 文件，不带缓存控制头时即使服务器重启也继续用旧版本。`log_server.py` 的静态文件路由要加 `Cache-Control: no-store, no-cache, must-revalidate` 和 `Pragma: no-cache`。同时在 `index.html` 的 `<script src="./app.js?v=YYYYMMDD">` 加版本号作为双重保险。
 
+- [2026-07-22] **`book.currentPage` 是派生量=该书全部 sessions 的 endPage 最大值，唯一重算口在 `recomputeCurrentPage(bookId)`（OPT-123/128）。** 三条写入路径语义**刻意不对称**：① `addSession` 新增记录分支保留 `Math.max(currentPage, endPage)`——新增只往上推是对的，且能保住用户在书籍编辑表单手动设过的 currentPage（该 helper 只在 session 增删改时触发，纯手动、零 session 的书不受影响）；② `addSession` 编辑分支(existingId)与 ③ `deleteSession` **必须调 recompute 向下回落**，因为改小 endPage / 删记录都可能让旧最大值变成过期高值，反噬 OPT-095「起始页预填 currentPage」（预填源是脏值=功能打折）。改这块先想清「这条路径是只增还是可减」。注意 recompute 读的是 `state.sessions`——编辑分支要先写回 `state.sessions[idx]`、删除分支要先 filter 掉，再调 recompute。
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->

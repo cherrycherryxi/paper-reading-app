@@ -9546,6 +9546,118 @@
       "related_bugs": [],
       "occurrences": 5,
       "last_seen": "2026-07-21T17:10:15.531Z"
+    },
+    {
+      "id": "bug-571",
+      "timestamp": "2026-07-22T03:48:11.185Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/session-crud.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T03:48:11.185Z"
+    },
+    {
+      "id": "bug-572",
+      "timestamp": "2026-07-22T03:54:06.756Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/session-crud.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T03:54:06.756Z"
+    },
+    {
+      "id": "bug-573",
+      "timestamp": "2026-07-22T03:56:10.828Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/entry-bundle-opt058-061-066-090-084-091.test.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T03:56:10.828Z"
+    },
+    {
+      "id": "bug-574",
+      "timestamp": "2026-07-22T04:03:17.113Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T04:03:17.113Z"
+    },
+    {
+      "id": "bug-547",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "deleteSession() 删除记录后不重算 book.currentPage，起始页预填过期值 (OPT-123)",
+      "timestamp": "2026-07-22T04:00:00.000Z",
+      "fixed_at": "2026-07-22T04:00:00.000Z",
+      "file": "app.js",
+      "error_message": "删掉 endPage=200 的记录后 book.currentPage 仍驻留 200，下次开新记录起始页自动填 201（反噬 OPT-095 起始页预填）",
+      "root_cause": "addSession() 只用 Math.max 把 currentPage 往高推，deleteSession() 删记录后不向下修正，字段驻留旧最大值。",
+      "fix": "抽 recomputeCurrentPage(bookId)=该书全部 sessions 的 endPage 最大值(无则0)，deleteSession 删除后调用它重算。add-new-session 分支保留 Math.max。PR #85。",
+      "tags": [
+        "opt-123",
+        "currentPage",
+        "session",
+        "prefill",
+        "opt-095"
+      ],
+      "related_bugs": [
+        "bug-548"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T04:00:00.000Z"
+    },
+    {
+      "id": "bug-548",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "addSession() 编辑分支 currentPage 单调递增，endPage 改小后驻留旧值 (OPT-128)",
+      "timestamp": "2026-07-22T04:05:00.000Z",
+      "fixed_at": "2026-07-22T04:05:00.000Z",
+      "file": "app.js",
+      "error_message": "把某条记录 endPage 从 200 改小到 100 后，起始页预填仍显示 201（纠错反而制造新错误）",
+      "root_cause": "编辑分支(existingId)同样只做 Math.max(currentPage, endPage)，endPage 缩小时旧高值不回落——OPT-123 的对称漏网点。",
+      "fix": "编辑分支复用 recomputeCurrentPage(bookId) 重算。同步更新 entry-bundle 里 OPT-066 源码正则断言与两个自验证 mirror 块。PR #86。",
+      "tags": [
+        "opt-128",
+        "currentPage",
+        "session-edit",
+        "prefill",
+        "source-regex-test"
+      ],
+      "related_bugs": [
+        "bug-547"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T04:05:00.000Z"
     }
   ]
 }

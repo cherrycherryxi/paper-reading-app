@@ -3639,3 +3639,33 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 21:24 | Agent3 Explore run 2026-07-21: appended E207-E210 to explore.md, promoted OPT-129/OPT-130 to backlog.md, committed and pushed | optimization/explore.md optimization/backlog.md | done | ~6k |
+
+## Session: 2026-07-22 10:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:03 | Created ../../.claude/paper-loop/review-2026-07-22.md | — | ~378 |
+| 10:03 | 夜间PR处理:审查并squash合并PR#84(OPT-127 resolveConnectionSide OCR标签fallback ocrText) | app.js,tests/frontend/resolve-connection-side-ocr.test.js | 已合并(7e72403),Python394+JS26全绿 | ~4k |
+| 10:03 | Session end: 1 writes across 1 files (review-2026-07-22.md) | 0 reads | ~405 tok |
+
+## Session: 2026-07-22 10:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:06 | Created ../../.claude/paper-loop/cards-2026-07-22.md | — | ~196 |
+| 10:06 | Session end: 1 writes across 1 files (cards-2026-07-22.md) | 4 reads | ~1801 tok |
+
+## Session: 2026-07-22 11:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:47 | Edited app.js | added 1 condition(s) | ~202 |
+| 11:47 | Edited app.js | added 1 condition(s) | ~113 |
+| 11:48 | Edited tests/frontend/session-crud.test.js | expanded (+50 lines) | ~688 |
+| 11:53 | Edited app.js | max() → recomputeCurrentPage() | ~62 |
+| 11:54 | Edited tests/frontend/session-crud.test.js | expanded (+29 lines) | ~482 |
+| 11:56 | Edited tests/frontend/entry-bundle-opt058-061-066-090-084-091.test.js | 3→5 lines | ~143 |
+| 11:56 | Edited tests/frontend/entry-bundle-opt058-061-066-090-084-091.test.js | 8→9 lines | ~198 |
+| 11:56 | Edited tests/frontend/entry-bundle-opt058-061-066-090-084-091.test.js | 6→7 lines | ~143 |
+| 12:03 | Edited ../../.claude/paper-loop/today-pick.md | inline fix | ~4 |
+| 12:03 | 实现 OPT-123/OPT-128：抽 recomputeCurrentPage(bookId) 从 sessions 最大 endPage 重算 currentPage，修删除(#85)与编辑改小(#86)后起始页预填过期值 | app.js, tests/frontend/session-crud.test.js, tests/frontend/entry-bundle-opt058-061-066-090-084-091.test.js | 两 PR 合入 feature/agent，394 py + JS 全绿 | ~30k |
