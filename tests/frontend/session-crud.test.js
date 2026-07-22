@@ -161,6 +161,56 @@ test("OPT-045: deleteSession removes the session only after confirm", async () =
   assert.equal(st.sessions[0].id, "s2", "the other session survives");
 });
 
+test("OPT-123: deleting the latest session recomputes currentPage down to the remaining max endPage", async () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(),
+    books: [{ id: "b1", title: "三体", currentPage: 200, totalPages: 300, status: "reading" }],
+    sessions: [
+      { id: "s1", bookId: "b1", startPage: 1, endPage: 100, pagesRead: 99, minutes: 30, note: "", date: "2026-06-10T12:00:00.000Z" },
+      { id: "s2", bookId: "b1", startPage: 101, endPage: 200, pagesRead: 99, minutes: 30, note: "", date: "2026-06-11T12:00:00.000Z" },
+    ],
+  });
+  await h.deleteSession("s2");
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+  const book = h.getState().books.find((b) => b.id === "b1");
+  assert.equal(book.currentPage, 100, "currentPage drops to the max endPage of the surviving session, not the stale 200");
+});
+
+test("OPT-123: deleting the only session resets currentPage to 0 so start-page prefill clears", async () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(),
+    books: [{ id: "b1", title: "三体", currentPage: 200, totalPages: 300, status: "reading" }],
+    sessions: [{ id: "s1", bookId: "b1", startPage: 1, endPage: 200, pagesRead: 199, minutes: 30, note: "", date: "2026-06-10T12:00:00.000Z" }],
+  });
+  await h.deleteSession("s1");
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+  const book = h.getState().books.find((b) => b.id === "b1");
+  assert.equal(book.currentPage, 0, "no sessions left → currentPage back to 0");
+});
+
+test("OPT-123: deleting a session leaves an unrelated book's currentPage untouched", async () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(),
+    books: [
+      { id: "b1", title: "三体", currentPage: 200, totalPages: 300, status: "reading" },
+      { id: "b2", title: "活着", currentPage: 80, totalPages: 200, status: "reading" },
+    ],
+    sessions: [
+      { id: "s1", bookId: "b1", startPage: 1, endPage: 200, pagesRead: 199, minutes: 30, note: "", date: "2026-06-10T12:00:00.000Z" },
+      { id: "s2", bookId: "b2", startPage: 1, endPage: 80, pagesRead: 79, minutes: 20, note: "", date: "2026-06-10T12:00:00.000Z" },
+    ],
+  });
+  await h.deleteSession("s1");
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+  assert.equal(h.getState().books.find((b) => b.id === "b2").currentPage, 80, "b2 untouched by b1's session delete");
+});
+
 // --- renderTimeline ---
 
 test("OPT-045: renderTimeline shows an empty state with no sessions", () => {
