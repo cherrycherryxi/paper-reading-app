@@ -2683,6 +2683,18 @@ function maybeBackdateStartedAt(book, date) {
   if (!book.startedAt || date < book.startedAt) book.startedAt = date;
 }
 
+// OPT-123 / OPT-128: currentPage 是「读到第几页」的派生量——该书全部 sessions 里 endPage 的最大值。
+// addSession 新增分支只往上推（新记录=读了更多）是对的，但删除记录（OPT-123）或把 endPage 改小
+// （OPT-128）后，旧的 Math.max 结果会驻留成过期高值，反噬 OPT-095「起始页预填 currentPage」——
+// 预填源是脏值就等于功能打折。这里从 sessions 统一重算，无记录则归 0（起始页预填随之留空）。
+function recomputeCurrentPage(bookId) {
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  book.currentPage = state.sessions
+    .filter((s) => s.bookId === bookId)
+    .reduce((max, s) => Math.max(max, Number(s.endPage) || 0), 0);
+}
+
 async function addSession(formData) {
   if (!requireAuth("记录阅读")) return;
 
@@ -3556,7 +3568,10 @@ async function deleteSession(sessionId) {
   showConfirmDialog({
     message: "确定删除这条阅读记录吗？",
     onConfirm: async () => {
+      const removed = state.sessions.find((item) => item.id === sessionId);
       state.sessions = state.sessions.filter((item) => item.id !== sessionId);
+      // OPT-123: 删掉记录后向下重算 currentPage，别让过期最大值污染下次起始页预填。
+      if (removed) recomputeCurrentPage(removed.bookId);
       try {
         await syncState();
         renderTimeline();
