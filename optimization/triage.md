@@ -8,14 +8,14 @@ Last triaged: 2026-07-23
 
 **预算状态（2026-07-23 本次 triage）：** 近 7 天 auto/ PR 共 **7 个**（PR #84 auto/opt-127 2026-07-21、PR #81 auto/opt-077 2026-07-20、PR #78 auto/opt-109 2026-07-19、PR #77 auto/opt-122 2026-07-19、PR #76 auto/opt-121 2026-07-19、PR #70 auto/opt-115-116 2026-07-16、PR #69 auto/opt-113-114 2026-07-16），上限 **8**，剩余 **1 个额度**，可指派。
 
-**状态更新（本次 triage — 2026-07-23 第二次核查）**：
-- OPT-127（PR #84）closed 2026-07-21，in-progress → done。resolveConnectionSide() ocrText 回落已修。
+**状态更新（本次 triage — 2026-07-23 第三次核查）**：
 - OPT-094（PR #87）merged 2026-07-23，triaged → done。addSession() pagesRead 差一错误已修。
 - OPT-123（PR #85）merged 2026-07-22，triaged → done。deleteSession() currentPage 重算已修。
 - OPT-128（PR #86）merged 2026-07-22，triaged → done。addSession() 编辑路径 currentPage 单调递增已修。
-- OPT-129/131/132：in-progress → triaged（本次核查：无 auto/ PR 已开启，回退为 triaged；仍为 Next up 指派目标）。
+- OPT-127（PR #84）closed 2026-07-21，in-progress → done。resolveConnectionSide() ocrText 回落已修。
 - OPT-082：backlog.md status triaged → done（与 OPT-053 PR #74 完全重复，已实现，补标修正）。
 - OPT-093：backlog.md status triaged → done（与 OPT-123 PR #85 完全重复，已实现，补标修正）。
+- OPT-129/131/132：无新变化，仍为 triaged，Next up 指派维持。
 
 ---
 
