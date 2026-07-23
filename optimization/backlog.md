@@ -1109,7 +1109,7 @@ Format per item:
 - how: `app.js:2687` 将条件 `!book.startedAt` 替换为 `!book.startedAt || date < book.startedAt`（同时保留 `finishedAt` 上界守卫）；同时在 `editSession()` 的 startedAt 重算逻辑中验证是否有对称需要（若 `editSession` 也有同名守卫需一并修改）。约 2 行修改，建议加一个 JS 单元测试覆盖「追溯更早日期」场景。
 
 ### OPT-123 — `deleteSession()` 删除记录后不重算 `book.currentPage`；新记录起始页自动填充显示过期值 — 由 explore E196 提拔 [2026-07-18]
-- status: triaged
+- status: done (PR #85, merged 2026-07-22)
 - area: frontend
 - priority: P2
 - size: S
@@ -1139,7 +1139,7 @@ Format per item:
 - how: `app.js:2728-2729`（deleteBook，生成确认消息处）：替换 `.textContent = book.title` 为构造含数量的 innerHTML 或多行 textContent，如 `删除《${book.title}》将同时删除 ${sessions.length} 条记录、${quoteCount} 条摘抄、${connCount} 条关联，此操作不可撤销。`（空时省略对应项）；在消息构造前用三个辅助函数取值。Touch: `app.js:2723-2730`（deleteBook 确认消息）。
 
 ### OPT-128 — `addSession()` 编辑路径 `book.currentPage` 单调递增：`endPage` 缩小后驻留旧值，下次新记录起始页自动填充显示过期数 — 由 explore E204 提拔 [2026-07-20]
-- status: triaged
+- status: done (PR #86, merged 2026-07-22)
 - area: frontend
 - priority: P2
 - size: S
@@ -1149,7 +1149,7 @@ Format per item:
 - how: `app.js:2694-2695`（addSession 编辑路径，`state.sessions[idx] = {...}` 之后）：替换 `book.currentPage = Math.max(book.currentPage || 0, endPage)` 为从 `state.sessions` 中筛出同 `bookId` 的所有记录、取 `endPage` 最大值赋给 `book.currentPage`；可选：抽 `recomputeCurrentPage(bookId)` 并在 deleteSession 的 OPT-123 fix 处复用。建议与 OPT-123 合并同一 PR 一次修清两条路径。Touch: `app.js:2694-2695`（addSession 编辑路径）；可选合并 `app.js:3519-3520`（deleteSession，OPT-123）。
 
 ### OPT-127 — `resolveConnectionSide()` 缺 `ocrText` 回落：OCR 摘抄作为关联节点时标签显示为空引号 — 由 explore E205 提拔 [2026-07-20]
-- status: triaged
+- status: done (PR #84, closed 2026-07-21)
 - area: frontend
 - priority: P2
 - size: S
@@ -1169,7 +1169,7 @@ Format per item:
 - how: `app.js:4572-4612`（runShelfOcr try 块内）：参照 `runOcr()`（`app.js:4494-4540`）结构，在 `try` 块顶部添加 `disableShelfOcrBtn() / showShelfOcrSpinner()`，在 `finally` 块添加 `enableShelfOcrBtn() / hideShelfOcrSpinner()`；toast 由 2 秒 auto-dismiss 改为持续显示直到 `finally`（或保留现有 toast 行为，仅加 spinner）。触碰文件：`app.js:4568-4612`（runShelfOcr）；`index.html`（若 spinner DOM 元素需新增）；`styles.css`（若 spinner 样式需新增，可复用现有 `.ocr-spinner` 类）。
 
 ### OPT-129 — `chat.js:92` `quotePreview()` 缺 `ocrText` 回落：OCR 摘抄钉选时聊天欢迎屏幕副标题显示为「书名 · 」(空) — 由 explore E207 提拔 [2026-07-21]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1179,7 +1179,7 @@ Format per item:
 - how: `chat.js:92`：将 `String(quote?.content || "")` 改为 `String(quote?.content || quote?.ocrText || "")`，约 1 行修改。Touch: `chat.js:92`（quotePreview 函数）。
 
 ### OPT-130 — OPT-077 里程碑条目无分页：大书库首次渲染全量里程碑 DOM 节点，淹没会话卡并突破 `SESSION_PAGE_SIZE = 10` 语义 — 由 explore E208 提拔 [2026-07-21]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S/M
@@ -1189,7 +1189,7 @@ Format per item:
 - how: `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）：在 milestoneItems 时间排序后，按 `SESSION_PAGE_SIZE` 或独立常量（如 `MILESTONE_INITIAL_LIMIT = 12`）截断；同步更新 `app.js:1834-1844`（加载更多按钮），将溢出判断由 `allSorted.length > sessionDisplayLimit` 扩展为同时检测 milestoneItems 是否有未展示条目，或新增独立「加载更多里程碑」逻辑。Touch: `app.js:1754-1771`（milestoneItems 截断）、`app.js:1834-1844`（加载更多条件联动）、`app.js:229`（SESSION_PAGE_SIZE 参照）。
 
 ### OPT-131 — 书籍详情摘抄预览缺 ocrText 回落：OCR 摘抄在「最近摘抄」栏显示为空白 — 由 explore E211 提拔 [2026-07-22]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1199,7 +1199,7 @@ Format per item:
 - how: `app.js:3825`：将 `escapeHtml(quote.content || "")` 改为 `escapeHtml(quote.content || quote.ocrText || "")`，1 行修改。Touch: `app.js:3825` 仅此 1 处。
 
 ### OPT-132 — OPT-077 里程碑卡无点击导航：点击「读完了」无响应，缺失「时间线→书籍详情」跳转闭环 — 由 explore E212 提拔 [2026-07-22]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
