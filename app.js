@@ -1742,7 +1742,10 @@ function renderTimeline() {
     const statSource = searchRaw ? sessions : allSorted;
     if (statSource.length) {
       const totalMin = statSource.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
-      const totalPages = statSource.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0)), 0);
+      // OPT-094: a session covers startPage..endPage inclusive, so it reads
+      // (endPage - startPage + 1) pages — reading a single page (start===end) is 1, not 0.
+      // Recomputing here (rather than summing stored pagesRead) also corrects legacy sessions.
+      const totalPages = statSource.reduce((sum, s) => sum + Math.max(0, Number(s.endPage || 0) - Number(s.startPage || 0) + 1), 0);
       els.sessionStats.textContent = `${statSource.length} 次记录 · 共 ${totalMin} 分钟 · 约 ${totalPages} 页`;
       els.sessionStats.classList.remove("is-hidden");
     } else {
@@ -2736,7 +2739,8 @@ async function addSession(formData) {
     state.sessions[idx] = {
       ...state.sessions[idx],
       bookId, startPage, endPage,
-      pagesRead: endPage - startPage,
+      // OPT-094: startPage..endPage is inclusive (start===end reads 1 page), so +1.
+      pagesRead: endPage - startPage + 1,
       minutes, note, date,
     };
     // OPT-128: 编辑不能只往高推——用户把 endPage 改小是在纠错，Math.max 会驻留旧值，
@@ -2755,7 +2759,8 @@ async function addSession(formData) {
     state.sessions.unshift({
       id: createId("session"),
       bookId, startPage, endPage,
-      pagesRead: endPage - startPage,
+      // OPT-094: inclusive page span (see edit branch above), so +1.
+      pagesRead: endPage - startPage + 1,
       minutes, note, date,
       createdAt: new Date().toISOString(),
     });
