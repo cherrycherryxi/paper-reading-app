@@ -9658,6 +9658,61 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-22T04:05:00.000Z"
+    },
+    {
+      "id": "bug-577",
+      "timestamp": "2026-07-23T03:14:24.591Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/session-crud.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T03:14:24.591Z"
+    },
+    {
+      "id": "bug-578",
+      "timestamp": "2026-07-23T03:18:08.357Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T03:18:08.357Z"
+    },
+    {
+      "id": "OPT-094-001",
+      "priority": "P2",
+      "status": "fixed",
+      "title": "addSession pagesRead 与统计栏差一：endPage-startPage 漏 +1，每条记录少计一页（单页记录记成 0 页）",
+      "timestamp": "2026-07-23T00:00:00.000Z",
+      "fixed_at": "2026-07-23T00:00:00.000Z",
+      "file": "app.js",
+      "error_message": "阅读第 1–30 页存 pagesRead=29（应 30）；startPage===endPage（读 1 页）存 0 页；统计栏「约 N 页」同样少计。",
+      "root_cause": "session 的 startPage..endPage 是闭区间（首尾两页都读了），页数应为 endPage-startPage+1。三处（addSession 新增/编辑两条存储路径 + renderTimeline 统计栏汇总）都写成 endPage-startPage，漏 +1。意图为闭区间的铁证：新记录起始页预填 currentPage+1（注释「下一页起读」），种子数据 build_sample_state 手写 startPage1/endPage30/pagesRead30。",
+      "fix": "app.js 三处 endPage-startPage 改为 endPage-startPage+1（addSession 2739/2758、renderTimeline 统计栏 1745）。统计栏按 start/end 实时重算，故历史记录也随之显示为修正值。更新 session-crud/session-stats-always 测试期望并加单页=1、编辑=21 回归。PR #87。",
+      "tags": [
+        "off-by-one",
+        "pagesRead",
+        "session",
+        "stats",
+        "OPT-094",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T00:00:00.000Z"
     }
   ]
 }

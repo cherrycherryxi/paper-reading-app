@@ -93,6 +93,10 @@
 
 - [2026-07-22] **`book.currentPage` 是派生量=该书全部 sessions 的 endPage 最大值，唯一重算口在 `recomputeCurrentPage(bookId)`（OPT-123/128）。** 三条写入路径语义**刻意不对称**：① `addSession` 新增记录分支保留 `Math.max(currentPage, endPage)`——新增只往上推是对的，且能保住用户在书籍编辑表单手动设过的 currentPage（该 helper 只在 session 增删改时触发，纯手动、零 session 的书不受影响）；② `addSession` 编辑分支(existingId)与 ③ `deleteSession` **必须调 recompute 向下回落**，因为改小 endPage / 删记录都可能让旧最大值变成过期高值，反噬 OPT-095「起始页预填 currentPage」（预填源是脏值=功能打折）。改这块先想清「这条路径是只增还是可减」。注意 recompute 读的是 `state.sessions`——编辑分支要先写回 `state.sessions[idx]`、删除分支要先 filter 掉，再调 recompute。
 
+- [2026-07-23] **session 的 `startPage..endPage` 是闭区间——阅读页数 = `endPage - startPage + 1`（读 1–30 页=30 页，`start===end` 的单页记录=1 页，不是 0）（OPT-094）。** 判断闭区间的两处铁证：① 新记录起始页预填 `startPage = currentPage + 1`（app.js 注释「下一页起读」，`currentPage`=已读到的最后一页含）；② 种子数据 `build_sample_state`（app_server.py:251）手写 `startPage 1, endPage 30, pagesRead 30`。历史上 `pagesRead` 存储（`addSession` 新增/编辑两分支）与统计栏「约 N 页」汇总（`renderTimeline`，`app.js:1745`）都写成 `endPage - startPage`、少计 1 页/次。统计栏是按 `start/end` **实时重算**（非累加已存 `pagesRead`），所以改它能连带修正历史记录的显示；`getBookMetrics`/`buildRenderCache` 的 `pages` 字段累加已存 `pagesRead` 但当前无 UI 渲染。**再动 pagesRead / 页数汇总时，保持闭区间 +1，别退回差一。**
+
+- [2026-07-23] **选题卡可能是「过时/已完成」的重复项——动手前先核 git log + backlog status。** 2026-07-23 的卡片① OPT-123（合并 OPT-128）标题是「currentPage 不重算」，但 `recomputeCurrentPage` 早在 2026-07-22 由 PR #85/#86 实现并合入 feature/agent（含回归测试），backlog 里 OPT-123/128 也已可判定完成。正确处理：**不重造轮子、不开空 PR**，在 today-pick.md 加 NOTE 说明卡已完成、只做真正未做的卡片②，并在最终报告里如实说清（不伪造第二个 PR 凑「both」）。同 [先核代码再动手] 系列教训。
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->

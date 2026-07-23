@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T22:01:50.370Z
-> Files: 343 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T21:22:17.228Z
-> Files: 342 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T03:18:08.319Z
+> Files: 345 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -115,6 +113,7 @@
 - `cards-2026-07-17.md` — 卡片① (~134 tok)
 - `cards-2026-07-21.md` — 卡片① (~125 tok)
 - `cards-2026-07-22.md` — 卡片① (~184 tok)
+- `cards-2026-07-23.md` — 卡片① (~88 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
@@ -122,7 +121,8 @@
 - `review-2026-07-17.md` — 夜间 PR 审查报告 — 2026-07-17 (~814 tok)
 - `review-2026-07-21.md` — 夜间 PR 审查报告 — 2026-07-21 (~484 tok)
 - `review-2026-07-22.md` — 夜间 PR 处理报告 — 2026-07-22 (~354 tok)
-- `today-pick.md` — 卡片① (~199 tok)
+- `review-2026-07-23.md` — 夜间 PR 处理汇总 — 2026-07-23 (~126 tok)
+- `today-pick.md` — 卡片① (~183 tok)
 
 ## ../../.claude/paper-xhs/
 
@@ -226,7 +226,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~66937 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~67060 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -342,7 +342,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~34266 tok)
+- `backlog.md` — Optimization Backlog (~35290 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
@@ -449,10 +449,10 @@
 - `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2729 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~3886 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 (~4258 tok)
-- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~4202 tok)
+- `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~4540 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2081 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~1738 tok)
-- `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2400 tok)
+- `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2182 tok)
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
 - `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~2565 tok)

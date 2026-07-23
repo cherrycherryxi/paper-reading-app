@@ -824,7 +824,7 @@ Format per item:
 - how: `deleteSession()` 完成 `state.sessions.filter()` 后，扫描该书剩余所有 session 找最大 endPage，回写 `book.currentPage`（无 session 则重置为 0），同步更新 `book.lastReadAt` 取剩余 session 最新 date，并重新评估 `finished` 状态（参照 addSession 逻辑）。约 10–15 行，纯前端，无后端改动。Touch: `app.js:2583-2598`（deleteSession）；参照 `app.js:2314-2325`（addSession 回写逻辑）。
 
 ### OPT-094 — `addSession()` pagesRead 计算差一，统计数据永远少计一页 — 由 explore E148 提拔 [2026-07-05]
-- status: triaged
+- status: done (PR #87, merged 2026-07-23)
 - area: frontend
 - priority: P2
 - size: S
