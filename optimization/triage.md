@@ -34,9 +34,9 @@ Last triaged: 2026-07-23
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-131 | openBookDetailDialog() "最近摘抄" 预览缺 ocrText 回落：OCR 摘抄在书详情显示空串 | **P2** | S | triaged | 全仓库 ocrText 收尾最后一处；`app.js:3825`，1 行；Theme 1+2；Next up |
-| OPT-132 | OPT-077 里程碑卡片无点击跳转：相邻 session 卡片已有跳转，里程碑卡片孤立 | **P2** | S | triaged | OPT-077 遗留；`app.js:1789`，1 行；Theme 2；Next up |
-| OPT-129 | chat.js quotePreview() 缺 ocrText 回落：chat 面板 OCR 摘抄引用显示空串 | **P2** | S | triaged | `chat.js:92`，1 行；Theme 1+2；Next up |
+| OPT-131 | openBookDetailDialog() "最近摘抄" 预览缺 ocrText 回落：OCR 摘抄在书详情显示空串 | **P2** | S | **in-progress** | PR #88；全仓库 ocrText 收尾最后一处；`app.js:3825`，1 行；Theme 1+2 |
+| OPT-132 | OPT-077 里程碑卡片无点击跳转：相邻 session 卡片已有跳转，里程碑卡片孤立 | **P2** | S | **in-progress** | PR #88；OPT-077 遗留；`app.js:1789`，1 行；Theme 2 |
+| OPT-129 | chat.js quotePreview() 缺 ocrText 回落：chat 面板 OCR 摘抄引用显示空串 | **P2** | S | **in-progress** | PR #88；`chat.js:92`，1 行；Theme 1+2 |
 | OPT-130 | OPT-077 里程碑无分页：110 本豆瓣书全量 DOM 节点，时间线首屏卡顿数秒 | **P2** | S-M | triaged | OPT-077 后续；`app.js:1754-1771`；~10 行；扩展 load-more 逻辑；Theme 2 |
 | OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | P2 | S | triaged | Theme 2 搜索可用性；摘抄 100+ 条后卡顿；`app.js:3956, 4175-4176`，5 行 debounce(250ms) |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | 乐观锁版本字段污染可致跨设备丢数据；`app_server.py:676, 4057, 4061` |
