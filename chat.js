@@ -89,7 +89,7 @@
   }
 
   function quotePreview(quote) {
-    const text = String(quote?.content || "").replace(/\s+/g, " ").trim();
+    const text = String(quote?.content || quote?.ocrText || "").replace(/\s+/g, " ").trim();
     return text.length > 36 ? `${text.slice(0, 36)}...` : text;
   }
 
