@@ -8,15 +8,14 @@ Last triaged: 2026-07-23
 
 **预算状态（2026-07-23 本次 triage）：** 近 7 天 auto/ PR 共 **7 个**（PR #84 auto/opt-127 2026-07-21、PR #81 auto/opt-077 2026-07-20、PR #78 auto/opt-109 2026-07-19、PR #77 auto/opt-122 2026-07-19、PR #76 auto/opt-121 2026-07-19、PR #70 auto/opt-115-116 2026-07-16、PR #69 auto/opt-113-114 2026-07-16），上限 **8**，剩余 **1 个额度**，可指派。
 
-**状态更新（本次 triage）**：
+**状态更新（本次 triage — 2026-07-23 第二次核查）**：
 - OPT-127（PR #84）closed 2026-07-21，in-progress → done。resolveConnectionSide() ocrText 回落已修。
 - OPT-094（PR #87）merged 2026-07-23，triaged → done。addSession() pagesRead 差一错误已修。
 - OPT-123（PR #85）merged 2026-07-22，triaged → done。deleteSession() currentPage 重算已修。
 - OPT-128（PR #86）merged 2026-07-22，triaged → done。addSession() 编辑路径 currentPage 单调递增已修。
-- OPT-129：new → triaged（P2, S）。chat.js quotePreview() 缺 ocrText 回落；chat 面板摘抄引用 OCR 摘抄时显示空串；1 行修复。
-- OPT-130：new → triaged（P2, S-M）。OPT-077 里程碑无分页；110 本豆瓣书全量 DOM 渲染；首屏数秒卡顿；~10 行。
-- OPT-131：new → triaged（P2, S）。openBookDetailDialog() "最近摘抄" 预览缺 ocrText 回落；全仓库最后一处 ocrText 漏网点；1 行修复。
-- OPT-132：new → triaged（P2, S）。OPT-077 里程碑卡片无点击跳转；相邻 session 卡片已有模式；1 行修复。
+- OPT-129/131/132：in-progress → triaged（本次核查：无 auto/ PR 已开启，回退为 triaged；仍为 Next up 指派目标）。
+- OPT-082：backlog.md status triaged → done（与 OPT-053 PR #74 完全重复，已实现，补标修正）。
+- OPT-093：backlog.md status triaged → done（与 OPT-123 PR #85 完全重复，已实现，补标修正）。
 
 ---
 
@@ -35,9 +34,9 @@ Last triaged: 2026-07-23
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-131 | openBookDetailDialog() "最近摘抄" 预览缺 ocrText 回落：OCR 摘抄在书详情显示空串 | **P2** | S | **in-progress** | PR [2026-07-23]；全仓库 ocrText 收尾最后一处；`app.js:3825`，1 行；Theme 1+2 |
-| OPT-132 | OPT-077 里程碑卡片无点击跳转：相邻 session 卡片已有跳转，里程碑卡片孤立 | **P2** | S | **in-progress** | PR [2026-07-23]；OPT-077 遗留；`app.js:1789`，1 行；Theme 2 |
-| OPT-129 | chat.js quotePreview() 缺 ocrText 回落：chat 面板 OCR 摘抄引用显示空串 | **P2** | S | **in-progress** | PR [2026-07-23]；`chat.js:92`，1 行；Theme 1+2 |
+| OPT-131 | openBookDetailDialog() "最近摘抄" 预览缺 ocrText 回落：OCR 摘抄在书详情显示空串 | **P2** | S | triaged | 全仓库 ocrText 收尾最后一处；`app.js:3825`，1 行；Theme 1+2；Next up |
+| OPT-132 | OPT-077 里程碑卡片无点击跳转：相邻 session 卡片已有跳转，里程碑卡片孤立 | **P2** | S | triaged | OPT-077 遗留；`app.js:1789`，1 行；Theme 2；Next up |
+| OPT-129 | chat.js quotePreview() 缺 ocrText 回落：chat 面板 OCR 摘抄引用显示空串 | **P2** | S | triaged | `chat.js:92`，1 行；Theme 1+2；Next up |
 | OPT-130 | OPT-077 里程碑无分页：110 本豆瓣书全量 DOM 节点，时间线首屏卡顿数秒 | **P2** | S-M | triaged | OPT-077 后续；`app.js:1754-1771`；~10 行；扩展 load-more 逻辑；Theme 2 |
 | OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | P2 | S | triaged | Theme 2 搜索可用性；摘抄 100+ 条后卡顿；`app.js:3956, 4175-4176`，5 行 debounce(250ms) |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | P2 | S | triaged | 乐观锁版本字段污染可致跨设备丢数据；`app_server.py:676, 4057, 4061` |

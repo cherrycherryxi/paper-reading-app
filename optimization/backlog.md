@@ -696,7 +696,7 @@ Format per item:
 - how: ① `index.html`：补写 `<dialog id="organizeDialog">` 粘贴/拍照双 Tab 界面（`organizeRawText` textarea + `organizeSubmitBtn`）和 `<dialog id="candidatesDialog">` 候选审批列表；② `app.js`：在 `openBookDetailDialog()` 的 `dialog-actions` 区域或 OCR 入口旁增加「整理文字摘抄」按钮，点击调用 `openOrganizeDialog(bookId)`；③ `app_server.py`：新增 `POST /api/organize/parse`，接收 `{bookId, rawText}`，调用 `PromptBuilder` + `call_deepseek()` + `ActionExecutor` 链路，返回 `{candidates: [{id, type, confidence, data:{content,tags}}]}`。
 
 ### OPT-082 — `renderTimeline()` 阅读统计摘要（sessionStats）仅在搜索时显示，默认视图无累计阅读数据 — 由 explore E134 提拔 [2026-06-30]
-- status: triaged
+- status: done (与 OPT-053 完全重复；OPT-053 PR #74 2026-07-18 已实现 sessionStats 常显；backlog 2026-07-23 补标)
 - area: frontend
 - priority: P2
 - size: S
@@ -814,7 +814,7 @@ Format per item:
 - how: `app.js:1160-1163` 在现有 `fuzzyMatch(book.author || "", query)` 后追加 `|| (book.tags || []).some(t => fuzzyMatch(t, query)) || fuzzyMatch(book.notes || "", query)`；2–3 行修改，纯前端，无 DB 变更，无 API 改动。Touch: `app.js:1160-1163`（matchBooks）。
 
 ### OPT-093 — `deleteSession()` 不回写 `book.currentPage` / `book.lastReadAt`，删除记录后进度数据残留 — 由 explore E147 提拔 [2026-07-04]
-- status: triaged
+- status: done (与 OPT-123 完全重复；OPT-123 PR #85 2026-07-22 已实现；backlog 2026-07-23 补标)
 - area: frontend
 - priority: P2
 - size: S
