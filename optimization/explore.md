@@ -3714,3 +3714,62 @@ els.connectionSearch?.addEventListener("input", renderConnections);
 ---
 
 > 本次 run（2026-07-22）扫描焦点：OPT-077 里程碑落地后的交互完整性（点击行为）、ocrText 口径在书籍详情路径的覆盖度、MCP 写入路径的数据完整性、Theme 2 书级回顾信息密度。新发现 4 条：E211（书籍详情摘抄预览缺 ocrText，S，1 行，northstar 中——直接 Theme 2 回顾表面）、E212（OPT-077 里程碑无点击导航，S，1 行，northstar 中——闭合「时间线→书籍详情」跳转闭环）、E213（MCP `_save_state` 绕过乐观锁，S，northstar 弱，数据完整性风险）、E214（书籍详情无 sessions 摘要，M，northstar 中，Theme 2 回顾信息补全）。提拔 OPT-131（E211，S，最小改动，ocrText 口径收尾）、OPT-132（E212，S，里程碑点击补全，1 行，Theme 2 交互闭环）。所有断言均基于实际代码读取，已标注 file:line。
+
+## 2026-07-23
+
+### E215 — `all_books_summary` 50 本上限：110 本豆瓣书中约 60 本对 AI 跨书查询永久不可见
+
+**Evidence:**
+- `app_server.py:2609-2616`：`all_books_summary` 列表推导末尾 `[:50]`，按 `updatedAt` 降序取前 50 本
+- `app_server.py:2615`：`for b in sorted(..., key=lambda b: b.get("updatedAt", ""), reverse=True)[:50]`
+- `app.js:4608`（OPT-105 Douban CSV 导入流程）：`const now = new Date().toISOString()`，批量导入时所有 110 本书写入同一 `updatedAt = now`
+- 同一批次导入的书 `updatedAt` 完全相同 → `sorted()` 排序结果由 `state.books` 原始顺序决定（排序稳定）→ 数组后半段约 60 本永久排在 top 50 之外，AI 永远看不到它们
+- `PromptBuilder.build_chat_prompt()`（`app_server.py:2584-2632`）：系统 prompt 直接使用 `all_books_summary`；`app_server.py:2643` 系统指令提示 AI 用该列表回答「哪些书」的问题，但列表残缺
+
+**Why it matters:** Theme 2 核心场景「你帮我找一本我读过但想不起名字的书，主题是 XX」或「把我读过的历史书列出来」——如果 60+ 本书从未进入上下文，AI 回答将系统性缺失，用户误以为 AI 知道全部却答错，信任度受损比「告知我看到了 50 本」更低。
+
+**Complexity:** S（一行：`[:50]` 改 `[:100]` 或加 smarter selection；系统指令需同步更新说明上限）
+
+**Files:** `app_server.py:2615`（`[:50]` 上限行）；`app_server.py:2643`（系统指令）
+
+**northstar:** 中——Theme 2「回顾有价值」；AI 跨书查询是 owner 的核心使用场景之一（2026-07-05 信号 47 次 explore 操作），但 110 本豆瓣书中超过一半永久不进上下文，修复后 AI 可见书库扩大一倍。
+
+---
+
+### E216 — `parseExcelDateToIso()` 产出 UTC 午夜，与 `addSession()` 本地正午不一致：同日 Douban 里程碑排在 session 卡之前
+
+**Evidence:**
+- `app.js:648-651`（`parseExcelDateToIso()`）：文本格式日期分支调用 `new Date(text).toISOString()`；`new Date("2022-09-15")` 被 JS 解析为 UTC midnight → ISO 串 `"2022-09-15T00:00:00.000Z"`
+- `app.js:2710`（`addSession()` 日期处理）：`new Date(\`${dateValue}T12:00:00\`).toISOString()` → UTC+8 环境 = UTC 04:00 → ISO 串 `"2022-09-15T04:00:00.000Z"`
+- `app.js:1776-1779`（`renderTimeline()` 排序）：`timelineItems.sort((a, b) => (b.date > a.date ? 1 : -1))` 按原始 ISO 字符串字典序比较，UTC midnight 早于 UTC 04:00 → 同日 Douban 里程碑排在 session 卡上方
+- `app.js:545-549`（`dateInputToIso()`）：专门为 `<input type="date">` 产出的 `YYYY-MM-DD` 串做本地正午处理——`new Date(\`${s}T12:00:00\`).toISOString()`，与 `addSession()` 口径完全一致；`parseExcelDateToIso()` 文本分支未复用此函数
+
+**Why it matters:** 在 UTC+8 环境下差异为 4 小时，视觉上只影响「同一日历日内 Douban 里程碑 vs 手动 session」的排序，不会跨日——当前影响轻微。但一旦有 UTC-N 用户（或服务器日期处理上下文），`parseExcelDateToIso()` 产出的 UTC midnight 会跨越日历日（如 UTC-5 下 00:00Z = 前一天 19:00 本地），导致里程碑日期显示偏移一天。修复成本极低，一致性收益清晰。
+
+**Complexity:** S（1-2 行：`parseExcelDateToIso()` 文本分支改调 `dateInputToIso(s)` 或内联 `T12:00:00` 拼接）
+
+**Files:** `app.js:648-651`（`parseExcelDateToIso` 文本分支）；参照 `app.js:545-549`（`dateInputToIso`）、`app.js:2710`（addSession 口径）
+
+**northstar:** 弱——时间线日期排序一致性问题，不直接影响核心回顾体验，但属于 OPT-105 Douban 导入工程收尾，低成本，建议与 Theme 2 相关 PR 搭车修复。
+
+---
+
+### E217 — `all_books_summary` 缺 `startedAt` 字段：AI 无法回答「我哪些书是 2024 年开始读的」
+
+**Evidence:**
+- `app_server.py:2610-2614`（`all_books_summary` per-book dict 构造）：包含 `id`、`title`、`author`、`status`、`rating`、`finishedAt`（`[:10]`）、`doubanComment`（`[:60]`）、`review`（`[:120]`）——无 `startedAt`
+- `app_server.py:2643`（系统指令片段）：明确告知 AI 可用 `finishedAt` 筛选日期——但无对应的 `startedAt` 指引
+- `app.js:1756-1763`（OPT-077 里程碑）：`if (book.startedAt)` 分支存在，说明 `startedAt` 在 state.books 中已广泛使用（Douban 导入后 110 本书部分有 `startedAt`）
+- 与 E215 相同数据路径：`startedAt` 不进 `all_books_summary`，AI 系统 prompt 中无此字段，自然语言查询「2023 年开始读的书」得不到正确结果
+
+**Why it matters:** `finishedAt` 进了 prompt 但 `startedAt` 没进，产生不对称性——AI 能回答「哪些书是某年读完的」但不能回答「哪些书是某年开始读的」；Theme 2 时间轴查询覆盖度只有一半。S 级修复：在 dict 里加一个字段，同步更新系统指令一行。
+
+**Complexity:** S（1 行 dict entry + 1 行系统指令更新）
+
+**Files:** `app_server.py:2614`（dict 末尾加 `"startedAt": (b.get("startedAt") or "")[:10]`）；`app_server.py:2643`（系统指令补充 `startedAt` 说明）
+
+**northstar:** 弱/中——Theme 2；与 E215（50 本上限）合并修复性价比最高，共同保证 AI 书库查询的广度与深度。
+
+---
+
+> 本次 run（2026-07-23）扫描焦点：AI 上下文数据完整性（all_books_summary 覆盖边界）、日期处理一致性（UTC vs 本地时区口径）、startedAt/finishedAt 字段对称性。新发现 3 条：E215（all_books_summary [:50] 上限，60+ 豆瓣书 AI 不可见，S，northstar 中——Theme 2）、E216（parseExcelDateToIso UTC 午夜 vs addSession 本地正午，S，northstar 弱——一致性收尾）、E217（startedAt 缺失于 all_books_summary，S，northstar 弱/中——Theme 2 时态查询对称性）。提拔 OPT-133（E213，MCP _save_state 绕过乐观锁，S，数据完整性）、OPT-134（E215，all_books_summary 50 本上限，S，Theme 2，northstar 中）。所有断言均基于实际代码读取，已标注 file:line。

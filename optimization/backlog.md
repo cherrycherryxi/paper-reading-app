@@ -1207,3 +1207,23 @@ Format per item:
 - description: `app.js:1784-1790`（OPT-077 PR #81 引入的里程碑渲染分支）：创建 `card` article、设置 className + innerHTML、执行 `els.timeline.appendChild(card)` 后直接 `return`——全段无 `addEventListener`。相邻 session 卡在 `app.js:1539` 有 `article.addEventListener("click", () => openSessionDetail(session.id))`，行为对比鲜明。`openBookDetailDialog(bookId)` 函数已存在，里程碑渲染时 `book` 对象（含 `book.id`）已通过 `item.book` 解构（`app.js:1783`），bookId 随手可得。
 - why: 1 行修复。「读完了」里程碑是回顾欲望最高的时刻——用户看到「读完了《深度工作》」想了解这本书时，点击无反应是强摩擦。`openBookDetailDialog` 已封装完毕，接入成本为零。
 - how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
+
+### OPT-133 — MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 — 由 explore E213 提拔 [2026-07-23]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 弱——数据完整性工程基础；MCP 工具与 HTTP API 同时写入时的竞态条件会导致用户数据静默覆盖，属于「用了才会遇到」的严重低频 bug；`save_state_checked()` 乐观锁模式已在 HTTP API 侧完整实现（OPT-030），MCP 侧直接复用即可，S 级改动。
+- description: `reading_mcp_server.py:75-81`，`_save_state()` 执行盲 UPDATE（`"UPDATE user_state SET state_json=?, updated_at=? WHERE user_id=?"`），无版本号检查。对比 `app_server.py` 中 `save_state_checked()`（OPT-030）：先读 `updated_at` 作版本戳，UPDATE 时加 `WHERE updated_at=<old_version>` 条件，affected rows 为 0 则抛 409 冲突错误。`_save_state()` 在 MCP server 的全部 6 处工具函数调用（`reading_mcp_server.py:226, 285, 328, 369, 412, 500`）中均未使用版本戳。当用户通过 HTTP API 编辑书籍的同时 MCP 工具执行写入，后者的盲 UPDATE 会以旧快照覆盖 HTTP 侧刚写入的新数据，HTTP 侧修改静默丢失。
+- why: 竞态条件触发概率低（需 HTTP + MCP 并发），但后果（数据静默覆盖）属于隐蔽高危：用户不知道哪次编辑丢了，且丢失不可追溯（SQLite 无行级历史）。`save_state_checked()` 已完整实现，MCP 侧复用约 5-10 行改动，无 API/schema 变更。
+- how: `reading_mcp_server.py:75-81`（`_save_state()`）：参照 `app_server.py` 的 `save_state_checked()` 实现，改为先读 `updated_at`，UPDATE 带 `WHERE updated_at=<old>`，检查 `rowcount`，为 0 则抛冲突异常；6 处调用点需传入 `expected_version` 参数（从 `_load_state()` 返回时一并返回 `updated_at`）。Touch: `reading_mcp_server.py:75-81`（_save_state）、`reading_mcp_server.py:60-74`（_load_state，需同时返回 updated_at）、各工具函数调用点（约 6 处）。
+
+### OPT-134 — `all_books_summary` 50 本上限：110 本豆瓣书约 60 本对 AI 跨书查询永久不可见 — 由 explore E215 提拔 [2026-07-23]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值」；AI 跨书查询（「帮我找读过的历史类书」「2023 年我读了哪些书」）是 owner 核心 explore 场景，但 OPT-105 Douban 批量导入后 110 本书中约 60 本因 50 本上限永久不进系统 prompt，AI 回答系统性残缺，修复后 AI 可见书库直接翻倍。
+- description: `app_server.py:2615`（`PromptBuilder.build_chat_prompt()`），`all_books_summary` 列表末尾 `[:50]`，按 `updatedAt` 降序取前 50 本。OPT-105（Douban CSV 导入）在 `app.js:4608` 将批量导入的所有书写入同一 `updatedAt = now`，排序稳定后后半段 ~60 本恒排第 51-110 位，永远不进上下文。系统指令（`app_server.py:2643`）提示 AI 用 `all_books_summary` 回答「哪些书」的问题，但 AI 实际只能看到前 50 本，错误回答无任何提示。连带 E217（`startedAt` 缺失）：同一列表同时缺少字段和覆盖范围，两者可合并一次修复。
+- why: 修复为 1 行（`[:50]` 改为 `[:100]` 或 `[:120]`）+ 系统指令同步更新说明实际上限。成本极低，直接扩大 Theme 2 AI 召回覆盖范围。可同期修复 E217（加 `startedAt` 字段）、E215 系统指令，合并 3 处改动约 3-4 行。
+- how: `app_server.py:2615`：`[:50]` → `[:120]`（或参数化 `MAX_BOOKS_IN_SUMMARY = 120`）；`app_server.py:2614`：dict 内加 `"startedAt": (b.get("startedAt") or "")[:10]`（E217 合并）；`app_server.py:2643`：系统指令同步更新上限与 `startedAt` 说明。Touch: `app_server.py:2609-2616`（all_books_summary 构造）、`app_server.py:2643`（系统指令）。
