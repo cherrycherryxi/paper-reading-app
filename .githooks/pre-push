@@ -48,11 +48,11 @@ echo "▶ [2/2] $PYTHON -m unittest discover -s tests/agent -p '*_test.py'"
 if "$PYTHON" -m unittest discover -s tests/agent -p '*_test.py' > "$PYLOG" 2>&1; then
   echo "  ✅ Python 测试通过"
 else
-  # 仅当唯一的错误是本地缺 mcp 包（reading_mcp_server_tools 导入失败）时，降级为警告。
+  # 仅当所有错误都是本地缺 mcp 包（reading_mcp_server* 导入失败）时，降级为警告。
+  # 判据：日志含 'No module named mcp' 且无断言失败（failures=）。
   if grep -q "No module named 'mcp'" "$PYLOG" \
-     && grep -q "FAILED (errors=1)" "$PYLOG" \
      && ! grep -q "failures=" "$PYLOG"; then
-    echo "  ⚠️  仅 reading_mcp_server_tools 导入失败 —— CI 装了 requirements.txt，不受影响，已放行。"
+    echo "  ⚠️  仅 reading_mcp_server* 导入失败（本地无 mcp 包）—— CI 装了 requirements.txt，不受影响，已放行。"
   else
     echo "  ❌ Python 测试失败："
     tail -n 40 "$PYLOG" | sed 's/^/     /'

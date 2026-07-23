@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-07-22T22:01:50.370Z
 > Files: 343 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T21:22:17.228Z
+> Files: 342 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -290,7 +292,7 @@
 
 ## .githooks/
 
-- `pre-push` — pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。 (~635 tok)
+- `pre-push` — pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。 (~636 tok)
 
 ## .kiro/specs/agent-backend-reliability/
 
