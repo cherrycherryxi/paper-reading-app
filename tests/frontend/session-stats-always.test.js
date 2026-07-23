@@ -159,7 +159,8 @@ test("OPT-053: stats bar is visible while browsing (no search)", () => {
   assert.equal(stats.hidden, false, "stats bar should be shown while browsing");
   assert.match(stats.text, /2 次记录/, "counts all sessions");
   assert.match(stats.text, /共 70 分钟/, "sums minutes across all sessions");
-  assert.match(stats.text, /约 40 页/, "sums pages across all sessions");
+  // OPT-094: pages are inclusive per session (endPage - startPage + 1): 21 + 21 = 42.
+  assert.match(stats.text, /约 42 页/, "sums pages across all sessions");
 });
 
 test("OPT-053: browsing stats cover ALL sessions, not just the paged slice", () => {
@@ -182,7 +183,8 @@ test("OPT-053: browsing stats cover ALL sessions, not just the paged slice", () 
   assert.equal(stats.hidden, false);
   assert.match(stats.text, /40 次记录/, "totals every session regardless of pagination");
   assert.match(stats.text, /共 400 分钟/);
-  assert.match(stats.text, /约 400 页/);
+  // OPT-094: 40 sessions × (11 - 1 + 1) inclusive pages = 440.
+  assert.match(stats.text, /约 440 页/);
 });
 
 test("OPT-053: searching still narrows the stats to filtered results", () => {

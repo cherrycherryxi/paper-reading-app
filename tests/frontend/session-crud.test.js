@@ -107,11 +107,31 @@ test("OPT-045: addSession appends a session and advances the book's page/status"
   await flush();
   const st = h.getState();
   assert.equal(st.sessions.length, 1, "session must be recorded");
-  assert.equal(st.sessions[0].pagesRead, 39);
+  assert.equal(st.sessions[0].pagesRead, 40, "OPT-094: pages 1–40 inclusive = 40, not 39");
   const book = st.books.find((b) => b.id === "b1");
   assert.equal(book.currentPage, 40, "currentPage advances to endPage");
   assert.equal(book.status, "reading", "wishlist→reading on first session");
   assert.ok(h.fetchCalls.some((c) => c.url.includes("/api/state")), "must persist via syncState");
+});
+
+test("OPT-094: reading a single page (start===end) records 1 page, not 0", async () => {
+  const h = createHarness();
+  loggedIn(h, { ...emptyState(), books: [{ id: "b1", title: "三体", currentPage: 4, totalPages: 300, status: "reading" }] });
+  await h.addSession(form({ bookId: "b1", startPage: "5", endPage: "5", minutes: "10", date: "2026-06-13", note: "" }));
+  await flush();
+  assert.equal(h.getState().sessions[0].pagesRead, 1, "one inclusive page read = 1, not endPage - startPage = 0");
+});
+
+test("OPT-094: editing a session recomputes pagesRead inclusively (+1)", async () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(),
+    books: [{ id: "b1", title: "三体", currentPage: 40, totalPages: 300, status: "reading" }],
+    sessions: [{ id: "s1", bookId: "b1", startPage: 1, endPage: 40, pagesRead: 39, minutes: 30, note: "旧", date: "2026-06-10T12:00:00.000Z" }],
+  });
+  await h.addSession(form({ id: "s1", bookId: "b1", startPage: "10", endPage: "30", minutes: "20", date: "2026-06-11", note: "改" }));
+  await flush();
+  assert.equal(h.getState().sessions[0].pagesRead, 21, "pages 10–30 inclusive = 21");
 });
 
 test("OPT-045: addSession marks the book finished when reaching the last page", async () => {
