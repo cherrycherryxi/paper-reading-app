@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T04:03:17.076Z
-> Files: 342 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T22:01:50.370Z
+> Files: 343 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -515,3 +515,7 @@
 ## 小红书物料/第6篇-再连一条线/
 
 - `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
+
+## 小红书物料/第7篇-收官那一句/
+
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
