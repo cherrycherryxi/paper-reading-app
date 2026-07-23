@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T04:13:49.491Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T05:06:13.384Z
 > Files: 345 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -342,7 +342,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~35313 tok)
+- `backlog.md` — Optimization Backlog (~35350 tok)
 - `backlog.md` — Optimization Backlog (~27645 tok)
 - `backlog.md` — Optimization Backlog (~17683 tok)
 - `backlog.md` — Optimization Backlog (~10520 tok)
@@ -352,7 +352,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1858 tok)
+- `triage.md` — Triage (~1822 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
