@@ -34,8 +34,8 @@ Last triaged: 2026-07-24
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-134 | all_books_summary 50 本上限：约 60 本豆瓣书对 AI 跨书查询永久不可见 | **P2** | S | **triaged** | Theme 2；OPT-105 遗留缺口；`app_server.py:2609-2616, 2643`，3-4 行；可合并 E217(startedAt 字段) |
-| OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | **P2** | S | **triaged** | Theme 2 搜索可用性；摘抄 100+ 条后卡顿；`app.js:3956, 4175-4176`，5 行 debounce(250ms) |
+| OPT-134 | all_books_summary 50 本上限：约 60 本豆瓣书对 AI 跨书查询永久不可见 | **P2** | S | **in-progress** | PR #91；Theme 2；OPT-105 遗留缺口；`app_server.py:2609-2616, 2643`，3-4 行；可合并 E217(startedAt 字段) |
+| OPT-072 | 搜索输入框无防抖，每次按键触发全量 DOM 重建 | **P2** | S | **in-progress** | PR #91；Theme 2 搜索可用性；摘抄 100+ 条后卡顿；`app.js:3956, 4175-4176`，5 行 debounce(250ms) |
 | OPT-133 | MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 | **P2** | S | **triaged** | 数据完整性；OPT-030 模式已就绪，直接复用约 5-10 行；`reading_mcp_server.py:60-81`（_load/_save_state + 6 处调用点） |
 | OPT-038 | 注册/ensure_user_state now_iso() → utc_now_iso() | **P2** | S | triaged | 乐观锁版本字段污染可致跨设备丢数据；`app_server.py:676, 4057, 4061` |
 | OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | **P2** | S | triaged | `app.js:274-279`，1 行修复；quote: fallthrough 错误解析为 bookId |
