@@ -4661,10 +4661,22 @@ async function importDoubanCsv(file) {
 const SHELF_OCR_MAX_PX = 2000; // 1200 (the app default) blurs spine type past legibility
 const SHELF_OCR_AUTO_CHECK_CONFIDENCE = 0.8;
 let shelfOcrCandidates = [];
+// OPT-126: guards against a second pick while the ~20s shelf OCR is still in
+// flight. The trigger is a <label> wrapping a hidden file input, so without this
+// the user can re-open the picker mid-request and fire a duplicate LLM call.
+let shelfOcrRunning = false;
 
 async function runShelfOcr(file) {
   if (!requireAuth("识别书架")) return;
   if (!file) return;
+  // OPT-126: mirror runOcrFromImage/runBookOcr — a busy trigger + finally reset so
+  // the 20s wait shows progress and can't be re-fired into a duplicate LLM call.
+  if (shelfOcrRunning) return;
+  shelfOcrRunning = true;
+  const trigger = els.shelfOcrInput; // covers the whole label (inset:0); disabling it blocks the picker
+  const label = trigger?.closest("label");
+  if (trigger) trigger.disabled = true;
+  if (label) { label.classList.add("is-busy"); label.setAttribute("aria-busy", "true"); }
   showToast("正在识别书架，约需 20 秒…");
   try {
     const imageDataUrl = await resizeImageToDataUrl(file, SHELF_OCR_MAX_PX);
@@ -4706,6 +4718,10 @@ async function runShelfOcr(file) {
     els.shelfOcrDialog?.showModal(); // 已在上方 requireAuth 过，无需 openDialog 再拦一次
   } catch (error) {
     showToast(`识别失败：${error.message || "未知错误"}`);
+  } finally {
+    shelfOcrRunning = false;
+    if (trigger) trigger.disabled = false;
+    if (label) { label.classList.remove("is-busy"); label.removeAttribute("aria-busy"); }
   }
 }
 
