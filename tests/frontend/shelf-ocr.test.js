@@ -10,6 +10,7 @@ const vm = require("node:vm");
 const root = path.join(__dirname, "..", "..");
 const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const stylesCss = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
 function elStub() {
   let innerHTML = "";
@@ -142,6 +143,47 @@ test("runShelfOcr：零识别结果给出可操作提示，不开空对话框", 
 
   assert.equal(h.els.shelfOcrDialog.open, false, "没结果不该弹出空列表");
   assert.match(h.toasts.at(-1), /书脊/, "提示应告诉用户怎么改进拍摄");
+});
+
+// —— OPT-126：拍书架 OCR 缺加载态。20s 等待期间入口无反馈、且仍可重复点击 ——
+// runShelfOcr 未套 runOcrFromImage/runBookOcr 那套 try/finally 忙碌态：入口是
+// <label> 包着 hidden input，识别中再点一次会重开选择器、发起第二次 LLM 调用。
+test("OPT-126: 识别进行中禁用入口并拦截重复触发，结束后复位", async () => {
+  const h = createHarness({ shelfResponse: { books: [{ title: "X", confidence: 0.9 }] } });
+  h.setState({ books: [], quotes: [], sessions: [], connections: [] });
+
+  let resizeCalls = 0;
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  h.stubResize(async () => { resizeCalls += 1; await gate; return "data:image/jpeg;base64,xxx"; });
+
+  const p1 = h.runShelfOcr(FAKE_FILE); // 进入识别，卡在 resize 上（模拟 20s 往返）
+  assert.equal(h.els.shelfOcrInput.disabled, true, "识别中入口应禁用，避免再次触发");
+
+  await h.runShelfOcr(FAKE_FILE); // 第二次点击应被守卫直接拦下
+  assert.equal(resizeCalls, 1, "识别中再次触发不应发起第二次识别/重复 LLM 调用");
+
+  release();
+  await p1;
+  assert.equal(h.els.shelfOcrInput.disabled, false, "识别结束后入口应复位可用");
+  assert.equal(h.getCandidates().length, 1, "识别正常完成");
+});
+
+test("OPT-126: 识别失败也复位入口（finally），不会永久卡禁用", async () => {
+  const h = createHarness();
+  h.setState({ books: [], quotes: [], sessions: [], connections: [] });
+  h.stubResize(async () => { throw new Error("boom"); });
+
+  await h.runShelfOcr(FAKE_FILE);
+
+  assert.equal(h.els.shelfOcrInput.disabled, false, "失败后入口仍要复位");
+  assert.match(h.toasts.at(-1), /识别失败/, "失败应给出提示");
+});
+
+test("OPT-126: 忙碌态样式存在（dim + wait 光标 + spinner）", () => {
+  assert.match(stylesCss, /\.file-button\.is-busy\s*\{/, "应有忙碌态样式");
+  assert.match(stylesCss, /cursor:\s*wait/, "忙碌态应给出 wait 光标");
+  assert.match(stylesCss, /@keyframes file-button-spin/, "应有 spinner 动画");
 });
 
 test("confirmShelfOcr：只加入勾选的书，用选定的状态", async () => {
