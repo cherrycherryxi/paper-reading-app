@@ -9761,6 +9761,102 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-23T20:05:10.607Z"
+    },
+    {
+      "id": "bug-583",
+      "timestamp": "2026-07-24T02:56:17.058Z",
+      "error_message": "Wrong reference: searchRaw should be filteredSessions",
+      "file": "app.js",
+      "root_cause": "Used \"searchRaw\" instead of \"filteredSessions\"",
+      "fix": "Changed searchRaw → filteredSessions",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T02:56:17.058Z"
+    },
+    {
+      "id": "bug-584",
+      "timestamp": "2026-07-24T02:56:30.118Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 15→21 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T02:56:30.118Z"
+    },
+    {
+      "id": "bug-585",
+      "timestamp": "2026-07-24T03:01:30.425Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T03:01:30.425Z"
+    },
+    {
+      "id": "bug-586",
+      "timestamp": "2026-07-24T03:01:56.366Z",
+      "error_message": "CSS fix: opacity, cursor",
+      "file": "styles.css",
+      "root_cause": "opacity: 0 → 0.6; cursor: pointer → wait",
+      "fix": "Changed opacity: 0 → 0.6; cursor: pointer → wait",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T03:01:56.366Z"
+    },
+    {
+      "id": "bug-587",
+      "timestamp": "2026-07-24T03:03:00.607Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/shelf-ocr.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T03:03:00.607Z"
+    },
+    {
+      "id": "bug-588",
+      "timestamp": "2026-07-24T03:06:14.395Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T03:06:14.395Z"
     }
   ]
 }

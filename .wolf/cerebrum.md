@@ -97,6 +97,9 @@
 
 - [2026-07-23] **选题卡可能是「过时/已完成」的重复项——动手前先核 git log + backlog status。** 2026-07-23 的卡片① OPT-123（合并 OPT-128）标题是「currentPage 不重算」，但 `recomputeCurrentPage` 早在 2026-07-22 由 PR #85/#86 实现并合入 feature/agent（含回归测试），backlog 里 OPT-123/128 也已可判定完成。正确处理：**不重造轮子、不开空 PR**，在 today-pick.md 加 NOTE 说明卡已完成、只做真正未做的卡片②，并在最终报告里如实说清（不伪造第二个 PR 凑「both」）。同 [先核代码再动手] 系列教训。
 
+- [2026-07-24] **`.file-button` 入口 = `<label class="button file-button">文案<input type="file" style="inset:0;opacity:0"></label>`（拍书架/导入/Excel 都是这个模式）；要给它加「忙碌/禁用」态，禁的是里面的 input 不是 label。** `<label>` 不是表单控件，`:disabled`/`.button:disabled` 对它无效。但 input `position:absolute;inset:0` 盖满整个 label，`input.disabled=true` 后点 label 不再弹选择器——这就是拦重复触发的杠杆。视觉忙碌态走 `.file-button.is-busy`（dim + `cursor:wait` + `::after` spinner，keyframe `file-button-spin`），沿用 `.ai-review-btn:disabled` 的手感（OPT-126）。图片 OCR 三条路径的加载态范式统一：`runOcrFromImage`/`runBookOcr`/`runShelfOcr` 都是「进入即置忙、`finally` 复位」+ 一个模块级 `xxxRunning` 守卫防 async 重入（20s 往返期间重复点=重复 LLM 调用）。
+- [2026-07-24] **`renderTimeline` 的分页对象是「统一时间线」= 会话 + 里程碑，不是只有会话（OPT-130）。** OPT-077 把里程碑卡插进时间线时全量 append、绕过 OPT-076 的 load-more，110 本书回填 startedAt/finishedAt 后首屏铺 ~220 个 DOM 卡顿数秒。现在：先建 `allTimelineItems`（会话 map + 里程碑）→ 日期倒序 → `slice(0, sessionDisplayLimit)`；load-more 计数用 `allTimelineItems.length`（含里程碑）。`filteredSessions` 保留全量供统计栏用（统计只算会话，里程碑无 minutes/pages）。搜索态不分页、不含里程碑（沿用 OPT-077）。再动时间线渲染/分页，记得里程碑与会话共用页大小。
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->

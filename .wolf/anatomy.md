@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T20:07:52.492Z
-> Files: 345 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-24T03:06:14.359Z
+> Files: 347 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -114,6 +114,7 @@
 - `cards-2026-07-21.md` — 卡片① (~125 tok)
 - `cards-2026-07-22.md` — 卡片① (~184 tok)
 - `cards-2026-07-23.md` — 卡片① (~88 tok)
+- `cards-2026-07-24.md` — 卡片① (~101 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
@@ -122,7 +123,8 @@
 - `review-2026-07-21.md` — 夜间 PR 审查报告 — 2026-07-21 (~484 tok)
 - `review-2026-07-22.md` — 夜间 PR 处理报告 — 2026-07-22 (~354 tok)
 - `review-2026-07-23.md` — 夜间 PR 处理汇总 — 2026-07-23 (~126 tok)
-- `today-pick.md` — 卡片① (~183 tok)
+- `review-2026-07-24.md` — 夜间 PR 处理报告 — 2026-07-24 (~354 tok)
+- `today-pick.md` — 卡片① (~116 tok)
 
 ## ../../.claude/paper-xhs/
 
@@ -226,7 +228,7 @@
 - `.gitignore` — Git ignore rules (~204 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74406 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~67086 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~67528 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -245,7 +247,7 @@
 - `reading_mcp_server.py` — add_note, add_book, summary (~4374 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
-- `styles.css` — Styles: 102 rules, 150 vars (~24866 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~25070 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
 ## .claude/
@@ -455,9 +457,9 @@
 - `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2182 tok)
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
-- `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~2565 tok)
+- `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~4803 tok)
 - `timeline-date-search.test.js` — OPT-112: renderTimeline search haystack includes the session date (~1948 tok)
-- `timeline-milestone.test.js` — OPT-077: renderTimeline() book milestone events (startedAt / finishedAt) (~3246 tok)
+- `timeline-milestone.test.js` — OPT-077: renderTimeline() book milestone events (startedAt / finishedAt) (~4323 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
 
 ## tools/
