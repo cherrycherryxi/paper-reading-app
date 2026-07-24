@@ -295,6 +295,94 @@ test("OPT-077: milestone card innerHTML contains book title and label", () => {
   assert.ok(html.includes("深度工作"), "milestone card should include the book title");
 });
 
+// ─── OPT-130: milestones must obey the same pagination as sessions ─────────────
+// Before OPT-130 the timeline sliced sessions to sessionDisplayLimit (10) but
+// appended ALL milestones unconditionally. A ~110-book shelf (OPT-077 back-filled
+// startedAt/finishedAt for every finished book) therefore rendered ~220 milestone
+// cards on first paint, freezing the timeline for seconds. The load-more counter
+// also only counted sessions, so it stayed hidden even when milestones overflowed.
+
+function getLoadMore(hooks) {
+  return hooks._timelineEl._appendedChildren.find((c) => (c.className || "").includes("timeline-load-more"));
+}
+
+test("OPT-130: milestones are paged — only sessionDisplayLimit items render, rest behind load-more", () => {
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "u1" });
+  // 8 finished books, each contributing a started + finished milestone = 16 items,
+  // zero sessions. Pre-fix this rendered all 16; post-fix it caps at the page size.
+  const books = [];
+  for (let i = 0; i < 8; i++) {
+    books.push(book({
+      id: `b${i}`,
+      title: `书${i}`,
+      startedAt: `2026-0${(i % 8) + 1}-01T00:00:00.000Z`,
+      finishedAt: `2026-0${(i % 8) + 1}-15T00:00:00.000Z`,
+    }));
+  }
+  hooks.setState({ books, quotes: [], sessions: [], connections: [], chatHistories: {} });
+  hooks.setSessionSearch("");
+  hooks.renderTimeline();
+
+  const classes = getAppendedClasses(hooks);
+  const milestoneCount = classes.filter((c) => c.includes("timeline-milestone")).length;
+  assert.equal(milestoneCount, 10, "should render exactly one page (10) of milestone cards, not all 16");
+
+  const loadMore = getLoadMore(hooks);
+  assert.ok(loadMore, "a load-more button should appear when milestones overflow the page");
+  assert.ok(
+    (loadMore.textContent || "").includes("共 16 条"),
+    `load-more total should count all 16 milestones, got: ${loadMore.textContent}`
+  );
+});
+
+test("OPT-130: load-more counter reflects sessions + milestones combined", () => {
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "u1" });
+  // 3 books × (started + finished) = 6 milestones, plus 6 sessions = 12 unified items.
+  const books = [];
+  const sessions = [];
+  for (let i = 0; i < 3; i++) {
+    books.push(book({
+      id: `b${i}`,
+      title: `书${i}`,
+      startedAt: `2026-01-0${i + 1}T00:00:00.000Z`,
+      finishedAt: `2026-02-0${i + 1}T00:00:00.000Z`,
+    }));
+  }
+  for (let i = 0; i < 6; i++) {
+    sessions.push(session({ id: `s${i}`, bookId: `b${i % 3}`, date: `2026-03-0${i + 1}T00:00:00.000Z` }));
+  }
+  hooks.setState({ books, quotes: [], sessions, connections: [], chatHistories: {} });
+  hooks.setSessionSearch("");
+  hooks.renderTimeline();
+
+  const total = getAppendedClasses(hooks).filter((c) => c.includes("session-grid-card") || c.includes("timeline-milestone")).length;
+  assert.equal(total, 10, "unified page should cap at 10 rendered cards");
+
+  const loadMore = getLoadMore(hooks);
+  assert.ok(loadMore, "load-more should appear (12 items > page size 10)");
+  assert.ok(
+    (loadMore.textContent || "").includes("还有 2 条") && (loadMore.textContent || "").includes("共 12 条"),
+    `load-more should count 12 combined items, got: ${loadMore.textContent}`
+  );
+});
+
+test("OPT-130: no load-more when combined items fit one page", () => {
+  const hooks = createHarness();
+  hooks.setCurrentUser({ id: "u1" });
+  hooks.setState({
+    books: [book({ id: "b1", finishedAt: "2026-04-20T00:00:00.000Z" })],
+    quotes: [],
+    sessions: [session({ id: "s1", bookId: "b1", date: "2026-03-10T00:00:00.000Z" })],
+    connections: [], chatHistories: {},
+  });
+  hooks.setSessionSearch("");
+  hooks.renderTimeline();
+
+  assert.ok(!getLoadMore(hooks), "2 items (1 session + 1 milestone) fit one page, no load-more");
+});
+
 test("OPT-077: existing OPT-053 stats bar still works with milestones", () => {
   const hooks = createHarness();
   hooks.setCurrentUser({ id: "u1" });
