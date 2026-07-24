@@ -696,7 +696,7 @@ Format per item:
 - how: ① `index.html`：补写 `<dialog id="organizeDialog">` 粘贴/拍照双 Tab 界面（`organizeRawText` textarea + `organizeSubmitBtn`）和 `<dialog id="candidatesDialog">` 候选审批列表；② `app.js`：在 `openBookDetailDialog()` 的 `dialog-actions` 区域或 OCR 入口旁增加「整理文字摘抄」按钮，点击调用 `openOrganizeDialog(bookId)`；③ `app_server.py`：新增 `POST /api/organize/parse`，接收 `{bookId, rawText}`，调用 `PromptBuilder` + `call_deepseek()` + `ActionExecutor` 链路，返回 `{candidates: [{id, type, confidence, data:{content,tags}}]}`。
 
 ### OPT-082 — `renderTimeline()` 阅读统计摘要（sessionStats）仅在搜索时显示，默认视图无累计阅读数据 — 由 explore E134 提拔 [2026-06-30]
-- status: triaged
+- status: done (与 OPT-053 完全重复；OPT-053 PR #74 2026-07-18 已实现 sessionStats 常显；backlog 2026-07-23 补标)
 - area: frontend
 - priority: P2
 - size: S
@@ -814,7 +814,7 @@ Format per item:
 - how: `app.js:1160-1163` 在现有 `fuzzyMatch(book.author || "", query)` 后追加 `|| (book.tags || []).some(t => fuzzyMatch(t, query)) || fuzzyMatch(book.notes || "", query)`；2–3 行修改，纯前端，无 DB 变更，无 API 改动。Touch: `app.js:1160-1163`（matchBooks）。
 
 ### OPT-093 — `deleteSession()` 不回写 `book.currentPage` / `book.lastReadAt`，删除记录后进度数据残留 — 由 explore E147 提拔 [2026-07-04]
-- status: triaged
+- status: done (与 OPT-123 完全重复；OPT-123 PR #85 2026-07-22 已实现；backlog 2026-07-23 补标)
 - area: frontend
 - priority: P2
 - size: S
@@ -1109,7 +1109,7 @@ Format per item:
 - how: `app.js:2687` 将条件 `!book.startedAt` 替换为 `!book.startedAt || date < book.startedAt`（同时保留 `finishedAt` 上界守卫）；同时在 `editSession()` 的 startedAt 重算逻辑中验证是否有对称需要（若 `editSession` 也有同名守卫需一并修改）。约 2 行修改，建议加一个 JS 单元测试覆盖「追溯更早日期」场景。
 
 ### OPT-123 — `deleteSession()` 删除记录后不重算 `book.currentPage`；新记录起始页自动填充显示过期值 — 由 explore E196 提拔 [2026-07-18]
-- status: triaged
+- status: done (PR #85, merged 2026-07-22)
 - area: frontend
 - priority: P2
 - size: S
@@ -1139,7 +1139,7 @@ Format per item:
 - how: `app.js:2728-2729`（deleteBook，生成确认消息处）：替换 `.textContent = book.title` 为构造含数量的 innerHTML 或多行 textContent，如 `删除《${book.title}》将同时删除 ${sessions.length} 条记录、${quoteCount} 条摘抄、${connCount} 条关联，此操作不可撤销。`（空时省略对应项）；在消息构造前用三个辅助函数取值。Touch: `app.js:2723-2730`（deleteBook 确认消息）。
 
 ### OPT-128 — `addSession()` 编辑路径 `book.currentPage` 单调递增：`endPage` 缩小后驻留旧值，下次新记录起始页自动填充显示过期数 — 由 explore E204 提拔 [2026-07-20]
-- status: triaged
+- status: done (PR #86, merged 2026-07-22)
 - area: frontend
 - priority: P2
 - size: S
@@ -1149,7 +1149,7 @@ Format per item:
 - how: `app.js:2694-2695`（addSession 编辑路径，`state.sessions[idx] = {...}` 之后）：替换 `book.currentPage = Math.max(book.currentPage || 0, endPage)` 为从 `state.sessions` 中筛出同 `bookId` 的所有记录、取 `endPage` 最大值赋给 `book.currentPage`；可选：抽 `recomputeCurrentPage(bookId)` 并在 deleteSession 的 OPT-123 fix 处复用。建议与 OPT-123 合并同一 PR 一次修清两条路径。Touch: `app.js:2694-2695`（addSession 编辑路径）；可选合并 `app.js:3519-3520`（deleteSession，OPT-123）。
 
 ### OPT-127 — `resolveConnectionSide()` 缺 `ocrText` 回落：OCR 摘抄作为关联节点时标签显示为空引号 — 由 explore E205 提拔 [2026-07-20]
-- status: triaged
+- status: done (PR #84, closed 2026-07-21)
 - area: frontend
 - priority: P2
 - size: S
@@ -1169,7 +1169,7 @@ Format per item:
 - how: `app.js:4572-4612`（runShelfOcr try 块内）：参照 `runOcr()`（`app.js:4494-4540`）结构，在 `try` 块顶部添加 `disableShelfOcrBtn() / showShelfOcrSpinner()`，在 `finally` 块添加 `enableShelfOcrBtn() / hideShelfOcrSpinner()`；toast 由 2 秒 auto-dismiss 改为持续显示直到 `finally`（或保留现有 toast 行为，仅加 spinner）。触碰文件：`app.js:4568-4612`（runShelfOcr）；`index.html`（若 spinner DOM 元素需新增）；`styles.css`（若 spinner 样式需新增，可复用现有 `.ocr-spinner` 类）。
 
 ### OPT-129 — `chat.js:92` `quotePreview()` 缺 `ocrText` 回落：OCR 摘抄钉选时聊天欢迎屏幕副标题显示为「书名 · 」(空) — 由 explore E207 提拔 [2026-07-21]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1179,7 +1179,7 @@ Format per item:
 - how: `chat.js:92`：将 `String(quote?.content || "")` 改为 `String(quote?.content || quote?.ocrText || "")`，约 1 行修改。Touch: `chat.js:92`（quotePreview 函数）。
 
 ### OPT-130 — OPT-077 里程碑条目无分页：大书库首次渲染全量里程碑 DOM 节点，淹没会话卡并突破 `SESSION_PAGE_SIZE = 10` 语义 — 由 explore E208 提拔 [2026-07-21]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S/M
@@ -1189,7 +1189,7 @@ Format per item:
 - how: `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）：在 milestoneItems 时间排序后，按 `SESSION_PAGE_SIZE` 或独立常量（如 `MILESTONE_INITIAL_LIMIT = 12`）截断；同步更新 `app.js:1834-1844`（加载更多按钮），将溢出判断由 `allSorted.length > sessionDisplayLimit` 扩展为同时检测 milestoneItems 是否有未展示条目，或新增独立「加载更多里程碑」逻辑。Touch: `app.js:1754-1771`（milestoneItems 截断）、`app.js:1834-1844`（加载更多条件联动）、`app.js:229`（SESSION_PAGE_SIZE 参照）。
 
 ### OPT-131 — 书籍详情摘抄预览缺 ocrText 回落：OCR 摘抄在「最近摘抄」栏显示为空白 — 由 explore E211 提拔 [2026-07-22]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1199,7 +1199,7 @@ Format per item:
 - how: `app.js:3825`：将 `escapeHtml(quote.content || "")` 改为 `escapeHtml(quote.content || quote.ocrText || "")`，1 行修改。Touch: `app.js:3825` 仅此 1 处。
 
 ### OPT-132 — OPT-077 里程碑卡无点击导航：点击「读完了」无响应，缺失「时间线→书籍详情」跳转闭环 — 由 explore E212 提拔 [2026-07-22]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P2
 - size: S
@@ -1207,3 +1207,23 @@ Format per item:
 - description: `app.js:1784-1790`（OPT-077 PR #81 引入的里程碑渲染分支）：创建 `card` article、设置 className + innerHTML、执行 `els.timeline.appendChild(card)` 后直接 `return`——全段无 `addEventListener`。相邻 session 卡在 `app.js:1539` 有 `article.addEventListener("click", () => openSessionDetail(session.id))`，行为对比鲜明。`openBookDetailDialog(bookId)` 函数已存在，里程碑渲染时 `book` 对象（含 `book.id`）已通过 `item.book` 解构（`app.js:1783`），bookId 随手可得。
 - why: 1 行修复。「读完了」里程碑是回顾欲望最高的时刻——用户看到「读完了《深度工作》」想了解这本书时，点击无反应是强摩擦。`openBookDetailDialog` 已封装完毕，接入成本为零。
 - how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
+
+### OPT-133 — MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 — 由 explore E213 提拔 [2026-07-23]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 弱——数据完整性工程基础；MCP 工具与 HTTP API 同时写入时的竞态条件会导致用户数据静默覆盖，属于「用了才会遇到」的严重低频 bug；`save_state_checked()` 乐观锁模式已在 HTTP API 侧完整实现（OPT-030），MCP 侧直接复用即可，S 级改动。
+- description: `reading_mcp_server.py:75-81`，`_save_state()` 执行盲 UPDATE（`"UPDATE user_state SET state_json=?, updated_at=? WHERE user_id=?"`），无版本号检查。对比 `app_server.py` 中 `save_state_checked()`（OPT-030）：先读 `updated_at` 作版本戳，UPDATE 时加 `WHERE updated_at=<old_version>` 条件，affected rows 为 0 则抛 409 冲突错误。`_save_state()` 在 MCP server 的全部 6 处工具函数调用（`reading_mcp_server.py:226, 285, 328, 369, 412, 500`）中均未使用版本戳。当用户通过 HTTP API 编辑书籍的同时 MCP 工具执行写入，后者的盲 UPDATE 会以旧快照覆盖 HTTP 侧刚写入的新数据，HTTP 侧修改静默丢失。
+- why: 竞态条件触发概率低（需 HTTP + MCP 并发），但后果（数据静默覆盖）属于隐蔽高危：用户不知道哪次编辑丢了，且丢失不可追溯（SQLite 无行级历史）。`save_state_checked()` 已完整实现，MCP 侧复用约 5-10 行改动，无 API/schema 变更。
+- how: `reading_mcp_server.py:75-81`（`_save_state()`）：参照 `app_server.py` 的 `save_state_checked()` 实现，改为先读 `updated_at`，UPDATE 带 `WHERE updated_at=<old>`，检查 `rowcount`，为 0 则抛冲突异常；6 处调用点需传入 `expected_version` 参数（从 `_load_state()` 返回时一并返回 `updated_at`）。Touch: `reading_mcp_server.py:75-81`（_save_state）、`reading_mcp_server.py:60-74`（_load_state，需同时返回 updated_at）、各工具函数调用点（约 6 处）。
+
+### OPT-134 — `all_books_summary` 50 本上限：110 本豆瓣书约 60 本对 AI 跨书查询永久不可见 — 由 explore E215 提拔 [2026-07-23]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值」；AI 跨书查询（「帮我找读过的历史类书」「2023 年我读了哪些书」）是 owner 核心 explore 场景，但 OPT-105 Douban 批量导入后 110 本书中约 60 本因 50 本上限永久不进系统 prompt，AI 回答系统性残缺，修复后 AI 可见书库直接翻倍。
+- description: `app_server.py:2615`（`PromptBuilder.build_chat_prompt()`），`all_books_summary` 列表末尾 `[:50]`，按 `updatedAt` 降序取前 50 本。OPT-105（Douban CSV 导入）在 `app.js:4608` 将批量导入的所有书写入同一 `updatedAt = now`，排序稳定后后半段 ~60 本恒排第 51-110 位，永远不进上下文。系统指令（`app_server.py:2643`）提示 AI 用 `all_books_summary` 回答「哪些书」的问题，但 AI 实际只能看到前 50 本，错误回答无任何提示。连带 E217（`startedAt` 缺失）：同一列表同时缺少字段和覆盖范围，两者可合并一次修复。
+- why: 修复为 1 行（`[:50]` 改为 `[:100]` 或 `[:120]`）+ 系统指令同步更新说明实际上限。成本极低，直接扩大 Theme 2 AI 召回覆盖范围。可同期修复 E217（加 `startedAt` 字段）、E215 系统指令，合并 3 处改动约 3-4 行。
+- how: `app_server.py:2615`：`[:50]` → `[:120]`（或参数化 `MAX_BOOKS_IN_SUMMARY = 120`）；`app_server.py:2614`：dict 内加 `"startedAt": (b.get("startedAt") or "")[:10]`（E217 合并）；`app_server.py:2643`：系统指令同步更新上限与 `startedAt` 说明。Touch: `app_server.py:2609-2616`（all_books_summary 构造）、`app_server.py:2643`（系统指令）。

@@ -9713,6 +9713,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-23T00:00:00.000Z"
+    },
+    {
+      "id": "bug-580",
+      "timestamp": "2026-07-23T04:13:20.342Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-07-23T04:13:49.511Z"
+    },
+    {
+      "id": "bug-581",
+      "timestamp": "2026-07-23T05:06:08.247Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-23T05:06:13.400Z"
+    },
+    {
+      "id": "bug-582",
+      "timestamp": "2026-07-23T20:05:10.607Z",
+      "error_message": "Wrong reference: span should be quote",
+      "file": "app.js",
+      "root_cause": "Used \"span\" instead of \"quote\"",
+      "fix": "Changed span → quote",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T20:05:10.607Z"
     }
   ]
 }
