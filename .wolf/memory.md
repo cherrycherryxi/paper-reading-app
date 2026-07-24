@@ -3799,3 +3799,11 @@
 | 23:43 | 日报格式改为每条目四点(存在的问题/目标/实现方法/最终效果)+更易读；改两处生成prompt(paper-wrapup gen_report + 今天就到这钩子)并记 cerebrum 偏好 | ~/.claude/scripts/paper-wrapup.sh, ~/.claude/settings.json, .wolf/cerebrum.md | settings合法JSON+钩子输出jq/python校验+四点齐全；已推 dotfiles a3a962f | ~7k |
 | 17:08 | Created optimization/triage.md | — | ~1986 |
 | 17:09 | Daily triage 2026-07-24: marked OPT-126/129/130/131/132 done (PRs #90/#89/#88); triaged OPT-133/134; next up OPT-134+OPT-072 bundle | optimization/triage.md optimization/backlog.md | pushed to feature/agent | ~8k |
+| 20:05 | Edited app_server.py | 8→9 lines | ~170 |
+| 20:05 | Edited app_server.py | inline fix | ~222 |
+| 20:05 | Edited app.js | 1→3 lines | ~31 |
+| 20:05 | Edited app.js | expanded (+6 lines) | ~105 |
+| 20:07 | Edited tests/agent/agent_backend_property_test.py | test_all_books_summary_capped_at_50_most_recent() → test_all_books_summary_capped_at_120_most_recent() | ~347 |
+| 20:08 | Edited tests/agent/agent_backend_property_test.py | modified test_all_books_summary_includes_started_at() | ~365 |
+| 20:10 | Edited optimization/triage.md | 2→2 lines | ~90 |
+| 20:10 | Agent2 implemented OPT-134+OPT-072: expanded all_books_summary cap 50→120, added startedAt field, debounced session/quote search inputs 250ms | app_server.py, app.js, tests/agent/agent_backend_property_test.py | PR #91 opened targeting feature/agent; 377 Python + 51 JS test files all green | ~8k |
