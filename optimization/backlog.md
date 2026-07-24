@@ -1159,7 +1159,7 @@ Format per item:
 - how: `app.js:968`（resolveConnectionSide，quote 分支）：将 `(quote.content || "").slice(0, 36)` 改为 `(quote.content || quote.ocrText || "").slice(0, 36)`，同时将省略号判断 `quote.content?.length > 36` 改为 `(quote.content || quote.ocrText || "").length > 36`，保持一致性。约 2 行修改。可顺带验证 `buildQuoteSearchCard()`（`app.js:1519`，当前死代码）若日后复活是否也需要同样回落。Touch: `app.js:968`（resolveConnectionSide）。
 
 ### OPT-126 — `runShelfOcr()` 缺少 try/finally 加载态管理：20 秒等待期间无 spinner、按钮不禁用，与 `runOcr()` 对称实现相比存在明显缺口 — 由 explore E201 提拔 [2026-07-19]
-- status: triaged
+- status: done (PR #90, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1169,7 +1169,7 @@ Format per item:
 - how: `app.js:4572-4612`（runShelfOcr try 块内）：参照 `runOcr()`（`app.js:4494-4540`）结构，在 `try` 块顶部添加 `disableShelfOcrBtn() / showShelfOcrSpinner()`，在 `finally` 块添加 `enableShelfOcrBtn() / hideShelfOcrSpinner()`；toast 由 2 秒 auto-dismiss 改为持续显示直到 `finally`（或保留现有 toast 行为，仅加 spinner）。触碰文件：`app.js:4568-4612`（runShelfOcr）；`index.html`（若 spinner DOM 元素需新增）；`styles.css`（若 spinner 样式需新增，可复用现有 `.ocr-spinner` 类）。
 
 ### OPT-129 — `chat.js:92` `quotePreview()` 缺 `ocrText` 回落：OCR 摘抄钉选时聊天欢迎屏幕副标题显示为「书名 · 」(空) — 由 explore E207 提拔 [2026-07-21]
-- status: triaged
+- status: done (PR #88, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1179,7 +1179,7 @@ Format per item:
 - how: `chat.js:92`：将 `String(quote?.content || "")` 改为 `String(quote?.content || quote?.ocrText || "")`，约 1 行修改。Touch: `chat.js:92`（quotePreview 函数）。
 
 ### OPT-130 — OPT-077 里程碑条目无分页：大书库首次渲染全量里程碑 DOM 节点，淹没会话卡并突破 `SESSION_PAGE_SIZE = 10` 语义 — 由 explore E208 提拔 [2026-07-21]
-- status: triaged
+- status: done (PR #89, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S/M
@@ -1189,7 +1189,7 @@ Format per item:
 - how: `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）：在 milestoneItems 时间排序后，按 `SESSION_PAGE_SIZE` 或独立常量（如 `MILESTONE_INITIAL_LIMIT = 12`）截断；同步更新 `app.js:1834-1844`（加载更多按钮），将溢出判断由 `allSorted.length > sessionDisplayLimit` 扩展为同时检测 milestoneItems 是否有未展示条目，或新增独立「加载更多里程碑」逻辑。Touch: `app.js:1754-1771`（milestoneItems 截断）、`app.js:1834-1844`（加载更多条件联动）、`app.js:229`（SESSION_PAGE_SIZE 参照）。
 
 ### OPT-131 — 书籍详情摘抄预览缺 ocrText 回落：OCR 摘抄在「最近摘抄」栏显示为空白 — 由 explore E211 提拔 [2026-07-22]
-- status: triaged
+- status: done (PR #88, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1199,7 +1199,7 @@ Format per item:
 - how: `app.js:3825`：将 `escapeHtml(quote.content || "")` 改为 `escapeHtml(quote.content || quote.ocrText || "")`，1 行修改。Touch: `app.js:3825` 仅此 1 处。
 
 ### OPT-132 — OPT-077 里程碑卡无点击导航：点击「读完了」无响应，缺失「时间线→书籍详情」跳转闭环 — 由 explore E212 提拔 [2026-07-22]
-- status: triaged
+- status: done (PR #88, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1209,7 +1209,7 @@ Format per item:
 - how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
 
 ### OPT-133 — MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 — 由 explore E213 提拔 [2026-07-23]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
@@ -1219,7 +1219,7 @@ Format per item:
 - how: `reading_mcp_server.py:75-81`（`_save_state()`）：参照 `app_server.py` 的 `save_state_checked()` 实现，改为先读 `updated_at`，UPDATE 带 `WHERE updated_at=<old>`，检查 `rowcount`，为 0 则抛冲突异常；6 处调用点需传入 `expected_version` 参数（从 `_load_state()` 返回时一并返回 `updated_at`）。Touch: `reading_mcp_server.py:75-81`（_save_state）、`reading_mcp_server.py:60-74`（_load_state，需同时返回 updated_at）、各工具函数调用点（约 6 处）。
 
 ### OPT-134 — `all_books_summary` 50 本上限：110 本豆瓣书约 60 本对 AI 跨书查询永久不可见 — 由 explore E215 提拔 [2026-07-23]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
