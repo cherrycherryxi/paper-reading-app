@@ -1789,6 +1789,7 @@ function renderTimeline() {
       const icon = milestoneType === "finished" ? "🎉" : "📖";
       const label = milestoneType === "finished" ? "读完了" : "开始读";
       card.innerHTML = `<div class="milestone-icon">${icon}</div><div class="milestone-body"><span class="milestone-label">${label}</span><strong class="milestone-title">${formatBookTitle(book.title || "")}</strong><time class="milestone-date">${formatDate(date)}</time></div>`;
+      card.addEventListener("click", () => openBookDetailDialog(book.id));
       els.timeline.appendChild(card);
       return;
     }
@@ -3827,7 +3828,7 @@ function openBookDetailDialog(bookId) {
     const quoteCards = previewQuotes.map((quote) => `
       <button class="book-detail-quote" type="button" data-detail-quote-id="${escapeHtml(quote.id)}">
         <span class="book-detail-quote-meta">${escapeHtml(quoteKindMap[quote.kind] || "摘抄")} · 第 ${quote.page || "-"} 页 · ${formatDate(quote.createdAt)}</span>
-        <span class="book-detail-quote-content">${escapeHtml(quote.content || "")}</span>
+        <span class="book-detail-quote-content">${escapeHtml(quote.content || quote.ocrText || "")}</span>
         ${quote.reflection ? `<span class="book-detail-quote-reflection">${escapeHtml(quote.reflection)}</span>` : ""}
       </button>
     `).join("");
