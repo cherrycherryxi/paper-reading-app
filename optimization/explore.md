@@ -3773,3 +3773,71 @@ els.connectionSearch?.addEventListener("input", renderConnections);
 ---
 
 > 本次 run（2026-07-23）扫描焦点：AI 上下文数据完整性（all_books_summary 覆盖边界）、日期处理一致性（UTC vs 本地时区口径）、startedAt/finishedAt 字段对称性。新发现 3 条：E215（all_books_summary [:50] 上限，60+ 豆瓣书 AI 不可见，S，northstar 中——Theme 2）、E216（parseExcelDateToIso UTC 午夜 vs addSession 本地正午，S，northstar 弱——一致性收尾）、E217（startedAt 缺失于 all_books_summary，S，northstar 弱/中——Theme 2 时态查询对称性）。提拔 OPT-133（E213，MCP _save_state 绕过乐观锁，S，数据完整性）、OPT-134（E215，all_books_summary 50 本上限，S，Theme 2，northstar 中）。所有断言均基于实际代码读取，已标注 file:line。
+
+## 2026-07-24
+
+### E219 — `stateContentCount()` 含 `chatHistories` 键数但 `showImportResult()` 只报 4 类：零内容导入守卫可被仅含聊天历史的备份文件绕过 (S)
+
+**What:** `app.js:4382-4391`（`stateContentCount()`）将 5 个字段求和：`books + sessions + quotes + connections`（数组长度）+ `chatHistories`（对象键数）。零内容守卫（`app.js:4440`）条件为 `stateContentCount(resolved) === 0`——若备份文件包含 `chatHistories` 条目但 `books/quotes/sessions/connections` 全部为空数组，`stateContentCount(resolved)` 返回 > 0，守卫不触发，导入继续执行，真实书单/摘抄数据被清空。同时 `showImportResult()`（`app.js:4396-4414`）仅展示书籍/摘抄/记录/关联 4 行，完全不报 `chatHistories`——两个函数在同一字段集上行为不一致。
+
+**Evidence:**
+- `app.js:4382-4391`（stateContentCount）：`Object.keys(s.chatHistories || {}).length` 纳入求和
+- `app.js:4396-4414`（showImportResult rows 数组）：`["书籍", "摘抄", "记录", "关联"]`——无 chatHistories 行
+- `app.js:4440`：`if (stateContentCount(resolved) === 0 && stateContentCount(state) > 0)` — 零内容守卫单一判断入口
+- 减少守卫（`app.js:4451-4458`）对每个字段独立检查（包含 chatHistories），提供二层保护——但仅在当前账号有非空 books/quotes/sessions/connections 时才能触发，不能完全覆盖零内容守卫的绕过场景
+
+**Why it matters:** 守卫设计意图是「未识别格式文件解析为空内容 → 阻止误清空账号数据」，`chatHistories` 纳入 stateContentCount 与这一语义不符。减少守卫（OPT-043）提供二层保护，实际风险有限，但零内容守卫与结果展示的字段口径不一致是潜在语义混乱来源，S 级可修清。
+
+**Complexity:** S（2-3 行：零内容守卫改为独立检查 `books+quotes+sessions+connections`，或提取 `stateStructuralCount()` 剥离 chatHistories）
+
+**Files:** `app.js:4382-4391`（stateContentCount）；`app.js:4440`（零内容守卫条件）
+
+**northstar:** 弱——数据安全卫生；减少守卫已提供二层保护，northstar 贡献间接，边缘案例防御。
+
+---
+
+### E220 — `_strip_quote_for_prompt()` 不截断 `content` 字段：20 条 OCR 全页文本可向系统 prompt 注入 20,000+ chars (S)
+
+**What:** `app_server.py:2576-2581`（`_strip_quote_for_prompt()`）按字段白名单过滤 quote 字段，但对 `content` 字段长度无任何截断。对比：`all_books_summary`（`app_server.py:2609-2615`）对 `doubanComment` 截 60 chars、`review` 截 120 chars，统一控制 token 用量；而 quote 的 `content` 字段原样传入，单条 OCR 全页扫描可达 400-1500 chars。
+
+**Evidence:**
+- `app_server.py:2576-2581`（`_strip_quote_for_prompt`）：`result = {k: v for k, v in q.items() if k in _QUOTE_PROMPT_FIELDS}` — content 字段原样复制，无 `[:N]`
+- `app_server.py:2587`：`raw_quotes = [...][:20]` — 条数上限 20，但每条内容长度不受限
+- `app_server.py:2613-2614`（all_books_summary dict）：`"doubanComment": ...[:60]`、`"review": ...[:120]` — 同文件已有截断策略，未延伸到 quote content
+- 20 条 × 1000 chars OCR 内容 ≈ 20,000 chars，叠加 all_books_summary + 系统指令，极端情况可触碰 DeepSeek API 上下文窗口限制
+
+**Why it matters:** 用户通过 OCR 采集全页文本时（快速识别路径），每次 AI 对话携带数万字原始扫描内容，增加 LLM 成本，同时压缩 `chat_history[-40:]` 实际可携带的历史轮次（token 用尽时较早的对话轮被截断）。添加软截断（如 `content[:400]`）与 all_books_summary 策略一致，不影响正常摘抄分析质量，只限制 OCR 全页扫描的超长尾。
+
+**Complexity:** S（1-2 行：`_strip_quote_for_prompt` 对 content 加 `[:400]`，可选对 reflection/note 加 `[:200]`）
+
+**Files:** `app_server.py:2576-2581`（`_strip_quote_for_prompt`，加 content 截断）；`app_server.py:2571-2573`（`_QUOTE_PROMPT_FIELDS` 参照处）
+
+**northstar:** 弱——AI 运营成本控制与上下文窗口卫生；不直接影响用户可见功能，防止极端场景下超限失败（间接影响 Theme 2 AI 探讨可靠性）。
+
+---
+
+### E221 — `existing_connections` 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」，也无法避免建议重复关联 (S)
+
+**What:** `app_server.py:2617`：
+```python
+"existing_connections": [] if book_id else user_state.get("connections", [])[:20],
+```
+当 `book_id` 非空（用户在特定书或摘抄的聊天上下文中）时，`existing_connections` 硬编码为空列表，无论该书/摘抄已有多少条手动建立的关联。全局上下文（`book_id == ""`）最多发送原始数组前 20 条（无排序/无过滤）。
+
+**Evidence:**
+- `app_server.py:2617`：`[] if book_id else user_state.get("connections", [])[:20]` — 书本/摘抄上下文恒空
+- `app_server.py:2644-2647`（系统指令）：明确允许 AI 在 focused_quote 上下文返回 `link_thought` action，sourceId 为 focused_quote.id 或 book.id——但空的 existing_connections 使 AI 无法检测重复，也无法回答「我已有哪些关联」
+- 对比 `book_payload["quotes"]`（`app_server.py:2587`）：book 上下文中该书摘抄最多 20 条完整发送；但该书所有关联为 []，信息不对称
+- 场景复现：用户在《活着》聊天框问「这本书我关联过什么其他书？」→ AI 回答「没有关联」——即使用户已手动建立了「《活着》→《百年孤独》（主题共鸣）」的关联
+
+**Why it matters:** 「建立关联」（`link_thought`）是 Theme 2 核心，用户在书/摘抄上下文（book_id 非空）时最有创建关联的动机，也最想询问「已有什么关联」。现有实现在最需要关联信息的上下文中向 AI 完全隐藏所有关联，同类修复 OPT-134 扩大了书库覆盖（all_books_summary[:50] → [:120]），本项修复关联覆盖。S 修复：book_id 非空时按 bookId 过滤相关 connections（sourceId/targetId 匹配书或其摘抄），最多 10 条，与 quotes[:20] 上限策略对齐。
+
+**Complexity:** S（5-10 行：替换 `[] if book_id else` 为按 bookId 过滤相关 connections，上限 10 条；无 schema/接口/前端变更）
+
+**Files:** `app_server.py:2617`（`existing_connections` 构建逻辑）；`app_server.py:2584-2618`（`build_chat_prompt` 上下文参照）
+
+**northstar:** 中——Theme 2「建立关联」；用户在书/摘抄 AI 对话中询问或建立关联时，现有关联完全对 AI 不可见，直接影响 AI 辅助「思想碰撞」场景质量；与 OPT-134（AI 上下文数据完整性系列）同方向。
+
+---
+
+> 本次 run（2026-07-24）扫描焦点：导入守卫字段口径一致性、AI 系统 prompt quote content 截断策略、书/摘抄上下文中 existing_connections 覆盖度。新发现 3 条：E219（stateContentCount/showImportResult 字段口径不一致，S，northstar 弱，导入守卫语义混乱）、E220（_strip_quote_for_prompt 无 content 截断，S，northstar 弱，LLM 成本/上下文窗口）、E221（existing_connections 在书上下文中恒空，S，northstar 中，Theme 2「建立关联」AI 场景直接受损）。提拔 OPT-135（E221，S，AI 上下文关联可见性，northstar 中）、OPT-136（E214，来自 2026-07-22 run，M，书籍详情 sessions 摘要，northstar 中）。E216（parseExcelDateToIso UTC 午夜）、E217（all_books_summary 缺 startedAt）已由 OPT-134（PR #91）合并修复，不另行提拔。所有断言均基于实际代码读取，已标注 file:line。
