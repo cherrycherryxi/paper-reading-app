@@ -3797,3 +3797,5 @@
 | 23:38 | Edited ../../.claude/scripts/paper-wrapup.sh | 3→5 lines | ~91 |
 | 23:39 | Edited ../../.claude/settings.json | inline fix | ~50 |
 | 23:43 | 日报格式改为每条目四点(存在的问题/目标/实现方法/最终效果)+更易读；改两处生成prompt(paper-wrapup gen_report + 今天就到这钩子)并记 cerebrum 偏好 | ~/.claude/scripts/paper-wrapup.sh, ~/.claude/settings.json, .wolf/cerebrum.md | settings合法JSON+钩子输出jq/python校验+四点齐全；已推 dotfiles a3a962f | ~7k |
+| 17:08 | Created optimization/triage.md | — | ~1986 |
+| 17:09 | Daily triage 2026-07-24: marked OPT-126/129/130/131/132 done (PRs #90/#89/#88); triaged OPT-133/134; next up OPT-134+OPT-072 bundle | optimization/triage.md optimization/backlog.md | pushed to feature/agent | ~8k |
