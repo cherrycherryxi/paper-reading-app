@@ -1724,7 +1724,9 @@ function renderTimeline() {
   els.clearSessionFiltersBtn?.classList.toggle("is-hidden", !hasActiveSessionFilters());
   const searchRaw = (els.sessionSearch?.value || "").trim().toLowerCase();
   const allSorted = [...state.sessions].sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
-  const sessions = searchRaw
+  // OPT-130: keep the full (unpaged) session list here; paging now happens on the
+  // unified timeline below so milestones are counted against the page size too.
+  const filteredSessions = searchRaw
     ? allSorted.filter((s) => {
         const book = state.books.find((b) => b.id === s.bookId);
         // OPT-112: include the session date so users can search by time period.
@@ -1733,13 +1735,13 @@ function renderTimeline() {
         const haystack = [book?.title || "", book?.author || "", s.note || "", s.date || "", s.date ? formatDate(s.date) : ""].join(" ").toLowerCase();
         return haystack.includes(searchRaw);
       })
-    : allSorted.slice(0, sessionDisplayLimit);
+    : allSorted;
 
   // Stats bar — OPT-053: show cumulative reading stats during normal browsing,
   // not only while searching. When searching the stats reflect the filtered
   // results; otherwise they cover every session (not just the paged slice).
   if (els.sessionStats) {
-    const statSource = searchRaw ? sessions : allSorted;
+    const statSource = filteredSessions;
     if (statSource.length) {
       const totalMin = statSource.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
       // OPT-094: a session covers startPage..endPage inclusive, so it reads
@@ -1763,21 +1765,27 @@ function renderTimeline() {
     });
   }
 
-  if (!sessions.length && !milestoneItems.length) {
+  if (!filteredSessions.length && !milestoneItems.length) {
     els.timeline.className = "timeline empty-state";
     els.timeline.textContent = searchRaw ? "没有匹配的阅读记录。" : "还没有阅读会话，点左上角加号记录一次。";
     return;
   }
 
-  // Build a unified timeline: paged sessions + all milestones, sorted newest-first.
-  const timelineItems = [
-    ...sessions.map((s) => ({ itemType: "session", session: s })),
+  // Build a unified timeline: sessions + milestones, sorted newest-first.
+  const allTimelineItems = [
+    ...filteredSessions.map((s) => ({ itemType: "session", session: s })),
     ...milestoneItems,
   ].sort((a, b) => {
     const da = Date.parse(a.itemType === "session" ? a.session.date : a.date) || 0;
     const db = Date.parse(b.itemType === "session" ? b.session.date : b.date) || 0;
     return db - da;
   });
+
+  // OPT-130: page the *unified* list, not just sessions. Before this, milestones
+  // bypassed pagination entirely — a 110-book shelf rendered ~220 milestone cards
+  // at once (OPT-077), freezing the first paint for seconds. Search shows every
+  // match unpaged, matching the old behaviour.
+  const timelineItems = searchRaw ? allTimelineItems : allTimelineItems.slice(0, sessionDisplayLimit);
 
   els.timeline.className = "timeline";
   els.timeline.innerHTML = "";
@@ -1836,12 +1844,13 @@ function renderTimeline() {
   });
 
   // OPT-076: 无搜索且仍有未展示的更早记录时，追加「加载更多」入口（同时告知总数，修复静默截断）。
-  if (!searchRaw && allSorted.length > sessionDisplayLimit) {
-    const remaining = allSorted.length - sessionDisplayLimit;
+  // OPT-130: 计数改用统一时间线总数（会话 + 里程碑），与上方分页口径一致。
+  if (!searchRaw && allTimelineItems.length > sessionDisplayLimit) {
+    const remaining = allTimelineItems.length - sessionDisplayLimit;
     const moreBtn = document.createElement("button");
     moreBtn.type = "button";
     moreBtn.className = "timeline-load-more";
-    moreBtn.textContent = `加载更多（还有 ${remaining} 条，共 ${allSorted.length} 条）`;
+    moreBtn.textContent = `加载更多（还有 ${remaining} 条，共 ${allTimelineItems.length} 条）`;
     moreBtn.addEventListener("click", () => {
       sessionDisplayLimit += SESSION_PAGE_SIZE;
       renderTimeline();
