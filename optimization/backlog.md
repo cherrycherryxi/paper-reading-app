@@ -1159,7 +1159,7 @@ Format per item:
 - how: `app.js:968`（resolveConnectionSide，quote 分支）：将 `(quote.content || "").slice(0, 36)` 改为 `(quote.content || quote.ocrText || "").slice(0, 36)`，同时将省略号判断 `quote.content?.length > 36` 改为 `(quote.content || quote.ocrText || "").length > 36`，保持一致性。约 2 行修改。可顺带验证 `buildQuoteSearchCard()`（`app.js:1519`，当前死代码）若日后复活是否也需要同样回落。Touch: `app.js:968`（resolveConnectionSide）。
 
 ### OPT-126 — `runShelfOcr()` 缺少 try/finally 加载态管理：20 秒等待期间无 spinner、按钮不禁用，与 `runOcr()` 对称实现相比存在明显缺口 — 由 explore E201 提拔 [2026-07-19]
-- status: triaged
+- status: done (PR #90, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1169,7 +1169,7 @@ Format per item:
 - how: `app.js:4572-4612`（runShelfOcr try 块内）：参照 `runOcr()`（`app.js:4494-4540`）结构，在 `try` 块顶部添加 `disableShelfOcrBtn() / showShelfOcrSpinner()`，在 `finally` 块添加 `enableShelfOcrBtn() / hideShelfOcrSpinner()`；toast 由 2 秒 auto-dismiss 改为持续显示直到 `finally`（或保留现有 toast 行为，仅加 spinner）。触碰文件：`app.js:4568-4612`（runShelfOcr）；`index.html`（若 spinner DOM 元素需新增）；`styles.css`（若 spinner 样式需新增，可复用现有 `.ocr-spinner` 类）。
 
 ### OPT-129 — `chat.js:92` `quotePreview()` 缺 `ocrText` 回落：OCR 摘抄钉选时聊天欢迎屏幕副标题显示为「书名 · 」(空) — 由 explore E207 提拔 [2026-07-21]
-- status: triaged
+- status: done (PR #88, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1179,7 +1179,7 @@ Format per item:
 - how: `chat.js:92`：将 `String(quote?.content || "")` 改为 `String(quote?.content || quote?.ocrText || "")`，约 1 行修改。Touch: `chat.js:92`（quotePreview 函数）。
 
 ### OPT-130 — OPT-077 里程碑条目无分页：大书库首次渲染全量里程碑 DOM 节点，淹没会话卡并突破 `SESSION_PAGE_SIZE = 10` 语义 — 由 explore E208 提拔 [2026-07-21]
-- status: triaged
+- status: done (PR #89, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S/M
@@ -1189,7 +1189,7 @@ Format per item:
 - how: `app.js:1754-1771`（milestoneItems 收集 + timelineItems 合并）：在 milestoneItems 时间排序后，按 `SESSION_PAGE_SIZE` 或独立常量（如 `MILESTONE_INITIAL_LIMIT = 12`）截断；同步更新 `app.js:1834-1844`（加载更多按钮），将溢出判断由 `allSorted.length > sessionDisplayLimit` 扩展为同时检测 milestoneItems 是否有未展示条目，或新增独立「加载更多里程碑」逻辑。Touch: `app.js:1754-1771`（milestoneItems 截断）、`app.js:1834-1844`（加载更多条件联动）、`app.js:229`（SESSION_PAGE_SIZE 参照）。
 
 ### OPT-131 — 书籍详情摘抄预览缺 ocrText 回落：OCR 摘抄在「最近摘抄」栏显示为空白 — 由 explore E211 提拔 [2026-07-22]
-- status: triaged
+- status: done (PR #88, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1199,7 +1199,7 @@ Format per item:
 - how: `app.js:3825`：将 `escapeHtml(quote.content || "")` 改为 `escapeHtml(quote.content || quote.ocrText || "")`，1 行修改。Touch: `app.js:3825` 仅此 1 处。
 
 ### OPT-132 — OPT-077 里程碑卡无点击导航：点击「读完了」无响应，缺失「时间线→书籍详情」跳转闭环 — 由 explore E212 提拔 [2026-07-22]
-- status: triaged
+- status: done (PR #88, merged 2026-07-24)
 - area: frontend
 - priority: P2
 - size: S
@@ -1209,7 +1209,7 @@ Format per item:
 - how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
 
 ### OPT-133 — MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 — 由 explore E213 提拔 [2026-07-23]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
@@ -1219,7 +1219,7 @@ Format per item:
 - how: `reading_mcp_server.py:75-81`（`_save_state()`）：参照 `app_server.py` 的 `save_state_checked()` 实现，改为先读 `updated_at`，UPDATE 带 `WHERE updated_at=<old>`，检查 `rowcount`，为 0 则抛冲突异常；6 处调用点需传入 `expected_version` 参数（从 `_load_state()` 返回时一并返回 `updated_at`）。Touch: `reading_mcp_server.py:75-81`（_save_state）、`reading_mcp_server.py:60-74`（_load_state，需同时返回 updated_at）、各工具函数调用点（约 6 处）。
 
 ### OPT-134 — `all_books_summary` 50 本上限：110 本豆瓣书约 60 本对 AI 跨书查询永久不可见 — 由 explore E215 提拔 [2026-07-23]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
@@ -1227,3 +1227,23 @@ Format per item:
 - description: `app_server.py:2615`（`PromptBuilder.build_chat_prompt()`），`all_books_summary` 列表末尾 `[:50]`，按 `updatedAt` 降序取前 50 本。OPT-105（Douban CSV 导入）在 `app.js:4608` 将批量导入的所有书写入同一 `updatedAt = now`，排序稳定后后半段 ~60 本恒排第 51-110 位，永远不进上下文。系统指令（`app_server.py:2643`）提示 AI 用 `all_books_summary` 回答「哪些书」的问题，但 AI 实际只能看到前 50 本，错误回答无任何提示。连带 E217（`startedAt` 缺失）：同一列表同时缺少字段和覆盖范围，两者可合并一次修复。
 - why: 修复为 1 行（`[:50]` 改为 `[:100]` 或 `[:120]`）+ 系统指令同步更新说明实际上限。成本极低，直接扩大 Theme 2 AI 召回覆盖范围。可同期修复 E217（加 `startedAt` 字段）、E215 系统指令，合并 3 处改动约 3-4 行。
 - how: `app_server.py:2615`：`[:50]` → `[:120]`（或参数化 `MAX_BOOKS_IN_SUMMARY = 120`）；`app_server.py:2614`：dict 内加 `"startedAt": (b.get("startedAt") or "")[:10]`（E217 合并）；`app_server.py:2643`：系统指令同步更新上限与 `startedAt` 说明。Touch: `app_server.py:2609-2616`（all_books_summary 构造）、`app_server.py:2643`（系统指令）。
+
+### OPT-135 — `existing_connections` 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」，书上下文 link_thought 无重复检测能力 — 由 explore E221 提拔 [2026-07-24]
+- status: triaged
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「建立关联」。用户在书/摘抄上下文中的 AI 对话是使用 link_thought 的主要场景；现有实现 `[] if book_id else ...[:20]` 在最有需求的上下文中向 AI 完全隐藏该书的所有关联，AI 无法回答「我有没有关联过」也无法避免重复关联建议；S 修复，与 OPT-134（all_books_summary 覆盖扩容）同属 AI 上下文数据完整性修复系列。
+- description: `app_server.py:2617`：`"existing_connections": [] if book_id else user_state.get("connections", [])[:20]`——当 book_id 非空时，existing_connections 永远是空列表。系统指令（`app_server.py:2644-2647`）允许 AI 在 focused_quote 上下文返回 link_thought action，但 AI 无从得知是否已存在类似关联。全局上下文（book_id == ""）取原始数组前 20 条无排序。对比 book_payload["quotes"]（`app_server.py:2587`）：书上下文该书摘抄可见（最多 20 条），但关联恒空，信息不对称。
+- why: 「建立关联」是 Theme 2 核心，用户在书/摘抄上下文时最有动机创建/查询关联。S 修复：按 bookId 过滤相关 connections（sourceId 或 targetId 等于 bookId，或相关 quote 的 bookId 匹配），最多 10 条，与 quotes[:20] 上限策略对齐；无 schema/接口/前端变更。
+- how: `app_server.py:2617`：将 `[] if book_id else user_state.get("connections", [])[:20]` 替换为条件过滤——book_id 非空时取 `[c for c in conns if c.get("sourceId") == book_id or c.get("targetId") == book_id or any(q.get("bookId") == book_id for q in quotes if q.get("id") in {c.get("sourceId"), c.get("targetId")})][:10]`；book_id 为空时保留 `conns[:20]`。约 5-8 行，可提取辅助函数。Touch: `app_server.py:2617`（existing_connections 构建逻辑）。
+
+### OPT-136 — 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要（每次读到哪页、花了多少时间）— 由 explore E214 提拔 [2026-07-24]
+- status: triaged
+- area: frontend
+- priority: P2
+- size: M
+- northstar: 中——Theme 2「回顾有价值」书级回顾入口。书籍详情是用户点击书卡后的第一层回顾视图，当前展示读后感/摘抄/关联，唯独缺少「阅读记录」（sessions）。用户想回顾「这本书我读了几次、每次读到哪页、花了多少时间」无法在此一眼得到，需离开详情去时间线 Tab 单独搜索，破坏 Theme 2「打开就能回顾」的体验闭合度。
+- description: `app.js:3776-3875`（openBookDetailDialog）：全函数无任何 state.sessions 访问。`getBookSessions(bookId)`（`app.js:931`）已封装（`state.sessions.filter((item) => item.bookId === bookId)`），可直接调用；OPT-074（startedAt/finishedAt 日期）和 OPT-077（时间线里程碑）已有相关基础，书籍详情无「该书 sessions 小列表」仍是信息缺口。index.html 的 #bookDetailDialog（`index.html:410-433`）骨架无 session 相关容器。
+- why: getBookSessions 已封装，直接可用；M 复杂度主要来自 HTML/CSS 新增和边界处理（空 sessions、单次 / 多次记录、时长未填等）；修复后书籍详情从「摘抄+评价」升级为「完整阅读档案」，直接对应 owner 2026-06-26 signal「希望每本书有读完日期字段……不依赖手动加记录」的延伸方向。
+- how: ① `index.html:410-433`（#bookDetailDialog 内）：新增 `<div id="bookDetailSessions" class="is-hidden">` section，结构参照 bookDetailQuotes 区域；② `app.js:3776-3875`（openBookDetailDialog）：调用 `getBookSessions(bookId)` 取最近 3-5 条 session，渲染「日期 · 第 X-Y 页 · Z 分钟」列表（时长 0/未填时省略时长）；session 数量 > 5 时加「查看全部 N 条记录」链接（跳转动态 Tab）；无 sessions 时 section 隐藏；③ `styles.css`：新增 session mini-card 样式（3-5 行，参照 book-detail-quote 卡面）。Touch: `index.html:410-433`、`app.js:3776-3875`（openBookDetailDialog）、`styles.css`。
