@@ -755,7 +755,11 @@ def ensure_user_state(conn: sqlite3.Connection, user_id: str) -> None:
         return
     conn.execute(
         "INSERT INTO user_state (user_id, state_json, updated_at) VALUES (?, ?, ?)",
-        (user_id, json.dumps(INITIAL_STATE, ensure_ascii=False), now_iso()),
+        # OPT-038: the initial updated_at doubles as the optimistic-lock version
+        # token (see state_version / save_state_checked). save_state writes it as
+        # utc_now_iso(); seed it the same way so the very first stateVersion is not
+        # a naive-local timestamp that mis-compares against later UTC-Z versions.
+        (user_id, json.dumps(INITIAL_STATE, ensure_ascii=False), utc_now_iso()),
     )
     conn.commit()
 
@@ -4558,12 +4562,17 @@ class Handler(BaseHTTPRequestHandler):
             conn.execute(
                 "INSERT INTO users (id, username, password_hash, email, created_at, terms_accepted_at)"
                 " VALUES (?, ?, ?, ?, ?, ?)",
-                (user_id, username, hash_password(password), email, now_iso(), now_iso()),
+                # OPT-038: keep these UTC-Z like every other timestamp the account
+                # export / /api/session surface, instead of naive-local now_iso().
+                (user_id, username, hash_password(password), email, utc_now_iso(), utc_now_iso()),
             )
             # 新用户种入示例内容（isSample 标记，前端可一键清除），避免一进来空到无从下手。
+            # OPT-038: seed the optimistic-lock version token (updated_at) as UTC-Z,
+            # matching ensure_user_state / save_state, so the new user's first
+            # stateVersion is consistent with subsequent saves.
             conn.execute(
                 "INSERT INTO user_state (user_id, state_json, updated_at) VALUES (?, ?, ?)",
-                (user_id, json.dumps(build_sample_state(), ensure_ascii=False), now_iso()),
+                (user_id, json.dumps(build_sample_state(), ensure_ascii=False), utc_now_iso()),
             )
             token = create_session(conn, user_id)
             user = conn.execute("SELECT id, username, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
