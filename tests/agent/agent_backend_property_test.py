@@ -382,17 +382,17 @@ class AgentBackendPropertyTests(unittest.TestCase):
         payload_global = json.loads(user_data_json_global)
         self.assertEqual(len(payload_global["existing_connections"]), 20, "connections should be injected (capped at 20) in global context")
 
-    def test_all_books_summary_capped_at_50_most_recent(self):
-        """OPT-047: all_books_summary must include at most 50 books, sorted newest-first."""
+    def test_all_books_summary_capped_at_120_most_recent(self):
+        """OPT-134: all_books_summary must include at most 120 books, sorted newest-first."""
         builder = app_server.PromptBuilder()
         books = [
             {
                 "id": f"book-{i:03d}",
                 "title": f"Book {i}",
                 "author": "A",
-                "updatedAt": f"2026-01-{i:02d}T00:00:00.000Z",
+                "updatedAt": f"2025-{((i - 1) // 28) + 1:02d}-{((i - 1) % 28) + 1:02d}T00:00:00.000Z",
             }
-            for i in range(1, 76)
+            for i in range(1, 131)
         ]
         state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
 
@@ -401,11 +401,10 @@ class AgentBackendPropertyTests(unittest.TestCase):
         payload = json.loads(user_data_json)
         summary = payload["all_books_summary"]
 
-        self.assertEqual(len(summary), 50, "all_books_summary must be capped at 50")
-        self.assertEqual(summary[0]["id"], "book-075", "first entry should be the most recently updated book")
-        self.assertEqual(summary[-1]["id"], "book-026", "last entry should be the 50th most recently updated book")
+        self.assertEqual(len(summary), 120, "all_books_summary must be capped at 120")
+        self.assertEqual(summary[0]["id"], "book-130", "first entry should be the most recently updated book")
         ids_in_summary = {b["id"] for b in summary}
-        self.assertNotIn("book-001", ids_in_summary, "oldest books must be excluded when over the 50-book cap")
+        self.assertNotIn("book-001", ids_in_summary, "oldest books must be excluded when over the 120-book cap")
 
     def test_all_books_summary_includes_reading_status_and_prompt_warns_against_wishlist(self):
         """Bug (2026-06-29): 探讨从书单查找时把没开始读的 wishlist 书也当读过的一并返回。
@@ -512,6 +511,28 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertEqual(by_id["b3"]["review"], "感" * 120, "过长读后感应截到 120 字符控 token")
         # 系统提示必须解释 review 的语义（关键词够稳，不锁死整句措辞）。
         self.assertIn("review", prompt)
+
+    def test_all_books_summary_includes_started_at(self):
+        """OPT-134 (E217): startedAt 是豆瓣导入/阅读记录自动回填的开始阅读日期，
+        all_books_summary 缺此字段会让「我什么时候开始读这本书」这类查询缺少依据。
+        修复：summary 带上 startedAt(截到 YYYY-MM-DD)，与 finishedAt 对称。"""
+        builder = app_server.PromptBuilder()
+        books = [
+            {"id": "b1", "title": "有开始日期的书", "author": "A", "status": "reading",
+             "startedAt": "2025-03-15T10:00:00.000Z", "updatedAt": "2026-01-02T00:00:00Z"},
+            {"id": "b2", "title": "无开始日期的书", "author": "B", "status": "wishlist",
+             "updatedAt": "2026-01-01T00:00:00Z"},
+        ]
+        state = {"books": books, "sessions": [], "quotes": [], "chatHistories": {}, "connections": []}
+
+        prompt = builder.build_chat_prompt(state, "", [])
+        user_data_json = prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0]
+        summary = json.loads(user_data_json)["all_books_summary"]
+        by_id = {b["id"]: b for b in summary}
+
+        self.assertEqual(by_id["b1"]["startedAt"], "2025-03-15", "startedAt 应截到 YYYY-MM-DD")
+        self.assertEqual(by_id["b2"]["startedAt"], "", "无开始日期应为空串，交给模型忽略")
+        self.assertIn("startedAt", prompt)
 
     def test_quote_scoped_chat_uses_quote_history_key_and_prompt_context(self):
         state = self.load_state()

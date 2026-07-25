@@ -223,6 +223,8 @@ let _bookDetailCurrentId = "";
 let _organizeCurrentBookId = "";
 let _candidatesCurrentBookId = "";
 let searchDebounceTimer = null;
+let sessionSearchDebounceTimer = null;
+let quoteSearchDebounceTimer = null;
 let ocrRefreshTimer = null;
 let remoteLogs = [];
 // OPT-076: 时间线分页展示上限（无搜索时），点「加载更多」递增；模块级以在重渲间保留展开状态。
@@ -5832,8 +5834,14 @@ function bindEvents() {
   els.exportAccountBtn?.addEventListener("click", () => { closeMeDrawer(); exportAccount(); });
   els.deleteAccountBtn?.addEventListener("click", () => { closeMeDrawer(); deleteAccount(); });
   els.clearLogsBtn?.addEventListener("click", clearLogs);
-  els.sessionSearch?.addEventListener("input", renderTimeline);
-  els.quoteSearch?.addEventListener("input", renderQuotes);
+  els.sessionSearch?.addEventListener("input", () => {
+    window.clearTimeout(sessionSearchDebounceTimer);
+    sessionSearchDebounceTimer = window.setTimeout(renderTimeline, 250);
+  });
+  els.quoteSearch?.addEventListener("input", () => {
+    window.clearTimeout(quoteSearchDebounceTimer);
+    quoteSearchDebounceTimer = window.setTimeout(renderQuotes, 250);
+  });
   els.quoteTypeChips?.querySelectorAll('.filter-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       els.quoteTypeChips.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
