@@ -268,7 +268,8 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         }
         conn = reading_mcp_server._get_conn()
         try:
-            reading_mcp_server._save_state(conn, self.user_id, dirty_state)
+            _, version = reading_mcp_server._load_state(conn, self.user_id)
+            reading_mcp_server._save_state(conn, self.user_id, dirty_state, version)
         finally:
             conn.close()
 
@@ -317,6 +318,94 @@ class ReadingMCPServerToolTests(unittest.TestCase):
                         f"add_book createdAt is not UTC: {created['createdAt']!r}")
         self.assertTrue(created["updatedAt"].endswith("Z"),
                         f"add_book updatedAt is not UTC: {created['updatedAt']!r}")
+
+    # ---- OPT-133: optimistic locking on _save_state -----------------------
+
+    def _current_version(self):
+        conn = sqlite3.connect(self.db_path)
+        row = conn.execute(
+            "SELECT updated_at FROM user_state WHERE user_id = ?", (self.user_id,)
+        ).fetchone()
+        conn.close()
+        return row[0]
+
+    def test_save_state_stale_version_raises_conflict_and_preserves_data(self):
+        # OPT-133: a write carrying an outdated expected_version must be rejected
+        # (rowcount 0 → _StateVersionConflict), not blindly applied.
+        stale_version = self._current_version()
+        # A concurrent writer bumps updated_at, invalidating stale_version.
+        conn = sqlite3.connect(self.db_path)
+        conn.execute(
+            "UPDATE user_state SET updated_at = ? WHERE user_id = ?",
+            ("2099-01-01T00:00:00.000Z", self.user_id),
+        )
+        conn.commit()
+        conn.close()
+
+        conn = reading_mcp_server._get_conn()
+        try:
+            with self.assertRaises(reading_mcp_server._StateVersionConflict):
+                reading_mcp_server._save_state(
+                    conn, self.user_id, {"books": [], "quotes": []}, stale_version
+                )
+        finally:
+            conn.close()
+        # The stale write must NOT have wiped the existing books/quotes.
+        stored = self._load_state()
+        self.assertEqual(len(stored["books"]), 2)
+        self.assertEqual(stored["quotes"][0]["id"], "quote-1")
+
+    def test_tool_write_loses_to_concurrent_http_write_without_clobbering(self):
+        # OPT-133: simulate an HTTP-side write landing AFTER the tool reads state
+        # but BEFORE it saves. The tool's conditional UPDATE must detect the
+        # version mismatch, fail loudly, and leave the concurrent edit intact.
+        orig_load = reading_mcp_server._load_state
+
+        def racing_load(conn, user_id):
+            state, version = orig_load(conn, user_id)
+            concurrent_state = json.loads(json.dumps(self.initial_state))
+            concurrent_state["quotes"].insert(0, {
+                "id": "quote-http", "bookId": "book-1", "content": "HTTP 侧的编辑",
+                "kind": "note", "tags": [], "createdAt": "2099-01-01T00:00:00.000Z",
+            })
+            other = sqlite3.connect(self.db_path)
+            other.execute(
+                "UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?",
+                (json.dumps(concurrent_state, ensure_ascii=False),
+                 "2099-01-01T00:00:00.000Z", user_id),
+            )
+            other.commit()
+            other.close()
+            return state, version
+
+        reading_mcp_server._load_state = racing_load
+        try:
+            result = reading_mcp_server.add_note(self.user_id, "MCP 侧的笔记", "book-1")
+        finally:
+            reading_mcp_server._load_state = orig_load
+
+        # The MCP write fails loudly instead of silently overwriting.
+        self.assertFalse(result["ok"])
+        self.assertIn("state_version_conflict", result["error"])
+
+        stored = self._load_state()
+        # The concurrent HTTP edit survived...
+        self.assertTrue(any(q.get("id") == "quote-http" for q in stored["quotes"]),
+                        "concurrent HTTP write was clobbered by the MCP save")
+        # ...and the MCP note was NOT written (its transaction lost the race).
+        self.assertFalse(any(q.get("content") == "MCP 侧的笔记" for q in stored["quotes"]),
+                         "MCP note leaked despite the version conflict")
+
+    def test_tool_write_succeeds_and_bumps_version_when_uncontended(self):
+        # OPT-133 happy path: with no concurrent writer, the tool still succeeds
+        # and advances the optimistic-lock version token.
+        before = self._current_version()
+        result = reading_mcp_server.add_note(self.user_id, "无并发的笔记", "book-1")
+        self.assertTrue(result["ok"])
+        after = self._current_version()
+        self.assertNotEqual(before, after, "successful save must bump the version token")
+        stored = self._load_state()
+        self.assertTrue(any(q.get("content") == "无并发的笔记" for q in stored["quotes"]))
 
 
 if __name__ == "__main__":

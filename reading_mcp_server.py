@@ -63,22 +63,47 @@ def _new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:16]}"
 
 
-def _load_state(conn: sqlite3.Connection, user_id: str) -> dict:
+class _StateVersionConflict(Exception):
+    """Raised when an MCP write loses to a concurrent writer (e.g. the HTTP API)
+    that bumped user_state.updated_at between our read and our conditional write.
+    Surfaced to the caller as {"ok": False, "error": ...} so the MCP action fails
+    loudly instead of blindly clobbering the concurrent edit (OPT-133)."""
+
+    def __init__(self, user_id: str):
+        super().__init__(
+            f"state_version_conflict: user_state for user_id={user_id} was "
+            "modified concurrently; please reload and retry"
+        )
+
+
+def _load_state(conn: sqlite3.Connection, user_id: str) -> tuple[dict, str]:
+    """Return (state, version). `version` is user_state.updated_at, the same
+    optimistic-locking token app_server.save_state_checked() uses; pass it back to
+    _save_state so a concurrent HTTP write is detected instead of overwritten."""
     row = conn.execute(
-        "SELECT state_json FROM user_state WHERE user_id = ?", (user_id,)
+        "SELECT state_json, updated_at FROM user_state WHERE user_id = ?", (user_id,)
     ).fetchone()
     if not row:
         raise ValueError(f"user_state not found for user_id={user_id}")
-    return json.loads(row["state_json"])
+    return json.loads(row["state_json"]), row["updated_at"]
 
 
-def _save_state(conn: sqlite3.Connection, user_id: str, state: dict) -> None:
+def _save_state(
+    conn: sqlite3.Connection, user_id: str, state: dict, expected_version: str
+) -> None:
+    """Optimistic-locking save mirroring app_server.save_state_checked(): the
+    single conditional UPDATE writes only if the stored version still matches
+    `expected_version` (read via _load_state). rowcount == 0 means a concurrent
+    writer won the race → raise _StateVersionConflict rather than clobber it."""
     state = sanitize_state(state)
-    conn.execute(
-        "UPDATE user_state SET state_json = ?, updated_at = ? WHERE user_id = ?",
-        (json.dumps(state, ensure_ascii=False), _now_iso(), user_id),
+    cur = conn.execute(
+        "UPDATE user_state SET state_json = ?, updated_at = ? "
+        "WHERE user_id = ? AND updated_at = ?",
+        (json.dumps(state, ensure_ascii=False), _now_iso(), user_id, expected_version),
     )
     conn.commit()
+    if cur.rowcount == 0:
+        raise _StateVersionConflict(user_id)
 
 
 def _ok(state: dict, extra: dict | None = None) -> dict:
@@ -213,7 +238,7 @@ def add_note(
         return {"ok": False, "error": "content is required"}
     conn = _get_conn()
     try:
-        state = _load_state(conn, user_id)
+        state, version = _load_state(conn, user_id)
         quote = {
             "id": _new_id("quote"),
             "bookId": book_id,
@@ -223,7 +248,7 @@ def add_note(
             "createdAt": _now_iso(),
         }
         state.setdefault("quotes", []).insert(0, quote)
-        _save_state(conn, user_id, state)
+        _save_state(conn, user_id, state, version)
         return _ok(state, {"created": quote})
     except Exception as error:
         return {"ok": False, "error": str(error)}
@@ -261,7 +286,7 @@ def add_book(
         return {"ok": False, "error": "title is required"}
     conn = _get_conn()
     try:
-        state = _load_state(conn, user_id)
+        state, version = _load_state(conn, user_id)
         books = state.setdefault("books", [])
         exists = any(
             _books_are_same(title, author, b.get("title"), b.get("author", ""))
@@ -282,7 +307,7 @@ def add_book(
             "updatedAt": now,
         }
         books.insert(0, book)
-        _save_state(conn, user_id, state)
+        _save_state(conn, user_id, state, version)
         return _ok(state, {"created": book})
     except Exception as error:
         return {"ok": False, "error": str(error)}
@@ -318,14 +343,14 @@ def summary(
         return {"ok": False, "error": "content is required"}
     conn = _get_conn()
     try:
-        state = _load_state(conn, user_id)
+        state, version = _load_state(conn, user_id)
         book = next((b for b in state.get("books", []) if b.get("id") == book_id), None)
         if not book:
             return {"ok": False, "error": f"book not found: {book_id}"}
 
         book["review"] = ((book.get("review") or "") + "\n\n" + content).strip()
         book["updatedAt"] = _now_iso()
-        _save_state(conn, user_id, state)
+        _save_state(conn, user_id, state, version)
         return _ok(state, {"updated": {"bookId": book_id}})
     except Exception as error:
         return {"ok": False, "error": str(error)}
@@ -364,9 +389,9 @@ def question(
         return {"ok": False, "error": "content is required"}
     conn = _get_conn()
     try:
-        state = _load_state(conn, user_id)
+        state, version = _load_state(conn, user_id)
         quote = _upsert_book_question(state, book_id=book_id, content=content)
-        _save_state(conn, user_id, state)
+        _save_state(conn, user_id, state, version)
         return _ok(state, {"created": quote})
     except Exception as error:
         return {"ok": False, "error": str(error)}
@@ -400,7 +425,7 @@ def tag(
         return {"ok": False, "error": "tags is required"}
     conn = _get_conn()
     try:
-        state = _load_state(conn, user_id)
+        state, version = _load_state(conn, user_id)
         book = next((b for b in state.get("books", []) if b.get("id") == book_id), None)
         if not book:
             return {"ok": False, "error": f"book not found: {book_id}"}
@@ -409,7 +434,7 @@ def tag(
         existing.update(tags)
         book["tags"] = list(existing)
         book["updatedAt"] = _now_iso()
-        _save_state(conn, user_id, state)
+        _save_state(conn, user_id, state, version)
         return _ok(state, {"updated": {"bookId": book_id, "tags": book["tags"]}})
     except Exception as error:
         return {"ok": False, "error": str(error)}
@@ -472,7 +497,7 @@ def link_thought(
 
     conn = _get_conn()
     try:
-        state = _load_state(conn, user_id)
+        state, version = _load_state(conn, user_id)
         books = state.get("books", [])
         quotes = state.get("quotes", [])
 
@@ -497,7 +522,7 @@ def link_thought(
             "createdAt": _now_iso(),
         }
         state.setdefault("connections", []).insert(0, connection)
-        _save_state(conn, user_id, state)
+        _save_state(conn, user_id, state, version)
         return _ok(state, {"created": connection})
     except Exception as error:
         return {"ok": False, "error": str(error)}
