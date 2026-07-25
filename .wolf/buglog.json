@@ -9857,6 +9857,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-24T03:06:14.395Z"
+    },
+    {
+      "id": "bug-589",
+      "timestamp": "2026-07-25T03:42:57.211Z",
+      "error_message": "Significant refactor of ",
+      "file": "app_server.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T03:42:57.211Z"
+    },
+    {
+      "id": "bug-590",
+      "timestamp": "2026-07-25T03:48:56.636Z",
+      "error_message": "Significant refactor of ",
+      "file": "reading_mcp_server.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 16→41 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T03:48:56.636Z"
     }
   ]
 }

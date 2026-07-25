@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-24T20:10:24.668Z
-> Files: 347 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-25T03:50:17.035Z
+> Files: 350 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -115,6 +115,7 @@
 - `cards-2026-07-22.md` — 卡片① (~184 tok)
 - `cards-2026-07-23.md` — 卡片① (~88 tok)
 - `cards-2026-07-24.md` — 卡片① (~101 tok)
+- `cards-2026-07-25.md` — 卡片① (~94 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
@@ -124,6 +125,7 @@
 - `review-2026-07-22.md` — 夜间 PR 处理报告 — 2026-07-22 (~354 tok)
 - `review-2026-07-23.md` — 夜间 PR 处理汇总 — 2026-07-23 (~126 tok)
 - `review-2026-07-24.md` — 夜间 PR 处理报告 — 2026-07-24 (~354 tok)
+- `review-2026-07-25.md` — 夜间 PR 处理汇总 — 2026-07-25 (~368 tok)
 - `today-pick.md` — 卡片① (~116 tok)
 
 ## ../../.claude/paper-xhs/
@@ -226,7 +228,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74544 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74755 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~67619 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
@@ -244,7 +246,7 @@
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
-- `reading_mcp_server.py` — add_note, add_book, summary (~4374 tok)
+- `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4754 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~25070 tok)
@@ -399,8 +401,9 @@
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
-- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~3964 tok)
+- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~5176 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
+- `register_ensure_state_utc_ts_test.py` — Regression tests for OPT-038: user registration and ensure_user_state() must (~1449 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
 - `shelf_ocr_test.py` — OPT-118 书架 OCR：解析器与提示词的真实行为测试。 (~1019 tok)
