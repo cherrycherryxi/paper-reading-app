@@ -138,6 +138,45 @@ class ServerErrorsTests(unittest.TestCase):
         self.assertEqual(rows[0]["path"], "/api/session")
         self.assertEqual(rows[0]["method"], "GET")
 
+    def test_handle_one_request_ignores_client_disconnect(self):
+        """A client hangup mid-response (BrokenPipeError while serving `/`) must
+        NOT be logged as a 500 — it would inflate the digest and page the owner
+        via the P0 monitor for a benign disconnect. Also must not re-raise."""
+        for disconnect in (BrokenPipeError, ConnectionResetError,
+                           ConnectionAbortedError):
+            raw = b"GET / HTTP/1.1\r\nHost: x\r\n\r\n"
+            handler = app_server.Handler.__new__(app_server.Handler)
+            handler.rfile = BytesIO(raw)
+            handler.wfile = BytesIO()
+            handler.client_address = ("10.0.0.1", 12345)
+            handler._status_code = None
+            handler.send_response = lambda c, *a, **kw: setattr(handler, "_status_code", c)
+            handler.send_header = lambda n, v: None
+            handler.end_headers = lambda: None
+            handler.log_message = lambda *a, **kw: None
+            handler.log_request = lambda *a, **kw: None
+
+            original_do_get = app_server.Handler.do_GET
+
+            def boom(self, _exc=disconnect):
+                raise _exc("peer went away")
+
+            app_server.Handler.do_GET = boom
+            try:
+                handler.handle_one_request()  # must not raise
+            finally:
+                app_server.Handler.do_GET = original_do_get
+
+            self.assertIsNone(
+                handler._status_code,
+                f"{disconnect.__name__}: wrapper must NOT send a 500 back on a dead socket")
+            conn = app_server.get_conn()
+            n = conn.execute("SELECT COUNT(*) c FROM server_errors").fetchone()["c"]
+            conn.close()
+            self.assertEqual(
+                n, 0,
+                f"{disconnect.__name__}: client disconnect must not be logged to server_errors")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3683,6 +3683,16 @@ class Handler(BaseHTTPRequestHandler):
             super().handle_one_request()
         except _RequestTooLarge:
             pass  # 413 already written; no further action needed
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            # Client hung up mid-response (tab closed, iOS backgrounded Safari and
+            # dropped the socket, flaky mobile network). This is a client-side
+            # disconnect, not a server fault: do NOT log it to server_errors — a
+            # bogus 500 there inflates the digest error Top-N and, worse, trips the
+            # P0 real-time monitor (status_code >= 500 over watermark), paging the
+            # owner over Bark for a benign hangup — and do NOT try to write a 500
+            # back onto the already-dead socket (it would just raise again). Fall
+            # through to `finally` so the leaked connection still gets closed.
+            pass
         except Exception as exc:
             method = getattr(self, "command", "") or ""
             path = getattr(self, "path", "") or ""
