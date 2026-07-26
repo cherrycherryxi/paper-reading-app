@@ -3841,3 +3841,137 @@ els.connectionSearch?.addEventListener("input", renderConnections);
 ---
 
 > 本次 run（2026-07-24）扫描焦点：导入守卫字段口径一致性、AI 系统 prompt quote content 截断策略、书/摘抄上下文中 existing_connections 覆盖度。新发现 3 条：E219（stateContentCount/showImportResult 字段口径不一致，S，northstar 弱，导入守卫语义混乱）、E220（_strip_quote_for_prompt 无 content 截断，S，northstar 弱，LLM 成本/上下文窗口）、E221（existing_connections 在书上下文中恒空，S，northstar 中，Theme 2「建立关联」AI 场景直接受损）。提拔 OPT-135（E221，S，AI 上下文关联可见性，northstar 中）、OPT-136（E214，来自 2026-07-22 run，M，书籍详情 sessions 摘要，northstar 中）。E216（parseExcelDateToIso UTC 午夜）、E217（all_books_summary 缺 startedAt）已由 OPT-134（PR #91）合并修复，不另行提拔。所有断言均基于实际代码读取，已标注 file:line。
+
+## 2026-07-26
+
+> 扫描焦点：OPT-135（existing_connections 覆盖修复，已 triaged）下游 AI 使用路径的完整性——系统指令是否同步更新、MCP 层是否有去重保护；以及 MCP 并发写入冲突在 dispatcher 侧的处理。读取了 `app_server.py:2639-2670`（build_system_instruction）、`reading_mcp_server.py:446-537`（link_thought + 所有工具异常处理）、`mcp_dispatcher.py`（全文）、`tests/agent/reading_mcp_server_tools_test.py`（全文）、`scripts/dev_backend.py`（全文）。
+
+---
+
+### E222 — `build_system_instruction()` 无 `existing_connections` 字段说明：OPT-135 落地后 AI 有数据但不知道如何使用 (S)
+
+**What (verified):** `app_server.py:2643-2670`（`build_system_instruction()`）的 `common_rules`（第 5 条，`app_server.py:2648`）详细说明了 `all_books_summary`、`rating`、`startedAt`、`finishedAt`、`doubanComment`、`review` 六个字段的含义与使用规则；`focused_quote` 场景的 `scenario_rules`（`app_server.py:2652`）和 `book` 场景的 `scenario_rules`（`app_server.py:2656`）均规定 `sourceId`/`targetId` 必须来自 `all_books_summary` 或 `quotes`。但 `existing_connections` 字段（由 `app_server.py:2622` 发送到 `user_data`）在任何场景的系统指令里**一字未提**。
+
+**Evidence:**
+- `app_server.py:2622`：`"existing_connections": [] if book_id else user_state.get("connections", [])[:20]` — 字段已发送（全局上下文下最多 20 条；OPT-135 修复后书本上下文将发送该书相关关联）
+- `app_server.py:2648`（common_rules 第 5 条）：从 `all_books_summary 最多包含 120 本书` 开始，共 400+ 字说明该字段；`existing_connections` 零提及
+- `app_server.py:2652`（focused_quote 场景规则 8）：`"sourceId 必须是 focused_quote.id 或 book.id，targetId 必须是 all_books_summary 中已有书籍的 id 或 quotes 中已有摘抄的 id"` — 无任何关于 `existing_connections` 的指引
+- `app_server.py:2656`（book 场景规则 7）：同上，无 `existing_connections` 提及
+- 对比：`all_books_summary` 在 `build_system_instruction()` 中有完整语义说明（字段含义、status 过滤规则、rating/date 处理方式）；`existing_connections` 完全缺失
+
+**Why it matters:** OPT-135（已 triaged）落地后，`existing_connections` 将在书/摘抄上下文中填充该书的相关关联（最多 10 条）。但没有系统指令告诉 AI：(1) 该字段是什么（已有的思想关联列表）；(2) 在建议 `link_thought` action 之前应先检查此列表、避免提议重复连接；(3) 用户问「我已经关联过什么」时应直接读取此字段回答。结果：OPT-135 修复数据层，AI 收到真实数据，但行为与空数据时相同——不用它、不提它、仍可能建议重复关联。
+
+**Complexity:** S（3-5 行：在 `common_rules` 或 `link_thought` 相关 `scenario_rules` 中追加一段说明，格式与 `all_books_summary` 第 5 条说明对齐；无后端逻辑/schema 变更）
+
+**Files:** `app_server.py:2643-2670`（`build_system_instruction`，`common_rules` 或 `focused_quote`/`book` 场景的 `scenario_rules`）
+
+**northstar:** 中——Theme 2「建立关联」；是 OPT-135 的必要配套：单修数据层（OPT-135）而不修指令层（本项），AI 获得了关联数据但无法使用，等于 OPT-135 只完成了一半；S 改动，建议与 OPT-135 同 PR 合并。→ **promoted to OPT-137**
+
+---
+
+### E223 — `link_thought()` 无重复连接检测：同一对实体可被 AI 反复关联，`connections` 积累无用重复项 (S)
+
+**What (verified):** `reading_mcp_server.py:498-530`（`link_thought()` 核心逻辑）：
+
+```python
+if not _exists(source_type, source_id):
+    return {"ok": False, "error": f"source {source_type} not found: {source_id}"}
+if not _exists(target_type, target_id):
+    return {"ok": False, "error": f"target {target_type} not found: {target_id}"}
+
+connection = {
+    "id": _new_id("conn"),
+    ...
+}
+state.setdefault("connections", []).insert(0, connection)
+_save_state(conn, user_state, state, version)
+return _ok(state, {"created": connection})
+```
+
+函数验证了 source/target 实体存在，但**不检查**是否已存在 `(source_id, target_id)` 相同的关联。每次调用都无条件 `insert(0, connection)`。对比：`add_book()` 同文件（`reading_mcp_server.py:288-296`）有显式去重：`exists = any(_books_are_same(...) for b in books)`。
+
+**Evidence:**
+- `reading_mcp_server.py:508-524`：entity 存在性检查 → 直接 insert，无 connections 列表扫描
+- `reading_mcp_server.py:259-301`（`add_book`）：`exists = any(...)` 去重逻辑存在，`link_thought` 无类似保护
+- `tests/agent/reading_mcp_server_tools_test.py:207-251`：`test_link_thought_creates_connection_between_existing_entities` 只测试成功创建；无测试用例验证重复 `(source_id, target_id)` 的行为（不拒绝也不去重）
+- 场景复现：用户多次在同一本书的上下文中问「关联一下」，AI 多轮对话各生成一条 `link_thought`；`connections` 列表可积累 5 条内容相同但 id 不同的「《三体》→《黑暗森林》异曲同工」记录
+
+**Why it matters:** 「建立关联」是 Theme 2 核心，关联列表是展示「思想碰撞」的核心视图。重复关联不仅污染数据（用户在关联 Tab 看到同一对书的多条关联），还使 `existing_connections`（OPT-135）可能返回多条重复项给 AI，进一步混淆 AI 的去重判断。S 修复：在 `link_thought()` 中加 2-3 行检查 `state["connections"]` 是否已有 `(source_id, target_id)` 相同的关联；也可返回已有关联而不是 `ok=False`（`skipped=True`，类似 `add_book` 的 dedup 策略）。
+
+**Complexity:** S（3-5 行：在 `reading_mcp_server.py:508` 之后、`insert` 之前，扫描 `state["connections"]` 查找相同 source_id+target_id；返回 `_ok(state, {"skipped": True, "existing": existing_conn})` 而非错误）
+
+**Files:** `reading_mcp_server.py:498-530`（`link_thought` 核心逻辑，加 dedup）；`tests/agent/reading_mcp_server_tools_test.py`（补测重复关联 skipped 行为）
+
+**northstar:** 中——Theme 2「建立关联」；关联数据质量直接影响用户在关联 Tab 的回顾体验；与 E222（系统指令指引）协同——先有 dedup 行为保证（本项），再有 AI 指引（E222），才能端到端避免重复关联。→ **promoted to OPT-138**
+
+---
+
+### E224 — `_StateVersionConflict` 在 MCP 工具层被 `except Exception` 吞掉，`mcp_dispatcher.py` 无识别与重试，并发写入冲突导致 action 永久 FAILED (M)
+
+**What (verified):** `reading_mcp_server.py:253-254`（`add_note` 异常处理，其他工具同结构）：
+
+```python
+except Exception as error:
+    return {"ok": False, "error": str(error)}
+```
+
+`_StateVersionConflict`（`reading_mcp_server.py:66-76`）在 `_save_state()` 检测到乐观锁竞争时抛出（`reading_mcp_server.py:105-106`），被上述 `except Exception` 捕获，返回 `{"ok": False, "error": "state_version_conflict: user_state for user_id=... was modified concurrently; please reload and retry"}`。
+
+`mcp_dispatcher.py:191-192`：
+
+```python
+if not raw.get("ok", False):
+    return MCPCallResult(ok=False, tool_name=tool_name, raw_result=raw, error=raw.get("error", "tool returned ok=False"))
+```
+
+dispatcher 不检查 `error` 字符串内容，不识别 `"state_version_conflict:"` 前缀，无任何重试逻辑。`app_server.py:5819-5847` 收到 `execution.success == False` → 将 action 标记为 `ACTION_STATUS_FAILED` → 返回 500 给客户端。
+
+**Evidence:**
+- `reading_mcp_server.py:66-76`（`_StateVersionConflict` 定义）、`reading_mcp_server.py:105-106`（`_save_state` 抛出点）
+- `reading_mcp_server.py:253-254`、`439-440`、`527-528`：add_note/tag/link_thought 三个写入工具均用裸 `except Exception` 覆盖所有异常，含 `_StateVersionConflict`
+- `mcp_dispatcher.py:191-192`：`error=raw.get("error", ...)` 原样返回，无前缀检测
+- `app_server.py:5796-5847`：`execution.success` 为 False → `ACTION_STATUS_FAILED`，无重试分支
+- 对比：HTTP API 的 `save_state_checked()`（OPT-030）检测版本冲突并向客户端返回专用错误码，由客户端重试；MCP 路径无等价机制
+- `tests/agent/reading_mcp_server_tools_test.py`：无测试覆盖 `_StateVersionConflict` 路径（`test_save_state_sanitizes_before_writing` 只测正常保存路径）
+
+**Why it matters:** 乐观锁（OPT-133）是防止 MCP 与 HTTP API 并发覆盖的核心机制。但触发冲突的正确响应是「重试」，而非「永久失败」。用户在 iPhone 上审批 AI action 的同时若从 PC 编辑同一本书，MCP 写入将被 OCC 拒绝，action 标记 FAILED，用户看到 500 错误，需要重新发起整个 AI 对话才能再次尝试保存同一条笔记——即便该笔记本身完全正确。
+
+**Complexity:** M（2 条路径选一：A. `mcp_dispatcher.py` 检测 `"state_version_conflict:"` 前缀后重试 1 次，5-10 行；B. MCP 工具层为 `_StateVersionConflict` 返回专用 `{"ok": False, "conflict": True}` 字段，dispatcher 识别后重试，10-15 行更清晰）
+
+**Files:** `mcp_dispatcher.py:184-193`（dispatch 重试逻辑）；`reading_mcp_server.py:253-254`、`439-440`、`527-528`（各工具异常处理，可选增加 `conflict` 字段）；`tests/agent/reading_mcp_server_tools_test.py`（补测冲突场景）
+
+**northstar:** 弱-中——Theme 2 AI 探讨可靠性：OPT-133 用乐观锁防止数据损失，本项让冲突从「静默失败」变为「自动重试」，补全 OPT-133 的 happy-path 设计；并发窗口窄（典型用户单设备），触发概率低，但后果（用户重做整轮对话）比锁冲突本身严重。
+
+---
+
+### E225 — `reading_mcp_server.py` 无进程健康探针：崩溃后所有后续 AI action 审批均以 "MCP call failed" 失败，用户无恢复提示 (M)
+
+**What (verified):** `mcp_dispatcher.py:183-186`：
+
+```python
+try:
+    raw = asyncio.run(_call_tool_async(tool_name, arguments))
+except Exception as error:
+    return MCPCallResult(ok=False, tool_name=tool_name, error=f"MCP call failed: {error}")
+```
+
+`app_server.py:29`：`from mcp_dispatcher import MCPToolDispatcher` — 模块级导入，无懒加载或可选导入。`scripts/dev_backend.py:137-138`：`if not check_mcp_server(): raise RuntimeError("MCP server is not reachable")` — 只在启动时检查一次。
+
+**Evidence:**
+- `mcp_dispatcher.py:184-186`：`asyncio.run(...)` 若 MCP 服务不在线，`streamablehttp_client` 抛出 `ConnectionRefusedError`，被捕获后返回 `"MCP call failed: [Errno 111] Connection refused"`
+- `app_server.py:5847`：`self._send_json({"error": execution.error_message, "action": final_action}, 500)` — 客户端收到的错误信息含 `"MCP call failed"` 前缀，无面向用户的恢复提示
+- `scripts/dev_backend.py:67-93`（`check_mcp_server()`）：只在 `start_backend()` 时执行一次，无持续心跳；MCP 进程在运行期崩溃后 `dev_backend.py` 不重启它
+- `scripts/start_mcp.sh`：独立 shell 脚本，手动启动，无 PID 管理或 watchdog
+- `CLAUDE.md` run 命令（`python3 app_server.py`）不提 MCP 服务需单独启动
+
+**Why it matters:** MCP 服务是 AI action 执行路径的单点故障。服务崩溃（uvicorn 内存异常、Python 异常、端口冲突）导致全部后续 `approve` 请求 500，AI 探讨中审批 action 的功能对用户完全不可用，直到手动重启 `scripts/start_mcp.sh`。用户没有任何「MCP 服务未运行，请重启」的提示，只会看到重复的通用 500 错误。M 改进方向：`app_server.py` 启动时 ping MCP（复用 `dev_backend.py` 的 `check_mcp_server()` 逻辑）并在状态端点暴露健康信息；或在 action approve handler 捕获 `"MCP call failed"` 后返回更具体的 503 + 用户可读错误。
+
+**Complexity:** M（两路并行：1. `app_server.py` action approve handler 将 `"MCP call failed"` 前缀映射为 503 + 面向用户的中文提示 "AI 助手暂时不可用，请联系管理员重启服务"，约 5 行；2. `scripts/dev_backend.py` 增加 MCP 心跳监测（每 60s `check_mcp_server()`，失败时尝试重启 `start_mcp.sh`），约 20 行）
+
+**Files:** `app_server.py:5847`（error message 映射）；`mcp_dispatcher.py:186`（`"MCP call failed"` 前缀标准化）；`scripts/dev_backend.py:153-180`（主循环加 MCP 心跳）
+
+**northstar:** 弱——基础设施可靠性；不直接影响 AI 功能质量，但影响功能可用性；适合北极星指标回落时（如当前 7/26 week 全线最低）优先稳基础设施。
+
+---
+
+> 本次 run（2026-07-26）扫描焦点：OPT-135（existing_connections 数据层修复）下游 AI 指令层配套完整性、MCP `link_thought` 数据质量保护、并发写冲突在 MCP dispatcher 侧的处理逻辑、MCP 服务进程健康管理。新发现 4 条：E222（系统指令无 existing_connections 说明，S，northstar 中，Theme 2 OPT-135 配套）、E223（link_thought 无重复连接检测，S，northstar 中，关联数据质量）、E224（StateVersionConflict 被 dispatcher 吞掉不重试，M，northstar 弱-中，OPT-133 完整性）、E225（MCP 服务无健康探针，M，northstar 弱，基础设施可靠性）。提拔 OPT-137（E222，S，系统指令 existing_connections 说明，northstar 中，建议与 OPT-135 同 PR）、OPT-138（E223，S，link_thought dedup，northstar 中）。所有断言均基于实际代码读取，已标注 file:line。
