@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T04:34:33.109Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T05:25:27.165Z
 > Files: 354 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -160,7 +160,7 @@
 - `feedback_pr_target_feature_agent.md` (~318 tok)
 - `feedback_reply_in_chinese.md` (~94 tok)
 - `feedback_update_stale_docs.md` (~188 tok)
-- `MEMORY.md` (~710 tok)
+- `MEMORY.md` (~780 tok)
 - `project_brand_share_kit.md` (~327 tok)
 - `project_daily_loop_automation.md` (~1630 tok)
 - `project_optimization_pipeline.md` (~964 tok)
@@ -169,7 +169,7 @@
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
 - `reference_prod_monitoring.md` (~867 tok)
-- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~3024 tok)
+- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~3276 tok)
 - `reference_weekly_report_email.md` (~530 tok)
 
 ## ../../.claude/scripts/

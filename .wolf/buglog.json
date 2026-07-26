@@ -9940,6 +9940,43 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-26T04:38:27Z"
+    },
+    {
+      "id": "bug-549-deploy-restart-race",
+      "timestamp": "2026-07-26T05:24:09Z",
+      "error_message": "prod 发版后 backend 启动日志 httpx.ConnectError: All connection attempts failed（[startup] fetching tool schemas from MCP server）",
+      "file": "部署流程(launchctl kickstart 顺序)",
+      "root_cause": "同时 kickstart -k paper-backend-prod 与 paper-mcp-prod：backend 启动时向 MCP(8798)拉工具 schema，但 MCP 正在重启还没 listen → ConnectError。backend 优雅降级继续 serve 200，但该次进程未拿到工具 schema，agent 工具调用到下次重启前可能不可用。",
+      "fix": "发版重启顺序：先重启 MCP(paper-mcp-prod)并等它就绪(日志出现 ListToolsRequest / 8798 可连)，再单独重启 backend(paper-backend-prod)——backend 启动握手即成功拉到 schema。本次单独重启 backend 后 MCP 日志 13:20:28 Created new streamable_http + ListToolsRequest，无 ConnectError。",
+      "tags": [
+        "prod",
+        "deploy",
+        "mcp",
+        "restart-order",
+        "startup-race",
+        "tool-schema"
+      ],
+      "related_bugs": [
+        "bug-548-brokenpipe"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T05:24:09Z"
+    },
+    {
+      "id": "bug-595",
+      "timestamp": "2026-07-26T05:25:00.092Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md",
+      "root_cause": "Had `git pull origin main`",
+      "fix": "Changed to `ALLOW_MAIN_PUSH=1 git push origin feature/agent:m",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T05:25:00.092Z"
     }
   ]
 }

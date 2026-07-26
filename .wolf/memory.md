@@ -3876,3 +3876,7 @@
 | 12:34 | Edited tests/agent/server_errors_test.py | modified test_handle_one_request_ignores_client_disconnect() | ~585 |
 | 12:38 | 修 prod 500 BrokenPipeError 误告警：handle_one_request 宽泛 except 把客户端断连当 500 记 server_errors+触发 P0 告警 | app_server.py, tests/agent/server_errors_test.py, .wolf/buglog.json | 已修+回归测试7/7,连接泄漏相关23/23绿;未提交待用户确认 | ~9k |
 | 12:39 | Session end: 6 writes across 6 files (cards-2026-07-26.md, com.huangnanqi.prod-daily-digest.plist, prod-daily-digest.sh, reference_prod_monitoring.md, app_server.py) | 11 reads | ~113318 tok |
+| 13:25 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | 1→2 lines | ~304 |
+| 13:25 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~59 |
+| 13:25 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~79 |
+| 13:25 | prod 全量发版(main落后98提交,owner确认)含 bug-548 BrokenPipe修复;发现并修 bug-549 重启竞态(先MCP后backend) | app_server.py, .wolf/buglog.json, .wolf/cerebrum.md | 已上线 read.readjot.com 200,MCP握手成功无ConnectError | ~12k |
