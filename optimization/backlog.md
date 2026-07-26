@@ -305,7 +305,7 @@ Format per item:
 - how: 将 `app.js:1026` 的 `(b.createdAt || "").localeCompare(a.createdAt || "")` 改为 `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)`（降序 = b - a）；同样修复 `app.js:2431`。Touch: `app.js:1026, 2431`。
 
 ### OPT-038 — 用户注册与 `ensure_user_state()` 使用 `now_iso()` 写入 `user_state.updated_at`——与 `save_state()` 的 `utc_now_iso()` 不一致，污染乐观锁版本字段 — 由 explore E65 提拔
-- status: triaged
+- status: done (PR #92, 2026-07-25 — 注册及 ensure_user_state 版本戳统一为 UTC-Z，消除乐观锁版本字段污染)
 - northstar: 中——乐观锁是防跨设备丢数据机制(bug-274 同类痛点,数据安全链路),版本字段污染可致锁失效。P2。
 - area: backend
 - description: 用户注册处理器（`app_server.py:4057-4061`）用 `now_iso()` 写入 `users.created_at`、`users.terms_accepted_at` 和首条 `user_state.updated_at`；`ensure_user_state()`（`app_server.py:676`）同样用 `now_iso()` 写入 `user_state.updated_at`（INSERT OR IGNORE 路径）。而 `save_state()`（`app_server.py:704`）已改用 `utc_now_iso()`。OPT-030（乐观锁）以 `user_state.updated_at` 作为版本号返回给客户端（`stateVersion`）；新用户的首个 `stateVersion` 是 naive 本地时间，后续所有写入是 UTC+Z，造成版本字段在同一列内格式不一致（初始行 naive，更新行 UTC）。
@@ -595,7 +595,7 @@ Format per item:
 - how: ① 在 `renderQuotes()` 渲染完成后，对新渲染的摘抄卡片图片调用类似 `bindBookCoverImageFallback` 的函数，或直接在模板 `<img>` 后附加委托式 `error` 监听（避免 inline onerror CSP 风险）。② 在 `openQuoteDetail()`（`app.js:2247`）的 `img.src = ...` 后加 `img.onerror = () => imgWrap.classList.add("is-hidden")`。Touch: `app.js:1454-1457`（摘抄卡片模板区域）；`app.js:2244-2251`（`openQuoteDetail`）；参考模式 `app.js:229-250`。
 
 ### OPT-072 — 搜索输入框无防抖，每次按键触发全量 DOM 重建 — 由 explore E115 提拔
-- status: triaged
+- status: done (PR #91, 2026-07-25 — 搜索输入防抖 250ms 已加，摘抄 100+ 条按键卡顿消除)
 - area: frontend
 - priority: P2
 - size: S
@@ -1209,7 +1209,7 @@ Format per item:
 - how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
 
 ### OPT-133 — MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 — 由 explore E213 提拔 [2026-07-23]
-- status: triaged
+- status: done (PR #93, 2026-07-26 — MCP _save_state() 加乐观锁版本戳校验，MCP+HTTP 并发写入竞态已修)
 - area: backend
 - priority: P2
 - size: S
@@ -1219,7 +1219,7 @@ Format per item:
 - how: `reading_mcp_server.py:75-81`（`_save_state()`）：参照 `app_server.py` 的 `save_state_checked()` 实现，改为先读 `updated_at`，UPDATE 带 `WHERE updated_at=<old>`，检查 `rowcount`，为 0 则抛冲突异常；6 处调用点需传入 `expected_version` 参数（从 `_load_state()` 返回时一并返回 `updated_at`）。Touch: `reading_mcp_server.py:75-81`（_save_state）、`reading_mcp_server.py:60-74`（_load_state，需同时返回 updated_at）、各工具函数调用点（约 6 处）。
 
 ### OPT-134 — `all_books_summary` 50 本上限：110 本豆瓣书约 60 本对 AI 跨书查询永久不可见 — 由 explore E215 提拔 [2026-07-23]
-- status: triaged
+- status: done (PR #91, 2026-07-25 — [:50] → [:120]，同步补入 startedAt 字段，系统指令更新；AI 可见书库由 50 升至 120)
 - area: backend
 - priority: P2
 - size: S
