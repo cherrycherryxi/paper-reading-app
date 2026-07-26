@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-25T03:50:17.035Z
-> Files: 350 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T04:34:33.109Z
+> Files: 354 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -116,6 +116,7 @@
 - `cards-2026-07-23.md` — 卡片① (~88 tok)
 - `cards-2026-07-24.md` — 卡片① (~101 tok)
 - `cards-2026-07-25.md` — 卡片① (~94 tok)
+- `cards-2026-07-26.md` — 卡片① (~116 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
@@ -126,6 +127,7 @@
 - `review-2026-07-23.md` — 夜间 PR 处理汇总 — 2026-07-23 (~126 tok)
 - `review-2026-07-24.md` — 夜间 PR 处理报告 — 2026-07-24 (~354 tok)
 - `review-2026-07-25.md` — 夜间 PR 处理汇总 — 2026-07-25 (~368 tok)
+- `review-2026-07-26.md` — 夜间 PR 处理报告 — 2026-07-26 (~342 tok)
 - `today-pick.md` — 卡片① (~116 tok)
 
 ## ../../.claude/paper-xhs/
@@ -166,7 +168,7 @@
 - `reference_dotfiles_repo.md` (~227 tok)
 - `reference_global_playbook.md` (~332 tok)
 - `reference_personal_infra_index.md` (~419 tok)
-- `reference_prod_monitoring.md` (~790 tok)
+- `reference_prod_monitoring.md` (~867 tok)
 - `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~3024 tok)
 - `reference_weekly_report_email.md` (~530 tok)
 
@@ -187,6 +189,7 @@
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1593 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
+- `prod-daily-digest.sh` — P1 每周摘要 launchd 包装(每周一 09:30)。算摘要 → 邮件发 owner。 (~194 tok)
 - `product-owner-monday.sh` — 产品负责人周一仪式（本机 launchd，每周一）。读 signals + 上周 PR + backlog/roadmap， (~896 tok)
 - `README.md` — Project documentation (~274 tok)
 - `run_prod_mcp.sh` — Prod 独立 MCP 服务(reading_mcp_server)——绑 prod 库 + 独立端口 8798, (~131 tok)
@@ -218,7 +221,7 @@
 - `com.huangnanqi.paper-morning.plist` (~291 tok)
 - `com.huangnanqi.paper-tunnel.plist` (~255 tok)
 - `com.huangnanqi.paper-wrapup.plist` (~290 tok)
-- `com.huangnanqi.prod-daily-digest.plist` (~280 tok)
+- `com.huangnanqi.prod-daily-digest.plist` (~295 tok)
 - `com.huangnanqi.prod-monitor.plist` (~244 tok)
 - `com.huangnanqi.product-owner.plist` (~307 tok)
 - `com.huangnanqi.tunnel-watchdog.plist` (~247 tok)
@@ -228,7 +231,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74755 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74969 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~67619 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
@@ -405,6 +408,7 @@
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
 - `register_ensure_state_utc_ts_test.py` — Regression tests for OPT-038: user registration and ensure_user_state() must (~1449 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
+- `server_errors_test.py` — Regression tests for server-side error monitoring (P1 commercialization). (~2174 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
 - `shelf_ocr_test.py` — OPT-118 书架 OCR：解析器与提示词的真实行为测试。 (~1019 tok)
 - `static_cache_test.py` — OPT-086: 静态资源缓存策略测试。 (~692 tok)
@@ -491,11 +495,11 @@
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -503,12 +507,12 @@
 
 ## 小红书物料/第2篇-拍照摘抄/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第3篇-一句被击中的话/
 

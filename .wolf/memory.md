@@ -3853,3 +3853,26 @@
 | 11:49 | Edited tests/agent/reading_mcp_server_tools_test.py | 5→6 lines | ~75 |
 | 11:50 | Edited tests/agent/reading_mcp_server_tools_test.py | modified _current_version() | ~1243 |
 | 11:54 | Session end: 8 writes across 4 files (app_server.py, register_ensure_state_utc_ts_test.py, reading_mcp_server.py, reading_mcp_server_tools_test.py) | 6 reads | ~89468 tok |
+
+## Session: 2026-07-26 10:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:04 | Created ../../.claude/paper-loop/review-2026-07-26.md | — | ~364 |
+| 10:04 | 夜间PR处理: 审查并squash合并 PR#93 (OPT-133 MCP乐观锁) | reading_mcp_server.py, tests/agent/reading_mcp_server_tools_test.py | merged; pytest 398 pass + frontend 454 pass | ~8000 |
+| 10:04 | Session end: 1 writes across 1 files (review-2026-07-26.md) | 0 reads | ~390 tok |
+
+## Session: 2026-07-26 10:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:06 | Created ../../.claude/paper-loop/cards-2026-07-26.md | — | ~124 |
+| 10:06 | Session end: 1 writes across 1 files (cards-2026-07-26.md) | 6 reads | ~37351 tok |
+| 12:21 | Edited ../../Library/LaunchAgents/com.huangnanqi.prod-daily-digest.plist | 7→9 lines | ~60 |
+| 12:21 | Edited ../../.claude/scripts/prod-daily-digest.sh | 8→11 lines | ~155 |
+| 12:22 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_prod_monitoring.md | inline fix | ~121 |
+| 12:23 | Session end: 4 writes across 4 files (cards-2026-07-26.md, com.huangnanqi.prod-daily-digest.plist, prod-daily-digest.sh, reference_prod_monitoring.md) | 9 reads | ~37710 tok |
+| 12:34 | Edited app_server.py | modified except() | ~268 |
+| 12:34 | Edited tests/agent/server_errors_test.py | modified test_handle_one_request_ignores_client_disconnect() | ~585 |
+| 12:38 | 修 prod 500 BrokenPipeError 误告警：handle_one_request 宽泛 except 把客户端断连当 500 记 server_errors+触发 P0 告警 | app_server.py, tests/agent/server_errors_test.py, .wolf/buglog.json | 已修+回归测试7/7,连接泄漏相关23/23绿;未提交待用户确认 | ~9k |
+| 12:39 | Session end: 6 writes across 6 files (cards-2026-07-26.md, com.huangnanqi.prod-daily-digest.plist, prod-daily-digest.sh, reference_prod_monitoring.md, app_server.py) | 11 reads | ~113318 tok |

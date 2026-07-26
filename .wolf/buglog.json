@@ -9889,6 +9889,57 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-25T03:48:56.636Z"
+    },
+    {
+      "id": "bug-591",
+      "timestamp": "2026-07-26T04:21:58.883Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/prod-daily-digest.sh",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→11 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T04:21:58.883Z"
+    },
+    {
+      "id": "bug-592",
+      "timestamp": "2026-07-26T04:22:52.004Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_prod_monitoring.md",
+      "root_cause": "Had `prod-daily-digest.sh`",
+      "fix": "Changed to `StartCalendarInterval`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T04:22:52.004Z"
+    },
+    {
+      "id": "bug-548-brokenpipe",
+      "timestamp": "2026-07-26T04:38:27Z",
+      "error_message": "500 BrokenPipeError @ / | user=匿名(-) 2026-07-26T12:24:59（prod P0 告警）",
+      "file": "app_server.py",
+      "root_cause": "Handler.handle_one_request 的宽泛 except Exception 把客户端中途断连（关标签页/iOS切后台丢socket/网络抖动）写静态响应时抛的 BrokenPipeError/ConnectionResetError 也当 500 记进 server_errors，既污染每周摘要错误Top，又触发 P0 实时监控(status>=500超水位) Bark+邮件误告警；随后还往死socket写500响应再次抛错。SSE(5378)与OCR(5024)本就把这类当无害，只有顶层wrapper漏了。",
+      "fix": "在宽泛 except 前加 except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError): pass —— 不记 server_errors、不写500，落到 finally 关连接。新增回归测试 test_handle_one_request_ignores_client_disconnect（三种断连均断言0行且不发500，撤回修复即失败）。",
+      "tags": [
+        "prod",
+        "monitoring",
+        "brokenpipe",
+        "false-alarm",
+        "handle_one_request",
+        "server_errors"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T04:38:27Z"
     }
   ]
 }
