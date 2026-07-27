@@ -3907,3 +3907,11 @@
 |------|--------|---------|---------|--------|
 | 17:10 | Created optimization/triage.md | — | ~2046 |
 | 17:11 | Agent1 triage 2026-07-27: budget 6/8, assigned OPT-135+OPT-137 (same PR), added OPT-137/OPT-138 to table | optimization/triage.md | committed+pushed to feature/agent | ~8k |
+| 20:06 | Edited app_server.py | expanded (+8 lines) | ~200 |
+| 20:06 | Edited app_server.py | inline fix | ~14 |
+| 20:06 | Edited app_server.py | 1→2 lines | ~287 |
+| 20:07 | Edited app_server.py | 11→11 lines | ~276 |
+| 20:08 | Created tests/agent/prompt_builder_connections_test.py | — | ~2251 |
+| 20:10 | Edited tests/agent/agent_backend_property_test.py | modified test_existing_connections_filtered_in_book_context() | ~555 |
+| 20:12 | Edited optimization/triage.md | 2→2 lines | ~104 |
+| 20:12 | OPT-135+OPT-137: fix existing_connections filtering + system instruction description | app_server.py, tests/agent/prompt_builder_connections_test.py, tests/agent/agent_backend_property_test.py | PR #94 opened; 412 Python tests pass, 52 JS test files pass | ~2500 |
