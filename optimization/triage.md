@@ -26,8 +26,8 @@ Last triaged: 2026-07-27
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-135 | existing_connections 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」 | **P2** | S | triaged | **⬅ 本次指派（与 OPT-137 同 PR）**；Theme 2「建立关联」；OPT-134/OPT-038 系列延续；`app_server.py:2617`，5-8 行条件过滤；零 schema/接口/前端变更 |
-| OPT-137 | build_system_instruction() 缺少 existing_connections 字段说明：AI 不知如何用该字段避免重复关联 | **P2** | S | triaged | **⬅ 本次指派（与 OPT-135 同 PR）**；OPT-135 伴随修复（指令层）；`app_server.py:2643-2648`，~3 行补充说明；零其他变更 |
+| OPT-135 | existing_connections 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」 | **P2** | S | **in-progress** | PR #94 open；Theme 2「建立关联」；OPT-134/OPT-038 系列延续；`app_server.py:2617`，5-8 行条件过滤；零 schema/接口/前端变更 |
+| OPT-137 | build_system_instruction() 缺少 existing_connections 字段说明：AI 不知如何用该字段避免重复关联 | **P2** | S | **in-progress** | PR #94 open；OPT-135 伴随修复（指令层）；`app_server.py:2643-2648`，~3 行补充说明；零其他变更 |
 | OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | **P2** | S | triaged | `app.js:274-279`，1 行修复；quote: fallthrough 错误解析为 bookId |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | **P2** | S | triaged | `app.js:2316-2332`，2 行，复用 deleteBook() 模式 |
 | OPT-089 | clearSampleData 不清理 chatHistories/chatContexts | **P2** | S | triaged | onboarding「示例→清除→空白起步」路径；`app.js:1729-1744` |
