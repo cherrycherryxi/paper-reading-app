@@ -2,35 +2,37 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-26
+Last triaged: 2026-07-27
 
 ## Next up
 
-**预算状态（2026-07-26 本次 triage）：** 近 7 天 auto/ PR 共 **9 个**（PR #93 auto/opt-133 2026-07-25、PR #92 auto/opt-038 2026-07-25、PR #91 auto/opt-134-072 2026-07-24、PR #88 auto/opt-131-132-129 2026-07-23、PR #84 auto/opt-127 2026-07-21、PR #81 auto/opt-077 2026-07-20、PR #78 auto/opt-109 2026-07-19、PR #77 auto/opt-122 2026-07-19、PR #76 auto/opt-121 2026-07-19），上限 **8**，已超出，**本次不指派**。
+**预算状态（2026-07-27 本次 triage）：** 近 7 天 auto/ PR 共 **6 个**（PR #93 auto/opt-133 2026-07-25、PR #92 auto/opt-038 2026-07-25、PR #91 auto/opt-134-072 2026-07-24、PR #88 auto/opt-131-132-129 2026-07-23、PR #84 auto/opt-127 2026-07-21、PR #81 auto/opt-077 2026-07-20），上限 **8**，剩余 **2 个**，**本次可指派**。
 
-**状态更新（本次 triage — 2026-07-26）**：
-- OPT-133（PR #93）merged 2026-07-26，triaged → done。MCP _save_state() 乐观锁已加。
-- OPT-038（PR #92）merged 2026-07-25，triaged → done。注册/ensure_user_state 版本戳已统一为 UTC-Z。
-- OPT-134（PR #91）merged 2026-07-25，in-progress → done。all_books_summary 上限已升至 120 本。
-- OPT-072（PR #91）merged 2026-07-25，in-progress → done。搜索防抖已加。
-- OPT-135（new → triaged）：existing_connections 在书/摘抄上下文中恒为空列表，P2 / S，AI 上下文数据完整性系列延续，评估完毕入表。
-- OPT-136（new → triaged）：书籍详情无阅读记录概览，P2 / M，Theme 2 回顾入口，评估完毕入表。
+**状态更新（本次 triage — 2026-07-27）**：
+- OPT-137（new → triaged）：build_system_instruction() 系统指令缺少 existing_connections 字段说明，AI 不知如何使用该字段去避免重复关联，P2 / S，与 OPT-135 同 PR，`app_server.py:2643-2648`，评估完毕入表。
+- OPT-138（new → triaged）：MCP link_thought() 缺少重复关联守卫，与 add_book() dedup 模式不一致可致重复关联写入，P2 / S，`reading_mcp_server.py:508-524`，评估完毕入表。
 
 ---
 
-本周实现预算已满（近 7 天已有 9 个 auto PR，上限 8），本次不指派。
+**指派：OPT-135 + OPT-137（同 PR）。**
 
-**（预算恢复后的备选推荐）** 下一个最优候选为 **OPT-135**（existing_connections 书/摘抄上下文条件过滤）。理由：OPT-134（书库扩容）和 OPT-038（版本戳修复）刚刚合并，OPT-135 是同系列 AI 上下文数据完整性修复的自然延续——现有实现 `[] if book_id else ...[:20]` 在最有关联动机的上下文中向 AI 完全隐藏该书的关联，导致 AI 无法回答「我有没有关联过这本书的摘抄」也无法避免重复建议；修复为 5-8 行条件过滤，零 schema/接口/前端变更。Theme 2「建立关联」直接收益。关键文件：`app_server.py:2617`。
+理由：上次 triage（2026-07-26）已将 OPT-135 列为「预算恢复后首选」，今日预算余量充足，立即指派。OPT-135（数据层）修复 `existing_connections` 在书/摘抄上下文中恒为空列表的问题——当前 `[] if book_id else ...[:20]` 使 AI 在最有关联动机的场景下完全看不到已有关联，无法回答「我是否关联过这本书的摘抄」也无法自动避免重复建议。OPT-137（指令层）在系统指令中补充对 `existing_connections` 字段的说明，告知 AI 如何利用该数据去检查重复并生成更精准的关联建议。两项合计 ~10 行，零 schema / API / 前端变更，Theme 2「建立关联」直接收益。
+
+关键文件：`app_server.py:2617`（OPT-135 数据层）、`app_server.py:2643-2648`（OPT-137 指令层）。
+
+**（预算恢复后的备选推荐）** 若本次 PR 合并后预算用完，下一候选为 **OPT-138**（MCP link_thought 重复关联守卫）。同属 Theme 2「建立关联」数据完整性系列，S 复杂度，`reading_mcp_server.py:508-524`，仿照 add_book() dedup 模式约 5 行。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-135 | existing_connections 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」 | **P2** | S | triaged | **⬅ 本次指派（与 OPT-137 同 PR）**；Theme 2「建立关联」；OPT-134/OPT-038 系列延续；`app_server.py:2617`，5-8 行条件过滤；零 schema/接口/前端变更 |
+| OPT-137 | build_system_instruction() 缺少 existing_connections 字段说明：AI 不知如何用该字段避免重复关联 | **P2** | S | triaged | **⬅ 本次指派（与 OPT-135 同 PR）**；OPT-135 伴随修复（指令层）；`app_server.py:2643-2648`，~3 行补充说明；零其他变更 |
 | OPT-067 | contextFromHistoryKey() 缺少 quote: 前缀处理，前后端逻辑不对称 | **P2** | S | triaged | `app.js:274-279`，1 行修复；quote: fallthrough 错误解析为 bookId |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts（孤儿 state） | **P2** | S | triaged | `app.js:2316-2332`，2 行，复用 deleteBook() 模式 |
 | OPT-089 | clearSampleData 不清理 chatHistories/chatContexts | **P2** | S | triaged | onboarding「示例→清除→空白起步」路径；`app.js:1729-1744` |
 | OPT-125 | deleteBook() 确认弹窗仅显示书名，不显示将被删除的记录/摘抄/关联数量 | **P2** | S | triaged | 破坏性操作透明度（OPT-043/106 系列延续）；三辅助函数已就位，~2-3 行；`app.js:2723-2730` |
-| OPT-135 | existing_connections 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」 | **P2** | S | triaged | Theme 2「建立关联」；OPT-134/OPT-038 系列延续；`app_server.py:2617`，5-8 行条件过滤；零 schema/接口/前端变更 |
+| OPT-138 | MCP link_thought() 缺少重复关联守卫：并发或重复调用可写入重复 connection 记录 | **P2** | S | triaged | Theme 2「建立关联」；add_book() 已有 _books_are_same() dedup 守卫为参照；`reading_mcp_server.py:508-524`，~5 行；零 schema/接口/前端变更 |
 | OPT-136 | 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要 | **P2** | M | triaged | Theme 2「回顾有价值」；2026-06-26 signal 佐证（「读完日期/不依赖手动加记录」方向）；`getBookSessions()` 已封装；`index.html:410-433`、`app.js:3776-3875`、`styles.css` |
 | OPT-120 | 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走就白等 20s 并浪费 LLM 调用 | **P2** | M | triaged | Theme 1；真机实测后端成功但 iOS 断连丢结果；requestId+落库+visibilitychange 方案；改动 M，不适合 agent（新端点+schema 变更） |
 | OPT-102 | 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时 | **P2** | M | triaged | Theme 1；`app_server.py`（OCR 端点 body 解析）+ `app.js`（toBlob 上传路径）；保留旧 dataURL 分支兼容 |
