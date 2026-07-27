@@ -305,7 +305,7 @@ Format per item:
 - how: 将 `app.js:1026` 的 `(b.createdAt || "").localeCompare(a.createdAt || "")` 改为 `(Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)`（降序 = b - a）；同样修复 `app.js:2431`。Touch: `app.js:1026, 2431`。
 
 ### OPT-038 — 用户注册与 `ensure_user_state()` 使用 `now_iso()` 写入 `user_state.updated_at`——与 `save_state()` 的 `utc_now_iso()` 不一致，污染乐观锁版本字段 — 由 explore E65 提拔
-- status: triaged
+- status: done (PR #92, 2026-07-25 — 注册及 ensure_user_state 版本戳统一为 UTC-Z，消除乐观锁版本字段污染)
 - northstar: 中——乐观锁是防跨设备丢数据机制(bug-274 同类痛点,数据安全链路),版本字段污染可致锁失效。P2。
 - area: backend
 - description: 用户注册处理器（`app_server.py:4057-4061`）用 `now_iso()` 写入 `users.created_at`、`users.terms_accepted_at` 和首条 `user_state.updated_at`；`ensure_user_state()`（`app_server.py:676`）同样用 `now_iso()` 写入 `user_state.updated_at`（INSERT OR IGNORE 路径）。而 `save_state()`（`app_server.py:704`）已改用 `utc_now_iso()`。OPT-030（乐观锁）以 `user_state.updated_at` 作为版本号返回给客户端（`stateVersion`）；新用户的首个 `stateVersion` 是 naive 本地时间，后续所有写入是 UTC+Z，造成版本字段在同一列内格式不一致（初始行 naive，更新行 UTC）。
@@ -595,7 +595,7 @@ Format per item:
 - how: ① 在 `renderQuotes()` 渲染完成后，对新渲染的摘抄卡片图片调用类似 `bindBookCoverImageFallback` 的函数，或直接在模板 `<img>` 后附加委托式 `error` 监听（避免 inline onerror CSP 风险）。② 在 `openQuoteDetail()`（`app.js:2247`）的 `img.src = ...` 后加 `img.onerror = () => imgWrap.classList.add("is-hidden")`。Touch: `app.js:1454-1457`（摘抄卡片模板区域）；`app.js:2244-2251`（`openQuoteDetail`）；参考模式 `app.js:229-250`。
 
 ### OPT-072 — 搜索输入框无防抖，每次按键触发全量 DOM 重建 — 由 explore E115 提拔
-- status: triaged
+- status: done (PR #91, 2026-07-25 — 搜索输入防抖 250ms 已加，摘抄 100+ 条按键卡顿消除)
 - area: frontend
 - priority: P2
 - size: S
@@ -1209,7 +1209,7 @@ Format per item:
 - how: `app.js:1789`（`els.timeline.appendChild(card)` 前）：新增 `card.addEventListener("click", () => openBookDetailDialog(book.id));`，1 行。Touch: `app.js:1789` 仅此 1 处。
 
 ### OPT-133 — MCP `_save_state()` 绕过乐观锁：并发写入（MCP + HTTP）可致状态覆盖丢失 — 由 explore E213 提拔 [2026-07-23]
-- status: triaged
+- status: done (PR #93, 2026-07-26 — MCP _save_state() 加乐观锁版本戳校验，MCP+HTTP 并发写入竞态已修)
 - area: backend
 - priority: P2
 - size: S
@@ -1219,7 +1219,7 @@ Format per item:
 - how: `reading_mcp_server.py:75-81`（`_save_state()`）：参照 `app_server.py` 的 `save_state_checked()` 实现，改为先读 `updated_at`，UPDATE 带 `WHERE updated_at=<old>`，检查 `rowcount`，为 0 则抛冲突异常；6 处调用点需传入 `expected_version` 参数（从 `_load_state()` 返回时一并返回 `updated_at`）。Touch: `reading_mcp_server.py:75-81`（_save_state）、`reading_mcp_server.py:60-74`（_load_state，需同时返回 updated_at）、各工具函数调用点（约 6 处）。
 
 ### OPT-134 — `all_books_summary` 50 本上限：110 本豆瓣书约 60 本对 AI 跨书查询永久不可见 — 由 explore E215 提拔 [2026-07-23]
-- status: triaged
+- status: done (PR #91, 2026-07-25 — [:50] → [:120]，同步补入 startedAt 字段，系统指令更新；AI 可见书库由 50 升至 120)
 - area: backend
 - priority: P2
 - size: S
@@ -1247,3 +1247,23 @@ Format per item:
 - description: `app.js:3776-3875`（openBookDetailDialog）：全函数无任何 state.sessions 访问。`getBookSessions(bookId)`（`app.js:931`）已封装（`state.sessions.filter((item) => item.bookId === bookId)`），可直接调用；OPT-074（startedAt/finishedAt 日期）和 OPT-077（时间线里程碑）已有相关基础，书籍详情无「该书 sessions 小列表」仍是信息缺口。index.html 的 #bookDetailDialog（`index.html:410-433`）骨架无 session 相关容器。
 - why: getBookSessions 已封装，直接可用；M 复杂度主要来自 HTML/CSS 新增和边界处理（空 sessions、单次 / 多次记录、时长未填等）；修复后书籍详情从「摘抄+评价」升级为「完整阅读档案」，直接对应 owner 2026-06-26 signal「希望每本书有读完日期字段……不依赖手动加记录」的延伸方向。
 - how: ① `index.html:410-433`（#bookDetailDialog 内）：新增 `<div id="bookDetailSessions" class="is-hidden">` section，结构参照 bookDetailQuotes 区域；② `app.js:3776-3875`（openBookDetailDialog）：调用 `getBookSessions(bookId)` 取最近 3-5 条 session，渲染「日期 · 第 X-Y 页 · Z 分钟」列表（时长 0/未填时省略时长）；session 数量 > 5 时加「查看全部 N 条记录」链接（跳转动态 Tab）；无 sessions 时 section 隐藏；③ `styles.css`：新增 session mini-card 样式（3-5 行，参照 book-detail-quote 卡面）。Touch: `index.html:410-433`、`app.js:3776-3875`（openBookDetailDialog）、`styles.css`。
+
+### OPT-137 — `build_system_instruction()` 无 `existing_connections` 字段说明：OPT-135 落地后 AI 有数据但无指引，无法用于去重或回答「关联过什么」— 由 explore E222 提拔 [2026-07-26]
+- status: triaged
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「建立关联」；是 OPT-135 的必要配套：OPT-135 修复数据层（existing_connections 从恒空改为按 bookId 过滤），本项修复指令层（告诉 AI 该字段含义与使用时机）；两项合并才能让 AI 真正利用关联数据；S 改动，建议与 OPT-135 同 PR。
+- description: `app_server.py:2643-2670`（`build_system_instruction()`）的 `common_rules`（`app_server.py:2648`）详细说明了 `all_books_summary`（400+ 字）但对 `existing_connections` 字段零提及。`focused_quote` 场景规则 8（`app_server.py:2652`）和 `book` 场景规则 7（`app_server.py:2656`）规定 `sourceId`/`targetId` 必须来自 `all_books_summary`/`quotes`，但均未提示 AI 在建议 `link_thought` 之前先检查 `existing_connections`、避免重复连接，也未告知用户问「这本书我关联过什么」时应读取该字段作答。
+- why: OPT-135 修复后，AI 将在书/摘抄上下文中收到非空的 `existing_connections`（该书相关关联，最多 10 条）。缺乏指令导致 AI 收到数据但行为不变——不会主动检查、不会避免重复、不会直接引用回答——OPT-135 实际效果打折。
+- how: `app_server.py:2648`（`common_rules` 第 5 条末尾或新增第 6 条）：追加 `existing_connections` 说明，约 3 句——①含义（当前书/摘抄上下文已有的思想关联列表，每项含 sourceId、targetId、kind、thought）；②使用时机（建议 `link_thought` 前先查此列表，若已存在相同 sourceId+targetId 的关联则不重复建议）；③回答场景（用户问「我关联过什么」时直接引用此字段，不要说「没有关联」）。Touch: `app_server.py:2648`（common_rules）或 `app_server.py:2652`/`2656`（各场景 scenario_rules）。
+
+### OPT-138 — `link_thought()` 无重复连接检测：同一对实体可被 AI 反复关联，`connections` 积累无用重复项 — 由 explore E223 提拔 [2026-07-26]
+- status: triaged
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「建立关联」；关联列表是「思想碰撞」的主要回顾视图，重复关联污染列表数据并与 E222/OPT-137（existing_connections 指引）形成双重保护（指令层劝阻 + 工具层去重）；S 修复，参照 `add_book` 现有 dedup 模式。
+- description: `reading_mcp_server.py:498-530`（`link_thought()`）验证了 source/target 实体存在，但不检查 `state["connections"]` 是否已存在 `(source_id, target_id)` 相同的关联，每次调用均无条件 `insert(0, connection)`。对比：`add_book()`（`reading_mcp_server.py:288-296`）有显式 `any(_books_are_same(...))` 去重；`link_thought` 无类似保护。`tests/agent/reading_mcp_server_tools_test.py` 无测试覆盖重复调用行为。
+- why: 用户多轮对话中多次要求「建立关联」可积累多条内容相同的关联；`existing_connections`（OPT-135 修复后）也可能返回重复项给 AI，进一步混淆 AI 的去重判断；关联 Tab 展示重复关联体验差，删除需手动逐条操作。
+- how: `reading_mcp_server.py:508`（entity 存在性检查之后、`connection = {...}` 之前）：扫描 `state.get("connections", [])` 查找已有 `(c["sourceId"] == source_id and c["targetId"] == target_id) or (c["sourceId"] == target_id and c["targetId"] == source_id)`；找到则返回 `_ok(state, {"skipped": True, "existing": found_conn})`（类比 `add_book` dedup 返回策略）；找不到再 insert。同时在 `tests/agent/reading_mcp_server_tools_test.py` 补一个测试：同 source+target 两次 `link_thought` → 第二次 `skipped=True`，`connections` 仍只有 1 条。Touch: `reading_mcp_server.py:508-524`（link_thought 逻辑）；`tests/agent/reading_mcp_server_tools_test.py`（补测）。
