@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-27T17:10:51.914Z
-> Files: 354 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-27T20:12:28.366Z
+> Files: 355 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -231,7 +231,7 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~74969 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~75150 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~67619 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
@@ -359,7 +359,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~1918 tok)
+- `triage.md` — Triage (~1914 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -388,7 +388,7 @@
 
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
-- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~15298 tok)
+- `agent_backend_property_test.py` — AgentBackendPropertyTests: setUp, tearDown, request_json, request_sse_events + 12 more (~15543 tok)
 - `book_ocr_endpoint_test.py` — OPT-002: POST /api/books/ocr sync route — mocks call_kimi_vision, asserts 200 {title,author,tags}, 400 no image, 401 unauth, friendly no-key error. (~1300 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1406 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)
@@ -403,6 +403,7 @@
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
+- `prompt_builder_connections_test.py` — ExistingConnectionsFilterTest: setUp, test_global_context_returns_all_connections, test_book_context (~2251 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
 - `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~5176 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
