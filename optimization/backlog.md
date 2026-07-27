@@ -1267,3 +1267,23 @@ Format per item:
 - description: `reading_mcp_server.py:498-530`（`link_thought()`）验证了 source/target 实体存在，但不检查 `state["connections"]` 是否已存在 `(source_id, target_id)` 相同的关联，每次调用均无条件 `insert(0, connection)`。对比：`add_book()`（`reading_mcp_server.py:288-296`）有显式 `any(_books_are_same(...))` 去重；`link_thought` 无类似保护。`tests/agent/reading_mcp_server_tools_test.py` 无测试覆盖重复调用行为。
 - why: 用户多轮对话中多次要求「建立关联」可积累多条内容相同的关联；`existing_connections`（OPT-135 修复后）也可能返回重复项给 AI，进一步混淆 AI 的去重判断；关联 Tab 展示重复关联体验差，删除需手动逐条操作。
 - how: `reading_mcp_server.py:508`（entity 存在性检查之后、`connection = {...}` 之前）：扫描 `state.get("connections", [])` 查找已有 `(c["sourceId"] == source_id and c["targetId"] == target_id) or (c["sourceId"] == target_id and c["targetId"] == source_id)`；找到则返回 `_ok(state, {"skipped": True, "existing": found_conn})`（类比 `add_book` dedup 返回策略）；找不到再 insert。同时在 `tests/agent/reading_mcp_server_tools_test.py` 补一个测试：同 source+target 两次 `link_thought` → 第二次 `skipped=True`，`connections` 仍只有 1 条。Touch: `reading_mcp_server.py:508-524`（link_thought 逻辑）；`tests/agent/reading_mcp_server_tools_test.py`（补测）。
+
+### OPT-139 — `build_chat_prompt` per-book quote 切片取最旧 20 条：书注量超 20 时最近摘抄对 AI 不可见 — 由 explore E226 提拔 [2026-07-27]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值」；AI 探讨质量依赖摘抄相关性，最近添加的摘抄最贴近当前阅读进度，却因插入顺序切片被静默排除；按 createdAt 降序取前 20 保持 token 预算不变，只改选取策略，直接提升 AI 上下文与当前阅读状态的对齐度。
+- description: `app_server.py:2591`：`raw_quotes = [item for item in user_state.get("quotes", []) if item.get("bookId") == book_id][:20]`——`[:20]` 保留插入顺序（oldest-first），无 `sorted()` 调用。对比同文件 `all_books_summary`（`app_server.py:2620`）已按 `updatedAt` 降序排序：`sorted(..., reverse=True)[:120]`——书列表有相同问题的修复先例，摘抄列表遗漏。Owner 豆瓣导入 110 本书并持续 OCR 批注，核心书籍可轻松积累 20+ 条摘抄，最近加的句子对 AI 完全不可见。
+- why: 「回顾有价值」的前提是 AI 能看到最新的阅读痕迹。最旧优先的切片与相关性目标相反：刚加的摘抄（最可能是当前对话的起点）反而在截断线之后。S 修复：排序后再切，零 schema/接口/前端变更。
+- how: `app_server.py:2591`：将 list comprehension 改为 `sorted([q for q in user_state.get("quotes", []) if q.get("bookId") == book_id], key=lambda q: q.get("createdAt", ""), reverse=True)[:20]`；约 1 行改动。Touch: `app_server.py:2591` 仅此一处。
+
+### OPT-140 — 建立关联弹窗来源为摘抄时目标类型默认「书籍」：quote-to-quote 关联每次须额外切换下拉 — 由 explore E227 提拔 [2026-07-27]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「建立关联」；quote-to-quote 是「思想碰撞」最核心用例，来源摘抄时默认目标为书籍属反自然设定；2026-06-29 signal 明确记录 owner 有 quote-to-quote 关联需求；S 改动减少每次操作步骤，零 backend/schema 变更。
+- description: `openConnectionDialog`（`app.js:5401-5425`）在 `app.js:5405`：`document.getElementById("connTargetType").value = targetType || "book"`——`targetType` 未传时固定为 `"book"`，不受 `sourceType` 影响。从摘抄菜单（`app.js:5879`）或摘抄详情（`app.js:5626`）触发均传 `{ sourceType: "quote", sourceId: ... }` 但不传 `targetType`，导致目标下拉始终初始化为「书籍」。2026-06-29 signal：「目标若选摘抄，关键词搜索后每条摘抄显示不完整」——owner 有实际 quote-to-quote 需求，每次需额外点一次类型切换。
+- why: 来源是摘抄时，另一条摘抄是最自然的关联目标（同书不同段、跨书呼应）。默认目标为书籍让 「从摘抄建立关联」的用例需要额外步骤，与 2026-06-29 signal 直接相关。S 改动：2 行，无 backend 变更。
+- how: `app.js:5405`：将 `targetType || "book"` 改为 `targetType || (sourceType === "quote" ? "quote" : "book")`；同步 `app.js:5413`：`toggleConnComboboxes("target", targetType || (sourceType === "quote" ? "quote" : "book"))`。Touch: `app.js:5404-5413`（`openConnectionDialog` 前 12 行）。

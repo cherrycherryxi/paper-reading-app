@@ -3975,3 +3975,124 @@ except Exception as error:
 ---
 
 > 本次 run（2026-07-26）扫描焦点：OPT-135（existing_connections 数据层修复）下游 AI 指令层配套完整性、MCP `link_thought` 数据质量保护、并发写冲突在 MCP dispatcher 侧的处理逻辑、MCP 服务进程健康管理。新发现 4 条：E222（系统指令无 existing_connections 说明，S，northstar 中，Theme 2 OPT-135 配套）、E223（link_thought 无重复连接检测，S，northstar 中，关联数据质量）、E224（StateVersionConflict 被 dispatcher 吞掉不重试，M，northstar 弱-中，OPT-133 完整性）、E225（MCP 服务无健康探针，M，northstar 弱，基础设施可靠性）。提拔 OPT-137（E222，S，系统指令 existing_connections 说明，northstar 中，建议与 OPT-135 同 PR）、OPT-138（E223，S，link_thought dedup，northstar 中）。所有断言均基于实际代码读取，已标注 file:line。
+
+---
+
+## 2026-07-27
+
+### E226 — `build_chat_prompt` 按书 quote 切片取最旧 20 条：书注量超过 20 时最近添加的摘抄对 AI 不可见 — `app_server.py:2591` (S)
+
+**What (verified):**
+
+```python
+raw_quotes = [item for item in user_state.get("quotes", []) if item.get("bookId") == book_id][:20] if book_id else []
+```
+
+`app_server.py:2591`：`[:20]` 直接截取列表推导结果，无 `sorted()` 调用，保留原始 state 插入顺序（oldest-first）。对同一本书注量超过 20 条的情况，最近添加的摘抄被静默排除出 AI 上下文。
+
+**Evidence:**
+- `app_server.py:2591`：`[:20]` 无任何 `key=` 排序，取插入顺序前 20 条
+- 对比同文件 `all_books_summary` 构造（`app_server.py:2620`）：`sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:120]`——书列表显式以最近更新倒序排序，摘抄列表无等价处理
+- State 中 quotes 以追加方式积累（前端 `state.quotes.push(newQuote)` 后调用 `syncState()`），故插入顺序等于创建时间升序（最旧在前）
+
+**Why it matters:** Owner 已通过豆瓣导入 110 本书并持续 OCR 批注，部分核心书籍（如《活着》《百年孤独》原型书）可能积累 20+ 条摘抄。AI 看到的是 6 个月前的旧摘抄，对上周刚加的句子一无所知——恰好颠倒了相关性优先级。
+
+**Complexity:** S（将 `[:20]` 改为先按 `createdAt` 降序排序再取前 20：`sorted([q for q in ... if q.get("bookId") == book_id], key=lambda q: q.get("createdAt", ""), reverse=True)[:20]`，保持 token 预算不变，只改选取策略；1 行改动）
+
+**Files:** `app_server.py:2591`
+
+**northstar:** 中——Theme 2「回顾有价值」：AI 探讨质量直接依赖所见摘抄的相关性；保持 20 条上限但优先选最新，比扩大上限代价更低（无 token 增加），直接服务于「随手翻书对话」体验。
+
+---
+
+### E227 — 建立关联弹窗：来源为摘抄时目标类型仍默认「书籍」，quote-to-quote 关联每次须手动切换下拉 — `app.js:5404-5405` (S)
+
+**What (verified):**
+
+```javascript
+document.getElementById("connSourceType").value = sourceType || "book";   // app.js:5404
+document.getElementById("connTargetType").value = targetType || "book";   // app.js:5405
+```
+
+`openConnectionDialog`（`app.js:5401-5425`）：`targetType` 未传入时固定默认 `"book"`，不受 `sourceType` 影响。
+
+调用来源均未传 `targetType`：
+- `app.js:5626`：`openConnectionDialog({ sourceType: "quote", sourceId: quoteId })` — 来源摘抄已填，目标仍默认书籍
+- `app.js:5879`：`openConnectionDialog({ sourceType: "quote", sourceId: id })` — 同上
+
+```javascript
+toggleConnComboboxes("source", sourceType || "book");   // app.js:5412
+toggleConnComboboxes("target", targetType || "book");   // app.js:5413
+```
+
+`toggleConnComboboxes`（`app.js:5427-5438`）基于 type 值显示/隐藏对应下拉，目标下拉联动同样固定显示「书籍」combobox。
+
+**Evidence:**
+- `app.js:5405`：`targetType || "book"` — 无 sourceType 推断逻辑
+- 2026-06-29 signal：「目标若选摘抄，关键词搜索后每条摘抄显示不完整（被截断），看不清内容、找不到想关联的那一条」——可见 owner 确实有 quote-to-quote 关联需求，每次都要先切换目标类型
+
+**Why it matters:** quote-to-quote 是「思想碰撞」最核心的用例——两条摘抄相互呼应、形成关联。来源为摘抄时默认目标为书籍是反自然的（摘抄 → 书会让关联退化为"这条摘抄来自哪本书"）。每次建立摘抄间关联需额外点一次类型切换。
+
+**Complexity:** S（当 `sourceType === "quote"` 且 `targetType` 未传入时，默认目标类型改为 `"quote"`：将 `targetType || "book"` 改为 `targetType || (sourceType === "quote" ? "quote" : "book")`，同步应用到 `toggleConnComboboxes` 调用；约 2 行改动）
+
+**Files:** `app.js:5404-5405`（目标类型默认值）、`app.js:5412-5413`（`toggleConnComboboxes` 调用）
+
+**northstar:** 中——Theme 2「建立关联」：与 2026-06-29 signal 直接相关；减少 quote-to-quote 关联操作步骤，降低每次建立摘抄间连接的摩擦；S 改动零 backend/schema 变更。
+
+---
+
+### E228 — 聊天限速错误无「重试」按钮：与 OPT-073 通用错误路径不对称 — `chat.js:717-720` (S)
+
+**What (verified):**
+
+```javascript
+if (error?.code === "rate_limited") {
+  thinking.classList.remove("chat-bubble-loading");
+  thinking.textContent = error.message;
+  thinking.classList.add("chat-rate-limited");
+} else {
+  // OPT-073: non-timeout streaming errors ... also need a one-tap recovery path
+  thinking.textContent = `出错了：${error.message}`;
+  thinking.classList.add("chat-error");
+  appendRetryControl(thinking, text);   // ← 重试按钮
+}
+```
+
+`chat.js:717-729`：rate-limited 分支仅显示 `error.message` + CSS 类，无 `appendRetryControl` 调用；else 分支（OPT-073 修复后）有内联重试按钮。`error.retryAfter`（`chat.js:642`）已解析出等待秒数，但未被消费。
+
+**Why it matters:** 被限速后用户需手动重新输入或滚动回原消息重发。对单用户 app 触发概率极低，优先级低；主要是与 OPT-073 的设计一致性问题。
+
+**Complexity:** S（在 rate-limited 分支加一行 `appendRetryControl(thinking, text)` 或带 `retryAfter` 倒计时的延迟版按钮）
+
+**Files:** `chat.js:717-720`
+
+**northstar:** 弱——代码一致性，单用户限速概率极低，对北极星指标无直接贡献；建议预算充裕时顺手做。
+
+---
+
+### E229 — `matchQuotes()` 定义后从未被调用：死代码，且缺少 `ocrText` 回落 — `app.js:1372-1374` (S)
+
+**What (verified):**
+
+```javascript
+// Used by book-detail and quote-tab filtering only. Intentionally NOT wired into globalSearch().
+function matchQuotes(query) {
+  return state.quotes.filter((quote) => isRegularQuote(quote) && fuzzyMatch(quote.content || "", query));
+}
+```
+
+`app.js:1371-1374`：注释声称「Used by book-detail and quote-tab filtering」，但全文搜索无任何 `matchQuotes(` 调用点——函数从未被调用。实际摘抄过滤在 `renderQuotes`（`app.js:1877-1888`）以内联逻辑实现，haystack 正确包含 `item.content || item.ocrText || ""`。
+
+注意：`matchQuotes` 仅使用 `quote.content || ""`，若被调用将导致 OCR 摘抄（content 为空、文本在 ocrText）漏搜——但当前死代码，不产生实际 bug。
+
+**Why it matters:** 死代码混淆代码意图（注释说「在用」但实际未用），且若未来误引入调用将出现 OCR 摘抄漏搜 regression。S 清理。
+
+**Complexity:** S（直接删除 1372-1374 行，或补 `ocrText` 回落后接入 `renderQuotes`）
+
+**Files:** `app.js:1372-1374`
+
+**northstar:** 无——纯代码卫生，不影响用户可见功能。
+
+---
+
+> 本次 run（2026-07-27）扫描焦点：PromptBuilder per-book quote 选取策略、建立关联弹窗目标类型默认值、聊天限速 UX 一致性、死代码。新发现 4 条：E226（per-book quote slice 取最旧 20 非最新，S，northstar 中，Theme 2 AI 上下文相关性）、E227（关联弹窗来源摘抄时目标仍默认书籍，S，northstar 中，2026-06-29 signal 佐证，Theme 2 摩擦减少）、E228（限速错误无重试按钮，S，northstar 弱，代码一致性）、E229（matchQuotes 死代码且缺 ocrText 回落，S，无北极星贡献）。提拔 OPT-139（E226，S，per-book quote 最新优先，Theme 2）、OPT-140（E227，S，关联弹窗目标默认推断，Theme 2）。所有断言均基于实际代码读取，已标注 file:line。
