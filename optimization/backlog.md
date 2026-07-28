@@ -1287,3 +1287,23 @@ Format per item:
 - description: `openConnectionDialog`（`app.js:5401-5425`）在 `app.js:5405`：`document.getElementById("connTargetType").value = targetType || "book"`——`targetType` 未传时固定为 `"book"`，不受 `sourceType` 影响。从摘抄菜单（`app.js:5879`）或摘抄详情（`app.js:5626`）触发均传 `{ sourceType: "quote", sourceId: ... }` 但不传 `targetType`，导致目标下拉始终初始化为「书籍」。2026-06-29 signal：「目标若选摘抄，关键词搜索后每条摘抄显示不完整」——owner 有实际 quote-to-quote 需求，每次需额外点一次类型切换。
 - why: 来源是摘抄时，另一条摘抄是最自然的关联目标（同书不同段、跨书呼应）。默认目标为书籍让 「从摘抄建立关联」的用例需要额外步骤，与 2026-06-29 signal 直接相关。S 改动：2 行，无 backend 变更。
 - how: `app.js:5405`：将 `targetType || "book"` 改为 `targetType || (sourceType === "quote" ? "quote" : "book")`；同步 `app.js:5413`：`toggleConnComboboxes("target", targetType || (sourceType === "quote" ? "quote" : "book"))`。Touch: `app.js:5404-5413`（`openConnectionDialog` 前 12 行）。
+
+### OPT-141 — `all_books_summary` 缺 `tags` 字段：AI 无法按标签跨书查询 — 由 explore E230 提拔 [2026-07-28]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「回顾有价值」；AI 跨书标签查询（「成长/悬疑/哲学类」「读书会推荐」）是基于分类的阅读回顾基础能力；2026-07-03 signal 直接佐证（owner 搜「成长」零结果，根因 `matchBooks()` 不搜 tags，AI 端同款盲区未修）；S 改动，1 行数据 + 1-2 句指令，零 schema/接口/前端变更。
+- description: `app_server.py:2626-2634`（`all_books_summary` dict comprehension）包含 9 个字段（id/title/author/status/rating/startedAt/finishedAt/doubanComment/review）但无 `tags`。`build_system_instruction()` 规则 5（`app_server.py:2661`）列举了所有字段使用规则，同样无 tags 提及——即便数据层补上 tags，AI 不知道如何使用。OPT-134（PR #91）已将书库上限扩展到 120 本，OPT-092（PR #60）已修复 `matchBooks()` 的 tags 盲区，AI 提示词端同款盲区尚未补上。
+- why: tags 是用户为书籍主动分类的唯一结构化数据（区别于 doubanComment 短评，tag 是显式分类意图）；AI 看不到 tags 导致所有按主题/标签的跨书查询依赖 AI 凭书名/简介猜测，准确率低。2026-07-03 signal 是直接证据：「库里有多本成长题材（标签 `小说(成长/哲学)`）但搜索零结果」——书单搜索的盲区与 AI 提示词的盲区完全平行。
+- how: ① `app_server.py:2632`（all_books_summary dict，`"review": ...` 之后）：加 `"tags": b.get("tags", [])`；② `app_server.py:2661`（common_rules 规则 5 末尾）：追加约 1-2 句「每本书还带 tags（用户自定义标签列表，可为空）；回答「有哪些成长/悬疑/哲学类书」「读书会推荐」等按主题分类查询时，应检索 tags 字段，不要仅凭书名或简介推断」。Touch: `app_server.py:2632`（数据）、`app_server.py:2661`（指令）。
+
+### OPT-142 — 关联弹窗 `filteredQuotes()` 不搜索摘抄 `tags`：按标签找目标摘抄失败 — 由 explore E232 提拔 [2026-07-28]
+- status: new
+- area: frontend
+- priority: P3
+- size: S
+- northstar: 弱中——Theme 2「建立关联」；标签是摘抄分类的主要手段，关联弹窗无法按标签检索降低了按主题建立摘抄间关联的可行性；与 OPT-092（matchBooks 补 tags）、OPT-096（renderConnections 补 c.tags）同属 searchable-fields 系列，建议搭车同一 PR。
+- description: `app.js:5303-5311`（`initQuoteCombobox()` 内 `filteredQuotes`）：过滤仅匹配 `quoteText(item)`（content/ocrText）和 `book.title`，不搜索 `item.tags` 和 `item.reflection`。对比：`renderQuotes()` haystack（`app.js:1880-1886`）已正确包含 tags 和 reflection，两处过滤逻辑不对称——用户在摘抄 Tab 按标签能找到摘抄，在关联弹窗按同一标签却找不到。
+- why: 用户给摘抄打了标签（如「哲学」「成长」），在建立关联时输入该标签无法找到目标摘抄，需手动回忆原文片段才能匹配。标签系统在「建立关联」（最需要按主题查找摘抄）的场景下完全失效，与 tags 投入的管理成本不对等。
+- how: `app.js:5308-5309`（`filteredQuotes` filter 条件）末尾加 `|| (item.tags || []).some(t => t.toLowerCase().includes(lower))`（约 1 行）。可选：同时加 `|| (item.reflection || "").toLowerCase().includes(lower)` 与 `renderQuotes` haystack 对齐。Touch: `app.js:5308-5309`（filteredQuotes filter）。

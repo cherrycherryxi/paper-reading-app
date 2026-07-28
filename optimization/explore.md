@@ -4096,3 +4096,84 @@ function matchQuotes(query) {
 ---
 
 > 本次 run（2026-07-27）扫描焦点：PromptBuilder per-book quote 选取策略、建立关联弹窗目标类型默认值、聊天限速 UX 一致性、死代码。新发现 4 条：E226（per-book quote slice 取最旧 20 非最新，S，northstar 中，Theme 2 AI 上下文相关性）、E227（关联弹窗来源摘抄时目标仍默认书籍，S，northstar 中，2026-06-29 signal 佐证，Theme 2 摩擦减少）、E228（限速错误无重试按钮，S，northstar 弱，代码一致性）、E229（matchQuotes 死代码且缺 ocrText 回落，S，无北极星贡献）。提拔 OPT-139（E226，S，per-book quote 最新优先，Theme 2）、OPT-140（E227，S，关联弹窗目标默认推断，Theme 2）。所有断言均基于实际代码读取，已标注 file:line。
+
+## 2026-07-28
+
+### E230 — `all_books_summary` 缺少 `tags` 字段：AI 无法按标签跨书查询 — `app_server.py:2626-2634` (S)
+
+**What (verified):**
+
+```python
+"all_books_summary": [
+    {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""),
+     "status": b.get("status", ""), "rating": b.get("rating", 0),
+     "startedAt": (b.get("startedAt") or "")[:10],
+     "finishedAt": (b.get("finishedAt") or "")[:10],
+     "doubanComment": (b.get("doubanComment") or "")[:60],
+     "review": (b.get("review") or "")[:120]}
+    for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:120]
+],
+```
+
+`app_server.py:2626-2634`：dict comprehension 包含 9 个字段（id/title/author/status/rating/startedAt/finishedAt/doubanComment/review），**无 `tags` 字段**。`build_system_instruction()` 规则 5（`app_server.py:2661`）详细说明了上述所有字段的含义与使用规则，同样无任何对 `tags` 的提及——即便数据层补上 tags，AI 也不知道如何使用。
+
+**Why it matters:** OPT-134（PR #91）已将书库上限从 50 扩展到 120，但 `tags` 仍对 AI 不可见。2026-07-03 signal：「为读书会按主题找书，书单搜「成长」零结果——库里有多本成长题材（标签 `小说(成长/哲学)`、简介含「成长」）」——同一痛点在 AI 对话中完全存在：owner 无法问「帮我找书架上成长类的书」并期待 AI 从标签命中。OPT-092（PR #60）已修复 `matchBooks()` 的 tags 盲区，AI 提示词端同款盲区尚未补上。
+
+**Complexity:** S（`app_server.py:2632` 加一行 `"tags": b.get("tags", [])`；`app_server.py:2661` 末尾追加约 1-2 句 tags 使用说明）
+
+**Files:** `app_server.py:2626-2634`（all_books_summary 构造）、`app_server.py:2661`（系统指令规则 5）
+
+**northstar:** 中——Theme 2「回顾有价值」；AI 跨书标签查询（「成长/悬疑/哲学类」「读书会推荐」）是基于分类的阅读回顾基础能力；2026-07-03 signal 直接佐证；与 OPT-092 在搜索路径同系列，本项修复 AI 对话路径。
+
+---
+
+### E231 — 聊天压缩阈值仅 10 条：书籍深度探讨过早丢失早期对话上下文 — `app_server.py:2524-2525` (S)
+
+**What (verified):**
+
+```python
+_COMPRESS_THRESHOLD = 10   # messages before triggering compression  # app_server.py:2524
+_COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_server.py:2525
+```
+
+10 条消息（约 5 轮用户提问）即触发压缩；将早期消息压缩为 200 字 LLM 摘要后替换（`app_server.py:2541-2543`：`"将以下对话压缩为200字内摘要，保留书名、核心观点和已执行的操作"`），仅保留最近 6 条原文。探讨同一本书的多轮对话——前 3 轮讨论整体观感、第 4-5 轮就某段摘抄深入、第 6 轮引用第 2 轮观点——到第 11 条时，早期细粒度讨论已不可恢复性地被压缩到 200 字。
+
+**Why it matters:** 2026-07-05 北极星：探讨 47 次，是第二高频操作；探讨是 owner 最常用的 AI 功能。阈值提高到 20 对 token 预算冲击极小（单条消息 50-200 token，增量 10 条约 1-2k token），但将「不丢失」的有效对话轮次从 5 轮扩展到 10 轮——正好覆盖一次书籍深度探讨的典型长度。
+
+**Complexity:** S（`_COMPRESS_THRESHOLD = 10` → 20；`_COMPRESS_KEEP_RECENT = 6` → 8；约 2 行改动）
+
+**Files:** `app_server.py:2524-2525`
+
+**northstar:** 弱中——无信号直接佐证，但探讨是第二高频操作（7/05: 47 次），阈值过低是所有深度对话会话的系统性上下文衰退；S 改动，无 schema/接口/前端变更。
+
+---
+
+### E232 — 关联弹窗 `filteredQuotes()` 不搜索摘抄标签：按标签找目标摘抄失败 — `app.js:5303-5311` (S)
+
+**What (verified):**
+
+```javascript
+function filteredQuotes(q) {
+    if (!q) return allQuotes.slice(0, 30);
+    const lower = q.toLowerCase();
+    return allQuotes.filter((item) => {
+        const book = state.books.find((b) => b.id === item.bookId);
+        return quoteText(item).toLowerCase().includes(lower) ||
+            (book?.title || "").toLowerCase().includes(lower);
+    }).slice(0, 30);
+}
+```
+
+`app.js:5303-5311`（`initQuoteCombobox()` 内）：过滤仅匹配 `quoteText(item)`（content/ocrText）和 `book.title`，**不搜索 `item.tags` 和 `item.reflection`**。对比：`renderQuotes()` haystack（`app.js:1880-1886`）已正确包含 tags 和 reflection，两处过滤逻辑不对称——用户在摘抄 Tab 按标签能找到摘抄，在关联弹窗按同一标签却找不到。
+
+**Why it matters:** 用户若给摘抄打了「哲学」「成长」标签，在建立关联时输入该标签无法找到目标摘抄，需手动回忆原文片段才能匹配。标签本是摘抄分类的主要手段，却在「建立关联」（最需要按主题查找摘抄）的场景下完全失效。
+
+**Complexity:** S（`filteredQuotes` 过滤末尾加 `|| (item.tags || []).some(t => t.toLowerCase().includes(lower))`，约 1 行）
+
+**Files:** `app.js:5303-5311`（`initQuoteCombobox` 内 `filteredQuotes`）
+
+**northstar:** 弱中——Theme 2「建立关联」；标签是摘抄分类的主要手段，关联弹窗无法按标签检索降低了按主题建立摘抄间关联的可行性；与 OPT-092（matchBooks 补 tags）、OPT-096（renderConnections 补 c.tags）同属 searchable-fields 系列。
+
+---
+
+> 本次 run（2026-07-28）扫描焦点：all_books_summary 数据字段完整性、聊天压缩策略、关联弹窗检索覆盖面。新发现 3 条：E230（all_books_summary 缺 tags，S，northstar 中，2026-07-03 signal 直接佐证，Theme 2 AI 跨书标签查询）、E231（压缩阈值 10 条过早，S，northstar 弱中，无直接信号但影响所有深度探讨）、E232（关联弹窗 filteredQuotes 不搜 tags/reflection，S，northstar 弱中，searchable-fields 系列）。提拔 OPT-141（E230，all_books_summary 补 tags，S，Theme 2，7/03 signal）、OPT-142（E232，关联弹窗 filteredQuotes 补 tags，S，Theme 2）。所有断言均基于实际代码读取，已标注 file:line。
