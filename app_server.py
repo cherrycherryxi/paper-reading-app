@@ -2588,7 +2588,12 @@ def _strip_quote_for_prompt(q: dict) -> dict:
 class PromptBuilder:
     def build_chat_prompt(self, user_state: dict, book_id: str, chat_history: list[dict], quote_id: str = "") -> str:
         book = next((item for item in user_state.get("books", []) if item.get("id") == book_id), None)
-        raw_quotes = [item for item in user_state.get("quotes", []) if item.get("bookId") == book_id][:20] if book_id else []
+        # OPT-139: 取该书「最近」20 条摘抄而非最旧 20 条——重度 OCR 批注下单本书注量常超 20，
+        # 按 createdAt 倒序切片才能让 AI 看到近期摘抄（沿用下方 all_books_summary 的 sorted+reverse 先例）。
+        raw_quotes = sorted(
+            (item for item in user_state.get("quotes", []) if item.get("bookId") == book_id),
+            key=lambda q: q.get("createdAt", ""), reverse=True,
+        )[:20] if book_id else []
         quotes = [_strip_quote_for_prompt(q) for q in raw_quotes]
         raw_focused = next((item for item in user_state.get("quotes", []) if item.get("id") == quote_id), None) if quote_id else None
         focused_quote = _strip_quote_for_prompt(raw_focused) if raw_focused else None
