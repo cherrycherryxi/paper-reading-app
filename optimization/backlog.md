@@ -1229,7 +1229,7 @@ Format per item:
 - how: `app_server.py:2615`：`[:50]` → `[:120]`（或参数化 `MAX_BOOKS_IN_SUMMARY = 120`）；`app_server.py:2614`：dict 内加 `"startedAt": (b.get("startedAt") or "")[:10]`（E217 合并）；`app_server.py:2643`：系统指令同步更新上限与 `startedAt` 说明。Touch: `app_server.py:2609-2616`（all_books_summary 构造）、`app_server.py:2643`（系统指令）。
 
 ### OPT-135 — `existing_connections` 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」，书上下文 link_thought 无重复检测能力 — 由 explore E221 提拔 [2026-07-24]
-- status: triaged
+- status: done (PR #94, 2026-07-28 — existing_connections 在书/摘抄上下文按 bookId 过滤，AI 上下文数据完整性修复)
 - area: backend
 - priority: P2
 - size: S
@@ -1249,7 +1249,7 @@ Format per item:
 - how: ① `index.html:410-433`（#bookDetailDialog 内）：新增 `<div id="bookDetailSessions" class="is-hidden">` section，结构参照 bookDetailQuotes 区域；② `app.js:3776-3875`（openBookDetailDialog）：调用 `getBookSessions(bookId)` 取最近 3-5 条 session，渲染「日期 · 第 X-Y 页 · Z 分钟」列表（时长 0/未填时省略时长）；session 数量 > 5 时加「查看全部 N 条记录」链接（跳转动态 Tab）；无 sessions 时 section 隐藏；③ `styles.css`：新增 session mini-card 样式（3-5 行，参照 book-detail-quote 卡面）。Touch: `index.html:410-433`、`app.js:3776-3875`（openBookDetailDialog）、`styles.css`。
 
 ### OPT-137 — `build_system_instruction()` 无 `existing_connections` 字段说明：OPT-135 落地后 AI 有数据但无指引，无法用于去重或回答「关联过什么」— 由 explore E222 提拔 [2026-07-26]
-- status: triaged
+- status: done (PR #94, 2026-07-28 — build_system_instruction 补充 existing_connections 字段说明与使用规则)
 - area: backend
 - priority: P2
 - size: S
@@ -1269,7 +1269,7 @@ Format per item:
 - how: `reading_mcp_server.py:508`（entity 存在性检查之后、`connection = {...}` 之前）：扫描 `state.get("connections", [])` 查找已有 `(c["sourceId"] == source_id and c["targetId"] == target_id) or (c["sourceId"] == target_id and c["targetId"] == source_id)`；找到则返回 `_ok(state, {"skipped": True, "existing": found_conn})`（类比 `add_book` dedup 返回策略）；找不到再 insert。同时在 `tests/agent/reading_mcp_server_tools_test.py` 补一个测试：同 source+target 两次 `link_thought` → 第二次 `skipped=True`，`connections` 仍只有 1 条。Touch: `reading_mcp_server.py:508-524`（link_thought 逻辑）；`tests/agent/reading_mcp_server_tools_test.py`（补测）。
 
 ### OPT-139 — `build_chat_prompt` per-book quote 切片取最旧 20 条：书注量超 20 时最近摘抄对 AI 不可见 — 由 explore E226 提拔 [2026-07-27]
-- status: new
+- status: done (PR #95, 2026-07-28 — per-book quote 切片改为按 createdAt 降序，最新摘抄优先可见)
 - area: backend
 - priority: P2
 - size: S
@@ -1279,7 +1279,7 @@ Format per item:
 - how: `app_server.py:2591`：将 list comprehension 改为 `sorted([q for q in user_state.get("quotes", []) if q.get("bookId") == book_id], key=lambda q: q.get("createdAt", ""), reverse=True)[:20]`；约 1 行改动。Touch: `app_server.py:2591` 仅此一处。
 
 ### OPT-140 — 建立关联弹窗来源为摘抄时目标类型默认「书籍」：quote-to-quote 关联每次须额外切换下拉 — 由 explore E227 提拔 [2026-07-27]
-- status: new
+- status: done (PR #96, 2026-07-28 — 来源摘抄时目标类型默认「摘抄」，消除 quote-to-quote 额外操作步骤)
 - area: frontend
 - priority: P2
 - size: S
