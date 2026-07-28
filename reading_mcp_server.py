@@ -510,6 +510,14 @@ def link_thought(
         if not _exists(target_type, target_id):
             return {"ok": False, "error": f"target {target_type} not found: {target_id}"}
 
+        connections = state.get("connections", [])
+        if any(
+            c.get("sourceType") == source_type and c.get("sourceId") == source_id
+            and c.get("targetType") == target_type and c.get("targetId") == target_id
+            for c in connections
+        ):
+            return _ok(state, {"skipped": True, "reason": "connection already exists"})
+
         connection = {
             "id": _new_id("conn"),
             "sourceType": source_type,

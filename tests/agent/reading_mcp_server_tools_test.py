@@ -229,6 +229,40 @@ class ReadingMCPServerToolTests(unittest.TestCase):
         state = self._load_state()
         self.assertEqual(state["connections"][0]["id"], created["id"])
 
+    def test_link_thought_skips_duplicate_same_source_and_target(self):
+        # OPT-138: a second call with identical source+target must return skipped=True
+        # and not write a second connection record (guard against concurrent/repeated calls).
+        first = reading_mcp_server.link_thought(
+            self.user_id,
+            source_type="book",
+            source_id="book-1",
+            target_type="quote",
+            target_id="quote-1",
+            kind="引用",
+            thought="第一次建立",
+        )
+        self.assertTrue(first["ok"])
+        self.assertFalse(first.get("skipped", False))
+
+        second = reading_mcp_server.link_thought(
+            self.user_id,
+            source_type="book",
+            source_id="book-1",
+            target_type="quote",
+            target_id="quote-1",
+            kind="异曲同工",
+            thought="重复建立，不同 kind 也应被拦",
+        )
+        self.assertTrue(second["ok"])
+        self.assertTrue(second.get("skipped"), "duplicate link_thought must return skipped=True")
+
+        state = self._load_state()
+        self.assertEqual(
+            len(state["connections"]),
+            1,
+            "connections list must have exactly 1 entry after a duplicate call",
+        )
+
     def test_link_thought_rejects_invalid_kind_type_and_missing_entity(self):
         self.assertIn(
             "invalid kind",
