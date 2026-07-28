@@ -5402,7 +5402,11 @@ function openConnectionDialog({ sourceType, sourceId, targetType, targetId } = {
   if (!requireAuth("记录思想碰撞")) return;
   document.getElementById("connectionId").value = "";
   document.getElementById("connSourceType").value = sourceType || "book";
-  document.getElementById("connTargetType").value = targetType || "book";
+  // OPT-140: 未显式指定目标类型时，让目标默认跟随来源类型——从摘抄发起关联时
+  // 目标默认「摘抄」而非「书籍」，命中 quote-to-quote 主场景，省去每次手动切下拉
+  // （2026-06-29 owner 信号）。无来源的手动入口仍回落「书籍」。
+  const resolvedTargetType = targetType || sourceType || "book";
+  document.getElementById("connTargetType").value = resolvedTargetType;
   connSourceBookComboWrap?._comboboxReset?.();
   connSourceQuoteComboWrap?._comboboxReset?.();
   connTargetBookComboWrap?._comboboxReset?.();
@@ -5410,7 +5414,7 @@ function openConnectionDialog({ sourceType, sourceId, targetType, targetId } = {
   els.connectionForm.querySelector('[name="thought"]').value = "";
   els.connectionForm.querySelector('[name="tags"]').value = "";
   toggleConnComboboxes("source", sourceType || "book");
-  toggleConnComboboxes("target", targetType || "book");
+  toggleConnComboboxes("target", resolvedTargetType);
   if (sourceType === "book" && sourceId) {
     connSourceBookComboWrap?._comboboxSetValue?.(sourceId);
   } else if (sourceType === "quote" && sourceId) {
