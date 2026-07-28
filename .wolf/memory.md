@@ -3934,3 +3934,7 @@
 | 17:10 | Edited optimization/backlog.md | 2→2 lines | ~52 |
 | 17:10 | Edited optimization/backlog.md | 2→2 lines | ~47 |
 | 17:10 | Agent1 triage 2026-07-28: OPT-135/137/139/140 marked done, OPT-138 assigned next | optimization/triage.md optimization/backlog.md | committed + pushed to feature/agent (318ac0f) | ~4k |
+| 20:05 | Edited reading_mcp_server.py | modified _exists() | ~191 |
+| 20:05 | Edited tests/agent/reading_mcp_server_tools_test.py | modified test_link_thought_skips_duplicate_same_source_and_target() | ~376 |
+| 20:10 | Edited optimization/triage.md | inline fix | ~65 |
+| 20:10 | OPT-138: add duplicate connection guard to link_thought() in reading_mcp_server.py | reading_mcp_server.py, tests/agent/reading_mcp_server_tools_test.py | PR #97 opened; 416 Python + 458 JS tests pass | ~2k |

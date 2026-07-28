@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T17:10:43.546Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T20:10:05.587Z
 > Files: 355 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
@@ -249,7 +249,7 @@
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `log_server.py` — import: guess_base_url, now_iso, new_id, get_conn + 12 more (~27130 tok)
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
-- `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4754 tok)
+- `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~538 tok)
 - `requirements.txt` — Python dependencies (~123 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~25070 tok)
@@ -359,7 +359,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~988 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~761 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~343 tok)
-- `triage.md` — Triage (~2005 tok)
+- `triage.md` — Triage (~2006 tok)
 - `triage.md` — Triage (~4313 tok)
 
 ## scripts/
@@ -405,7 +405,7 @@
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `prompt_builder_connections_test.py` — ExistingConnectionsFilterTest: setUp, test_global_context_returns_all_connections, test_book_context (~2251 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
-- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~5176 tok)
+- `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~5530 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
 - `register_ensure_state_utc_ts_test.py` — Regression tests for OPT-038: user registration and ensure_user_state() must (~1449 tok)
 - `request_body_size_cap_test.py` — _FakeHeaders: get, send_response, send_header, setUp + 10 more (~1891 tok)
