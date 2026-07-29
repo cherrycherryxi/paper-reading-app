@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T20:10:05.587Z
-> Files: 355 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-29T03:26:21.161Z
+> Files: 361 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -117,6 +117,8 @@
 - `cards-2026-07-24.md` — 卡片① (~101 tok)
 - `cards-2026-07-25.md` — 卡片① (~94 tok)
 - `cards-2026-07-26.md` — 卡片① (~116 tok)
+- `cards-2026-07-28.md` — 卡片① (~95 tok)
+- `cards-2026-07-29.md` — 卡片① (~112 tok)
 - `review-2026-07-12.md` — PR 夜间审查 — 2026-07-12 (~65 tok)
 - `review-2026-07-13.md` — 夜间 PR 处理报告 — 2026-07-13 (~500 tok)
 - `review-2026-07-15.md` — 夜间 PR 处理 — 2026-07-15 (~417 tok)
@@ -128,7 +130,9 @@
 - `review-2026-07-24.md` — 夜间 PR 处理报告 — 2026-07-24 (~354 tok)
 - `review-2026-07-25.md` — 夜间 PR 处理汇总 — 2026-07-25 (~368 tok)
 - `review-2026-07-26.md` — 夜间 PR 处理报告 — 2026-07-26 (~342 tok)
-- `today-pick.md` — 卡片① (~116 tok)
+- `review-2026-07-28.md` — 夜间 PR 处理报告 — 2026-07-28 (~432 tok)
+- `review-2026-07-29.md` — 夜间 PR 处理报告 — 2026-07-29 (~656 tok)
+- `today-pick.md` — 卡片① (~111 tok)
 
 ## ../../.claude/paper-xhs/
 
@@ -231,9 +235,9 @@
 
 - `.DS_Store` (~2186 tok)
 - `.gitignore` — Git ignore rules (~204 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~75150 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~75220 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~68083 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~67619 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~67677 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57034 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~57096 tok)
 - `app.js` — AUTH_TOKEN_KEY: isTabActive, createId, getBackendBaseUrl + 4 more (~54896 tok)
@@ -251,7 +255,7 @@
 - `paper-reading-app-需求文档.md` — Paper Reading App — 需求文档 v1.0 (~683 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~538 tok)
-- `requirements.txt` — Python dependencies (~123 tok)
+- `requirements.txt` — Python dependencies (~189 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~25070 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
 
@@ -404,6 +408,7 @@
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `prompt_builder_connections_test.py` — ExistingConnectionsFilterTest: setUp, test_global_context_returns_all_connections, test_book_context (~2251 tok)
+- `prompt_builder_recent_quotes_test.py` — RecentQuotesSliceTest: setUp, test_book_with_more_than_20_quotes_sends_newest_20, test_book_with_20_ (~968 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5000 tok)
 - `reading_mcp_server_tools_test.py` — ReadingMCPServerToolTests: setUp, tearDown, test_add_note_writes_note_to_quotes_head, test_add_note_ (~5530 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
@@ -435,6 +440,7 @@
 - `combobox-single-open.test.js` — bug-406: 关联对话框「在目标摘抄框输入，却弹出并显示来源那一侧的下拉」。 (~1391 tok)
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1442 tok)
+- `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~2726 tok)
 - `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1705 tok)
@@ -496,11 +502,11 @@
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~388 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -508,12 +514,12 @@
 
 ## 小红书物料/第2篇-拍照摘抄/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第3篇-一句被击中的话/
 

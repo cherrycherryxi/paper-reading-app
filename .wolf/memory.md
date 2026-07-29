@@ -3940,6 +3940,7 @@
 | 20:10 | OPT-138: add duplicate connection guard to link_thought() in reading_mcp_server.py | reading_mcp_server.py, tests/agent/reading_mcp_server_tools_test.py | PR #97 opened; 416 Python + 458 JS tests pass | ~2k |
 
 ## Session: 2026-07-28 21:13
+## Session: 2026-07-27 10:01
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
@@ -3949,3 +3950,57 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 21:27 | Agent3 explore run: E230/E231/E232 verified, OPT-141/142 promoted, committed+pushed | optimization/explore.md optimization/backlog.md | done | ~4k |
+## Session: 2026-07-27 10:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-27 10:48
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-28 10:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:03 | Created ../../.claude/paper-loop/review-2026-07-28.md | — | ~460 |
+| 10:03 | Session end: 1 writes across 1 files (review-2026-07-28.md) | 1 reads | ~75462 tok |
+
+## Session: 2026-07-28 10:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:07 | Created ../../.claude/paper-loop/cards-2026-07-28.md | — | ~102 |
+| 10:08 | Session end: 1 writes across 1 files (cards-2026-07-28.md) | 3 reads | ~40727 tok |
+
+## Session: 2026-07-28 11:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:19 | Edited app_server.py | 1→6 lines | ~106 |
+| 11:19 | Created tests/agent/prompt_builder_recent_quotes_test.py | — | ~970 |
+| 11:19 | Edited tests/agent/prompt_builder_recent_quotes_test.py | inline fix | ~13 |
+| 11:21 | Edited app.js | 2→6 lines | ~101 |
+| 11:21 | Edited app.js | 2→2 lines | ~32 |
+| 11:22 | Created tests/frontend/connection-target-default.test.js | — | ~1297 |
+| 11:25 | Edited ../../.claude/paper-loop/today-pick.md | inline fix | ~4 |
+| 11:26 | OPT-139+OPT-140 双卡实现：build_chat_prompt 每书摘抄按 createdAt 倒序取最新20(原取最旧20)；openConnectionDialog 目标类型默认跟随来源(摘抄→摘抄)。各开PR #95/#96 均 squash 合入 feature/agent，dev 已重启 | app_server.py, app.js, tests/agent/prompt_builder_recent_quotes_test.py, tests/frontend/connection-target-default.test.js | PR#95+#96 merged, 415 py + 458 js tests green, dev live | ~30k |
+| 11:27 | Session end: 7 writes across 5 files (app_server.py, prompt_builder_recent_quotes_test.py, app.js, connection-target-default.test.js, today-pick.md) | 5 reads | ~148985 tok |
+
+## Session: 2026-07-29 10:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:06 | Created ../../.claude/paper-loop/review-2026-07-29.md | — | ~700 |
+| 10:06 | Session end: 1 writes across 1 files (review-2026-07-29.md) | 1 reads | ~5504 tok |
+
+## Session: 2026-07-29 10:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:08 | Created ../../.claude/paper-loop/cards-2026-07-29.md | — | ~120 |
+| 10:08 | Session end: 1 writes across 1 files (cards-2026-07-29.md) | 6 reads | ~2895 tok |
+| 11:26 | Edited requirements.txt | 2→6 lines | ~85 |
+| 11:38 | Session end: 2 writes across 2 files (cards-2026-07-29.md, requirements.txt) | 10 reads | ~3109 tok |
+| 11:38 | Session end: 2 writes across 2 files (cards-2026-07-29.md, requirements.txt) | 10 reads | ~3109 tok |

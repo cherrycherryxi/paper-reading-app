@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "bugs": [
     {
       "id": "CI-001",
@@ -6167,150 +6168,6 @@
       "last_seen": "2026-07-04T00:00:00Z"
     },
     {
-      "id": "bug-368",
-      "timestamp": "2026-07-04T14:59:49.831Z",
-      "error_message": "Significant refactor of ",
-      "file": "optimization/roadmap.md",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 3→12 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-04T14:59:49.831Z"
-    },
-    {
-      "id": "bug-369",
-      "timestamp": "2026-07-04T15:19:43.500Z",
-      "error_message": "Wrong return value",
-      "file": "../../.claude/scripts/northstar-metrics.py",
-      "root_cause": "Was returning: datetime.fromisoformat(str(s).replace(\"Z\", \"+00:00",
-      "fix": "Now returns: None",
-      "tags": [
-        "auto-detected",
-        "return-value",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-04T15:19:43.500Z"
-    },
-    {
-      "id": "bug-370",
-      "timestamp": "2026-07-04T15:33:21.187Z",
-      "error_message": "Wrong reference: ily should be daily",
-      "file": "../../.claude/scripts/weekly-report.sh",
-      "root_cause": "Used \"ily\" instead of \"daily\"",
-      "fix": "Changed ily → daily",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "sh"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-04T15:33:21.188Z"
-    },
-    {
-      "id": "bug-371",
-      "timestamp": "2026-07-04T15:33:51.383Z",
-      "error_message": "Significant refactor of ",
-      "file": "../../.claude/scripts/product-owner-monday.sh",
-      "root_cause": "6 lines replaced/restructured",
-      "fix": "Rewrote 12→21 lines (6 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "sh"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-04T15:33:51.383Z"
-    },
-    {
-      "id": "bug-372",
-      "timestamp": "2026-07-04T15:36:41.284Z",
-      "error_message": "Significant refactor of ",
-      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_weekly_report_email.md",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 3→8 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-04T15:36:41.284Z"
-    },
-    {
-      "id": "bug-373",
-      "timestamp": "2026-07-04T18:20:06.507Z",
-      "error_message": "Wrong reference: new should be triaged",
-      "file": "optimization/backlog.md",
-      "root_cause": "Used \"new\" instead of \"triaged\"",
-      "fix": "Changed new → triaged",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-07-04T18:20:21.229Z"
-    },
-    {
-      "id": "bug-374",
-      "timestamp": "2026-07-05T13:43:42.895Z",
-      "error_message": "Incorrect value in code",
-      "file": "../../.claude/scripts/prod_monitor.py",
-      "root_cause": "Had \"paper-reading\"",
-      "fix": "Changed to \"/bin/bash\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T13:43:42.895Z"
-    },
-    {
-      "id": "bug-375",
-      "timestamp": "2026-07-05T14:06:06.486Z",
-      "error_message": "Wrong reference: d1_iso should be dw_iso",
-      "file": "app_server.py",
-      "root_cause": "Used \"d1_iso\" instead of \"dw_iso\"",
-      "fix": "Changed d1_iso → dw_iso",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T14:06:06.486Z"
-    },
-    {
-      "id": "bug-376",
-      "timestamp": "2026-07-05T14:06:34.887Z",
-      "error_message": "Significant refactor of ",
-      "file": "app_server.py",
-      "root_cause": "9 lines replaced/restructured",
-      "fix": "Rewrote 15→29 lines (9 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T14:06:34.887Z"
-    },
-    {
       "id": "bug-380",
       "timestamp": "2026-07-05T00:00:00Z",
       "error_message": "read.readjot.com/debug/logs|errors|overview|agent-dashboard 公网可访问,泄露全部用户 AI 对话/错误/增长数据",
@@ -6330,86 +6187,6 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-05T00:00:00Z"
-    },
-    {
-      "id": "bug-378",
-      "timestamp": "2026-07-05T14:45:49.816Z",
-      "error_message": "Significant refactor of ",
-      "file": "tests/agent/admin_gating_test.py",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 5→8 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T14:45:49.816Z"
-    },
-    {
-      "id": "bug-379",
-      "timestamp": "2026-07-05T17:09:46.378Z",
-      "error_message": "Wrong reference: new should be triaged",
-      "file": "optimization/backlog.md",
-      "root_cause": "Used \"new\" instead of \"triaged\"",
-      "fix": "Changed new → triaged",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-07-05T17:10:03.190Z"
-    },
-    {
-      "id": "bug-380",
-      "timestamp": "2026-07-05T18:06:05.018Z",
-      "error_message": "Significant refactor of ",
-      "file": "app_server.py",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 9→26 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T18:06:05.018Z"
-    },
-    {
-      "id": "bug-381",
-      "timestamp": "2026-07-05T19:20:28.668Z",
-      "error_message": "Null/undefined access in ",
-      "file": "optimization/explore.md",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T19:20:28.668Z"
-    },
-    {
-      "id": "bug-382",
-      "timestamp": "2026-07-05T19:21:00.105Z",
-      "error_message": "Null/undefined access in ",
-      "file": "optimization/backlog.md",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-05T19:21:00.105Z"
     },
     {
       "id": "bug-383",
@@ -7476,22 +7253,6 @@
     },
     {
       "id": "bug-448",
-      "timestamp": "2026-07-11T23:07:01.389Z",
-      "error_message": "Incorrect value in code",
-      "file": "../../.claude/scripts/paper-pick-reader.py",
-      "root_cause": "Had \"HEADER\"",
-      "fix": "Changed to \"SUBJECT\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-11T23:07:01.389Z"
-    },
-    {
-      "id": "bug-448",
       "timestamp": "2026-07-12",
       "error_message": "paper-pick-reader.py 读不到 owner 的邮件回复（选择恒为空）",
       "file": "~/.claude/scripts/paper-pick-reader.py",
@@ -7513,22 +7274,6 @@
       "last_seen": "2026-07-12"
     },
     {
-      "id": "bug-450",
-      "timestamp": "2026-07-12T04:41:55.603Z",
-      "error_message": "Significant refactor of ",
-      "file": "../../.claude/scripts/paper-morning.sh",
-      "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 5→11 lines (4 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "sh"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-12T04:41:55.603Z"
-    },
-    {
       "id": "bug-449",
       "timestamp": "2026-07-12",
       "error_message": "paper-morning 10:00 launchd 运行：SMTPServerDisconnected: Connection unexpectedly closed，当日选题邮件丢失",
@@ -7548,88 +7293,6 @@
       ],
       "occurrences": 2,
       "last_seen": "2026-07-13"
-    },
-    {
-      "id": "bug-452",
-      "timestamp": "2026-07-12T06:11:41.988Z",
-      "error_message": "Wrong reference: WAITING should be PICKED",
-      "file": "../../.claude/paper-loop/today-pick.md",
-      "root_cause": "Used \"WAITING\" instead of \"PICKED\"",
-      "fix": "Changed WAITING → PICKED",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-12T06:11:41.988Z"
-    },
-    {
-      "id": "bug-453",
-      "timestamp": "2026-07-12T06:23:26.803Z",
-      "error_message": "Significant refactor of ",
-      "file": "tests/frontend/session-crud.test.js",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 11→43 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "js"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-12T06:23:26.803Z"
-    },
-    {
-      "id": "bug-454",
-      "timestamp": "2026-07-12T06:24:18.035Z",
-      "error_message": "Wrong reference: triaged should be done",
-      "file": "optimization/backlog.md",
-      "root_cause": "Used \"triaged\" instead of \"done\"",
-      "fix": "Changed triaged → done",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-07-12T06:24:25.872Z"
-    },
-    {
-      "id": "bug-455",
-      "timestamp": "2026-07-12T06:25:39.947Z",
-      "error_message": "Wrong reference: PICKED should be DONE",
-      "file": "../../.claude/paper-loop/today-pick.md",
-      "root_cause": "Used \"PICKED\" instead of \"DONE\"",
-      "fix": "Changed PICKED → DONE",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-12T06:25:39.947Z"
-    },
-    {
-      "id": "bug-456",
-      "timestamp": "2026-07-12T17:08:45.799Z",
-      "error_message": "Wrong reference: triaged should be done",
-      "file": "optimization/backlog.md",
-      "root_cause": "Used \"triaged\" instead of \"done\"",
-      "fix": "Changed triaged → done",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [
-        "bug-454"
-      ],
-      "occurrences": 4,
-      "last_seen": "2026-07-12T17:09:01.971Z"
     },
     {
       "id": "bug-457",
@@ -9148,38 +8811,6 @@
       "last_seen": "2026-07-19T06:53:58.560Z"
     },
     {
-      "id": "bug-547",
-      "timestamp": "2026-07-19T07:04:20.218Z",
-      "error_message": "Incorrect value in code",
-      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_optimization_pipeline.md",
-      "root_cause": "Had `0 19 * * *`",
-      "fix": "Changed to `0 21 * * *`",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-07-19T07:04:20.218Z"
-    },
-    {
-      "id": "bug-548",
-      "timestamp": "2026-07-19T17:08:21.651Z",
-      "error_message": "Wrong reference: triaged should be done",
-      "file": "optimization/backlog.md",
-      "root_cause": "Used \"triaged\" instead of \"done\"",
-      "fix": "Changed triaged → done",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "md"
-      ],
-      "related_bugs": [],
-      "occurrences": 4,
-      "last_seen": "2026-07-19T17:08:38.631Z"
-    },
-    {
       "id": "bug-549",
       "timestamp": "2026-07-19T20:09:27.819Z",
       "error_message": "Wrong reference: lastQuoteBookId should be pendingQuoteImage2",
@@ -10041,6 +9672,80 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-07-28T17:10:43.567Z"
+    },
+    {
+      "id": "bug-600",
+      "timestamp": "2026-07-28T03:21:57.422Z",
+      "error_message": "Wrong reference: targetType should be resolvedTargetType",
+      "file": "app.js",
+      "root_cause": "Used \"targetType\" instead of \"resolvedTargetType\"",
+      "fix": "Changed targetType → resolvedTargetType",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-28T03:21:57.422Z"
+    },
+    {
+      "id": "bug-601",
+      "timestamp": "2026-07-28T03:25:50.370Z",
+      "error_message": "Wrong reference: IMPLEMENTING should be DONE",
+      "file": "../../.claude/paper-loop/today-pick.md",
+      "root_cause": "Used \"IMPLEMENTING\" instead of \"DONE\"",
+      "fix": "Changed IMPLEMENTING → DONE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-28T03:25:50.370Z"
+    },
+    {
+      "id": "bug-550-mcp2.0-ci-break",
+      "timestamp": "2026-07-29T03:30:00.000Z",
+      "error_message": "CI: All jobs have failed（GitHub Actions 邮件通知，自07-28 17:10 UTC起连续失败，含纯 .wolf 记账提交）；日志 ModuleNotFoundError: No module named 'mcp.server.fastmcp'",
+      "file": "requirements.txt, reading_mcp_server.py",
+      "root_cause": "requirements.txt 的 mcp[cli]>=1.0.0 无版本上界；CI 无 lock 文件、每次全新 pip install。PyPI 上 mcp 包在 07-28 发布 2.0.0（此前1.29.0），是破坏性升级：FastMCP 类改名+挪包为 mcp.server.mcpserver.MCPServer，无向后兼容垫片。reading_mcp_server.py:25 的 `from mcp.server.fastmcp import FastMCP` 因而 ModuleNotFoundError。本地 dev venv 因早先缓存的 1.27.1 未受影响（本机测试一直绿），只有 CI 每次重装才触发——排查时靠对比 CI 失败起点与 .wolf 纯记账提交(不改代码也失败)确认是环境/依赖问题而非某个 PR 的代码问题。",
+      "fix": "requirements.txt 锁 mcp[cli]>=1.0.0,<2.0.0，CI 恢复安装已验证的 1.x 分支。本地隔离 --target 目录复现确认 2.0.0 的 API 变化（FastMCP→MCPServer，路径 mcp.server.fastmcp→mcp.server.mcpserver）。跟随2.0新API迁移列为后续独立评估任务，不做凌晨紧急迁移。",
+      "tags": [
+        "ci",
+        "dependency",
+        "mcp",
+        "breaking-change",
+        "unpinned-version",
+        "requirements.txt"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-29T03:30:00.000Z"
+    },
+    {
+      "id": "bug-551-buglog-dedup-data-loss",
+      "timestamp": "2026-07-29T04:00:00.000Z",
+      "error_message": "sync-knowledge.sh 的 .wolf/buglog.json 去重（jq unique_by(.id)）在 ID 碰撞时系统性丢弃真实记录，保留自动检测噪声——23 组碰撞里 11 组会丢失真实工程记录（含 OPT-123/OPT-128 currentPage 修复、IMAP 轮询 bug、paper-wrapup 两次假阳性、分享图文字截断 OPT-108、清除筛选缺失等），仅 2 组侥幸留对",
+      "file": ".wolf/hooks/post-write.js, .wolf/sync-knowledge.sh, .wolf/buglog.json",
+      "root_cause": "post-write.js 的自动 bug 检测（autoDetectBugFix）用 `bug-${bugLog.bugs.length + 1}` 生成 ID——即当前数组长度+1，而非历史最大编号+1。数组只要因去重变短过，这个计数器就会往回缩，新分配的自动检测 ID 便撞上早已存在的真实记录（用同一套裸编号 bug-NNN）。随后 sync-knowledge.sh 的 `jq unique_by(.id)` 按 ID 分组去重，同 ID 组内谁在数组里排前面（通常=时间戳更早）谁留下——真实记录往往是后补写入、时间戳更晚，于是被自动噪声顶替。23 组碰撞里 11 组丢了真实记录，仅 2 组（bug-379/380）侥幸是真实记录更早。此问题在 2026-07-21（bug-546-wolfsync）搭建 sync-knowledge.sh 时未被发现，因为当时的 scratch 测试用的是干净合成 ID、没有覆盖真实 ID 碰撞场景。",
+      "fix": "① .wolf/hooks/post-write.js：自动检测条目改用独立命名空间 `auto-NNN`（不再用 `bug-NNN`），与人工/会话记录的 ID 空间彻底解耦，从根上消除未来碰撞。② .wolf/sync-knowledge.sh：unique_by(.id) 前先过滤/优先保留非 auto-detected 条目做防御性加固。③ 本次用 Python 脚本按「碰撞时非 auto-detected 优先」规则重建 buglog.json：599(HEAD)→576（丢 23 条纯噪声-vs-噪声真重复，真实记录零丢失），未提交这次预置的错误 staged 版本。",
+      "tags": [
+        "wolf-bookkeeping",
+        "data-loss",
+        "id-collision",
+        "buglog",
+        "dedup",
+        "determinism",
+        "post-write.js",
+        "sync-knowledge.sh"
+      ],
+      "related_bugs": [
+        "bug-546-wolfsync"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-29T04:00:00.000Z"
     }
   ]
 }
