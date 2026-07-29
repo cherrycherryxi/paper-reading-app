@@ -1,5 +1,9 @@
 # MCP protocol & async client/server
-mcp[cli]>=1.0.0
+# 2026-07-29: 锁 <2.0.0 —— mcp 2.0.0 是破坏性升级(FastMCP 类改名/挪包到
+# mcp.server.mcpserver.MCPServer，无兼容垫片)，CI 无 lock 文件每次装最新版，
+# 2.0.0 发布当晚(07-28 17:10 UTC 前后)炸了 CI(reading_mcp_server.py:25 的
+# `from mcp.server.fastmcp import FastMCP` ModuleNotFoundError)。见 bug-550。
+mcp[cli]>=1.0.0,<2.0.0
 httpx>=0.27.0
 uvicorn>=0.30.0
 
