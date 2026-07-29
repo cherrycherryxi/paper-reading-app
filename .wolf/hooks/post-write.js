@@ -272,7 +272,21 @@ function autoDetectBugFix(wolfDir, absolutePath, projectRoot, oldStr, newStr) {
         writeJSON(bugLogPath, bugLog);
         return;
     }
-    const nextId = `bug-${String(bugLog.bugs.length + 1).padStart(3, "0")}`;
+    // Auto-detected entries live in their own `auto-NNN` id namespace, separate
+    // from human/session-curated `bug-NNN` records. Two past bugs justify this:
+    // (1) `bugLog.bugs.length + 1` drifts backward whenever the array shrinks
+    // (dedup/pruning), so a later auto-detected write can reuse an id a real
+    // record already holds; (2) sharing the `bug-` prefix at all meant any
+    // dedup-by-id pass couldn't tell noise from substance and silently kept
+    // whichever copy came first in array order — see bug-551-buglog-dedup-data-loss
+    // (11 of 23 collisions destroyed real records, e.g. bug-547/548's OPT-123/128
+    // currentPage fixes). The id is derived from the max existing `auto-` numeric
+    // suffix (not array length) so it stays monotonic even if entries are pruned.
+    const autoMax = bugLog.bugs.reduce((max, b) => {
+        const m = /^auto-(\d+)$/.exec(b.id || "");
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+    }, 0);
+    const nextId = `auto-${String(autoMax + 1).padStart(3, "0")}`;
     bugLog.bugs.push({
         id: nextId,
         timestamp: new Date().toISOString(),

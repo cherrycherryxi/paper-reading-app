@@ -47,14 +47,25 @@ if git merge --no-edit "origin/$branch" 2>/dev/null; then
 fi
 
 # --- 此时应只剩 buglog.json 冲突 → 按 .id 去重合并 bug 数组 ---
+# 碰撞时优先保留非 auto-detected（人工/会话记录的真实条目）——见 bug-551-buglog-dedup-data-loss：
+# 老版本纯 unique_by(.id) 在 id 碰撞（post-write.js 的自动检测计数器曾会撞车真实编号）时
+# 谁排前面留谁，23 组碰撞里 11 组把真实工程记录换成了自动检测噪声。现在 post-write.js 已把
+# 自动检测条目独立到 auto-NNN 命名空间、不会再撞车，这里的优先级规则是防御性兜底（历史数据/
+# 边缘情况仍可能撞），不依赖它作为唯一防线。
 if git diff --name-only --diff-filter=U | grep -qx '.wolf/buglog.json'; then
   git show :2:.wolf/buglog.json > /tmp/wolf_ours.json 2>/dev/null || echo '{"bugs":[]}' > /tmp/wolf_ours.json
   git show :3:.wolf/buglog.json > /tmp/wolf_theirs.json 2>/dev/null || echo '{"bugs":[]}' > /tmp/wolf_theirs.json
   if command -v jq >/dev/null 2>&1 && \
-     jq -s '{bugs: (((.[0].bugs // []) + (.[1].bugs // [])) | unique_by(.id))}' \
-        /tmp/wolf_ours.json /tmp/wolf_theirs.json > .wolf/buglog.json 2>/dev/null; then
+     jq -s '
+       ((.[0].bugs // []) + (.[1].bugs // [])) as $all
+       | ($all | group_by(.id) | map(
+           (map(select(((.tags // []) | index("auto-detected")) | not))) as $real
+           | if ($real | length) > 0 then $real[0] else .[0] end
+         )) as $deduped
+       | {bugs: $deduped}
+     ' /tmp/wolf_ours.json /tmp/wolf_theirs.json > .wolf/buglog.json 2>/dev/null; then
     git add .wolf/buglog.json
-    echo "已按 .id 去重合并 buglog.json"
+    echo "已按 .id 去重合并 buglog.json（碰撞时优先保留非 auto-detected 的真实记录）"
   fi
 fi
 
