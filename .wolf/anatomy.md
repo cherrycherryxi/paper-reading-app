@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-29T03:26:21.161Z
-> Files: 361 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-29T06:43:09.051Z
+> Files: 362 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -166,7 +166,7 @@
 - `feedback_update_stale_docs.md` (~188 tok)
 - `MEMORY.md` (~780 tok)
 - `project_brand_share_kit.md` (~327 tok)
-- `project_daily_loop_automation.md` (~1630 tok)
+- `project_daily_loop_automation.md` (~1705 tok)
 - `project_optimization_pipeline.md` (~964 tok)
 - `reference_claude_code_hooks.md` (~548 tok)
 - `reference_dotfiles_repo.md` (~227 tok)
@@ -190,7 +190,7 @@
 - `paper-owner-focus.sh` — 输出本周「owner 亲自做」的焦点项：triage.md 里 status=in-progress 且标了「owner 白天亲自做/🔒」 (~214 tok)
 - `paper-pick-reader.py` — 读取 owner 回复邮件里的今日选择（1 / 2 / both），供 paper-implement-poll.sh 调用。 (~1010 tok)
 - `paper-tunnel.sh` — Cloudflare quick tunnel for the paper-reading backend (localhost:8787), (~485 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1593 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1333 tok)
 - `prod_daily_digest.py` — P1 每日摘要(paper-reading-app prod)。launchd 每天 09:30 跑,输出 Markdown 到 stdout。 (~1333 tok)
 - `prod_monitor.py` — P0 实时监控(paper-reading-app prod)。launchd 每 ~7min 跑一次。 (~1300 tok)
 - `prod-daily-digest.sh` — P1 每周摘要 launchd 包装(每周一 09:30)。算摘要 → 邮件发 owner。 (~194 tok)
@@ -304,6 +304,10 @@
 ## .githooks/
 
 - `pre-push` — pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。 (~636 tok)
+
+## .github/workflows/
+
+- `ci.yml` — CI: CI (~1281 tok)
 
 ## .kiro/specs/agent-backend-reliability/
 

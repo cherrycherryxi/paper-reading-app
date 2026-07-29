@@ -4004,3 +4004,24 @@
 | 11:26 | Edited requirements.txt | 2→6 lines | ~85 |
 | 11:38 | Session end: 2 writes across 2 files (cards-2026-07-29.md, requirements.txt) | 10 reads | ~3109 tok |
 | 11:38 | Session end: 2 writes across 2 files (cards-2026-07-29.md, requirements.txt) | 10 reads | ~3109 tok |
+| 11:56 | Session end: 2 writes across 2 files (cards-2026-07-29.md, requirements.txt) | 10 reads | ~3109 tok |
+| 14:35 | Edited ../../.claude/scripts/paper-wrapup.sh | reduced (-32 lines) | ~105 |
+| 14:35 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→3 lines | ~263 |
+
+## Session: 2026-07-29 14:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:36 | 查明+修复paper-wrapup永久滞后bug:今日生成段的活跃会话检测(7-12遗留)与补漏循环(7-21新架构,不受此限)冲突,owner晚间常年活跃→今日夜夜被跳过,只能靠隔天补漏永远追前一天。删除该检测,今日生成改无条件执行(与补漏一致) | .claude/scripts/paper-wrapup.sh, .wolf/buglog.json bug-548 | 已改并后台验证运行中 | ~4k |
+
+## Session: 2026-07-29 14:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:39 | Edited .github/workflows/ci.yml | 8→13 lines | ~111 |
+| 14:40 | Edited .github/workflows/ci.yml | expanded (+48 lines) | ~750 |
+| 14:40 | Session end: 2 writes across 1 files (ci.yml) | 1 reads | ~1979 tok |
+| 14:40 | Session end: 2 writes across 1 files (ci.yml) | 1 reads | ~1979 tok |
+| 14:42 | Edited .github/workflows/ci.yml | expanded (+8 lines) | ~416 |
+| 14:43 | Edited .github/workflows/ci.yml | 27→27 lines | ~449 |
+| 14:56 | Session end: 4 writes across 1 files (ci.yml) | 1 reads | ~3007 tok |

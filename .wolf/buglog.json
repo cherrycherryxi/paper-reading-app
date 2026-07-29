@@ -9746,6 +9746,77 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-29T04:00:00.000Z"
+    },
+    {
+      "id": "auto-001",
+      "timestamp": "2026-07-29T06:35:00.207Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/scripts/paper-wrapup.sh",
+      "root_cause": "39 lines replaced/restructured",
+      "fix": "Rewrote 40→8 lines (39 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-29T06:35:00.207Z"
+    },
+    {
+      "id": "bug-548",
+      "timestamp": "2026-07-29T00:00:00+08:00",
+      "error_message": "paper-wrapup 每晚都在补发前一天的日报，当天的日报却一直不写（daily-logs/2026-07-28.md 缺失，链条从7-25起持续滞后）",
+      "file": "~/.claude/scripts/paper-wrapup.sh",
+      "root_cause": "7-21 重构后，「今日生成」段仍保留旧版(7-12)的活跃会话检测——transcript 最近30分钟有新消息就判定 owner 在忙、跳过不打断。但同脚本的「补漏」循环用的是同一种独立 headless 调用(gen_report)，且完全不受此限制，天天在 owner 活跃时段运行都没出过问题——说明该检测对已改为独立后台调用的新架构其实已不必要。owner 几乎每晚23:00-23:30都在用交互会话工作，导致「今日生成」段夜夜被挡；次夜补漏循环把「昨天」补上，但「今日」又被挡，形成永久慢一拍的循环：每晚只补前一天、当天永远缺，从7-25起持续到7-28。",
+      "fix": "删除「今日生成」前的活跃会话检测代码（IDLE_MIN/transcript扫描/跳过逻辑），改为与补漏循环一致：无条件执行 gen_report。owner 通过 AskUserQuestion 确认选择「去掉检测，无条件生成」而非「加重试」或「保持现状」。",
+      "tags": [
+        "paper-wrapup",
+        "日报",
+        "launchd",
+        "设计冲突",
+        "活跃会话检测",
+        "滞后循环",
+        "自动化"
+      ],
+      "related_bugs": [
+        "bug-535",
+        "bug-542"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-29T00:00:00+08:00"
+    },
+    {
+      "id": "auto-002",
+      "timestamp": "2026-07-29T06:42:12.740Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 19→27 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-29T06:42:12.740Z"
+    },
+    {
+      "id": "auto-003",
+      "timestamp": "2026-07-29T06:43:09.072Z",
+      "error_message": "Wrong operator: << should be >=",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Used \"<<\" instead of \">=\"",
+      "fix": "Changed operator << → >=",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-29T06:43:09.072Z"
     }
   ]
 }
