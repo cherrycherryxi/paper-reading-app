@@ -1259,7 +1259,7 @@ Format per item:
 - how: `app_server.py:2648`（`common_rules` 第 5 条末尾或新增第 6 条）：追加 `existing_connections` 说明，约 3 句——①含义（当前书/摘抄上下文已有的思想关联列表，每项含 sourceId、targetId、kind、thought）；②使用时机（建议 `link_thought` 前先查此列表，若已存在相同 sourceId+targetId 的关联则不重复建议）；③回答场景（用户问「我关联过什么」时直接引用此字段，不要说「没有关联」）。Touch: `app_server.py:2648`（common_rules）或 `app_server.py:2652`/`2656`（各场景 scenario_rules）。
 
 ### OPT-138 — `link_thought()` 无重复连接检测：同一对实体可被 AI 反复关联，`connections` 积累无用重复项 — 由 explore E223 提拔 [2026-07-26]
-- status: triaged
+- status: done
 - area: backend
 - priority: P2
 - size: S
@@ -1289,7 +1289,7 @@ Format per item:
 - how: `app.js:5405`：将 `targetType || "book"` 改为 `targetType || (sourceType === "quote" ? "quote" : "book")`；同步 `app.js:5413`：`toggleConnComboboxes("target", targetType || (sourceType === "quote" ? "quote" : "book"))`。Touch: `app.js:5404-5413`（`openConnectionDialog` 前 12 行）。
 
 ### OPT-141 — `all_books_summary` 缺 `tags` 字段：AI 无法按标签跨书查询 — 由 explore E230 提拔 [2026-07-28]
-- status: new
+- status: triaged
 - area: backend
 - priority: P2
 - size: S
@@ -1299,7 +1299,7 @@ Format per item:
 - how: ① `app_server.py:2632`（all_books_summary dict，`"review": ...` 之后）：加 `"tags": b.get("tags", [])`；② `app_server.py:2661`（common_rules 规则 5 末尾）：追加约 1-2 句「每本书还带 tags（用户自定义标签列表，可为空）；回答「有哪些成长/悬疑/哲学类书」「读书会推荐」等按主题分类查询时，应检索 tags 字段，不要仅凭书名或简介推断」。Touch: `app_server.py:2632`（数据）、`app_server.py:2661`（指令）。
 
 ### OPT-142 — 关联弹窗 `filteredQuotes()` 不搜索摘抄 `tags`：按标签找目标摘抄失败 — 由 explore E232 提拔 [2026-07-28]
-- status: new
+- status: triaged
 - area: frontend
 - priority: P3
 - size: S
