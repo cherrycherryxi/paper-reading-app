@@ -4177,3 +4177,111 @@ function filteredQuotes(q) {
 ---
 
 > 本次 run（2026-07-28）扫描焦点：all_books_summary 数据字段完整性、聊天压缩策略、关联弹窗检索覆盖面。新发现 3 条：E230（all_books_summary 缺 tags，S，northstar 中，2026-07-03 signal 直接佐证，Theme 2 AI 跨书标签查询）、E231（压缩阈值 10 条过早，S，northstar 弱中，无直接信号但影响所有深度探讨）、E232（关联弹窗 filteredQuotes 不搜 tags/reflection，S，northstar 弱中，searchable-fields 系列）。提拔 OPT-141（E230，all_books_summary 补 tags，S，Theme 2，7/03 signal）、OPT-142（E232，关联弹窗 filteredQuotes 补 tags，S，Theme 2）。所有断言均基于实际代码读取，已标注 file:line。
+
+---
+
+## 2026-07-29
+
+### E233 — HTTP `ActionExecutor.link_thought` 无重复关联守卫：approve+execute 路径可写入重复 connection — `app_server.py:3438-3465` (S)
+
+**What (verified):**
+
+```python
+# app_server.py:3438-3465 — link_thought 执行路径（ActionExecutor.execute_action）
+elif action["type"] == "link_thought":
+    VALID_KINDS = {"异曲同工", "引用", "对比", "影响", "延伸"}
+    kind = data.get("kind", "")
+    if kind not in VALID_KINDS:
+        raise ValueError(f"invalid connection kind: {kind}")
+    source_type = data.get("sourceType", "")
+    target_type = data.get("targetType", "")
+    if source_type not in {"book", "quote"} or target_type not in {"book", "quote"}:
+        raise ValueError("sourceType and targetType must be 'book' or 'quote'")
+    if source_type == "book" and not any(b.get("id") == data.get("sourceId") for b in state["books"]):
+        raise ValueError(f"source book not found: {data.get('sourceId')}")
+    # ... entity existence checks only, no duplicate check ...
+    state.setdefault("connections", []).insert(0, {
+        "id": new_id("conn"),
+        ...
+    })
+```
+
+`app_server.py:3438-3465`：`ActionExecutor.execute_action()` 的 `link_thought` 分支验证实体存在性（sourceId/targetId 在 books/quotes 中存在），但**不检查 `state["connections"]` 是否已有相同 `(sourceId, targetId)` 组合**，每次调用均无条件 `insert(0, connection)`。
+
+对比：`reading_mcp_server.py:513-519`（OPT-138 已修复）：
+```python
+connections = state.get("connections", [])
+if any(
+    c.get("sourceType") == source_type and c.get("sourceId") == source_id
+    and c.get("targetType") == target_type and c.get("targetId") == target_id
+    for c in connections
+):
+    return _ok(state, {"skipped": True, "reason": "connection already exists"})
+```
+
+MCP 路径有守卫，HTTP Agent approve+execute 路径无守卫——两条写入路径行为不对称。
+
+**Why it matters:** 用户在 AI 聊天中多轮要求「建立关联」时，每次 approve 都会新增一条 connection，即使完全相同的 (sourceId, targetId) 组合已存在。OPT-137 通过系统指令要求 AI 在建议 link_thought 前检查 existing_connections，但指令层守卫不如代码层守卫可靠——AI 可能忽略、用户也可能连续 approve 同一 action 两次（误触「确认」按钮）。与 OPT-138 同属双重防线设计：指令层（OPT-137）+ MCP 代码层（OPT-138）+ HTTP 代码层（本项缺失）。
+
+**Complexity:** S（`app_server.py:3454`，entity 存在性检查之后、`state.setdefault(...).insert(...)` 之前，插入约 5 行 dedup 检查；参照 `reading_mcp_server.py:513-519` 的模式，直接复制并适配 HTTP executor 数据访问方式）
+
+**Files:** `app_server.py:3438-3465`（link_thought 执行分支）；`tests/agent/action_executor_atomic_test.py` 或新建测试（补 link_thought 重复 approve 无重复 connection 的回归测试）
+
+**northstar:** 中——Theme 2「建立关联」；关联列表是「思想碰撞」的主要回顾视图，重复关联污染列表数据、破坏回顾体验；S 修复，与 OPT-138（MCP 路径去重）对称；无 schema/接口/前端变更。
+
+---
+
+### E234 — `_COMPRESS_THRESHOLD = 10` 对深度探讨过早触发：约 5 轮 Q&A 后早期上下文即被压缩为 200 字摘要 — `app_server.py:2524-2525` (S)
+
+**What (verified):**
+
+```python
+_COMPRESS_THRESHOLD = 10   # messages before triggering compression  # app_server.py:2524
+_COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_server.py:2525
+```
+
+`app_server.py:2524-2525`：10 条消息（约 5 轮用户提问）即触发压缩（`compress_chat_history_if_needed`，`app_server.py:2536`），将前 4 条消息压缩为 200 字 LLM 摘要（`app_server.py:2543`：`"将以下对话压缩为200字内摘要，保留书名、核心观点和已执行的操作"`），仅保留最近 6 条原文。
+
+**Why it matters:** owner 2026-07-05 北极星：探讨 47 次（AI 对话是第二高频操作，仅次于查看），2026-07-19 探讨 29 次（仍是主要回顾活动）；2026-07-26 signal：「阅读时往往想一口气读下去，等一小节读完后才会集中记录摘抄」——批量记录场景下，单次 AI 会话可能涉及同一本书的多条摘抄连续讨论（5+ 轮），10 条阈值不够，第 6 轮开始的提问会失去第 1-2 轮建立的具体细节（虽保留 200 字摘要，但摘要丢失句子级细粒度）。阈值提高到 20 对 token 预算冲击极小（单条消息约 50-200 token，增量 10 条约 1-2k token），但将「不丢失」的有效对话轮次从 5 轮扩展到 10 轮，覆盖一次典型批量记录 + 讨论的完整会话。
+
+**Complexity:** S（`_COMPRESS_THRESHOLD = 10` → 20；`_COMPRESS_KEEP_RECENT = 6` → 8；约 2 行改动）
+
+**Files:** `app_server.py:2524-2525`
+
+**northstar:** 弱中——AI 探讨是 owner 最高频的回顾操作（北极星第三数的主要来源）；阈值过低是所有深度对话会话的系统性上下文衰退，无直接 signal 明确抱怨，但 S 改动、零副作用、2026-07-26 批量记录 signal 间接相关。
+
+---
+
+### E235 — `book.notes`（内容简介）不在 `all_books_summary`：AI 无法基于书内容简介回答跨书内容匹配查询 — `app_server.py:2626-2634` (S)
+
+**What (verified):**
+
+```python
+# app_server.py:2626-2634 — all_books_summary dict comprehension
+"all_books_summary": [
+    {"id": b.get("id"), "title": b.get("title"), "author": b.get("author", ""),
+     "status": b.get("status", ""), "rating": b.get("rating", 0),
+     "startedAt": (b.get("startedAt") or "")[:10],
+     "finishedAt": (b.get("finishedAt") or "")[:10],
+     "doubanComment": (b.get("doubanComment") or "")[:60],
+     "review": (b.get("review") or "")[:120],
+     "tags": b.get("tags", [])}   # OPT-141 加
+    for b in sorted(...)[:120]
+],
+```
+
+`app_server.py:2626-2634`：`all_books_summary` 包含 10 个字段，包含用户主观评价（doubanComment、review）和分类信息（tags、status、rating），但**不含 `book.notes`（书籍内容简介/内容描述，由用户或 AI summary 动作写入）**。
+
+对比：`matchBooks()` (`app.js:1365`) 已搜索 `book.notes`——前端关键词搜索可命中简介，AI 跨书查询不能。`book.notes` 通过 `summary` action（`app_server.py:3402-3404`）由 AI 自动积累，也可在编辑弹窗手动填入。
+
+**Why it matters:** 用户询问「有没有什么书讲的是…」（按内容主题查询）时，AI 只能依赖 `tags`、`doubanComment`（60字）、`review`（120字）。若某本书有详细内容简介（notes）但 doubanComment/review/tags 均为空，AI 无法从内容维度匹配。`summary` action 落库到 `notes` 后 AI 无法直接读取自己写的内容，回顾闭环断裂。添加截断 `notes` 约 80-100 字符可低成本补上这一盲区。
+
+**Complexity:** S（`app_server.py:2632` 末尾加 `"notes": (b.get("notes") or "")[:100]`；可选 `app_server.py:2661` 补一句 notes 字段说明，约 2 行改动）
+
+**Files:** `app_server.py:2626-2634`（all_books_summary 构造）、`app_server.py:2661`（common_rules 可选补 notes 说明）
+
+**northstar:** 弱中——Theme 2「回顾有价值」；AI 按内容主题跨书查询是 Theme 2 的长尾场景；`summary` action 写入 `notes` 后 AI 立即可读提升 AI 工具的回顾闭合度；但有 doubanComment/review/tags 三条信息已部分覆盖，此项是补全，非修复断点；S 改动，无 schema/接口/前端变更。
+
+---
+
+> 本次 run（2026-07-29）扫描焦点：HTTP executor 与 MCP 的对称性缺口、AI 上下文完整性（all_books_summary 剩余字段）、聊天压缩策略再评估。新发现 3 条：E233（HTTP ActionExecutor.link_thought 无重复关联守卫，S，northstar 中，OPT-138 MCP 修复的 HTTP 对称缺口，2-路径不对称）、E234（压缩阈值重评估，S，northstar 弱中，2026-07-26 批量记录 signal 间接相关）、E235（all_books_summary 缺 notes 字段，S，northstar 弱中，summary action 写入后 AI 无法读取形成闭环）。提拔 OPT-143（E233，HTTP link_thought 去重，S，northstar 中，最强对称缺口）、OPT-144（E234，压缩阈值 10→20，S，northstar 弱中，探讨是 owner 最高频回顾操作）。所有断言均基于实际代码读取，已标注 file:line。

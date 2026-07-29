@@ -1307,3 +1307,23 @@ Format per item:
 - description: `app.js:5303-5311`（`initQuoteCombobox()` 内 `filteredQuotes`）：过滤仅匹配 `quoteText(item)`（content/ocrText）和 `book.title`，不搜索 `item.tags` 和 `item.reflection`。对比：`renderQuotes()` haystack（`app.js:1880-1886`）已正确包含 tags 和 reflection，两处过滤逻辑不对称——用户在摘抄 Tab 按标签能找到摘抄，在关联弹窗按同一标签却找不到。
 - why: 用户给摘抄打了标签（如「哲学」「成长」），在建立关联时输入该标签无法找到目标摘抄，需手动回忆原文片段才能匹配。标签系统在「建立关联」（最需要按主题查找摘抄）的场景下完全失效，与 tags 投入的管理成本不对等。
 - how: `app.js:5308-5309`（`filteredQuotes` filter 条件）末尾加 `|| (item.tags || []).some(t => t.toLowerCase().includes(lower))`（约 1 行）。可选：同时加 `|| (item.reflection || "").toLowerCase().includes(lower)` 与 `renderQuotes` haystack 对齐。Touch: `app.js:5308-5309`（filteredQuotes filter）。
+
+### OPT-143 — HTTP `ActionExecutor.link_thought` 无重复关联守卫：与 MCP 路径（OPT-138）形成非对称缺口 — 由 explore E233 提拔 [2026-07-29]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 中——Theme 2「建立关联」；OPT-138 为 MCP 路径补了去重，但 HTTP agent action 路径（ActionExecutor）同款缺口未修，两路径写同一数据，单一修复留下平行漏洞，重复关联仍可通过 HTTP 路径积累；S 修复，与 OPT-138 改动完全对称。
+- description: `app_server.py:3438-3465`（`ActionExecutor.execute_action()` 中 `link_thought` 分支）：验证了 source/target 实体存在但不检查 `state["connections"]` 是否已含相同 `(sourceId, targetId)` 对，无条件执行 `state.setdefault("connections", []).insert(0, {...})`。OPT-138 为 `reading_mcp_server.py:446-538`（`link_thought()`）补了去重（`app_server.py:3438` vs `reading_mcp_server.py:513-519`）；两者写同一 state，只有 MCP 路径有保护，HTTP agent action 路径无保护，两条写路径不对称。
+- why: 用户在 chat UI 多轮对话中多次要求 AI「建立关联」会通过 HTTP agent action 路径（而非 MCP）写入；缺少去重导致重复关联积累，关联列表污染，用户需手动逐条删除。修复与 OPT-138 完全对称：同一去重逻辑，同一返回策略（skipped=True），S 改动。
+- how: `app_server.py:3452-3453`（entity 存在性验证通过之后、`state.setdefault(...)` 之前）：扫描 `state.get("connections", [])` 查找 `(c.get("sourceId") == source_id and c.get("targetId") == target_id) or (c.get("sourceId") == target_id and c.get("targetId") == source_id)`；已存在则返回 `{"skipped": True, "reason": "connection already exists"}` 并不写入（参照 OPT-138 MCP 路径返回格式）。补测：`tests/agent/` 同源/同目标两次 `link_thought` action → 第二次 `skipped=True`，`connections` 仍只有 1 条。Touch: `app_server.py:3438-3465`（link_thought 分支）；`tests/agent/`（补测）。
+
+### OPT-144 — `_COMPRESS_THRESHOLD = 10` 过低：批量记录摘抄场景下 AI 对话上下文频繁被截断 — 由 explore E234 提拔 [2026-07-29]
+- status: new
+- area: backend
+- priority: P2
+- size: S
+- northstar: 弱中——Theme 2「回顾有价值」；探讨是 owner 最高频使用操作（2026-07-05 探讨 47 次、2026-07-19 探讨 29 次），高频多轮对话在 threshold=10 时频繁触发压缩导致早期上下文丢失；2026-07-26 signal「一小节读完后集中记录摘抄」表明 owner 批量录入后会密集探讨，压缩发生在 AI 刚开始建立「这次录入摘抄」上下文之时，体验损耗最大。
+- description: `app_server.py:2524-2525`：`_COMPRESS_THRESHOLD = 10`、`_COMPRESS_KEEP_RECENT = 6`。第 10 条消息触发压缩：前 4 条（10-6=4）被 LLM 压缩为 200 字摘要，6 条保留。批量录入 5 条摘抄后立即和 AI 探讨（5 条用户 + 5 条 AI = 10 条），第 10 条消息触发压缩——刚建立的摘抄细节被截断为 200 字，第 11 条对话起 AI 上下文降级。探讨频次数据：7/05 达 47 次、7/19 达 29 次，是北极星三指标中最高的单次操作量，表明 AI 探讨质量对 owner 有高价值。
+- why: threshold=10 在高强度探讨场景下平均每 5-8 分钟触发一次压缩，200 字摘要对摘抄细节（页码、反思、标签）覆盖不全，导致 AI 在后续对话中「遗忘」早期摘抄的细节；提高到 20 将压缩频率降低一倍，在 token 成本和上下文完整性之间取更好的平衡。
+- how: `app_server.py:2524`：将 `_COMPRESS_THRESHOLD = 10` 改为 `_COMPRESS_THRESHOLD = 20`；可选：同步调整 `_COMPRESS_KEEP_RECENT = 6` 为 `10`，保留更多最近消息。1-2 行改动，无 schema/接口/前端变更。需在测试中更新 threshold 相关常量引用。Touch: `app_server.py:2524-2525`；相关测试文件（grep `_COMPRESS_THRESHOLD`）。
