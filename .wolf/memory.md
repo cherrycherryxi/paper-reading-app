@@ -4055,3 +4055,24 @@
 |------|--------|---------|---------|--------|
 | 10:03 | 夜间PR处理:审查PR#98(OPT-141 tags暴露给all_books_summary),测试416 Python+458 JS全绿,squash合并并删分支 | app_server.py | merged | ~15k |
 | 10:04 | Created ../../.claude/paper-loop/review-2026-07-30.md | — | ~370 |
+| 10:05 | Session end: 1 writes across 1 files (review-2026-07-30.md) | 0 reads | ~396 tok |
+
+## Session: 2026-07-30 10:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:07 | Created ../../.claude/paper-loop/cards-2026-07-30.md | — | ~120 |
+| 10:07 | Session end: 1 writes across 1 files (cards-2026-07-30.md) | 5 reads | ~40727 tok |
+
+## Session: 2026-07-30 11:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-30 13:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:27 | 完成 paper-reading-app 项目级 Codex 迁移与 anatomy 修复 | .codex/, .agents/skills/ux-reviewer/, AGENTS.md, .wolf/config.json, .wolf/hooks/, .wolf/anatomy.md, docs/codex-project-migration.md | Codex 项目层已接入；anatomy 从 364 条外部污染记录重扫为 203 条仓库内记录；外部 launchd/Claude routines 保持不变 | ~2k |
+| 21:43 | 完成第三阶段本地自动化 Codex 版本 staging | scripts/codex/* | 新增 Codex 版晨间、实现轮询、收工脚本和未加载 LaunchAgent 模板；旧 Claude 链路保留 | ~2k |
+| 22:06 | 启用 Codex 本机自动化并暂停 Claude 同类任务 | ~/Library/LaunchAgents/com.huangnanqi.paper-codex-*.plist | Codex morning、implement-poll、wrapup 已加载；对应 Claude LaunchAgent 已卸载但文件保留；wrapup 已手动触发并成功发日报邮件 | ~1k |

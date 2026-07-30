@@ -9,6 +9,7 @@
       "max_files": 500,
       "exclude_patterns": [
         "node_modules",
+        ".claude",
         ".git",
         "dist",
         "build",
@@ -31,6 +32,8 @@
         ".pytest_cache",
         ".ruff_cache",
         ".uv-cache",
+        "uploads",
+        "uploads-recompress-backup-2026-07-06",
         "worktrees",
         "backups",
         "logs",

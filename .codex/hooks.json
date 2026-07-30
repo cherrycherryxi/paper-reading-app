@@ -1,0 +1,56 @@
+{
+  "description": "paper-reading-app OpenWolf lifecycle hooks for Codex.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.wolf/hooks/session-start.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading OpenWolf project context"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/apply-patch-adapter.js\" pre-write.js",
+            "timeout": 5,
+            "statusMessage": "Checking OpenWolf write safeguards"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/apply-patch-adapter.js\" post-write.js",
+            "timeout": 10,
+            "statusMessage": "Updating OpenWolf project memory"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.wolf/hooks/stop.js\"",
+            "timeout": 10,
+            "statusMessage": "Saving OpenWolf session state"
+          }
+        ]
+      }
+    ]
+  }
+}

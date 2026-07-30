@@ -1,9 +1,23 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
+export function getProjectDir() {
+    const configuredDir = process.env.WOLF_PROJECT_DIR || process.env.CLAUDE_PROJECT_DIR;
+    if (configuredDir)
+        return configuredDir;
+    try {
+        return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+            encoding: "utf-8",
+            stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+    }
+    catch {
+        return process.cwd();
+    }
+}
 export function getWolfDir() {
-    // Prefer CLAUDE_PROJECT_DIR so hooks work even if CWD changes during a session
-    const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+    const projectDir = getProjectDir();
     return path.join(projectDir, ".wolf");
 }
 /**

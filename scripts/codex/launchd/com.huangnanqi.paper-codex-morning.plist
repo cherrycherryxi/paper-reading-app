@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.huangnanqi.paper-codex-morning</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>/Users/huangnanqi/CursorProjects/paper-reading-app/scripts/codex/paper-morning.sh</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>HOME</key><string>/Users/huangnanqi</string>
+    <key>PATH</key><string>/Users/huangnanqi/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartCalendarInterval</key><dict>
+    <key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/huangnanqi/.claude/codex-paper-morning.cron.log</string>
+  <key>StandardErrorPath</key><string>/Users/huangnanqi/.claude/codex-paper-morning.cron.log</string>
+</dict>
+</plist>
