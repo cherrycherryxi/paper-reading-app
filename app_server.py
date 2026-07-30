@@ -2629,7 +2629,8 @@ class PromptBuilder:
                  "startedAt": (b.get("startedAt") or "")[:10],
                  "finishedAt": (b.get("finishedAt") or "")[:10],
                  "doubanComment": (b.get("doubanComment") or "")[:60],
-                 "review": (b.get("review") or "")[:120]}
+                 "review": (b.get("review") or "")[:120],
+                 "tags": b.get("tags", [])}
                 for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:120]
             ],
             "existing_connections": _ctx_conns,
@@ -2658,7 +2659,7 @@ class PromptBuilder:
 2. actions 通常为 0 或 1 个。例外：add_book 可在一次回复中给出多本，最多 4 条；其他类型 action 仍最多 1 个。
 3. 当用户要求"提炼问题/提出问题/question"时，只围绕当前上下文本身提炼 1 个最核心、最值得继续追问的问题；不要关联其他书，不要列多个问题。
 4. 只输出 JSON，不要输出任何额外说明；不要在 JSON 前后添加自然语言，也不要使用 Markdown 代码块。
-5. all_books_summary 最多包含 120 本书（按最近更新倒序），涵盖书库全量。每本书带 status：finished=已读完、reading=在读、wishlist=想读但尚未开始。当用户提到"我读过的/看过的/读过哪些"书时，只能从 status 为 finished 或 reading 的书里找，绝不能把 wishlist 的书算作读过的一并列出；若你认为某本 wishlist 的书也相关想顺带提及，必须显式标注"（这本你还没开始读）"，不得与读过的书混在同一份清单里不加区分。每本书还带 rating、startedAt 与 finishedAt：rating 是用户打的 1-5 星评分（0 表示未评分，回答「评分最高/最喜欢的书」时忽略 0）；startedAt 是开始阅读日期 YYYY-MM-DD（为空表示未记录）；finishedAt 是读完日期 YYYY-MM-DD（为空表示未记录读完日期，回答「去年/某年读完了哪些书」这类按时间筛选时忽略空值）。据此可回答评分排序、按阅读时间筛选等跨书查询，不要臆造未提供的评分或日期。另有 doubanComment：用户读完时写下的一句话短评（为空表示没写，可能被截断），是判断这本书读后感受、氛围、适合什么心情的主要依据；回答「哪本书治愈/适合悲伤时读」这类以感受为关键词的查询时优先据此匹配，不要仅凭书名臆测，也不要把短评当作书的客观简介复述。此外还有 review：用户为整本书保存的读后感/评价（为空表示没写，可能被截断），比 doubanComment 更完整，是用户对这本书最完整的主观原声；回答「帮我回顾读过什么」「哪本书我最喜欢/印象最深」这类跨书回顾查询时，应优先引用 review 里用户自己的说法，不要用你臆想的评价替换或复述成客观简介。
+5. all_books_summary 最多包含 120 本书（按最近更新倒序），涵盖书库全量。每本书带 status：finished=已读完、reading=在读、wishlist=想读但尚未开始。当用户提到"我读过的/看过的/读过哪些"书时，只能从 status 为 finished 或 reading 的书里找，绝不能把 wishlist 的书算作读过的一并列出；若你认为某本 wishlist 的书也相关想顺带提及，必须显式标注"（这本你还没开始读）"，不得与读过的书混在同一份清单里不加区分。每本书还带 rating、startedAt 与 finishedAt：rating 是用户打的 1-5 星评分（0 表示未评分，回答「评分最高/最喜欢的书」时忽略 0）；startedAt 是开始阅读日期 YYYY-MM-DD（为空表示未记录）；finishedAt 是读完日期 YYYY-MM-DD（为空表示未记录读完日期，回答「去年/某年读完了哪些书」这类按时间筛选时忽略空值）。据此可回答评分排序、按阅读时间筛选等跨书查询，不要臆造未提供的评分或日期。另有 doubanComment：用户读完时写下的一句话短评（为空表示没写，可能被截断），是判断这本书读后感受、氛围、适合什么心情的主要依据；回答「哪本书治愈/适合悲伤时读」这类以感受为关键词的查询时优先据此匹配，不要仅凭书名臆测，也不要把短评当作书的客观简介复述。此外还有 review：用户为整本书保存的读后感/评价（为空表示没写，可能被截断），比 doubanComment 更完整，是用户对这本书最完整的主观原声；回答「帮我回顾读过什么」「哪本书我最喜欢/印象最深」这类跨书回顾查询时，应优先引用 review 里用户自己的说法，不要用你臆想的评价替换或复述成客观简介。还有 tags：用户为这本书手动打的分类标签列表（空列表表示未打标签），如「成长」「哲学」「推理」「历史」等主题/类型标签；回答「我有哪些成长/历史类书籍」「推荐一本哲学主题的书」这类按标签/主题查书的跨书查询时，必须遍历 tags 字段做精确匹配，不要仅凭书名或摘要推测主题，也不要把没有该标签的书列入结果。
 6. existing_connections 是当前上下文（书或摘抄）已建立的关联列表，每条含 sourceId、sourceType、targetId、targetType、kind 与 thought（为空列表表示尚无关联）。建议或生成 link_thought action 前必须检查此列表：若 sourceId+targetId 组合已存在则不重复建议；回答「我是否关联过这本书/这条摘抄」「已经有哪些关联」时直接从此列表作答，不要臆造。"""
         if has_focused_quote:
             scenario_rules = """7. 当前上下文包含 focused_quote 时，优先围绕这条摘抄解释、追问或整理；不要泛泛总结整本书。
