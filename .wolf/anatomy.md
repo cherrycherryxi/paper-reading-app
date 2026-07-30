@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-29T20:08:16.007Z
-> Files: 362 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-30T02:04:39.058Z
+> Files: 363 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../
 
@@ -132,6 +132,7 @@
 - `review-2026-07-26.md` — 夜间 PR 处理报告 — 2026-07-26 (~342 tok)
 - `review-2026-07-28.md` — 夜间 PR 处理报告 — 2026-07-28 (~432 tok)
 - `review-2026-07-29.md` — 夜间 PR 处理报告 — 2026-07-29 (~656 tok)
+- `review-2026-07-30.md` — 夜间 PR 处理报告 — 2026-07-30 (~346 tok)
 - `today-pick.md` — 卡片① (~111 tok)
 
 ## ../../.claude/paper-xhs/
