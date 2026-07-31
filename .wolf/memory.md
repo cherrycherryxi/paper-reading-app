@@ -4083,3 +4083,27 @@
 |------|--------|---------|---------|--------|
 | 10:42 | 完成 OPT-120 深度调研与实现：异步 OCR 写入 `ocrRequestId`，新增鉴权状态查询与 localStorage 断线恢复 | app.js app_server.py tests/agent/ocr_reliability_test.py | PR #99 squash 合入 feature/agent；Python/Node 全量测试绿 | ~20k |
 | 10:46 | 完成 OPT-102：OCR raw image bytes + URL 编码元数据头，旧 JSON data URL 保持兼容 | app.js app_server.py tests/agent/ocr_reliability_test.py tests/frontend/book-ocr.test.js | PR #100 squash 合入 feature/agent；Python 418、Node 459 全绿 | ~12k |
+
+## Session: 2026-07-31 11:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:35 | Created .github/workflows/claude-code-review.yml | — | ~360 |
+
+## Session: 2026-07-31 11:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:40 | 暂停 PR 自动 Claude Code Review：将 `claude-code-review.yml` 触发器从 `pull_request` 改为仅 `workflow_dispatch`；保留 `claude.yml` 的手动 @claude 交互工作流 | .github/workflows/claude-code-review.yml | 后续 PR 不再自动触发审查；需要时可从 Actions 页面手动运行 | ~1k |
+
+## Session: 2026-07-31 12:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:05 | 排查周四焦点误报：OPT-077 实际已由 PR #81 完成，邮件因 roadmap 仍停在 W30、脚本按 7/27 以来提交重新核查而误报；更新 roadmap 为 W31 的 OPT-120/102 OCR 收尾焦点，并将已合入的 OPT-141 标记 done | optimization/roadmap.md, optimization/triage.md | 时间线专项测试 10/10 通过；当前焦点对应的 OPT-120/102 均有本周提交记录，不再重复提醒旧焦点 | ~4k |
+| 11:35 | Created .github/workflows/claude-code-review.yml | — | ~360 |
+| 11:35 | Session end: 2 writes across 1 files (claude-code-review.yml) | 0 reads | ~720 tok |
+| 11:40 | Created optimization/roadmap.md | — | ~2706 |
+| 11:40 | Created optimization/roadmap.md | — | ~2703 |
+| 11:40 | Created optimization/triage.md | — | ~2165 |
+| 11:40 | Session end: 5 writes across 3 files (claude-code-review.yml, roadmap.md, triage.md) | 0 reads | ~8834 tok |
