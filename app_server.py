@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from mcp_dispatcher import MCPToolDispatcher
@@ -4037,6 +4037,33 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"user": user_dict, "state": state, "stateVersion": version})
             return
 
+        if parsed.path == "/api/quotes/ocr-status":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            request_id = str(parse_qs(parsed.query).get("requestId", [""])[0]).strip()
+            if not request_id:
+                conn.close()
+                self._send_json({"error": "requestId is required"}, 400)
+                return
+            state = load_state(conn, user["id"])
+            quote = next(
+                (item for item in state.get("quotes", []) if item.get("ocrRequestId") == request_id),
+                None,
+            )
+            version = state_version(conn, user["id"])
+            conn.close()
+            if not quote:
+                self._send_json({"error": "OCR request not found"}, 404)
+                return
+            self._send_json({
+                "state": state,
+                "stateVersion": version,
+                "quoteId": quote.get("id", ""),
+                "status": quote.get("ocrStatus", ""),
+            })
+            return
+
         if parsed.path == "/api/model-logs":
             conn, user = self._require_user()
             if not conn:
@@ -5087,6 +5114,7 @@ class Handler(BaseHTTPRequestHandler):
             data_url = str(payload.get("imageDataUrl", "")).strip()
             image_url_from_payload = str(payload.get("imageUrl", "")).strip()
             book_id = str(payload.get("bookId", "")).strip()
+            ocr_request_id = str(payload.get("ocrRequestId", "") or "").strip() or new_id("ocr")
             if not book_id:
                 conn.close()
                 self._send_json({"error": "bookId is required"}, 400)
@@ -5198,6 +5226,7 @@ class Handler(BaseHTTPRequestHandler):
                 "ocrSource": "后端 OCR",
                 "ocrStatus": "pending",
                 "ocrTraceId": trace_id,
+                "ocrRequestId": ocr_request_id,
                 "ocrRequestedAt": now,
                 "ocrUpdatedAt": now,
             }
