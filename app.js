@@ -4898,6 +4898,33 @@ async function resizeImageToDataUrl(file, maxPx = 1200, quality = 0.85) {
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+function buildOcrRequestOptions(dataUrl, metadata) {
+  // Send compressed bytes directly when the browser supports Blob/atob. Keep
+  // JSON data-url fallback for older WebViews and the test harness.
+  try {
+    if (typeof Blob !== "undefined" && typeof atob === "function") {
+      const [header, encoded] = String(dataUrl).split(",", 2);
+      const mimeType = header.match(/^data:([^;]+)/i)?.[1] || "image/jpeg";
+      const binary = atob(encoded || "");
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-OCR-Metadata": encodeURIComponent(JSON.stringify({ ...metadata, contentType: mimeType })),
+        },
+        body: new Blob([bytes], { type: mimeType }),
+      };
+    }
+  } catch (error) {
+    console.debug?.("binary OCR upload unavailable, using JSON fallback:", error.message);
+  }
+  return {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...metadata, imageDataUrl: dataUrl }),
+  };
+}
+
 async function handleQuoteImageChange(file) {
   if (pendingQuoteImage?.objectUrl) URL.revokeObjectURL(pendingQuoteImage.objectUrl);
   if (!file) {
@@ -4966,25 +4993,25 @@ async function runOcrFromImage(engine = "fast") {
     }
     const requestContent = normalizeOcrText(els.quoteContent.value);
     rememberOcrRequest(ocrRequestId);
+    const upload = buildOcrRequestOptions(dataUrl, {
+      ocrRequestId,
+      quoteId: existingQuoteId,
+      bookId,
+      engine,
+      page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
+      kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
+      content: requestContent,
+      reflection: String(els.quoteForm.querySelector('[name="reflection"]')?.value || "").trim(),
+      tags: normalizeTags(els.quoteForm.querySelector('[name="tags"]')?.value || ""),
+      imageUrl: savedImageUrl,
+      filename: pendingQuoteImage?.name || "quote-image",
+    });
     const data = await apiFetch(
       "/api/quotes/ocr",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ocrRequestId,
-          quoteId: existingQuoteId,
-          bookId,
-          engine,
-          page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
-          kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
-          content: requestContent,
-          reflection: String(els.quoteForm.querySelector('[name="reflection"]')?.value || "").trim(),
-          tags: normalizeTags(els.quoteForm.querySelector('[name="tags"]')?.value || ""),
-          imageDataUrl: dataUrl,
-          imageUrl: savedImageUrl,
-          filename: pendingQuoteImage?.name || "quote-image",
-        }),
+        headers: upload.headers,
+        body: upload.body,
       },
       true
     );
@@ -5052,18 +5079,18 @@ async function runOcrFromImage(engine = "fast") {
         if (dataUrl2) {
           els.ocrStatus.textContent = "正在识别第二页…";
           try {
+            const upload2 = buildOcrRequestOptions(dataUrl2, {
+              quoteId: String(els.quoteForm.querySelector('[name="id"]')?.value || ""),
+              bookId, engine: "fast",
+              page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
+              kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
+              content: "", reflection: "", tags: [], imageUrl: "",
+              filename: pendingQuoteImage2.name || "quote-image-2",
+            });
             const data2 = await apiFetch("/api/quotes/ocr", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                quoteId: String(els.quoteForm.querySelector('[name="id"]')?.value || ""),
-                bookId, engine: "fast",
-                page: Number(els.quoteForm.querySelector('[name="page"]')?.value || 0),
-                kind: String(els.quoteForm.querySelector('[name="kind"]')?.value || "quote"),
-                content: "", reflection: "", tags: [],
-                imageDataUrl: dataUrl2, imageUrl: "",
-                filename: pendingQuoteImage2.name || "quote-image-2",
-              }),
+              headers: upload2.headers,
+              body: upload2.body,
             }, true);
             if (data2.state) state = normalizeStateShape(data2.state);
             const text2 = String(data2.recognizedText || "");
@@ -5128,12 +5155,13 @@ async function runBookOcr() {
       showToast("图片还在处理中，请稍候…");
       return;
     }
+    const upload = buildOcrRequestOptions(dataUrl, { filename: pendingBookImage?.name || "book-cover" });
     const data = await apiFetch(
       "/api/books/ocr",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: dataUrl }),
+        headers: upload.headers,
+        body: upload.body,
       },
       true
     );

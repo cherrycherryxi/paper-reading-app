@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from mcp_dispatcher import MCPToolDispatcher
@@ -2354,6 +2354,17 @@ def decode_data_url(data_url: str) -> tuple[bytes, str]:
     return base64.b64decode(encoded), mime_type
 
 
+def image_bytes_to_data_url(binary: bytes, mime_type: str = "image/jpeg") -> str:
+    """Convert raw OCR bytes to the existing internal data-url shape."""
+    detected = _detect_image_type(binary)
+    if detected:
+        mime_type = {
+            "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+            "webp": "image/webp", "gif": "image/gif",
+        }.get(detected, mime_type)
+    return f"data:{mime_type};base64,{base64.b64encode(binary).decode('ascii')}"
+
+
 def _is_object_storage_configured() -> bool:
     return bool(S3_BUCKET and S3_ACCESS_KEY and S3_SECRET_KEY)
 
@@ -3800,6 +3811,27 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length) if length > 0 else b"{}"
         return json.loads(raw.decode("utf-8"))
 
+    def _read_ocr_payload(self) -> dict:
+        """Read legacy JSON or raw image bytes plus URL-encoded OCR metadata."""
+        content_type = str(self.headers.get("Content-Type", "")).lower()
+        if content_type.startswith("application/json"):
+            return self._read_json()
+        length = int(self.headers.get("Content-Length", "0"))
+        if length > MAX_REQUEST_BYTES:
+            self._send_json({"error": "request_too_large"}, 413)
+            raise _RequestTooLarge()
+        binary = self.rfile.read(length) if length > 0 else b""
+        metadata_header = str(self.headers.get("X-OCR-Metadata", ""))
+        try:
+            metadata = json.loads(unquote(metadata_header)) if metadata_header else {}
+        except (json.JSONDecodeError, TypeError):
+            raise ValueError("invalid OCR metadata")
+        if not isinstance(metadata, dict):
+            raise ValueError("invalid OCR metadata")
+        mime_type = str(metadata.get("contentType") or self.headers.get("X-OCR-Content-Type") or "image/jpeg")
+        metadata["imageDataUrl"] = image_bytes_to_data_url(binary, mime_type)
+        return metadata
+
     def _get_token(self) -> str | None:
         header = self.headers.get("Authorization", "")
         if header.startswith("Bearer "):
@@ -4962,7 +4994,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self._enforce_rate_limit(conn, user["id"], "ocr"):
                 conn.close()
                 return
-            payload = self._read_json()
+            payload = self._read_ocr_payload()
             data_url = str(payload.get("imageDataUrl", "")).strip()
             if not data_url:
                 conn.close()
@@ -5007,7 +5039,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self._enforce_rate_limit(conn, user["id"], "ocr"):
                 conn.close()
                 return
-            payload = self._read_json()
+            payload = self._read_ocr_payload()
             data_url = str(payload.get("imageDataUrl", "")).strip()
             if not data_url:
                 conn.close()
@@ -5110,7 +5142,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self._enforce_rate_limit(conn, user["id"], "ocr"):
                 conn.close()
                 return
-            payload = self._read_json()
+            payload = self._read_ocr_payload()
             data_url = str(payload.get("imageDataUrl", "")).strip()
             image_url_from_payload = str(payload.get("imageUrl", "")).strip()
             book_id = str(payload.get("bookId", "")).strip()

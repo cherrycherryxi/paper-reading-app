@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import quote
 import app_server
 
 
@@ -78,6 +79,23 @@ class OcrReliabilityTests(unittest.TestCase):
         self.assertEqual(get._status_code, 200)
         self.assertEqual(payload["status"], "pending")
         self.assertEqual(payload["state"]["quotes"][0]["ocrRequestId"], "req-recover")
+
+    def test_raw_binary_fast_ocr_uses_existing_pipeline(self):
+        app_server.run_fast_ocr = lambda data_url, trace_event=None: (
+            app_server.OcrExtractionResult("识别结果", []), "快速识别"
+        )
+        metadata = {
+            "bookId": "book-1", "engine": "fast", "ocrRequestId": "req-raw",
+            "content": "", "page": 1, "kind": "quote", "filename": "x.jpg",
+        }
+        h = self._handler(
+            "/api/quotes/ocr", PNG,
+            {"Content-Type": "application/octet-stream", "X-OCR-Metadata": quote(json.dumps(metadata))},
+        )
+        h.do_POST()
+        payload = json.loads(h.wfile.getvalue())
+        self.assertEqual(h._status_code, 200)
+        self.assertEqual(payload["recognizedText"], "识别结果")
 
 
 if __name__ == "__main__":
