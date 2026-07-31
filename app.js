@@ -1137,6 +1137,7 @@ async function loadSession() {
     currentUser = data.user || null;
     state = normalizeStateShape(data.state);
     migrateLocalCustomTagsIntoState(); // OPT-078：老 localStorage 标签一次性并入云端
+    await recoverRememberedOcrRequests();
     await recoverStalePendingOcr();
     await loadRemoteLogs();
   } catch {
@@ -1167,6 +1168,57 @@ async function refreshSessionState({ renderPage = false } = {}) {
 
 function hasPendingOcrQuotes() {
   return state.quotes.some((quote) => quote.ocrStatus === "pending" && !isStalePendingOcr(quote));
+}
+
+const OCR_REQUESTS_STORAGE_KEY = "paper-reading-ocr-requests-v1";
+
+function getRememberedOcrRequests() {
+  try {
+    const value = JSON.parse(localStorage.getItem(OCR_REQUESTS_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item) : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberOcrRequest(requestId) {
+  if (!requestId) return;
+  const ids = [...new Set([...getRememberedOcrRequests(), requestId])].slice(-20);
+  localStorage.setItem(OCR_REQUESTS_STORAGE_KEY, JSON.stringify(ids));
+}
+
+function forgetOcrRequest(requestId) {
+  if (!requestId) return;
+  localStorage.setItem(
+    OCR_REQUESTS_STORAGE_KEY,
+    JSON.stringify(getRememberedOcrRequests().filter((item) => item !== requestId)),
+  );
+}
+
+async function recoverOcrRequest(requestId, { renderPage = true } = {}) {
+  try {
+    const data = await apiFetch(
+      `/api/quotes/ocr-status?requestId=${encodeURIComponent(requestId)}`,
+      {},
+      true,
+    );
+    if (data.state) state = normalizeStateShape(data.state);
+    if (renderPage) {
+      render();
+      dispatchUserChange();
+    }
+    if (data.status && data.status !== "pending") forgetOcrRequest(requestId);
+    return data;
+  } catch (error) {
+    if (error.message?.includes("not found")) forgetOcrRequest(requestId);
+    return null;
+  }
+}
+
+async function recoverRememberedOcrRequests() {
+  for (const requestId of getRememberedOcrRequests()) {
+    await recoverOcrRequest(requestId, { renderPage: false });
+  }
 }
 
 // OPT-042 (Fix B): a quote stuck at ocrStatus:"pending" past the staleness
@@ -4892,6 +4944,7 @@ async function runOcrFromImage(engine = "fast") {
     return;
   }
   const existingQuoteId = String(els.quoteForm.querySelector('[name="id"]')?.value || "").trim();
+  const ocrRequestId = createId("ocr");
   const existingQuote = existingQuoteId ? state.quotes.find((quote) => quote.id === existingQuoteId) : null;
   const savedImageUrl = pendingQuoteImage?.savedUrl || existingQuote?.imageUrl || "";
   if (!pendingQuoteImage && !savedImageUrl) {
@@ -4912,13 +4965,14 @@ async function runOcrFromImage(engine = "fast") {
       return;
     }
     const requestContent = normalizeOcrText(els.quoteContent.value);
-
+    rememberOcrRequest(ocrRequestId);
     const data = await apiFetch(
       "/api/quotes/ocr",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ocrRequestId,
           quoteId: existingQuoteId,
           bookId,
           engine,
@@ -4934,6 +4988,7 @@ async function runOcrFromImage(engine = "fast") {
       },
       true
     );
+    if (data.status !== "pending") forgetOcrRequest(ocrRequestId);
     if (data.state) {
       state = normalizeStateShape(data.state);
     }
@@ -5036,6 +5091,15 @@ async function runOcrFromImage(engine = "fast") {
       }
     }
   } catch (error) {
+    const recovered = await recoverOcrRequest(ocrRequestId);
+    if (recovered) {
+      scheduleOcrStatusRefresh();
+      els.ocrStatus.textContent = recovered.status === "pending"
+        ? "已提交后台识别，切回页面后会自动取回结果。"
+        : "已取回后台识别结果。";
+      showToast(recovered.status === "pending" ? "识别仍在后台进行" : "已取回识别结果");
+      return;
+    }
     els.ocrStatus.textContent = `${isAi ? "AI 识别" : "快速识别"}失败：${error.message}`;
     showToast(error.message);
     await loadRemoteLogs();
