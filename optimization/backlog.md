@@ -903,7 +903,7 @@ Format per item:
 - how: ① `index.html`（addBook/editBook 对话框 review 区域）新增 `<input type="hidden" name="reviewIsAi" value="false">`，AI 按钮点击时将其设为 `"true"`；② `addBook()`（`app.js:2316`）和 `saveBookEdit()`（`app.js:3274`）存取 `reviewIsAi: formData.get("reviewIsAi") === "true"`；③ `generateBookReview()`（`app.js:2280-2282`）填 textarea 后同步将 hidden input 值设为 `"true"`，用户手动修改 textarea 时（`input` 事件）可选重置为 `"false"`；④ 详情页（`app.js:3375`）和分享卡（`app.js:2907`）根据 `book.reviewIsAi` 在「我的读后」标签旁追加 `（AI 草稿）`。约 15–20 行前端，零后端/DB 变更。Touch: `index.html`（addBook/editBook 对话框）；`app.js:2280-2282`（generateBookReview）；`app.js:2316`（addBook）；`app.js:3274`（saveBookEdit）；`app.js:3375`（详情页展示）。
 
 ### OPT-102 — 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时
-- status: triaged
+- status: done (PR #100, merged 2026-07-31)
 - area: backend
 - priority: P2
 - size: M
@@ -1079,7 +1079,7 @@ Format per item:
 - how: ①后端：新增（或给现有书籍 OCR 端点加 `mode=shelf` 分支）批量提示词 `SHELF_OCR_PROMPT`——要求模型从书架照片中识别**多本**书脊/封面，返回 `[{title, author, confidence}]` 数组；复用 `call_kimi_vision()`；`parse_book_ocr_extraction()` 需扩展或新增数组版解析（容忍 markdown 围栏/缺字段，参照现有实现）。走已有 `ocr` 限流桶（PLAN_LIMITS，free 12/时 40/天），注意书架图信息密度高，可能需单独放宽或计多次。②前端：新入口（「我的」或空书架状态的显眼位置）→ 拍照/选图（复用 `resizeImageToDataUrl`，注意书架图需更高分辨率上限，现默认 1200px 可能不够识别书脊小字）→ 批量结果**勾选确认列表**（可编辑书名/作者、默认全选、去重：复用 `isSameBook()` 与已有书比对，已存在的标灰）→ 一键建库（复用 `importDoubanCsv` 同款 fill-if-empty 新增语义，`status` 默认 wishlist 或让用户选）。③风险/验证点：**书脊竖排文字 + 小字号是识别难点，必须先用 owner 真实书架照片做可行性验证**（识别率 <60% 则本方案价值大打折扣，应先验证再开发）；分辨率/压缩策略需实测；单张图书目过多时的 token 成本。Touch: `app_server.py`（SHELF_OCR_PROMPT + 数组解析 + 端点分支）、`app.js`（拍照入口 + 勾选确认 UI + 批量建库）、`index.html`（入口 + 确认列表 DOM）、`styles.css`。
 
 ### OPT-120 — 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走 App 就白等 20 秒并浪费一次 LLM 调用 — owner 真机实测暴露 [2026-07-17]
-- status: triaged
+- status: done (PR #99, merged 2026-07-31)
 - area: fullstack
 - priority: P2
 - size: M

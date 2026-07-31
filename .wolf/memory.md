@@ -4076,3 +4076,10 @@
 | 21:27 | 完成 paper-reading-app 项目级 Codex 迁移与 anatomy 修复 | .codex/, .agents/skills/ux-reviewer/, AGENTS.md, .wolf/config.json, .wolf/hooks/, .wolf/anatomy.md, docs/codex-project-migration.md | Codex 项目层已接入；anatomy 从 364 条外部污染记录重扫为 203 条仓库内记录；外部 launchd/Claude routines 保持不变 | ~2k |
 | 21:43 | 完成第三阶段本地自动化 Codex 版本 staging | scripts/codex/* | 新增 Codex 版晨间、实现轮询、收工脚本和未加载 LaunchAgent 模板；旧 Claude 链路保留 | ~2k |
 | 22:06 | 启用 Codex 本机自动化并暂停 Claude 同类任务 | ~/Library/LaunchAgents/com.huangnanqi.paper-codex-*.plist | Codex morning、implement-poll、wrapup 已加载；对应 Claude LaunchAgent 已卸载但文件保留；wrapup 已手动触发并成功发日报邮件 | ~1k |
+
+## Session: 2026-07-31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:42 | 完成 OPT-120 深度调研与实现：异步 OCR 写入 `ocrRequestId`，新增鉴权状态查询与 localStorage 断线恢复 | app.js app_server.py tests/agent/ocr_reliability_test.py | PR #99 squash 合入 feature/agent；Python/Node 全量测试绿 | ~20k |
+| 10:46 | 完成 OPT-102：OCR raw image bytes + URL 编码元数据头，旧 JSON data URL 保持兼容 | app.js app_server.py tests/agent/ocr_reliability_test.py tests/frontend/book-ocr.test.js | PR #100 squash 合入 feature/agent；Python 418、Node 459 全绿 | ~12k |

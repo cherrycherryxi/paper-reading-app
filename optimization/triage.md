@@ -35,8 +35,8 @@ Signal 佐证：2026-07-03「书单搜「成长」零结果——库里有多本
 | OPT-141 | all_books_summary 缺 tags 字段：AI 无法按标签跨书查询主题书单 | **P2** | S | **in-progress** | PR #98 open [2026-07-29]；`app_server.py:2632` 已加 `"tags": b.get("tags", [])` + 系统指令补 tags 说明；全量测试绿（416 Python + 51 JS）|
 | OPT-138 | MCP link_thought() 缺少重复关联守卫：并发或重复调用可写入重复 connection 记录 | **P2** | S | **done** | ✅ PR #97 已合入 feature/agent [2026-07-29]；Theme 2「建立关联」三连（OPT-135/137/138）完成 |
 | OPT-136 | 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要 | **P2** | M | triaged | Theme 2「回顾有价值」；2026-06-26 signal 佐证（「读完日期/不依赖手动加记录」方向）；`getBookSessions()` 已封装；`index.html:410-433`、`app.js:3776-3875`、`styles.css` |
-| OPT-120 | 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走就白等 20s 并浪费 LLM 调用 | **P2** | M | triaged | Theme 1；真机实测后端成功但 iOS 断连丢结果；requestId+落库+visibilitychange 方案；改动 M，不适合 agent（新端点+schema 变更） |
-| OPT-102 | 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时 | **P2** | M | triaged | Theme 1；`app_server.py`（OCR 端点 body 解析）+ `app.js`（toBlob 上传路径）；保留旧 dataURL 分支兼容 |
+| OPT-120 | 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走就白等 20s 并浪费 LLM 调用 | **P2** | M | **done** | ✅ PR #99 已合入 feature/agent [2026-07-31]；`ocrRequestId` 落 quote state + 鉴权 status 查询 + localStorage 恢复/继续轮询 |
+| OPT-102 | 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时 | **P2** | M | **done** | ✅ PR #100 已合入 feature/agent [2026-07-31]；raw image body + URL 编码元数据头，旧 JSON data URL 保持兼容 |
 | OPT-135 | existing_connections 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」 | P2 | S | **done** | ✅ PR #94 已合入 feature/agent [2026-07-27] |
 | OPT-137 | build_system_instruction() 缺少 existing_connections 字段说明：AI 不知如何用该字段避免重复关联 | P2 | S | **done** | ✅ PR #94 已合入 feature/agent [2026-07-27] |
 | OPT-139 | build_chat_prompt per-book quote 切片取最旧 20 条：书注量超 20 时最近摘抄对 AI 不可见 | P2 | S | **done** | ✅ PR #95 已合入 feature/agent [2026-07-27] |
