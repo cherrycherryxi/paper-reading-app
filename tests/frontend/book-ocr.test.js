@@ -28,7 +28,7 @@ function elStub(tagName = "div") {
   };
 }
 
-function createHarness() {
+function createHarness({ binary = false } = {}) {
   const elements = new Map();
   function getElement(sel) {
     if (!elements.has(sel)) elements.set(sel, elStub());
@@ -65,6 +65,7 @@ function createHarness() {
     CustomEvent: function (t) { this.type = t; },
     URL: { createObjectURL: () => "blob:x", revokeObjectURL() {} },
     FormData, structuredClone, Date, Math, JSON, Array, Object, String, Number, Boolean, RegExp,
+    ...(binary ? { Blob, atob } : {}),
     setTimeout, clearTimeout,
   };
 
@@ -144,4 +145,15 @@ test("no image: shows toast and makes no request", async () => {
 
   const req = hooks.getRequests().find((r) => String(r.url).includes("/api/books/ocr"));
   assert.equal(req, undefined, "no OCR request when there is no image");
+});
+
+test("OPT-102: cover OCR sends raw image bytes when Blob APIs are available", async () => {
+  const hooks = createHarness({ binary: true });
+  setupForm(hooks);
+  hooks.enqueueResponse({ status: 200, body: { title: "悉达多", author: "黑塞", tags: [] } });
+  await hooks.runBookOcr();
+  const req = hooks.getRequests().find((r) => String(r.url).includes("/api/books/ocr"));
+  assert.equal(req.options.headers["Content-Type"], "application/octet-stream");
+  assert.ok(req.options.body instanceof Blob, "request body should be a Blob");
+  assert.match(req.options.headers["X-OCR-Metadata"], /contentType/);
 });
