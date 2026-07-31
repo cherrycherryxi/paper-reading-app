@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-31T03:40:21.764Z
-> Files: 211 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-31T04:07:01.189Z
+> Files: 214 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -9,7 +9,7 @@
 - `.DS_Store` (~2732 tok)
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
-- `AGENTS.md` — paper-reading-app Project Instructions (~594 tok)
+- `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider_for_tests (~75277 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~67677 tok)
 - `backend.log` (~81214 tok)
@@ -102,6 +102,10 @@
 
 - `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1113 tok)
 
+## docs/releases/
+
+- `README.md` — Project documentation (~68 tok)
+
 ## optimization/
 
 - `backlog.md` — Optimization Backlog (~39190 tok)
@@ -130,10 +134,12 @@
 
 ## scripts/codex/
 
+- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~408 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1639 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
 - `README.md` — Project documentation (~249 tok)
+- `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~751 tok)
 
 ## scripts/codex/launchd/
 

@@ -27,6 +27,10 @@ node --test tests/frontend/*.test.js
 
 For a focused change, run the smallest relevant Python and Node test files and report any known fixture or environment limitation.
 
+## Production release notes
+
+生产发布统一使用 `scripts/codex/deploy-prod.sh`。脚本会调用 release hook，按上一版 `main` 与待发布提交自动生成 `docs/releases/YYYY-MM-DD-<commit>.md`，再推送 `feature/agent`、推进生产 `main`、更新 Prod 并重启服务。不要手工绕过该流程发布，以免遗漏版本说明。
+
 ## OpenWolf and Codex
 
 - Codex project hooks are in `.codex/hooks.json`; the legacy `.claude/` setup remains untouched for Claude Code.
