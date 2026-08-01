@@ -1652,6 +1652,93 @@ textarea {
   border-radius: var(--radius-md);
 }
 
+.quote-photo-tools {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.quote-photo-picker,
+.quote-ocr-actions {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
+.quote-photo-tools .file-button[hidden] {
+  display: none;
+}
+
+.quote-photo-slot {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.quote-photo-slot:hover,
+.quote-photo-slot:focus-within {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.quote-photo-slot.is-loaded {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.quote-photo-slot__index {
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.quote-photo-slot.is-loaded .quote-photo-slot__index {
+  background: var(--color-accent);
+  color: var(--color-ink);
+}
+
+.quote-photo-slot__copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  text-align: left;
+}
+
+.quote-photo-slot__copy strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.quote-photo-slot__copy small {
+  color: var(--color-ink-muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.quote-ocr-actions .button {
+  flex: 1 1 0;
+  min-height: 44px;
+}
+
+.quote-photo-tools > .helper-text {
+  width: 100%;
+}
+
 .image-preview {
   display: flex;
   flex-wrap: wrap;
@@ -1687,12 +1774,17 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.2rem 0;
+  border-bottom: none;
 }
 
 .ocr-line-selector__row:last-child {
   border-bottom: none;
+}
+
+.ocr-line-selector__section-divider {
+  border-top: 1px dashed var(--color-border);
+  margin: 0.35rem 0;
 }
 
 /* font-size 16px：iPhone 上输入框 <16px 聚焦会触发缩放，这里保持 16px 避开。
@@ -1703,7 +1795,7 @@ textarea {
   width: auto;
   font-size: 16px;
   line-height: 1.4;
-  padding: 0.3rem 0.45rem;
+  padding: 0.55rem 0.65rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 4px);
   background: var(--color-bg, #fff);
@@ -2793,6 +2885,11 @@ dialog::backdrop {
   .dialog-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .quote-photo-picker,
+  .quote-ocr-actions {
+    flex-direction: row;
   }
 
   .chat-input-inline {

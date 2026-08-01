@@ -1,7 +1,12 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-31T04:07:01.189Z
-> Files: 214 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-01T13:01:27.810Z
+> Files: 217 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../.claude/paper-loop/
+
+- `cards-2026-08-01.md` — 卡片① (~44 tok)
+- `review-2026-08-01.md` (~2 tok)
 
 ## ./
 
@@ -10,15 +15,15 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider_for_tests (~75277 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~67677 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76142 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~69134 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11521 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
 - `docker-compose.yml` — Docker Compose services (~879 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~12165 tok)
+- `index.html` — 🐛 又买了一本书 (~12371 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -27,7 +32,7 @@
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1424 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 102 rules, 150 vars, 2 media queries (~25070 tok)
+- `styles.css` — Styles: 102 rules, 150 vars (~25560 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -101,6 +106,7 @@
 ## docs/
 
 - `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1113 tok)
+- `product-agent-context-and-control-analysis.md` — 产品 Agent：动态上下文管理与可控性分析 (~978 tok)
 
 ## docs/releases/
 
@@ -112,7 +118,7 @@
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~812 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~843 tok)
 - `triage.md` — Triage (~2029 tok)
 
 ## reading/
@@ -187,7 +193,7 @@
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `prompt_builder_connections_test.py` — Tests: global_context_returns_all_connections, book_context_shows_connections_involving_book, book_context_was_previously_returning_empty, book_con... (~2251 tok)
 - `prompt_builder_recent_quotes_test.py` — Tests: book_with_more_than_20_quotes_sends_newest_20, book_with_20_or_fewer_quotes_sends_all, quotes_are_ordered_newest_first (~968 tok)
-- `quote_ocr_engine_test.py` — Tests: returns_normalized_text_from_stdout, default_langs_excludes_eng, missing_binary_raises_unavailable, timeout_raises_unavailable + 9 more (~5000 tok)
+- `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5030 tok)
 - `rate_limit_test.py` — Regression tests for AI endpoint rate limiting (P0 commercialization). (~2412 tok)
 - `reading_mcp_server_tools_test.py` — Tests: add_note_writes_note_to_quotes_head, add_note_rejects_empty_content_without_writing, add_book_creates_wishlist_book_and_skips_duplicate, add... (~5530 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
@@ -234,7 +240,7 @@
 - `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)
 - `ocr-fast-panel-integration.test.js` — Integration test for the FAST OCR path (runOcrFromImage("fast")): (~1884 tok)
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4036 tok)
-- `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~2178 tok)
+- `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~2877 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-card-image-thumb.test.js` — OPT-052: quote card shows image thumbnail when quote.imageUrl is present, (~1647 tok)
 - `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~1796 tok)

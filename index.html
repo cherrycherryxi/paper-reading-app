@@ -554,12 +554,22 @@
         </div>
         <label><span>原文 / 笔记内容</span><textarea name="content" id="quoteContent" rows="5" placeholder="可手动输入，也可以先拍照上传再尝试 OCR。"></textarea></label>
         <div class="quote-photo-tools">
-          <label class="button button-ghost file-button">
-            选择照片 / 拍照
-            <input type="file" id="quoteImageInput" accept="image/*" multiple />
-          </label>
-          <button class="button button-ghost" id="ocrButton" type="button">快速识别</button>
-          <button class="button button-ghost" id="aiOcrButton" type="button">AI 精识别</button>
+          <div class="quote-photo-picker" role="group" aria-label="摘抄照片">
+            <label class="quote-photo-slot file-button" id="quoteFirstImageControl">
+              <span class="quote-photo-slot__index" aria-hidden="true">1</span>
+              <span class="quote-photo-slot__copy"><strong id="quoteFirstImageLabel">添加第 1 张</strong><small>相册或拍照</small></span>
+              <input type="file" id="quoteImageInput" accept="image/*" multiple />
+            </label>
+            <label class="quote-photo-slot file-button" id="quoteSecondImageControl" hidden>
+              <span class="quote-photo-slot__index" aria-hidden="true">2</span>
+              <span class="quote-photo-slot__copy"><strong id="quoteSecondImageLabel">添加第 2 张</strong><small>跨页内容</small></span>
+              <input type="file" id="quoteImageInput2" accept="image/*" />
+            </label>
+          </div>
+          <div class="quote-ocr-actions">
+            <button class="button button-primary" id="ocrButton" type="button">快速识别</button>
+            <button class="button button-ghost" id="aiOcrButton" type="button">AI 精识别</button>
+          </div>
           <span id="ocrStatus" class="helper-text">「快速识别」秒出整页全文；「AI 精识别」只提取划线/标记的句子，更准、稍慢。</span>
         </div>
         <div id="ocrLineSelector" class="ocr-line-selector" hidden></div>

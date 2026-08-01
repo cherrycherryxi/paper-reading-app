@@ -67,8 +67,8 @@ CLOUD_OCR_PROVIDER = os.getenv("CLOUD_OCR_PROVIDER", "baidu").lower()
 BAIDU_OCR_API_KEY = os.getenv("BAIDU_OCR_API_KEY", "")
 BAIDU_OCR_SECRET_KEY = os.getenv("BAIDU_OCR_SECRET_KEY", "")
 # accurate = 高精度含位置版 (returns per-line location, lets us drop facing-page
-# noise and reflow wrapped lines). accurate_basic = no location (cheaper free
-# quota but layout can't be cleaned). Override if you'd rather use _basic.
+# noise while preserving visual lines). accurate_basic = no location (cheaper
+# free quota but layout can't be cleaned). Override if you'd rather use _basic.
 BAIDU_OCR_ENDPOINT = os.getenv("BAIDU_OCR_ENDPOINT", "accurate")
 # auto = cloud if a key is configured else tesseract; or force cloud|tesseract.
 FAST_OCR_ENGINE = os.getenv("FAST_OCR_ENGINE", "auto").lower()
@@ -1438,13 +1438,13 @@ def _baidu_access_token() -> str:
 
 def _assemble_baidu_lines(words_result: list) -> str:
     """Turn Baidu words_result (per-line, with optional `location`) into clean
-    continuous text for a 摘抄 quote:
+    line-preserving text for the 摘抄 editor:
       1. drop secondary-column noise — e.g. the facing page captured at the
          right edge of a phone photo shows up as narrow fragments far to the
          right, interleaved with the real lines;
-      2. reflow physically-wrapped lines into flowing text (Chinese has no
-         inter-word spaces, so a mid-paragraph line break should vanish), only
-         inserting a paragraph break when there's a large vertical gap.
+      2. keep Baidu's visual lines so the frontend line editor can edit/delete
+         them independently, while marking a large vertical gap as a paragraph
+         break. The frontend reflows kept lines only when rebuilding content.
     Falls back to a plain newline join when no location geometry is present
     (e.g. the accurate_basic endpoint)."""
     items = [w for w in words_result if str(w.get("words", "")).strip()]
@@ -1473,8 +1473,9 @@ def _assemble_baidu_lines(words_result: list) -> str:
     prev_bottom = None
     for w in kept:
         loc = w["location"]
-        if prev_bottom is not None and med_height and (loc["top"] - prev_bottom) > med_height * 0.8:
-            parts.append("\n\n")  # large vertical gap → genuine paragraph break
+        if prev_bottom is not None:
+            is_paragraph_gap = bool(med_height and (loc["top"] - prev_bottom) > med_height * 0.8)
+            parts.append("\n\n" if is_paragraph_gap else "\n")
         parts.append(str(w.get("words", "")))
         prev_bottom = loc["top"] + loc["height"]
     return "".join(parts)
@@ -1483,8 +1484,9 @@ def _assemble_baidu_lines(words_result: list) -> str:
 def call_cloud_ocr(image_data_url: str, trace_event=None) -> OcrExtractionResult:
     """Commercial-grade Chinese OCR for the fast path via Baidu (accurate by
     default, which returns per-line location so _assemble_baidu_lines can drop
-    facing-page noise and reflow wrapped lines). Raises CloudOcrUnavailable on
-    any failure so the caller can fall back to Tesseract. Plain text only."""
+    facing-page noise while preserving visual lines). Raises
+    CloudOcrUnavailable on failure. Tesseract is used only when cloud OCR is not
+    configured; a configured Baidu failure is surfaced instead. Plain text only."""
     def emit(event_type: str, metadata: dict) -> None:
         if trace_event:
             trace_event(event_type, metadata)
@@ -5281,7 +5283,8 @@ class Handler(BaseHTTPRequestHandler):
             # job can load it). (OPT-042)
             engine = str(payload.get("engine", "fast") or "fast").lower()
             if engine != "ai":
-                # Fast path: synchronous local Tesseract OCR — no LLM, no polling.
+                # Fast path: synchronous Baidu OCR when configured; local
+                # Tesseract is the unconfigured/offline fallback. No LLM/polling.
                 def _fast_trace(event_type, metadata):
                     trace_manager.log_event(
                         conn, trace_id, event_type,

@@ -9865,6 +9865,20 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-29T20:08:16.024Z"
+    },
+    {
+      "id": "bug-602",
+      "timestamp": "2026-08-01T00:00:00+08:00",
+      "status": "fixed",
+      "fixed_at": "2026-08-01T21:05:00+08:00",
+      "error_message": "OPT-109 跨页 OCR：iPhone 连续拍两张照片时，第二次相机回传单文件会覆盖第一张；同时两页百度快速 OCR 后，第 1 页的多个视觉行在编辑面板中挤成一个超长编辑框。",
+      "file": "index.html, app.js, app_server.py, tests/frontend/ocr-multi-image.test.js, tests/agent/quote_ocr_engine_test.py",
+      "root_cause": "拍照问题来自多图实现依赖同一次 file input change 返回两个 File，而 iOS 相机每次只返回一个新 FileList。文本问题来自时序：第 1 页百度 OCR 返回后立刻调用 renderOcrLineSelector()，该函数会把视觉行回写成连续正文；第 2 页完成时又从已压平的 quoteContent 取第 1 页文本合并，所以最终重绘时第 1 页只剩一个超长行。百度 accurate 含位置结果在后端也曾直接拼接普通视觉行，进一步丢失编辑边界。",
+      "fix": "摘抄表单使用独立的第 1/第 2 张照片槽。快速识别保留第 1、2 页各自的原始百度 OCR 文本，等两页完成后只渲染一次；后端对百度含位置结果过滤边页噪声后保留视觉行，大间距仍标记段落。移除每 48 字人为拆分的绕行方案，正文仅在编辑面板回写时按页内连续、页间空行重排。新增真实模拟面板副作用的双页多行回归测试。",
+      "tags": ["ocr", "multi-image", "ios", "camera", "cross-page", "text-formatting"],
+      "related_bugs": ["bug-553"],
+      "occurrences": 2,
+      "last_seen": "2026-08-01T20:31:00+08:00"
     }
   ]
 }

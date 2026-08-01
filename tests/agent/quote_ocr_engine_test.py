@@ -5,8 +5,10 @@ OPT-016: Tests for the two-tier quote OCR engine selection.
   (subprocess) — normalizes stdout, and degrades to TesseractUnavailable on
   missing binary / timeout / nonzero exit (so the endpoint can return a friendly
   "use AI 精识别" instead of 500).
-- /api/quotes/ocr: engine="fast" (default) runs Tesseract synchronously and
-  returns 200 + recognizedText; engine="ai" keeps the 202 background-job flow.
+- /api/quotes/ocr: engine="fast" (default) runs Baidu synchronously when cloud
+  credentials are configured, with Tesseract as the unconfigured/offline
+  fallback, and returns 200 + recognizedText; engine="ai" keeps the 202
+  background-job flow.
 """
 import json
 import os
@@ -258,10 +260,10 @@ class CallCloudOcrTests(unittest.TestCase):
             with self.assertRaises(app_server.CloudOcrUnavailable):
                 app_server.call_cloud_ocr(TINY_DATA_URL)
 
-    def test_assemble_drops_facing_page_noise_and_reflows(self):
+    def test_assemble_drops_facing_page_noise_and_preserves_visual_lines(self):
         # Main body: left-aligned wide lines. Facing-page noise: narrow fragments
-        # far to the right, interleaved by top. Expect noise gone + lines joined
-        # into continuous text (Chinese wrap-lines have no separator).
+        # far to the right, interleaved by top. Expect noise gone while main
+        # visual lines stay available to the frontend line editor.
         def line(words, left, top, width, height=60):
             return {"words": words, "location": {"left": left, "top": top, "width": width, "height": height}}
         # tops pitch ~78px with 60px glyph height → small gap (no false paragraph break)
@@ -277,7 +279,7 @@ class CallCloudOcrTests(unittest.TestCase):
         self.assertNotIn("反省你我", text)
         self.assertEqual(
             text,
-            "所有那些凡俗的旅行家都是财迷心窍，或是天生不安分，在研究指南针的过程中成就永恒。而最有趣的一场抵达莫过于一艘轮船。",
+            "所有那些凡俗的旅行家都是财迷心窍，或是天\n生不安分，在研究指南针的过程中成就永恒。\n而最有趣的一场抵达莫过于一艘轮船。",
         )
 
     def test_assemble_inserts_paragraph_break_on_large_vertical_gap(self):

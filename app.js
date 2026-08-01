@@ -142,6 +142,11 @@ const els = {
   candidatesDialogMeta: document.querySelector("#candidatesDialogMeta"),
   candidatesList: document.querySelector("#candidatesList"),
   quoteImageInput: document.querySelector("#quoteImageInput"),
+  quoteImageInput2: document.querySelector("#quoteImageInput2"),
+  quoteFirstImageControl: document.querySelector("#quoteFirstImageControl"),
+  quoteFirstImageLabel: document.querySelector("#quoteFirstImageLabel"),
+  quoteSecondImageControl: document.querySelector("#quoteSecondImageControl"),
+  quoteSecondImageLabel: document.querySelector("#quoteSecondImageLabel"),
   quoteImagePreview: document.querySelector("#quoteImagePreview"),
   quotePreviewImg: document.querySelector("#quotePreviewImg"),
   ocrButton: document.querySelector("#ocrButton"),
@@ -2094,6 +2099,15 @@ function syncOpenQuoteFormFromState() {
 
 function renderImagePreview() {
   const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl || resolveImageUrl(pendingQuoteImage?.savedUrl || "");
+  if (els.quoteFirstImageLabel) {
+    els.quoteFirstImageLabel.textContent = src ? "更换第 1 张" : "添加第 1 张";
+  }
+  els.quoteFirstImageControl?.classList.toggle("is-loaded", Boolean(src));
+  if (els.quoteSecondImageControl) els.quoteSecondImageControl.hidden = !src;
+  if (els.quoteSecondImageLabel) {
+    els.quoteSecondImageLabel.textContent = pendingQuoteImage2 ? "更换第 2 张" : "添加第 2 张";
+  }
+  els.quoteSecondImageControl?.classList.toggle("is-loaded", Boolean(pendingQuoteImage2));
   if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
     if (els.quotePreviewImg) els.quotePreviewImg.removeAttribute("src");
@@ -2542,13 +2556,22 @@ async function uploadBookImageIfNeeded() {
   return uploadBookCoverImage(pendingBookImage);
 }
 
-// 把面板里保留的行拼回正文：去掉物理换行，拼成连续段落（中文句子无空格直接相连，
-// 句末标点自然断句）。空行（用户清空但未删除的行）自然被丢弃。
+// 把面板里保留的行拼回正文：同一段内去掉 OCR 的物理换行，但保留原文空行。
+// 这样两张照片的页间空行（以及原文段落）不会在编辑面板回写时丢失。
 function rebuildQuoteContentFromOcrPanel(sel) {
-  const parts = Array.from(sel.querySelectorAll(".ocr-line-selector__input"))
-    .map((el) => el.value.trim())
-    .filter(Boolean);
-  if (els.quoteContent) els.quoteContent.value = parts.join("");
+  const sections = new Map();
+  Array.from(sel.querySelectorAll(".ocr-line-selector__input")).forEach((el) => {
+    const value = el.value.trim();
+    if (!value) return;
+    const section = el.closest?.(".ocr-line-selector__row")?.dataset?.section || "0";
+    if (!sections.has(section)) sections.set(section, []);
+    sections.get(section).push(value);
+  });
+  if (els.quoteContent) {
+    els.quoteContent.value = Array.from(sections.values())
+      .map((parts) => parts.join(""))
+      .join("\n\n");
+  }
 }
 
 // 让 OCR 行的 textarea 随内容高度自适应：先归零再按 scrollHeight 撑开。
@@ -2561,7 +2584,18 @@ function autoGrowOcrInput(el) {
 function renderOcrLineSelector(text) {
   const sel = els.ocrLineSelector;
   if (!sel) return;
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  let section = 0;
+  let sawContent = false;
+  const lines = [];
+  String(text || "").split("\n").forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) {
+      if (sawContent) section += 1;
+      return;
+    }
+    sawContent = true;
+    lines.push({ line, section });
+  });
   if (lines.length < 3) {
     sel.hidden = true;
     sel.innerHTML = "";
@@ -2570,17 +2604,17 @@ function renderOcrLineSelector(text) {
     return;
   }
   sel.hidden = false;
-  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接改行内文字，或点 ✕ 删去整行；保留的行会拼成连续段落：</p>`;
+  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接修改，或点 ✕ 删除；会保留两页分段：</p>`;
   const items = lines
     .map(
-      (line, i) =>
-        `<div class="ocr-line-selector__row" data-line-idx="${i}"><textarea class="ocr-line-selector__input" rows="1" aria-label="第 ${i + 1} 行内容">${escapeHtml(line)}</textarea><button type="button" class="ocr-line-selector__del" aria-label="删除此行">✕</button></div>`
+      ({ line, section: sectionId }, i) =>
+        `${i > 0 && sectionId !== lines[i - 1].section ? '<div class="ocr-line-selector__section-divider" aria-hidden="true"></div>' : ""}<div class="ocr-line-selector__row" data-line-idx="${i}" data-section="${sectionId}"><textarea class="ocr-line-selector__input" rows="1" aria-label="第 ${i + 1} 行内容">${escapeHtml(line)}</textarea><button type="button" class="ocr-line-selector__del" aria-label="删除此行">✕</button></div>`
     )
     .join("");
   sel.innerHTML = header + items;
   // textarea 单行起步，按内容撑高——长行不再被裁，整句可见可编辑。
   sel.querySelectorAll(".ocr-line-selector__input").forEach(autoGrowOcrInput);
-  // 初始就把正文拼成连续段落（去物理换行），不再让识别结果带满硬换行符。
+  // 初始就去掉 OCR 的物理换行，同时保留页间/段落间空行。
   rebuildQuoteContentFromOcrPanel(sel);
   // 行内编辑：任意一行改动即实时同步正文，并随内容增减重新撑高。
   sel.oninput = (e) => {
@@ -2596,7 +2630,7 @@ function renderOcrLineSelector(text) {
     rebuildQuoteContentFromOcrPanel(sel);
     const remaining = sel.querySelectorAll(".ocr-line-selector__row").length;
     const hint = sel.querySelector(".ocr-line-selector__hint");
-    if (hint) hint.textContent = `已保留 ${remaining} 行（拼成连续段落，可继续编辑或删除）：`;
+    if (hint) hint.textContent = `已保留 ${remaining} 行（保留两页分段，可继续编辑或删除）：`;
     if (remaining === 0) {
       sel.hidden = true;
       sel.innerHTML = "";
@@ -4962,6 +4996,17 @@ async function handleQuoteImage2Change(file) {
   }).catch(() => {});
 }
 
+async function loadQuoteImageSelection(files) {
+  const selected = Array.from(files || []).slice(0, 2);
+  if (!selected.length) return 0;
+  await handleQuoteImageChange(selected[0]);
+  if (selected[1]) {
+    await handleQuoteImage2Change(selected[1]);
+    showToast("已载入 2 张图片，OCR 将按两页拼接内容");
+  }
+  return selected.length;
+}
+
 async function runOcrFromImage(engine = "fast") {
   if (!requireAuth("执行 OCR")) return;
   const isAi = engine === "ai";
@@ -5041,7 +5086,7 @@ async function runOcrFromImage(engine = "fast") {
         dataUrl: null,
         compressionPromise: null,
         objectUrl: pendingQuoteImage?.objectUrl || "",
-        ocrSource: quote.ocrSource || (isAi ? "后端 OCR" : "本地 OCR (Tesseract)"),
+        ocrSource: quote.ocrSource || (isAi ? "后端 OCR" : "快速 OCR"),
       };
       renderImagePreview();
     }
@@ -5064,12 +5109,10 @@ async function runOcrFromImage(engine = "fast") {
       const guardPass = !!recognized && (!currentVal || currentVal === requestContent);
       if (guardPass) {
         els.quoteContent.value = recognized;
-        // OPT-055: fast OCR returns text synchronously here (it does NOT go
-        // through syncOpenQuoteFormFromState, which only handles the async AI
-        // poll path), so wire the line-delete panel directly into this branch.
-        renderOcrLineSelector(recognized);
       }
-      // OPT-109: second page OCR — serially OCR the second image and concatenate.
+      // OPT-109: keep page 1's raw OCR lines intact until page 2 completes.
+      // renderOcrLineSelector() rebuilds quoteContent as a side effect, so
+      // rendering page 1 before this request would flatten its line structure.
       let didSecondPage = false;
       if (pendingQuoteImage2) {
         let dataUrl2 = pendingQuoteImage2.dataUrl || "";
@@ -5095,7 +5138,8 @@ async function runOcrFromImage(engine = "fast") {
             if (data2.state) state = normalizeStateShape(data2.state);
             const text2 = String(data2.recognizedText || "");
             if (text2) {
-              const merged = [normalizeOcrText(els.quoteContent.value), text2].filter(Boolean).join("\n\n");
+              const firstPageText = guardPass ? recognized : currentVal;
+              const merged = [firstPageText, text2].filter(Boolean).join("\n\n");
               els.quoteContent.value = merged;
               renderOcrLineSelector(merged);
               didSecondPage = true;
@@ -5104,6 +5148,10 @@ async function runOcrFromImage(engine = "fast") {
             showToast("第二页识别失败：" + e2.message);
           }
         }
+      }
+      if (!didSecondPage && guardPass) {
+        // Single image, or page 2 failed/was empty: render page 1 exactly once.
+        renderOcrLineSelector(recognized);
       }
       await loadRemoteLogs();
       if (didSecondPage) {
@@ -6111,20 +6159,25 @@ function bindEvents() {
   });
 
   els.quoteImageInput?.addEventListener("change", async (event) => {
-    const files = [...(event.target.files || [])].slice(0, 2);
-    if (!files.length) return;
     try {
-      await handleQuoteImageChange(files[0]);
-      if (files[1]) {
-        await handleQuoteImage2Change(files[1]);
-        showToast("已载入 2 张图片，OCR 将拼接两页内容");
-      } else {
-        if (pendingQuoteImage2?.objectUrl) URL.revokeObjectURL(pendingQuoteImage2.objectUrl);
-        pendingQuoteImage2 = null;
-        renderImagePreview();
-      }
+      await loadQuoteImageSelection(event.target.files);
     } catch {
       showToast("图片读取失败");
+    } finally {
+      event.target.value = "";
+    }
+  });
+
+  els.quoteImageInput2?.addEventListener("change", async (event) => {
+    const [file] = event.target.files || [];
+    if (!file) return;
+    try {
+      await handleQuoteImage2Change(file);
+      showToast("第二张图片已载入，OCR 将按两页拼接内容");
+    } catch {
+      showToast("第二张图片读取失败");
+    } finally {
+      event.target.value = "";
     }
   });
 
