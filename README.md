@@ -142,8 +142,11 @@ pip install -r requirements.txt
 
 ```bash
 export DEEPSEEK_API_KEY="..."     # 必填
+export DEEPSEEK_MODEL="deepseek-v4-pro"  # 选填，聊天模型；默认 deepseek-v4-pro
 export MOONSHOT_API_KEY="..."     # 选填，OCR 用
 ```
+
+使用 `.env` 启动时也可直接配置 `DEEPSEEK_MODEL`；修改后需重启后端服务才会生效。
 
 默认前端与后端同源运行，`index.html` 里的 `backendBaseUrl` 可以保持为空。如果要把前端单独部署到其他域名，再把它改成 App Server 地址。
 

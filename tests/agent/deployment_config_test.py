@@ -43,7 +43,7 @@ class DeploymentConfigTests(unittest.TestCase):
         self.assertIn('"80:80"', content)
         self.assertIn('"443:443"', content)
         # Critical env vars passed through
-        for env_name in ("DEEPSEEK_API_KEY", "MOONSHOT_API_KEY",
+        for env_name in ("DEEPSEEK_API_KEY", "DEEPSEEK_MODEL", "MOONSHOT_API_KEY",
                          "APP_PUBLIC_URL", "ADMIN_TOKEN", "DB_PATH", "UPLOAD_DIR"):
             self.assertIn(env_name, content,
                           f"docker-compose must wire {env_name}")
@@ -75,7 +75,7 @@ class DeploymentConfigTests(unittest.TestCase):
         path = REPO_ROOT / ".env.example"
         self.assertTrue(path.exists())
         content = path.read_text()
-        for key in ("DOMAIN", "APP_PUBLIC_URL", "DEEPSEEK_API_KEY",
+        for key in ("DOMAIN", "APP_PUBLIC_URL", "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL",
                     "MOONSHOT_API_KEY", "SMTP_HOST", "ADMIN_TOKEN"):
             self.assertIn(key, content, f".env.example must document {key}")
 

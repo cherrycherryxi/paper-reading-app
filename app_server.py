@@ -57,6 +57,7 @@ def static_asset_version() -> str:
 
 # 服务端密钥只从环境变量读取，不要放到前端或提交到仓库。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro").strip() or "deepseek-v4-pro"
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
 MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
 # Cloud OCR for the "快速识别" fast path (OPT-016 mid-term): commercial-grade
@@ -3502,11 +3503,12 @@ DEEPSEEK_MAX_ATTEMPTS = 3
 DEEPSEEK_RETRYABLE_CODES = {429, 500, 502, 503}
 
 
-def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_tokens: int = 1200) -> str:
+def call_deepseek(messages: list[dict], model: str | None = None, max_tokens: int = 1200) -> str:
     if not DEEPSEEK_API_KEY:
         raise RuntimeError("DEEPSEEK_API_KEY is not configured")
 
-    payload = json.dumps({"model": model, "messages": messages, "max_tokens": max_tokens}).encode("utf-8")
+    selected_model = str(model or DEEPSEEK_MODEL).strip() or DEEPSEEK_MODEL
+    payload = json.dumps({"model": selected_model, "messages": messages, "max_tokens": max_tokens}).encode("utf-8")
 
     for attempt in range(DEEPSEEK_MAX_ATTEMPTS):
         request = Request(
@@ -3542,14 +3544,15 @@ def call_deepseek(messages: list[dict], model: str = "deepseek-v4-pro", max_toke
     raise RuntimeError("DeepSeek API 暂时不可用，请稍后重试")
 
 
-def call_deepseek_stream(messages: list[dict], model: str = "deepseek-v4-pro", max_tokens: int = 2400):
+def call_deepseek_stream(messages: list[dict], model: str | None = None, max_tokens: int = 2400):
     """Yields text delta strings from DeepSeek streaming API."""
     if not DEEPSEEK_API_KEY:
         raise RuntimeError("DEEPSEEK_API_KEY is not configured")
 
+    selected_model = str(model or DEEPSEEK_MODEL).strip() or DEEPSEEK_MODEL
     payload = json.dumps(
         {
-            "model": model,
+            "model": selected_model,
             "messages": messages,
             "max_tokens": max_tokens,
             "stream": True,
@@ -5576,7 +5579,7 @@ class Handler(BaseHTTPRequestHandler):
                     user_id=user["id"],
                     username=user["username"],
                     type_="chat",
-                    model="deepseek-chat",
+                    model=DEEPSEEK_MODEL,
                     prompt=system_prompt,
                     input_=validation.sanitized_input,
                     output=full_reply,
@@ -5629,7 +5632,7 @@ class Handler(BaseHTTPRequestHandler):
                     user_id=user["id"],
                     username=user["username"],
                     type_="chat",
-                    model="deepseek-chat",
+                    model=DEEPSEEK_MODEL,
                     prompt=system_prompt,
                     input_=validation.sanitized_input,
                     output="",
@@ -5775,7 +5778,7 @@ class Handler(BaseHTTPRequestHandler):
                     user_id=user["id"],
                     username=user["username"],
                     type_="chat",
-                    model="deepseek-chat",
+                    model=DEEPSEEK_MODEL,
                     prompt=system_prompt,
                     input_=validation.sanitized_input,
                     output=raw,
@@ -5829,7 +5832,7 @@ class Handler(BaseHTTPRequestHandler):
                     user_id=user["id"],
                     username=user["username"],
                     type_="chat",
-                    model="deepseek-chat",
+                    model=DEEPSEEK_MODEL,
                     prompt=system_prompt,
                     input_=validation.sanitized_input,
                     output="",

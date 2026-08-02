@@ -1,12 +1,14 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-01T13:01:27.810Z
-> Files: 217 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-02T04:26:21.254Z
+> Files: 219 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/paper-loop/
 
 - `cards-2026-08-01.md` — 卡片① (~44 tok)
+- `cards-2026-08-02.md` — 卡片① (~44 tok)
 - `review-2026-08-01.md` (~2 tok)
+- `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 
 ## ./
 
@@ -15,13 +17,13 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76142 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76213 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~69134 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11521 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
-- `docker-compose.yml` — Docker Compose services (~879 tok)
+- `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~12371 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
@@ -30,7 +32,7 @@
 - `mcp.log` — Declares ListToolsRequest (~240544 tok)
 - `privacy.html` — 隐私政策 · 又买了一本书 (~934 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
-- `README.md` — Project documentation (~1424 tok)
+- `README.md` — Project documentation (~1455 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
 - `styles.css` — Styles: 102 rules, 150 vars (~25560 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
@@ -118,7 +120,7 @@
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~843 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~943 tok)
 - `triage.md` — Triage (~2029 tok)
 
 ## reading/
@@ -179,8 +181,8 @@
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
 - `debug_overview_test.py` — P2 增长总览 /debug/overview 回归锁。 (~1669 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
-- `deepseek_retry_test.py` — Tests: success_no_retry, retries_on_429, retries_on_503, retries_on_500 + 13 more (~5193 tok)
-- `deployment_config_test.py` — Regression tests for production deployment configuration (P3 commercialization). (~1368 tok)
+- `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_uses_model_from_environment_configuration, test_retri (~5517 tok)
+- `deployment_config_test.py` — Regression tests for production deployment configuration (P3 commercialization). (~1379 tok)
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
 - `image_type_detection_test.py` — Tests for the _detect_image_type magic-byte helper (OPT-007). (~478 tok)
 - `mcp_db_and_retry_test.py` — 两个 prod bug 的回归锁: (~600 tok)

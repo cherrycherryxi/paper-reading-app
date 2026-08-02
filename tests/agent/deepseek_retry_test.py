@@ -41,6 +41,16 @@ class DeepseekRetryTest(unittest.TestCase):
         self.assertEqual(result, "result")
         self.assertEqual(mock_open.call_count, 1)
 
+    def test_uses_model_from_environment_configuration(self):
+        ok = self._make_ok_response("result")
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.DEEPSEEK_MODEL", "deepseek-configured-test"
+        ), patch("app_server.urlopen", return_value=ok) as mock_open:
+            app_server.call_deepseek([{"role": "user", "content": "hi"}])
+
+        request = mock_open.call_args.args[0]
+        self.assertEqual(json.loads(request.data.decode("utf-8"))["model"], "deepseek-configured-test")
+
     # --- retryable HTTP codes ---
 
     def test_retries_on_429(self):
@@ -301,6 +311,16 @@ class DeepseekStreamRetryTest(unittest.TestCase):
             result = self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
         self.assertEqual(result, ["hello"])
         self.assertEqual(mock_open.call_count, 1)
+
+    def test_stream_uses_model_from_environment_configuration(self):
+        resp = self._make_stream_response(("hello",))
+        with patch("app_server.DEEPSEEK_API_KEY", "sk-test"), patch(
+            "app_server.DEEPSEEK_MODEL", "deepseek-stream-configured-test"
+        ), patch("app_server.urlopen", return_value=resp) as mock_open:
+            self._collect(app_server.call_deepseek_stream([{"role": "user", "content": "hi"}]))
+
+        request = mock_open.call_args.args[0]
+        self.assertEqual(json.loads(request.data.decode("utf-8"))["model"], "deepseek-stream-configured-test")
 
     # --- retryable HTTP codes ---
 
