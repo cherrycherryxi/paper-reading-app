@@ -1239,9 +1239,9 @@ Format per item:
 - how: `app_server.py:2617`：将 `[] if book_id else user_state.get("connections", [])[:20]` 替换为条件过滤——book_id 非空时取 `[c for c in conns if c.get("sourceId") == book_id or c.get("targetId") == book_id or any(q.get("bookId") == book_id for q in quotes if q.get("id") in {c.get("sourceId"), c.get("targetId")})][:10]`；book_id 为空时保留 `conns[:20]`。约 5-8 行，可提取辅助函数。Touch: `app_server.py:2617`（existing_connections 构建逻辑）。
 
 ### OPT-136 — 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要（每次读到哪页、花了多少时间）— 由 explore E214 提拔 [2026-07-24]
-- status: triaged
+- status: triaged — P3 parked (2026-08-03 PO 仪式；7/16 signal 是「记录页几乎不用，希望自动推算或砍掉」，并非要求换页展示 session；无新 signal 前不做)
 - area: frontend
-- priority: P2
+- priority: P3
 - size: M
 - northstar: 中——Theme 2「回顾有价值」书级回顾入口。书籍详情是用户点击书卡后的第一层回顾视图，当前展示读后感/摘抄/关联，唯独缺少「阅读记录」（sessions）。用户想回顾「这本书我读了几次、每次读到哪页、花了多少时间」无法在此一眼得到，需离开详情去时间线 Tab 单独搜索，破坏 Theme 2「打开就能回顾」的体验闭合度。
 - description: `app.js:3776-3875`（openBookDetailDialog）：全函数无任何 state.sessions 访问。`getBookSessions(bookId)`（`app.js:931`）已封装（`state.sessions.filter((item) => item.bookId === bookId)`），可直接调用；OPT-074（startedAt/finishedAt 日期）和 OPT-077（时间线里程碑）已有相关基础，书籍详情无「该书 sessions 小列表」仍是信息缺口。index.html 的 #bookDetailDialog（`index.html:410-433`）骨架无 session 相关容器。
@@ -1289,7 +1289,7 @@ Format per item:
 - how: `app.js:5405`：将 `targetType || "book"` 改为 `targetType || (sourceType === "quote" ? "quote" : "book")`；同步 `app.js:5413`：`toggleConnComboboxes("target", targetType || (sourceType === "quote" ? "quote" : "book"))`。Touch: `app.js:5404-5413`（`openConnectionDialog` 前 12 行）。
 
 ### OPT-141 — `all_books_summary` 缺 `tags` 字段：AI 无法按标签跨书查询 — 由 explore E230 提拔 [2026-07-28]
-- status: triaged
+- status: done (PR #98, merged 2026-07-30 — `all_books_summary` 已加入 tags，系统指令已说明标签查询语义)
 - area: backend
 - priority: P2
 - size: S
@@ -1319,11 +1319,41 @@ Format per item:
 - how: `app_server.py:3452-3453`（entity 存在性验证通过之后、`state.setdefault(...)` 之前）：扫描 `state.get("connections", [])` 查找 `(c.get("sourceId") == source_id and c.get("targetId") == target_id) or (c.get("sourceId") == target_id and c.get("targetId") == source_id)`；已存在则返回 `{"skipped": True, "reason": "connection already exists"}` 并不写入（参照 OPT-138 MCP 路径返回格式）。补测：`tests/agent/` 同源/同目标两次 `link_thought` action → 第二次 `skipped=True`，`connections` 仍只有 1 条。Touch: `app_server.py:3438-3465`（link_thought 分支）；`tests/agent/`（补测）。
 
 ### OPT-144 — `_COMPRESS_THRESHOLD = 10` 过低：批量记录摘抄场景下 AI 对话上下文频繁被截断 — 由 explore E234 提拔 [2026-07-29]
-- status: new
+- status: triaged — P3 parked (2026-08-03 PO 仪式；现有 signal 只证明「一小节后集中录摘抄」，没有证明随后密集探讨或发生上下文遗忘；先等 model_logs/用户反馈)
 - area: backend
-- priority: P2
+- priority: P3
 - size: S
 - northstar: 弱中——Theme 2「回顾有价值」；探讨是 owner 最高频使用操作（2026-07-05 探讨 47 次、2026-07-19 探讨 29 次），高频多轮对话在 threshold=10 时频繁触发压缩导致早期上下文丢失；2026-07-26 signal「一小节读完后集中记录摘抄」表明 owner 批量录入后会密集探讨，压缩发生在 AI 刚开始建立「这次录入摘抄」上下文之时，体验损耗最大。
 - description: `app_server.py:2524-2525`：`_COMPRESS_THRESHOLD = 10`、`_COMPRESS_KEEP_RECENT = 6`。第 10 条消息触发压缩：前 4 条（10-6=4）被 LLM 压缩为 200 字摘要，6 条保留。批量录入 5 条摘抄后立即和 AI 探讨（5 条用户 + 5 条 AI = 10 条），第 10 条消息触发压缩——刚建立的摘抄细节被截断为 200 字，第 11 条对话起 AI 上下文降级。探讨频次数据：7/05 达 47 次、7/19 达 29 次，是北极星三指标中最高的单次操作量，表明 AI 探讨质量对 owner 有高价值。
 - why: threshold=10 在高强度探讨场景下平均每 5-8 分钟触发一次压缩，200 字摘要对摘抄细节（页码、反思、标签）覆盖不全，导致 AI 在后续对话中「遗忘」早期摘抄的细节；提高到 20 将压缩频率降低一倍，在 token 成本和上下文完整性之间取更好的平衡。
 - how: `app_server.py:2524`：将 `_COMPRESS_THRESHOLD = 10` 改为 `_COMPRESS_THRESHOLD = 20`；可选：同步调整 `_COMPRESS_KEEP_RECENT = 6` 为 `10`，保留更多最近消息。1-2 行改动，无 schema/接口/前端变更。需在测试中更新 threshold 相关常量引用。Touch: `app_server.py:2524-2525`；相关测试文件（grep `_COMPRESS_THRESHOLD`）。
+
+### OPT-145 — 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 [2026-08-03]
+- status: triaged — 2026-W32 唯一焦点
+- area: frontend
+- priority: P1
+- size: M
+- northstar: 强——Theme 2「回顾有价值」的检索入口；owner 8/2 真机直接标为 P1，146 本书已有约 50 个标签，但想按主题找书时无法高效发现和选择目标标签。
+- description: `renderTagFilterChips()`（`app.js:1370-1410`）收集全部书籍标签、字母排序后逐个渲染；`#tagFilterStrip`（`index.html:97`）只有一个横向容器，`.tag-filter-strip`（`styles.css:439-452`）设置 `overflow-x:auto` 并隐藏 scrollbar。标签被截断时没有「更多」数量、搜索或展开入口；首屏同时被标签条占用。
+- why: 2026-08-02 signal：「约 50 个标签横向滚动且隐藏滚动条，截断后缺少可继续横滑提示；建议仅展示常用/最近标签，并增加更多标签弹层或搜索筛选。」这不是视觉偏好，而是已有主题数据无法被取回的直接阻塞。
+- how: 首屏仅渲染有限的常用/最近标签和当前选中项，末尾显示「更多标签（N）」；点击打开可搜索的标签面板，选择后复用 `selectedTagFilter` + `renderBooks()`，确保任一标签可到达、当前项可见、现有「清除全部筛选」继续生效。具体“常用/最近”口径先采用可解释的书籍覆盖数排序；不新增 schema。Touch: `index.html`、`app.js:1370-1410`、`styles.css`，补前端筛选测试。
+
+### OPT-146 — 书卡元信息层级过密，封面下同时争抢状态、评分、会话、摘抄、关联、进度和标签 [2026-08-03]
+- status: triaged — P3 parked (先完成 OPT-145 并观察真实浏览 signal；当前只有“信息零碎”的体验判断，没有误读或任务失败证据)
+- area: frontend
+- priority: P3
+- size: M
+- northstar: 弱——可能改善翻书单速度，但尚未证明会增加回顾/检索行为；贸然删减也可能隐藏 owner 需要的信息。
+- description: `buildBookSearchCard()`（`app.js:1510-1543`）在每张书卡中同时渲染 status、rating、session/quote/connection 计数、进度/读完日期及最多 3 个标签；8/2 signal 指出封面强视觉下正文显得零碎。
+- why: 需先用 OPT-145 验证主要摩擦究竟来自标签入口还是卡面密度；在此之前改卡片信息架构会把一个明确检索问题扩成开放式视觉重构。
+- how: parked；若后续 signal 仍指向卡面，再比较「默认精简 + 详情完整」与紧凑模式，不先删字段。
+
+### OPT-147 — `renderBooks()` 最终渲染全部书卡，数百本规模下可能出现 DOM/监听器压力 [2026-08-03]
+- status: triaged — P3 parked (146 本当前“尚可”，没有真机卡顿时长、掉帧或放弃任务证据；达到可测性能门槛再提拔)
+- area: frontend
+- priority: P3
+- size: M
+- northstar: 弱——性能恶化时会阻碍翻书单，但目前只是规模推演，不应挤占有直接 P1 signal 的标签筛选。
+- description: `renderBooks()`（`app.js:1715-1778`）虽以 `requestAnimationFrame` 每批 8 本插入，最终仍为全部筛选结果创建卡片及逐卡事件监听器；8/2 signal 推测数百至上千本会逐渐变慢。
+- why: 当前真实规模 146 本且 signal 明说“尚可”；先记录风险，不凭未来规模提前引入分页/虚拟列表复杂度。
+- how: parked；先补真机基线（首屏可交互时间、长列表滚动掉帧），达到明确阈值后再在「加载更多」与虚拟列表中选最小方案。
