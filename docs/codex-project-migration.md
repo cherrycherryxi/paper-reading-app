@@ -4,7 +4,7 @@ Migration date: 2026-07-30
 
 ## Scope
 
-This migration moves project-level development behavior to Codex, repairs the OpenWolf anatomy boundary, and enables a separate Codex version of the local macOS automation. It does not replace or delete the existing Claude automation, remote Claude routines, production deployment workflow, or existing Claude configuration.
+This migration moves project-level development behavior to Codex, repairs the OpenWolf anatomy boundary, and enables separate Codex versions of the local macOS automation. Existing Claude scripts and plist files remain on disk for rollback; equivalent loaded schedules are switched one-for-one so they never run concurrently.
 
 ## Added
 
@@ -13,7 +13,7 @@ This migration moves project-level development behavior to Codex, repairs the Op
 - `.codex/hooks/apply-patch-adapter.js`: converts Codex `apply_patch` hook input into the existing OpenWolf write-hook input shape.
 - `.agents/skills/ux-reviewer/SKILL.md`: Codex project skill migrated from `.claude/agents/ux-reviewer.md`.
 - `docs/codex-project-migration.md`: this record.
-- `scripts/codex/`: Codex copies of the morning, implementation-poll, and wrapup jobs, plus launchd templates and operating notes.
+- `scripts/codex/`: Codex copies of the morning, implementation-poll, wrapup, Sunday weekly-report, and Monday product-owner jobs, plus launchd templates and operating notes.
 
 ## Updated
 
@@ -52,6 +52,21 @@ The existing `.wolf/anatomy.md` and `.wolf/memory.md` uncommitted changes were p
 - Remote triage/implement/explore Claude routines.
 - `.wolf/cron-manifest.json` AI tasks that still invoke `claude -p`.
 - `.claude/settings.json`, `.claude/settings.local.json`, and `.claude/agents/ux-reviewer.md`.
+
+## Weekly product-loop migration (2026-08-03)
+
+The final two local model-dependent schedules were migrated after the Claude
+organization became unavailable:
+
+- Sunday weekly report: `scripts/codex/weekly-report.sh`, read-only Codex model
+  stage; metrics commit, report writing, idempotency and email remain
+  deterministic shell responsibilities.
+- Monday product owner: `scripts/codex/product-owner-monday.sh`, isolated
+  worktree plus an explicit changed-file allowlist; shell owns commit/push and
+  only targets `feature/agent`.
+
+Both jobs support side-effect-free dry-run flags and have separate Codex labels.
+The original Claude jobs are retained as unloaded rollback artifacts.
 
 The Codex launchd files were initially staged as separate `com.huangnanqi.paper-codex-*.plist` copies under `~/Library/LaunchAgents`. Following an explicit operator request, all three Codex jobs are now loaded and the three equivalent Claude LaunchAgents are unloaded; the original files remain on disk. The morning and implementation-poll jobs require `--dangerously-bypass-approvals-and-sandbox` because they perform GitHub, Git, and backend operations; the wrapup job uses Codex read-only sandboxing and keeps shell-owned email/log output deterministic. Do not load Claude and Codex implementations for the same schedule concurrently.
 

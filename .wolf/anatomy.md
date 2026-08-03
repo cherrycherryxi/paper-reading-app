@@ -1,14 +1,16 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-02T04:26:21.254Z
-> Files: 219 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T04:09:58.068Z
+> Files: 226 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/paper-loop/
 
 - `cards-2026-08-01.md` — 卡片① (~44 tok)
 - `cards-2026-08-02.md` — 卡片① (~44 tok)
+- `cards-2026-08-03.md` — 卡片① (~44 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
+- `review-2026-08-03.md` (~2 tok)
 
 ## ./
 
@@ -107,7 +109,7 @@
 
 ## docs/
 
-- `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1113 tok)
+- `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1396 tok)
 - `product-agent-context-and-control-analysis.md` — 产品 Agent：动态上下文管理与可控性分析 (~978 tok)
 
 ## docs/releases/
@@ -146,13 +148,17 @@
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1639 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
-- `README.md` — Project documentation (~249 tok)
+- `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1423 tok)
+- `README.md` — Project documentation (~635 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~751 tok)
+- `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1326 tok)
 
 ## scripts/codex/launchd/
 
 - `com.huangnanqi.paper-codex-implement-poll.plist` (~251 tok)
 - `com.huangnanqi.paper-codex-morning.plist` (~265 tok)
+- `com.huangnanqi.paper-codex-product-owner.plist` (~278 tok)
+- `com.huangnanqi.paper-codex-weekly-report.plist` (~277 tok)
 - `com.huangnanqi.paper-codex-wrapup.plist` (~264 tok)
 
 ## tests/
@@ -174,6 +180,7 @@
 - `auth_rate_limit_test.py` — Regression tests for OPT-022: per-IP rate limiting on the unauthenticated (~2054 tok)
 - `billing_test.py` — Regression tests for Stripe billing integration (P2 commercialization). (~3752 tok)
 - `book_ocr_endpoint_test.py` — Tests: success_returns_parsed_fields, success_tolerates_markdown_code_fence, missing_image_returns_400, unauthorized_returns_401 + 1 more (~1524 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1359 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)
