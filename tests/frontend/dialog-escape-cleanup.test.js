@@ -267,3 +267,54 @@ test("OPT-062: deleteBook — Escape fires cleanup that unregisters cancel liste
   // And the confirm button should have 0 stale click listeners.
   assert.equal((h.els.deleteBookConfirmBtn._listeners["click"] || []).length, 0);
 });
+
+test("OPT-125: deleteBook shows exact cascade counts, including links through the book's quotes", () => {
+  const h = createHarness();
+  h.setAuth("tok");
+  h.setCurrentUser({ id: "u1" });
+  h.setState({
+    books: [{ id: "b1", title: "三体" }, { id: "b2", title: "球状闪电" }],
+    sessions: [
+      { id: "s1", bookId: "b1" },
+      { id: "s2", bookId: "b1" },
+      { id: "s3", bookId: "b2" },
+    ],
+    quotes: [
+      { id: "q1", bookId: "b1", kind: "quote" },
+      { id: "q2", bookId: "b1", kind: "note" },
+      { id: "q3", bookId: "b1", kind: "question" },
+      { id: "q4", bookId: "b2", kind: "quote" },
+    ],
+    connections: [
+      { id: "c1", sourceId: "b1", targetId: "b2" },
+      { id: "c2", sourceId: "q1", targetId: "b2" },
+      { id: "c3", sourceId: "q3", targetId: "q4" },
+      { id: "c4", sourceId: "b2", targetId: "q4" },
+    ],
+    chatHistories: {}, chatContexts: {},
+  });
+
+  h.deleteBook("b1");
+
+  assert.equal(
+    h.els.deleteBookMessage.textContent,
+    "删除《三体》将同时删除 2 条阅读记录、2 条摘抄 / 笔记和 3 条关联。"
+  );
+});
+
+test("OPT-125: deleteBook explicitly shows zero counts when the book has no dependent reading data", () => {
+  const h = createHarness();
+  h.setAuth("tok");
+  h.setCurrentUser({ id: "u1" });
+  h.setState({
+    books: [{ id: "b1", title: "空书" }],
+    sessions: [], quotes: [], connections: [], chatHistories: {}, chatContexts: {},
+  });
+
+  h.deleteBook("b1");
+
+  assert.equal(
+    h.els.deleteBookMessage.textContent,
+    "删除《空书》将同时删除 0 条阅读记录、0 条摘抄 / 笔记和 0 条关联。"
+  );
+});
