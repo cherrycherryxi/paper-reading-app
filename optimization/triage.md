@@ -2,27 +2,32 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-07-29
+Last triaged: 2026-08-03
 
 ## Next up
 
-**预算状态（2026-07-29 本次 triage）：** 近 7 天 auto/ PR 共 **7 个**（PR #97 auto/opt-138 2026-07-29、PR #94 auto/opt-135-137 2026-07-28、PR #93 auto/opt-133 2026-07-26、PR #92 auto/opt-038 2026-07-25、PR #91 auto/opt-134-072 2026-07-25、PR #88 auto/opt-131-132-129 2026-07-24、PR #84 auto/opt-127 2026-07-22），上限 **8**，剩余 **1 个**，**本次可指派**。
+**预算状态（2026-08-03 本次 triage）：** 近 7 天合并的 auto/ PR 共 **7 个**（#94–#100，2026-07-28 至 2026-07-31），上限 **8**，剩余 **1 个**。本周产品焦点 OPT-145 为 M 级前端体验项，保持 WIP=1，不用剩余额度插入无直接 signal 的 S 项。
 
-**状态更新（本次 triage — 2026-07-29）**：
-- OPT-138（in-progress → done）：PR #97 已合入 feature/agent（2026-07-29），link_thought() 补重复关联守卫，同 source+target 二次调用返回 skipped=true，connections 不再积累重复项。
+**状态更新（本次 triage — 2026-08-03）**：
+- OPT-141（triaged → done）：PR #98 已于 2026-07-30 合入，backlog 原状态滞后，已修正。
+- OPT-120 / OPT-102：PR #99/#100 已于 2026-07-31 合入，W31 两项 OCR 焦点完成。
+- OPT-136（P2 → P3 parked）：7/16 signal 指向自动推算或砍掉低使用的记录路径，不支持在书详情继续展示 session 列表。
+- OPT-144（P2 → P3 parked）：源码确认阈值仍为 10，但目前没有用户遗忘或日志质量下降证据，原条目的因果推断过强。
 
 **新 backlog 项扫描（本次 triage）**：
-- OPT-141（new → triaged，P2，S）：`all_books_summary` 缺 `tags` 字段，AI 无法按标签跨书查询主题书单。signal 直接佐证（2026-07-03「成长/哲学标签书搜不到」），Theme 2「回顾有价值」直接受益。
-- OPT-142（new → triaged，P3，S）：关联弹窗 `filteredQuotes()` 不搜 `tags`，按标签找目标摘抄失败。P3 parked：场景频率低，无 signal 直接佐证，预算富余周再做。
+- OPT-143（new → triaged，P2，S）：源码确认 HTTP `ActionExecutor.link_thought` 仍无重复关联守卫；真实代码缺口成立，但本周让位于直接 P1 signal。
+- OPT-145（new → triaged，P1，M）：约 50 个标签全部置于隐藏滚动条的横滑容器；8/2 P1 signal 直接佐证，定为 2026-W32 唯一焦点。
+- OPT-146（new → triaged，P3，M）：书卡信息减负 parked，先看 OPT-145 后的真实浏览反馈。
+- OPT-147（new → triaged，P3，M）：书单分页/虚拟列表 parked；146 本尚可，无性能测量或放弃信号。
 
 ---
 
-**指派：OPT-141。**
+**本周指派：OPT-145。**
 
-理由：OPT-138 刚于今日完成，Theme 2「建立关联」三连（OPT-135/137/138）收尾。OPT-141 是当前 P2 队列中最小且最强 signal 的项——1-2 行 backend 改动，直接佐证 2026-07-03「按主题找书零结果」（library 内有成长/哲学标签书，AI 搜不到），与 Theme 2「回顾有价值」对齐。当前预算余 1 个 auto/ slot，刚好容纳一个 S 项。
+理由：Theme 2 在 8/7 前收口；北极星第三数从 1 回升到 35，但尚未连续两周增长。OPT-145 是最新、最高优先级且由真机直接观察到的检索摩擦，能让已经积累的标签从“数据”变成可用的回顾入口。OPT-143 保持下一候选，不与周焦点并行。
 
-关键文件：`app_server.py:2632`（`all_books_summary` dict 增加 `"tags": b.get("tags", [])`）；`app_server.py:2661`（系统指令说明 tags 字段语义——每本书的手动分类标签，AI 应据此回答「成长/历史/推理类」等主题查询）。
-Signal 佐证：2026-07-03「书单搜「成长」零结果——库里有多本成长题材（标签 `小说(成长/哲学)`）」。
+关键文件：`app.js:1370-1410`（全部标签渲染）、`index.html:97`（单一标签容器）、`styles.css:439-452`（横向滚动且隐藏 scrollbar）。
+Signal 佐证：2026-08-02「约 50 个标签横向滚动且隐藏滚动条，截断后缺少可继续横滑提示」。
 
 ## Prioritized backlog
 
@@ -34,7 +39,9 @@ Signal 佐证：2026-07-03「书单搜「成长」零结果——库里有多本
 | OPT-125 | deleteBook() 确认弹窗仅显示书名，不显示将被删除的记录/摘抄/关联数量 | **P2** | S | triaged | 破坏性操作透明度（OPT-043/106 系列延续）；三辅助函数已就位，~2-3 行；`app.js:2723-2730` |
 | OPT-141 | all_books_summary 缺 tags 字段：AI 无法按标签跨书查询主题书单 | **P2** | S | **done** | ✅ PR #98 已合入 feature/agent [2026-07-30]；`app_server.py` 已加 tags 字段与系统指令说明；全量测试绿 |
 | OPT-138 | MCP link_thought() 缺少重复关联守卫：并发或重复调用可写入重复 connection 记录 | **P2** | S | **done** | ✅ PR #97 已合入 feature/agent [2026-07-29]；Theme 2「建立关联」三连（OPT-135/137/138）完成 |
-| OPT-136 | 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要 | **P2** | M | triaged | Theme 2「回顾有价值」；2026-06-26 signal 佐证（「读完日期/不依赖手动加记录」方向）；`getBookSessions()` 已封装；`index.html:410-433`、`app.js:3776-3875`、`styles.css` |
+| OPT-145 | 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 | **P1** | M | **triaged** | **2026-W32 唯一焦点**；8/2 P1 signal；首屏有限标签 +「更多标签（N）」可搜索面板 |
+| OPT-143 | HTTP ActionExecutor.link_thought 无重复关联守卫，与 MCP 路径不对称 | **P2** | S | triaged | 源码已核实缺口存在；本周让位于 OPT-145，下一候选 |
+| OPT-136 | 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要 | P3 | M | triaged | P3 parked（2026-08-03 PO）：原 signal 指向自动推算/砍记录页，不支持搬运 session 列表；无新 signal 前不做 |
 | OPT-120 | 长耗时 OCR 结果服务端留存 + 断线自动取回——手机切走就白等 20s 并浪费 LLM 调用 | **P2** | M | **done** | ✅ PR #99 已合入 feature/agent [2026-07-31]；`ocrRequestId` 落 quote state + 鉴权 status 查询 + localStorage 恢复/继续轮询 |
 | OPT-102 | 快速识别改二进制上传（去掉 base64 33% 膨胀），进一步缩短 OCR 上传耗时 | **P2** | M | **done** | ✅ PR #100 已合入 feature/agent [2026-07-31]；raw image body + URL 编码元数据头，旧 JSON data URL 保持兼容 |
 | OPT-135 | existing_connections 在书/摘抄上下文中恒为空列表：AI 无法回答「这本书我关联过什么」 | P2 | S | **done** | ✅ PR #94 已合入 feature/agent [2026-07-27] |
@@ -65,6 +72,9 @@ Signal 佐证：2026-07-03「书单搜「成长」零结果——库里有多本
 | OPT-093 | deleteSession() 不回写 book.currentPage / book.lastReadAt，删除记录后进度数据残留 | P2 | S | **done** | **与 OPT-123 完全重复**（OPT-123 PR #85 已合入），自动覆盖，不另行指派 |
 | OPT-082 | renderTimeline() sessionStats 仅在搜索时显示，默认视图无累计阅读数据 | P2 | S | **done** | **与 OPT-053 完全重复**（OPT-053 PR #74 2026-07-18 已实现），不另行指派 |
 | OPT-142 | 关联弹窗 filteredQuotes() 不搜摘抄 tags：按标签找目标摘抄失败 | P3 | S | triaged | P3 parked（场景频率低，无 signal 直接佐证；`app.js:5308-5309` 补 tags 搜索，预算富余周再做） |
+| OPT-144 | 聊天压缩阈值 10 可能过低 | P3 | S | triaged | P3 parked：只有批量录摘抄 signal，无“随后密集探讨/发生遗忘”证据；等待 model_logs 或用户反馈 |
+| OPT-146 | 书卡状态/评分/计数/进度/标签信息层级过密 | P3 | M | triaged | P3 parked：先验证 OPT-145，避免把明确检索问题扩成开放式视觉重构 |
+| OPT-147 | renderBooks 最终渲染全部书卡，未来规模可能变慢 | P3 | M | triaged | P3 parked：146 本尚可，无真机性能指标或任务放弃 signal |
 | OPT-124 | _run_gc() 不包含 model_logs 等五张观测表；LLM 全文 blob 无限累积 | P3 | S | triaged | P3 parked（与 OPT-032 同类：磁盘卫生、长期问题、无直接北极星贡献；预算富余周再做）|
 | OPT-081 | Organize/Candidates 批量采集激活，前端实现沉睡，无 HTML/调用者/后端端点 | P3 | M | triaged | P3 parked（2026-07-13 PO 仪式）：零 signal 佐证；M 复杂度激活无人要求的路径，对北极星无贡献 |
 | OPT-060 | 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 | P3 | S | triaged | P3 parked：OPT-088（PR #60，2026-07-10）已从上游函数侧完全覆盖，不另行指派 |
