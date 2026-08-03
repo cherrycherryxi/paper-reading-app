@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T11:20:01.681Z
-> Files: 229 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T11:25:45.496Z
+> Files: 230 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -17,6 +17,7 @@
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
+- `today-pick.md` — 卡片① (~59 tok)
 
 ## ./
 
