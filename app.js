@@ -961,6 +961,14 @@ function getConnectionCount(itemId) {
   return (state.connections || []).filter((c) => c.sourceId === itemId || c.targetId === itemId).length;
 }
 
+function getBookConnections(bookId) {
+  const quoteIds = new Set(state.quotes.filter((quote) => quote.bookId === bookId).map((quote) => quote.id));
+  return (state.connections || []).filter((connection) =>
+    connection.sourceId === bookId || connection.targetId === bookId ||
+    quoteIds.has(connection.sourceId) || quoteIds.has(connection.targetId)
+  );
+}
+
 function getQuoteChatCount(quoteId) {
   const history = state.chatHistories?.[`quote:${quoteId}`] || [];
   return history.filter((m) => m.role === "user").length;
@@ -2894,7 +2902,10 @@ function deleteBook(bookId) {
   if (!book) return;
 
   // Show custom confirmation dialog instead of native window.confirm
-  els.deleteBookMessage.textContent = book.title;
+  const sessionCount = getBookSessions(bookId).length;
+  const quoteCount = getQuoteCount(bookId);
+  const connectionCount = getBookConnections(bookId).length;
+  els.deleteBookMessage.textContent = `删除《${book.title}》将同时删除 ${sessionCount} 条阅读记录、${quoteCount} 条摘抄 / 笔记和 ${connectionCount} 条关联。`;
   els.deleteBookDialog.showModal();
 
   // Use one-shot listeners to avoid stacking up handlers
@@ -3965,11 +3976,7 @@ function openBookDetailDialog(bookId) {
       : `<p class="detail-empty-text">这本书还没有摘抄或笔记。</p>`;
   }
 
-  const bookConns = (state.connections || []).filter((c) =>
-    c.sourceId === bookId || c.targetId === bookId ||
-    (c.sourceType === "quote" && state.quotes.find((q) => q.id === c.sourceId)?.bookId === bookId) ||
-    (c.targetType === "quote" && state.quotes.find((q) => q.id === c.targetId)?.bookId === bookId)
-  );
+  const bookConns = getBookConnections(bookId);
   const connWrap = document.getElementById("bookDetailConnectionsWrap");
   const connList = document.getElementById("bookDetailConnections");
   if (bookConns.length && connWrap && connList) {
