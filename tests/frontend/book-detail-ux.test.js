@@ -112,6 +112,40 @@ test("OPT-049 ③: a note (kind=note) is listed in the related section with a �
   assert.match(html, /笔记/, "the card meta must label it as 笔记 (justifying the 摘抄/笔记 heading)");
 });
 
+test("OPT-136: book detail shows the five most recent reading sessions and a complete summary", () => {
+  const h = createHarness();
+  h.setCurrentUser({ id: "u1" });
+  h.setState({
+    books: [{ id: "b1", title: "三体", status: "reading" }],
+    sessions: [
+      { id: "s1", bookId: "b1", startPage: 1, endPage: 20, minutes: 30, date: "2026-06-01" },
+      { id: "s2", bookId: "b1", startPage: 21, endPage: 40, minutes: 25, date: "2026-06-02" },
+      { id: "s3", bookId: "b1", startPage: 41, endPage: 60, minutes: 20, date: "2026-06-03" },
+      { id: "s4", bookId: "b1", startPage: 61, endPage: 80, minutes: 15, date: "2026-06-04" },
+      { id: "s5", bookId: "b1", startPage: 81, endPage: 100, minutes: 10, date: "2026-06-05" },
+      { id: "s6", bookId: "b1", startPage: 101, endPage: 120, minutes: 5, date: "2026-06-06" },
+      { id: "other", bookId: "b2", startPage: 1, endPage: 10, minutes: 99, date: "2026-06-07" },
+    ],
+    quotes: [], connections: [], chatHistories: {}, chatContexts: {},
+  });
+
+  h.openBookDetailDialog("b1");
+
+  assert.equal(h.els.bookDetailSessions.innerHTML.match(/class="book-detail-session"/g)?.length, 5);
+  assert.match(h.els.bookDetailSessions.innerHTML, /第 101–120 页 · 5 分钟/, "newest session is first");
+  assert.doesNotMatch(h.els.bookDetailSessions.innerHTML, /第 1–20 页/, "oldest session is outside the preview");
+  assert.match(h.els.bookDetailSessions.innerHTML, /查看全部 6 条记录/);
+  assert.equal(h.els.bookDetailSessionsSummary.textContent, "6 次 · 共 105 分钟");
+
+  h.setState({
+    books: [{ id: "b2", title: "无记录", status: "wishlist" }],
+    sessions: [], quotes: [], connections: [], chatHistories: {}, chatContexts: {},
+  });
+  h.openBookDetailDialog("b2");
+  assert.equal(h.els.bookDetailSessions.innerHTML, "", "opening a book without sessions clears the previous preview");
+  assert.equal(h.els.bookDetailSessionsSummary.textContent, "", "opening a book without sessions clears the previous summary");
+});
+
 // --- ② / ③ source guards ---
 
 test("OPT-049 ②: .dialog-form hides horizontal overflow", () => {

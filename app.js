@@ -126,6 +126,8 @@ const els = {
   bookDetailTitle: document.querySelector("#bookDetailTitle"),
   bookDetailMeta: document.querySelector("#bookDetailMeta"),
   bookDetailIntro: document.querySelector("#bookDetailIntro"),
+  bookDetailSessionsSummary: document.querySelector("#bookDetailSessionsSummary"),
+  bookDetailSessions: document.querySelector("#bookDetailSessions"),
   bookDetailQuotes: document.querySelector("#bookDetailQuotes"),
   organizeDialog: document.querySelector("#organizeDialog"),
   organizeDialogMeta: document.querySelector("#organizeDialogMeta"),
@@ -3917,6 +3919,32 @@ function openBookDetailDialog(bookId) {
     questionWrap.classList.add("is-hidden");
   }
 
+  const bookSessions = getBookSessions(bookId)
+    .sort((a, b) => (Date.parse(b.date || b.createdAt) || 0) - (Date.parse(a.date || a.createdAt) || 0));
+  const sessionsWrap = document.getElementById("bookDetailSessionsWrap");
+  const sessionsSummary = els.bookDetailSessionsSummary;
+  if (bookSessions.length && sessionsWrap && sessionsSummary && els.bookDetailSessions) {
+    const totalMinutes = bookSessions.reduce((sum, session) => sum + Number(session.minutes || 0), 0);
+    sessionsSummary.textContent = `${bookSessions.length} 次${totalMinutes > 0 ? ` · 共 ${totalMinutes} 分钟` : ""}`;
+    const sessionCards = bookSessions.slice(0, 5).map((session) => {
+      const details = [`第 ${session.startPage ?? "-"}–${session.endPage ?? "-"} 页`];
+      if (Number(session.minutes || 0) > 0) details.push(`${session.minutes} 分钟`);
+      return `<div class="book-detail-session">
+        <time datetime="${escapeHtml(session.date || "")}">${formatDate(session.date || session.createdAt)}</time>
+        <span>${escapeHtml(details.join(" · "))}</span>
+      </div>`;
+    }).join("");
+    const moreButton = bookSessions.length > 5
+      ? `<button class="detail-link-btn" type="button" data-book-detail-action="sessions">查看全部 ${bookSessions.length} 条记录</button>`
+      : "";
+    els.bookDetailSessions.innerHTML = `${sessionCards}${moreButton}`;
+    sessionsWrap.classList.remove("is-hidden");
+  } else if (sessionsWrap) {
+    if (sessionsSummary) sessionsSummary.textContent = "";
+    if (els.bookDetailSessions) els.bookDetailSessions.innerHTML = "";
+    sessionsWrap.classList.add("is-hidden");
+  }
+
   const bookQuotes = state.quotes
     .filter((q) => q.bookId === bookId && isRegularQuote(q))
     .sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)); // OPT-037
@@ -3987,6 +4015,18 @@ function goToBookQuotes() {
   if (els.quoteSearch) {
     els.quoteSearch.value = book.title;
     renderQuotes();
+  }
+}
+
+function goToBookSessions() {
+  const bookId = _bookDetailCurrentId;
+  const book = state.books.find((b) => b.id === bookId);
+  if (!book) return;
+  els.bookDetailDialog.close();
+  activateTab("session");
+  if (els.sessionSearch) {
+    els.sessionSearch.value = book.title;
+    renderTimeline();
   }
 }
 
@@ -5865,6 +5905,11 @@ function bindEvents() {
     if (!quoteBtn) return;
     els.bookDetailDialog.close();
     openQuoteDetail(quoteBtn.dataset.detailQuoteId);
+  });
+
+  els.bookDetailSessions?.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-book-detail-action]");
+    if (action?.dataset.bookDetailAction === "sessions") goToBookSessions();
   });
 
   document.getElementById("bookDetailConnections")?.addEventListener("click", (event) => {
