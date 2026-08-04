@@ -1,6 +1,7 @@
 """Contract tests for the Codex triage/implement/explore nightly pipeline."""
 import os
 import plistlib
+import re
 import subprocess
 import tempfile
 import unittest
@@ -33,15 +34,9 @@ class CodexNightlyAutomationTests(unittest.TestCase):
 
     def test_shell_variables_are_braced_before_non_ascii_text(self):
         for path in self.scripts.values():
-            result = subprocess.run(
-                ["rg", "-n", r"\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7F]", str(path)],
-                env={**os.environ, "LC_ALL": "C"},
-                capture_output=True,
-                text=True,
-                errors="replace",
-                check=False,
-            )
-            self.assertEqual(result.returncode, 1, result.stdout)
+            source = path.read_text()
+            matches = list(re.finditer(r"\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7f]", source))
+            self.assertEqual(matches, [], f"unbraced shell variable before non-ASCII text in {path}")
 
     def test_dependency_markers_and_idempotency(self):
         triage = self.scripts["triage"].read_text()
