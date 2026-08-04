@@ -49,7 +49,8 @@ The existing `.wolf/anatomy.md` and `.wolf/memory.md` uncommitted changes were p
 
 - The original `~/.claude/scripts/paper-morning.sh`, `paper-implement-poll.sh`, and `paper-wrapup.sh` remain unchanged.
 - The original `~/Library/LaunchAgents/com.huangnanqi.paper-*.plist` remain unchanged and continue to represent the existing Claude schedule.
-- Remote triage/implement/explore Claude routines.
+- Remote triage/implement/explore Claude routines (migrated separately on
+  2026-08-04; retained here as historical scope for the initial phase).
 - `.wolf/cron-manifest.json` AI tasks that still invoke `claude -p`.
 - `.claude/settings.json`, `.claude/settings.local.json`, and `.claude/agents/ux-reviewer.md`.
 
@@ -69,6 +70,29 @@ Both jobs support side-effect-free dry-run flags and have separate Codex labels.
 The original Claude jobs are retained as unloaded rollback artifacts.
 
 The Codex launchd files were initially staged as separate `com.huangnanqi.paper-codex-*.plist` copies under `~/Library/LaunchAgents`. Following an explicit operator request, all three Codex jobs are now loaded and the three equivalent Claude LaunchAgents are unloaded; the original files remain on disk. The morning and implementation-poll jobs require `--dangerously-bypass-approvals-and-sandbox` because they perform GitHub, Git, and backend operations; the wrapup job uses Codex read-only sandboxing and keeps shell-owned email/log output deterministic. Do not load Claude and Codex implementations for the same schedule concurrently.
+
+## Nightly autonomous pipeline migration (2026-08-04)
+
+The three Claude cloud routines were replaced by local Codex/launchd jobs while
+preserving their established responsibilities and times: Agent1 triage at
+01:00, Agent2 implement at 04:00, and Agent3 explore at 05:00. Explore also has
+an idempotent 07:00 recovery trigger.
+
+The migration deliberately strengthens orchestration outside the model:
+
+- every run uses an isolated worktree based on `origin/feature/agent`;
+- triage and explore have strict changed-path allowlists and shell-owned pushes;
+- implement opens a PR against `feature/agent` and never merges or deploys;
+- UTC-dated completion markers enforce triage → implement → explore ordering;
+- per-agent lock directories and daily markers make retries idempotent;
+- full Python and frontend suites are shell-executed, with failures producing a
+  draft implementation PR rather than a merge.
+
+The original Claude routine IDs are retained only as rollback/history metadata:
+Agent1 `trig_01KpBBHSZTbhiu2Ysvh2L6ZU`, Agent2
+`trig_01LY3fd6MZ9XHM8A5GHpZN9U`, and Agent3
+`trig_01EZrUPo57BrDbXytCdENqdm`. They must remain disabled/unavailable while
+the Codex launchd jobs are enabled.
 
 ## Verification
 

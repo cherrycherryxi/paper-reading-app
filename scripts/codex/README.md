@@ -1,7 +1,8 @@
 # Codex Local Automation
 
 These are Codex copies of the local `paper-morning`, `paper-implement-poll`,
-`paper-wrapup`, Sunday weekly-report, and Monday product-owner tasks.
+`paper-wrapup`, Sunday weekly-report, Monday product-owner, and autonomous
+nightly triage/implement/explore tasks.
 
 The existing Claude scripts and LaunchAgents remain unchanged on disk. They are currently unloaded. The three Codex LaunchAgents have been copied to `~/Library/LaunchAgents` and are currently loaded after explicit operator approval.
 
@@ -28,6 +29,26 @@ Active labels after migration:
 The legacy `com.huangnanqi.weekly-report` and
 `com.huangnanqi.product-owner` files remain on disk for rollback but must stay
 unloaded while their Codex equivalents are loaded.
+
+## Nightly autonomous pipeline
+
+- `nightly-triage.sh` — 01:00, reconciles backlog/triage and assigns one item.
+- `nightly-implement.sh` — 04:00, requires today's triage marker, implements one
+  item, runs both full test suites, and opens a PR targeting `feature/agent`.
+  It never merges; a failing suite produces a draft PR.
+- `nightly-explore.sh` — 05:00 with a 07:00 recovery trigger, requires today's
+  implement marker, appends evidence-backed findings and promotes at most two.
+
+Each task runs in an isolated worktree and has a per-day completion marker plus
+a lock directory under `~/.claude/codex-nightly`. The marker chain prevents the
+historical scheduling race: implement cannot consume stale triage, and explore
+cannot overtake implement. The second explore trigger is idempotent and exists
+only to recover when implementation runs past 05:00.
+
+For side-effect-free verification, set `PAPER_NIGHTLY_DRY_RUN=1`,
+`PAPER_NIGHTLY_SKIP_FETCH=1`, `PAPER_NIGHTLY_SKIP_DEPENDENCY=1`, and optionally
+`PAPER_NIGHTLY_BASE_REF=HEAD`. Dry-run never commits, pushes, creates PRs, sends
+alerts, or writes completion markers.
 
 Before changing the active schedule, run both new scripts with their
 `PAPER_WEEKLY_DRY_RUN=1` / `PAPER_PRODUCT_DRY_RUN=1` flags and verify Codex
