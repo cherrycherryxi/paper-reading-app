@@ -664,8 +664,12 @@ def normalize_chat_context(context: dict | None = None, fallback_book_id: str = 
         if context_type == "quote":
             book_id = str(context.get("bookId", "")).strip()
             quote_id = str(context.get("quoteId", "")).strip()
-            if book_id and quote_id:
-                return {"type": "quote", "bookId": book_id, "quoteId": quote_id}
+            if quote_id:
+                return (
+                    {"type": "quote", "bookId": book_id, "quoteId": quote_id}
+                    if book_id
+                    else {"type": "quote", "quoteId": quote_id}
+                )
             if book_id:
                 return {"type": "book", "bookId": book_id}
         if context_type == "global":
@@ -683,14 +687,20 @@ def chat_context_history_key(context: dict | None) -> str:
     return "global"
 
 
-def context_from_history_key(history_key: str) -> dict:
+def context_from_history_key(history_key: str, quotes: list | None = None) -> dict:
     key = str(history_key or "").strip()
     if not key or key in {"__general__", "global"}:
         return {"type": "global"}
     if key.startswith("book:"):
         return normalize_chat_context({"type": "book", "bookId": key[5:]})
     if key.startswith("quote:"):
-        return normalize_chat_context({"type": "quote", "quoteId": key[6:]})
+        quote_id = key[6:]
+        quote = next(
+            (item for item in quotes or [] if isinstance(item, dict) and item.get("id") == quote_id),
+            None,
+        )
+        book_id = str(quote.get("bookId", "") if quote else "").strip()
+        return normalize_chat_context({"type": "quote", "bookId": book_id, "quoteId": quote_id})
     return normalize_chat_context({"type": "book", "bookId": key})
 
 
@@ -713,7 +723,11 @@ def sanitize_state(payload: dict | None) -> dict:
         if not isinstance(value, list):
             continue
         raw_context = raw_contexts.get(str(key))
-        context = normalize_chat_context(raw_context) if isinstance(raw_context, dict) else context_from_history_key(str(key))
+        context = (
+            normalize_chat_context(raw_context)
+            if isinstance(raw_context, dict)
+            else context_from_history_key(str(key), payload.get("quotes"))
+        )
         history_key = chat_context_history_key(context)
         if history_key not in migrated_histories:
             migrated_histories[history_key] = value
