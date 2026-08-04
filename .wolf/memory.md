@@ -47,6 +47,7 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 17:20 | 修复 Codex 夜间 Agent 迁移后的 CI：测试不再依赖 GitHub runner 未预装的 `rg`，改用 Python `re` 扫描 shell 变量；提交 074fbb1 已推送 | tests/agent/codex_nightly_automation_test.py | 436 Python + 466 frontend tests passed；GitHub Actions run 30896188826 success | ~0 |
 | 21:36 | Edited chat.js | added 2 condition(s) | ~676 |
 | 21:37 | Edited app.js | 15→16 lines | ~268 |
 | 21:37 | Edited app.js | 16→17 lines | ~311 |
@@ -4325,3 +4326,46 @@
 | 13:10 | Created ../../../../tmp/paper-opt067/tests/frontend/account-import-format.test.js | — | ~4434 |
 | 13:10 | Created ../../../../tmp/paper-opt067/tests/agent/chat_history_context_test.py | — | ~420 |
 | 13:12 | Created ../../../../tmp/opt067-pr-body.md | — | ~243 |
+| 13:15 | Created ../../.claude/paper-loop/today-pick.md | — | ~64 |
+| 13:16 | Session end: 13 writes across 8 files (app_server.py, action_executor_link_thought_test.py, opt143-pr-body.md, app.js, account-import-format.test.js) | 0 reads | ~380671 tok |
+| 16:35 | Created scripts/codex/nightly-triage.sh | — | ~1041 |
+| 16:35 | Created scripts/codex/nightly-implement.sh | — | ~1561 |
+| 16:35 | Created scripts/codex/nightly-explore.sh | — | ~1175 |
+| 16:35 | Created scripts/codex/launchd/com.huangnanqi.paper-codex-nightly-triage.plist | — | ~265 |
+| 16:35 | Created scripts/codex/launchd/com.huangnanqi.paper-codex-nightly-implement.plist | — | ~268 |
+| 16:35 | Created scripts/codex/launchd/com.huangnanqi.paper-codex-nightly-explore.plist | — | ~296 |
+| 16:35 | Created tests/agent/codex_nightly_automation_test.py | — | ~922 |
+| 16:35 | Created scripts/codex/README.md | — | ~989 |
+| 16:35 | Created docs/codex-project-migration.md | — | ~1832 |
+| 16:35 | Created scripts/codex/nightly-implement.sh | — | ~1562 |
+| 16:35 | Created tests/agent/codex_nightly_automation_test.py | — | ~913 |
+| 16:36 | Created scripts/codex/nightly-implement.sh | — | ~1572 |
+| 16:36 | Created tests/agent/codex_nightly_automation_test.py | — | ~1321 |
+| 16:37 | Created tests/agent/codex_nightly_automation_test.py | — | ~1331 |
+| 16:37 | Created scripts/codex/nightly-triage.sh | — | ~1045 |
+| 16:37 | Created scripts/codex/nightly-implement.sh | — | ~1580 |
+| 16:37 | Created scripts/codex/nightly-explore.sh | — | ~1178 |
+| 16:37 | Created tests/agent/codex_nightly_automation_test.py | — | ~1471 |
+| 16:38 | Created tests/agent/codex_nightly_automation_test.py | — | ~1498 |
+| 16:38 | Created tests/agent/codex_nightly_automation_test.py | — | ~1498 |
+| 16:38 | Created tests/agent/codex_nightly_automation_test.py | — | ~1666 |
+| 16:48 | Created scripts/codex/nightly-triage.sh | — | ~1291 |
+| 16:48 | Created tests/agent/codex_nightly_automation_test.py | — | ~1691 |
+| 16:55 | Created scripts/codex/nightly-triage.sh | — | ~1330 |
+| 16:55 | Created scripts/codex/nightly-implement.sh | — | ~1655 |
+| 16:55 | Created scripts/codex/nightly-explore.sh | — | ~1221 |
+| 16:55 | Created tests/agent/codex_nightly_automation_test.py | — | ~1723 |
+| 17:00 | Created scripts/codex/nightly-triage.sh | — | ~1349 |
+| 17:00 | Created tests/agent/codex_nightly_automation_test.py | — | ~1736 |
+| 17:01 | Created scripts/codex/nightly-triage.sh | — | ~1408 |
+| 17:01 | Created tests/agent/codex_nightly_automation_test.py | — | ~1741 |
+| 17:02 | Created tests/agent/codex_nightly_automation_test.py | — | ~2540 |
+| 17:08 | 将 Claude 云端夜间 Agent1/2/3 迁移为 Codex launchd 流水线：01:00 triage、04:00 implement（只开 PR）、05:00 explore + 07:00 补偿；加入隔离 worktree、UTC 依赖标记、锁、白名单、预算证据预取及网络重试；提交 7653538 已推 feature/agent，3 个 label 已加载 | scripts/codex/nightly-*.sh, scripts/codex/launchd/*nightly*, tests/agent/codex_nightly_automation_test.py, docs/codex-project-migration.md | 435 Python + 466 frontend + 7 automation contracts passed | ~0 |
+| 17:09 | Session end: 45 writes across 17 files (app_server.py, action_executor_link_thought_test.py, opt143-pr-body.md, app.js, account-import-format.test.js) | 0 reads | ~424957 tok |
+| 17:16 | Session end: 45 writes across 17 files (app_server.py, action_executor_link_thought_test.py, opt143-pr-body.md, app.js, account-import-format.test.js) | 0 reads | ~424957 tok |
+| 17:18 | Created tests/agent/codex_nightly_automation_test.py | — | ~2500 |
+
+## Session: 2026-08-04 17:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
