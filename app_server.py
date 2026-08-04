@@ -352,6 +352,8 @@ class ExecutionResult:
     updated_state: dict | None = None
     error_message: str = ""
     tool_name: str = ""
+    skipped: bool = False
+    reason: str = ""
 
 
 def guess_base_url(handler: BaseHTTPRequestHandler) -> str:
@@ -3364,6 +3366,8 @@ class ActionExecutor:
             conn.execute("BEGIN IMMEDIATE")
             state = load_state(conn, user_id)
             data = action["data"]
+            skipped = False
+            skip_reason = ""
             if action["type"] == "add_note":
                 state["quotes"].insert(
                     0,
@@ -3467,19 +3471,39 @@ class ActionExecutor:
                     raise ValueError(f"target book not found: {data.get('targetId')}")
                 if target_type == "quote" and not any(q.get("id") == data.get("targetId") for q in state["quotes"]):
                     raise ValueError(f"target quote not found: {data.get('targetId')}")
-                state.setdefault("connections", []).insert(0, {
-                    "id": new_id("conn"),
-                    "sourceType": source_type,
-                    "sourceId": data.get("sourceId", ""),
-                    "targetType": target_type,
-                    "targetId": data.get("targetId", ""),
-                    "kind": kind,
-                    "thought": str(data.get("thought", "")).strip(),
-                    "tags": data.get("tags", []) if isinstance(data.get("tags"), list) else [],
-                    "createdAt": utc_now_iso(),
-                })
+                source_id = data.get("sourceId", "")
+                target_id = data.get("targetId", "")
+                connections = state.setdefault("connections", [])
+                skipped = any(
+                    connection.get("sourceType") == source_type
+                    and connection.get("sourceId") == source_id
+                    and connection.get("targetType") == target_type
+                    and connection.get("targetId") == target_id
+                    for connection in connections
+                )
+                if skipped:
+                    skip_reason = "connection already exists"
+                else:
+                    connections.insert(0, {
+                        "id": new_id("conn"),
+                        "sourceType": source_type,
+                        "sourceId": source_id,
+                        "targetType": target_type,
+                        "targetId": target_id,
+                        "kind": kind,
+                        "thought": str(data.get("thought", "")).strip(),
+                        "tags": data.get("tags", []) if isinstance(data.get("tags"), list) else [],
+                        "createdAt": utc_now_iso(),
+                    })
             save_state(conn, user_id, state)
-            return ExecutionResult(True, ACTION_STATUS_EXECUTED, action, updated_state=state)
+            return ExecutionResult(
+                True,
+                ACTION_STATUS_EXECUTED,
+                action,
+                updated_state=state,
+                skipped=skipped,
+                reason=skip_reason,
+            )
         except Exception as error:
             try:
                 conn.execute("ROLLBACK")
