@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T05:05:48.946Z
-> Files: 235 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T05:12:24.582Z
+> Files: 240 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -11,7 +11,21 @@
 
 ## ../../../../tmp/
 
+- `opt067-pr-body.md` — 动机 (~228 tok)
 - `opt143-pr-body.md` — 动机 (~189 tok)
+
+## ../../../../tmp/paper-opt067/
+
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76606 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~69967 tok)
+
+## ../../../../tmp/paper-opt067/tests/agent/
+
+- `chat_history_context_test.py` — Regression tests for OPT-067 quote-scoped chat-history recovery. (~420 tok)
+
+## ../../../../tmp/paper-opt067/tests/frontend/
+
+- `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4434 tok)
 
 ## ../../../../tmp/paper-opt143/
 
