@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T11:25:45.496Z
-> Files: 230 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T05:05:48.946Z
+> Files: 235 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -9,14 +9,28 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~2731 tok)
 - `triage.md` — Triage (~2136 tok)
 
+## ../../../../tmp/
+
+- `opt143-pr-body.md` — 动机 (~189 tok)
+
+## ../../../../tmp/paper-opt143/
+
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76466 tok)
+
+## ../../../../tmp/paper-opt143/tests/agent/
+
+- `action_executor_link_thought_test.py` — Regression tests for OPT-143: HTTP agent link_thought deduplication. (~986 tok)
+
 ## ../../.claude/paper-loop/
 
 - `cards-2026-08-01.md` — 卡片① (~44 tok)
 - `cards-2026-08-02.md` — 卡片① (~44 tok)
 - `cards-2026-08-03.md` — 卡片① (~44 tok)
+- `cards-2026-08-04.md` — 卡片① (~45 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
+- `review-2026-08-04.md` (~2 tok)
 - `today-pick.md` — 卡片① (~59 tok)
 
 ## ./
