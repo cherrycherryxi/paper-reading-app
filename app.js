@@ -320,7 +320,7 @@ function normalizeChatContext(context = null, fallbackBookId = "") {
     if (context.type === "quote") {
       const bookId = String(context.bookId || "").trim();
       const quoteId = String(context.quoteId || "").trim();
-      if (bookId && quoteId) return { type: "quote", bookId, quoteId };
+      if (quoteId) return bookId ? { type: "quote", bookId, quoteId } : { type: "quote", quoteId };
       if (bookId) return { type: "book", bookId };
     }
     if (context.type === "global") {
@@ -338,10 +338,15 @@ function chatContextHistoryKey(context) {
   return "global";
 }
 
-function contextFromHistoryKey(historyKey) {
+function contextFromHistoryKey(historyKey, quotes = []) {
   const key = String(historyKey || "").trim();
   if (!key || key === "__general__" || key === "global") return { type: "global" };
   if (key.startsWith("book:")) return normalizeChatContext({ type: "book", bookId: key.slice(5) });
+  if (key.startsWith("quote:")) {
+    const quoteId = key.slice(6);
+    const bookId = (Array.isArray(quotes) ? quotes : []).find((quote) => quote?.id === quoteId)?.bookId || "";
+    return normalizeChatContext({ type: "quote", bookId, quoteId });
+  }
   return normalizeChatContext({ type: "book", bookId: key });
 }
 
@@ -358,7 +363,7 @@ function normalizeChatState(rawState = {}) {
     if (!Array.isArray(value)) return;
     const context = rawContexts[key] && typeof rawContexts[key] === "object"
       ? normalizeChatContext(rawContexts[key])
-      : contextFromHistoryKey(key);
+      : contextFromHistoryKey(key, rawState.quotes);
     const historyKey = chatContextHistoryKey(context);
     if (!chatHistories[historyKey]) {
       chatHistories[historyKey] = value;

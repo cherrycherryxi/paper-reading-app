@@ -115,6 +115,7 @@ globalThis.__hooks = {
   importData,
   resolveImportedState,
   stateContentCount,
+  normalizeStateShape,
   els,
   setState(v) { state = v; },
   setCurrentUser(v) { currentUser = v; },
@@ -132,6 +133,35 @@ globalThis.__hooks = {
 function emptyState() {
   return { books: [], sessions: [], quotes: [], connections: [], chatHistories: {}, chatContexts: {} };
 }
+
+// --- OPT-067: quote history context recovery ---
+
+test("OPT-067: quote history without chatContexts keeps its quote-scoped key", () => {
+  const h = createHarness();
+  const normalized = h.normalizeStateShape({
+    ...emptyState(),
+    quotes: [{ id: "q1", bookId: "b1", content: "摘抄" }],
+    chatHistories: { "quote:q1": [{ role: "user", content: "继续聊" }] },
+  });
+
+  assert.deepEqual(Object.keys(normalized.chatHistories), ["quote:q1"]);
+  assert.equal(normalized.chatContexts["quote:q1"].type, "quote");
+  assert.equal(normalized.chatContexts["quote:q1"].bookId, "b1");
+  assert.equal(normalized.chatContexts["quote:q1"].quoteId, "q1");
+});
+
+test("OPT-067: quoteId-only context remains quote-scoped during normalization", () => {
+  const h = createHarness();
+  const normalized = h.normalizeStateShape({
+    ...emptyState(),
+    chatHistories: { "quote:q-orphan": [{ role: "assistant", content: "历史" }] },
+    chatContexts: { "quote:q-orphan": { type: "quote", quoteId: "q-orphan" } },
+  });
+
+  assert.deepEqual(Object.keys(normalized.chatHistories), ["quote:q-orphan"]);
+  assert.equal(normalized.chatContexts["quote:q-orphan"].type, "quote");
+  assert.equal(normalized.chatContexts["quote:q-orphan"].quoteId, "q-orphan");
+});
 
 // --- resolveImportedState: format unwrapping ---
 
