@@ -59,6 +59,11 @@ const els = {
   quoteTypeChips: document.querySelector("#quoteTypeChips"),
   quoteSearch: document.querySelector("#quoteSearch"),
   statusFilterChips: document.querySelector("#statusFilterChips"),
+  tagFilterStrip: document.querySelector("#tagFilterStrip"),
+  tagFilterDialog: document.querySelector("#tagFilterDialog"),
+  tagFilterSearchInput: document.querySelector("#tagFilterSearchInput"),
+  tagFilterDialogList: document.querySelector("#tagFilterDialogList"),
+  tagFilterDialogEmpty: document.querySelector("#tagFilterDialogEmpty"),
   booksSearchInput: document.querySelector("#booksSearchInput"),
   clearBookFiltersBtn: document.querySelector("#clearBookFiltersBtn"),
   clearSessionFiltersBtn: document.querySelector("#clearSessionFiltersBtn"),
@@ -237,6 +242,7 @@ let remoteLogs = [];
 // OPT-076: 时间线分页展示上限（无搜索时），点「加载更多」递增；模块级以在重渲间保留展开状态。
 const SESSION_PAGE_SIZE = 10;
 let sessionDisplayLimit = SESSION_PAGE_SIZE;
+const TAG_FILTER_VISIBLE_LIMIT = 3;
 
 function isTabActive(tabName) {
   return document.querySelector(`.layout [data-tab-section="${tabName}"]`)?.classList.contains("tab-active") || false;
@@ -1381,22 +1387,91 @@ function renderBookSelect(hiddenInput) {
   wrap?._comboboxUpdate?.(state.books);
 }
 
+function getBookTagStats() {
+  const counts = new Map();
+  state.books.forEach((book) => {
+    new Set((Array.isArray(book.tags) ? book.tags : []).filter(Boolean)).forEach((tag) => {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    });
+  });
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag, "zh-CN"));
+}
+
+function selectBookTagFilter(tag) {
+  selectedTagFilter = selectedTagFilter === tag ? "" : tag;
+  renderTagFilterChips();
+  renderBooks();
+}
+
+function createBookTagFilterButton(tag, count = null) {
+  const btn = document.createElement("button");
+  btn.className = "filter-chip tag-chip" + (selectedTagFilter === tag ? " active" : "");
+  btn.type = "button";
+  btn.dataset.tagFilter = tag;
+  btn.setAttribute("aria-pressed", String(selectedTagFilter === tag));
+  btn.textContent = count === null ? `🏷 ${tag}` : `🏷 ${tag} · ${count} 本`;
+  btn.addEventListener("click", () => {
+    selectBookTagFilter(tag);
+    if (els.tagFilterDialog?.open) els.tagFilterDialog.close();
+  });
+  return btn;
+}
+
+function renderTagFilterDialog(query = "") {
+  if (!els.tagFilterDialogList) return;
+  const normalized = String(query).trim().toLowerCase();
+  const matched = getBookTagStats().filter(({ tag }) => tag.toLowerCase().includes(normalized));
+  els.tagFilterDialogList.innerHTML = "";
+
+  if (!normalized) {
+    const allBtn = document.createElement("button");
+    allBtn.className = "tag-filter-dialog-item" + (!selectedTagFilter ? " active" : "");
+    allBtn.type = "button";
+    allBtn.textContent = "全部标签";
+    allBtn.setAttribute("aria-pressed", String(!selectedTagFilter));
+    allBtn.addEventListener("click", () => {
+      selectedTagFilter = "";
+      renderTagFilterChips();
+      renderBooks();
+      els.tagFilterDialog.close();
+    });
+    els.tagFilterDialogList.appendChild(allBtn);
+  }
+
+  matched.forEach(({ tag, count }) => {
+    const btn = createBookTagFilterButton(tag, count);
+    btn.classList.add("tag-filter-dialog-item");
+    els.tagFilterDialogList.appendChild(btn);
+  });
+  if (els.tagFilterDialogEmpty) els.tagFilterDialogEmpty.hidden = matched.length > 0;
+}
+
+function openTagFilterDialog() {
+  if (!els.tagFilterDialog) return;
+  if (els.tagFilterSearchInput) els.tagFilterSearchInput.value = "";
+  renderTagFilterDialog();
+  els.tagFilterDialog.showModal();
+  els.tagFilterSearchInput?.focus();
+}
+
 function renderTagFilterChips() {
-  const container = document.querySelector("#tagFilterStrip");
+  const container = els.tagFilterStrip || document.querySelector("#tagFilterStrip");
   if (!container) return;
 
-  // 收集所有 tag
-  const allTags = [...new Set(
-    state.books.flatMap(b => Array.isArray(b.tags) ? b.tags : []).filter(Boolean)
-  )].sort();
+  const tagStats = getBookTagStats();
 
-  if (!allTags.length) {
+  if (!tagStats.length) {
     container.style.display = "none";
     return;
   }
 
   container.style.display = "flex";
   container.innerHTML = "";
+
+  const visibleWrap = document.createElement("div");
+  visibleWrap.className = "tag-filter-visible";
 
   // "全部 tag" 重置按钮
   const allBtn = document.createElement("button");
@@ -1408,20 +1483,26 @@ function renderTagFilterChips() {
     renderTagFilterChips();
     renderBooks();
   });
-  container.appendChild(allBtn);
+  allBtn.setAttribute("aria-pressed", String(selectedTagFilter === ""));
+  visibleWrap.appendChild(allBtn);
 
-  allTags.forEach(tag => {
-    const btn = document.createElement("button");
-    btn.className = "filter-chip tag-chip" + (selectedTagFilter === tag ? " active" : "");
-    btn.type = "button";
-    btn.textContent = `🏷 ${tag}`;
-    btn.addEventListener("click", () => {
-      selectedTagFilter = selectedTagFilter === tag ? "" : tag;
-      renderTagFilterChips();
-      renderBooks();
-    });
-    container.appendChild(btn);
-  });
+  let visibleStats = tagStats.slice(0, TAG_FILTER_VISIBLE_LIMIT);
+  const selectedStat = tagStats.find(({ tag }) => tag === selectedTagFilter);
+  if (selectedStat && !visibleStats.some(({ tag }) => tag === selectedTagFilter)) {
+    visibleStats = [...visibleStats.slice(0, TAG_FILTER_VISIBLE_LIMIT - 1), selectedStat];
+  }
+  visibleStats.forEach(({ tag }) => visibleWrap.appendChild(createBookTagFilterButton(tag)));
+  container.appendChild(visibleWrap);
+
+  if (tagStats.length > visibleStats.length) {
+    const moreBtn = document.createElement("button");
+    moreBtn.className = "filter-chip tag-filter-more";
+    moreBtn.type = "button";
+    moreBtn.textContent = `更多标签（${tagStats.length - visibleStats.length}）`;
+    moreBtn.setAttribute("aria-haspopup", "dialog");
+    moreBtn.addEventListener("click", openTagFilterDialog);
+    container.appendChild(moreBtn);
+  }
 }
 
 function fuzzyMatch(haystack, needle) {
@@ -6094,6 +6175,7 @@ function bindEvents() {
   });
 
   els.clearBookFiltersBtn?.addEventListener("click", clearAllBookFilters);
+  els.tagFilterSearchInput?.addEventListener("input", (event) => renderTagFilterDialog(event.target.value));
   els.clearSessionFiltersBtn?.addEventListener("click", clearAllSessionFilters);
   els.clearQuoteFiltersBtn?.addEventListener("click", clearAllQuoteFilters);
   els.clearConnectionFiltersBtn?.addEventListener("click", clearAllConnectionFilters);

@@ -471,6 +471,28 @@ label span,
   -webkit-overflow-scrolling: touch;
 }
 
+.tag-filter-strip {
+  overflow: hidden;
+}
+
+.tag-filter-visible {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tag-filter-visible::-webkit-scrollbar {
+  display: none;
+}
+
+.tag-filter-more {
+  flex: 0 0 auto;
+  border-style: dashed;
+}
+
 .chip-strip::-webkit-scrollbar,
 .tag-filter-strip::-webkit-scrollbar {
   display: none;
@@ -894,6 +916,50 @@ textarea {
   background: var(--color-surface);
   color: var(--color-ink);
   font-size: var(--text-sm);
+}
+
+.tag-filter-dialog-form {
+  width: min(440px, calc(100vw - 40px));
+}
+
+.tag-filter-search {
+  gap: 6px;
+}
+
+.tag-filter-dialog-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tag-filter-dialog-item {
+  width: 100%;
+  min-height: 44px;
+  justify-content: flex-start;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tag-filter-dialog-item.active {
+  background: var(--color-tag-bg);
+  border-color: var(--color-tag-text);
+  color: var(--color-tag-text);
+}
+
+.tag-filter-dialog-empty {
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-ink-muted);
+  text-align: center;
 }
 
 .session-stats {
