@@ -290,7 +290,7 @@ label span,
 .entry-card-meta,
 .entry-card-tags,
 .book-grid-author,
-.book-grid-meta,
+.book-grid-summary,
 .books-meta-row,
 .logs-collapse-indicator,
 .search-empty-combined,
@@ -630,23 +630,6 @@ label span,
   background: transparent;
   color: var(--color-ink-muted);
   border-color: var(--color-border);
-}
-
-.book-rating { font-size: 11px; color: var(--color-accent, #e8a020); letter-spacing: 1px; margin-bottom: 2px; }
-
-.book-tag-row {
-  display: flex;
-  gap: 6px;
-  overflow: hidden;
-  flex-wrap: nowrap;
-}
-
-.book-tag-row .book-tag-chip {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .books-meta-row {
@@ -1474,7 +1457,7 @@ textarea {
 }
 
 .book-grid-author,
-.book-grid-meta,
+.book-grid-summary,
 .entry-card-meta,
 .entry-card-tags,
 .entry-card-note,
@@ -1592,7 +1575,7 @@ textarea {
 }
 
 .book-grid-author,
-.book-grid-meta,
+.book-grid-summary,
 .entry-card-meta,
 .entry-card-tags {
   overflow: hidden;
@@ -1600,9 +1583,49 @@ textarea {
 }
 
 .book-grid-author,
-.book-grid-meta,
+.book-grid-summary,
 .entry-card-meta {
   white-space: nowrap;
+}
+
+.book-grid-author {
+  margin: 5px 0 12px;
+}
+
+.book-grid-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.book-grid-progress {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-grid-quote-count {
+  flex: 0 0 auto;
+}
+
+.book-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.book-detail-tag {
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--color-tag-bg);
+  color: var(--color-tag-text);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .search-section-header {
@@ -3716,7 +3739,7 @@ body.is-admin .admin-only { display: revert; }
   }
 
   .book-grid-author,
-  .book-grid-meta,
+  .book-grid-summary,
   .entry-card-meta,
   .entry-card-note,
   .book-detail-quote-meta {
