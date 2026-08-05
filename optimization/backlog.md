@@ -1375,3 +1375,23 @@ Format per item:
 - description: `renderBooks()`（`app.js:1715-1778`）虽以 `requestAnimationFrame` 每批 8 本插入，最终仍为全部筛选结果创建卡片及逐卡事件监听器；8/2 signal 推测数百至上千本会逐渐变慢。
 - why: 当前真实规模 146 本且 signal 明说“尚可”；先记录风险，不凭未来规模提前引入分页/虚拟列表复杂度。
 - how: parked；先补真机基线（首屏可交互时间、长列表滚动掉帧），达到明确阈值后再在「加载更多」与虚拟列表中选最小方案。
+
+### OPT-148 — 面向用户的显式阅读长期记忆：可确认、查看、编辑、删除并按需召回 [2026-08-06]
+- status: new
+- area: agent
+- priority: P1
+- size: M
+- northstar: 高——直接来自 2026-07-31 的明确使用信号；把跨会话稳定偏好、观点、目标和待办从易丢失的聊天摘要中提升为用户可控资产，直接增强 Theme 2「回顾有价值」与长期探讨连续性。
+- description: 当前 state 白名单只有 books、sessions、quotes、chatHistories、chatContexts、connections、customQuoteTags（`app_server.py:712-770`），不存在 memories；prompt 只注入当前 context 的 `chat_history[-40:]`（`app_server.py:2668-2681`），旧消息超过 10 条还会被压成 200 字摘要（`app_server.py:2555-2587`）。`optimization/signals.md:38` 明确要求将用户确认的阅读偏好、稳定观点、持续目标与待办提取为可查看/可编辑/可删除的显式记忆，并在后续对话按需召回。
+- why: 这不是推测性功能，而是 owner 对长期使用连续性的明确需求。只依赖聊天历史会同时遭遇 context 分片、40 条裁剪和摘要有损压缩；模型无法稳定记住跨书偏好，用户也无法审计或纠错。
+- how: 先做可控 MVP：state 新增 `memories[]`（id、kind、content、sourceContext、status、createdAt、updatedAt）；只允许用户确认后写入，不做静默自动保存；提供记忆列表的查看/编辑/删除 UI；PromptBuilder 先按全局稳定偏好 + 当前 book/quote 相关性选择少量记忆注入，并显式标注为用户数据。补 sanitize、导入导出、删除与 prompt 单测。Touch: `app_server.py:206-213,712-770,2623-2681`、`app.js:6-14,389-402`、`index.html`、相关 agent/frontend tests。
+
+### OPT-149 — 清空探讨请求失败时仍清空本地界面，刷新后历史“复活” [2026-08-06]
+- status: new
+- area: frontend
+- priority: P2
+- size: S
+- northstar: 中——清空记录是用户对探讨数据的直接控制；失败时显示成功会破坏对数据一致性的信任，并制造“删了又回来”的明确任务失败。
+- description: `clearChatHistory()` 捕获 DELETE `/api/chat-history` 错误后只 `showToast`，不重新抛出也不返回失败状态（`app.js:5357-5380`）；调用方无条件执行 `history = []` 与 `resetMessages()`（`chat.js:801-814`）。因此网络/服务端失败时 UI 看似已清空，服务端历史仍在，重新进入或刷新后再次出现。
+- why: 这是可复现的 false-success，而非纯代码卫生。它还与 app 其他写操作的失败语义不一致：失败应保留原数据和界面，允许用户重试。
+- how: 让 `clearChatHistory()` 在 catch 后重新抛出，或返回明确 boolean；`chat.js` 仅在成功时重置 history/messages，失败时保留当前消息。补前端回归测试：DELETE reject 时消息不消失；成功时才清空。Touch: `app.js:5357-5380`、`chat.js:801-814`、`tests/frontend/`。
