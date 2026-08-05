@@ -4386,3 +4386,17 @@
 | 01:05 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.TliiFlhl/wt/optimization/triage.md | — | ~2356 |
 | 01:05 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.TliiFlhl/wt/optimization/backlog.md | — | ~42472 |
 | 01:05 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.TliiFlhl/wt/.wolf/memory.md | — | ~89096 |
+| 10:21 | Created index.html | — | ~12658 |
+| 10:21 | Created app.js | — | ~70952 |
+| 10:21 | Created styles.css | — | ~26036 |
+| 10:21 | Created tests/frontend/book-tag-filter-more.test.js | — | ~1471 |
+| 10:23 | designqc: captured 6 screenshots (355KB, ~15000 tok) | / | ready for eval | ~0 |
+| 10:31 | Created index.html | — | ~12683 |
+| 10:31 | Created app.js | — | ~70634 |
+| 10:31 | Created styles.css | — | ~26129 |
+| 10:31 | Created tests/frontend/book-card-hierarchy.test.js | — | ~1434 |
+| 10:31 | Created tests/frontend/book-card-hierarchy.test.js | — | ~1448 |
+| 10:33 | designqc: captured 2 screenshots (108KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 10:36 | Completed OPT-145 | `app.js`, `index.html`, `styles.css`, `tests/frontend/book-tag-filter-more.test.js` | PR #106 merged to `feature/agent`: top tags by book coverage, selected-tag visibility, searchable native dialog; Python 436 + 23 subtests and frontend 471 all green | ~0 |
+| 10:36 | Completed OPT-146 | `app.js`, `index.html`, `styles.css`, `tests/frontend/book-card-hierarchy.test.js` | PR #107 merged to `feature/agent`: book cards now show status + progress/finish date + quote count; rating/tags/records/connections remain reachable in detail; Python 436 + 23 subtests and frontend 475 all green | ~0 |
+| 10:36 | Book-list UI convention | `app.js`, `styles.css` | Tag discovery belongs in the searchable filter dialog; list cards optimize for scanning and keep only one core behavioral metric. Move secondary metadata to book detail instead of deleting it or adding a display-mode setting. | ~0 |

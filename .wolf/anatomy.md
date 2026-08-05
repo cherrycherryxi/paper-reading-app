@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T17:05:56.031Z
-> Files: 250 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-05T02:31:35.971Z
+> Files: 252 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -64,14 +64,14 @@
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76213 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~69878 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~70634 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11521 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~12436 tok)
+- `index.html` — 🐛 又买了一本书 (~12683 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -80,7 +80,7 @@
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~25694 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~26129 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -275,6 +275,7 @@
 - `account-import-format.test.js` — OPT-040: importData() must (1) unwrap both export formats — the lightweight (~4075 tok)
 - `ai-review-source-badge.test.js` — OPT-101: AI 起草的读后感要标注来源（「AI 根据笔记整理」），与手写读后感区分。 (~3120 tok)
 - `api-fetch-interrupted.test.js` — 真机事故（2026-07-17）：拍完书架切到别的 App，回来显示「无法连接后端服务， (~1172 tok)
+- `book-card-hierarchy.test.js` — OPT-146：书单卡片只保留扫读所需的信息；完整元信息仍在详情页可达。 (~1448 tok)
 - `book-cover-thumbnail-lazy.test.js` — 书单封面「缩略图 + 懒加载」优化：书单原来一次性拉 28MB 原图封面，改为用 (~1084 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~2512 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~2092 tok)
@@ -283,6 +284,7 @@
 - `book-ocr.test.js` — OPT-002: runBookOcr() POSTs the pending cover image to /api/books/ocr and (~1575 tok)
 - `book-reading-dates.test.js` — OPT-074: a book's startedAt/finishedAt are auto-filled by saveSession() but were (~7300 tok)
 - `book-review-rating.test.js` — OPT-098: AI 读后感生成 + 星级评分（E159 + E160 合并 PR） (~3049 tok)
+- `book-tag-filter-more.test.js` — OPT-145：标签筛选首屏只展示常用项，并提供可搜索的完整标签面板。 (~1471 tok)
 - `chat-agent-approval.test.js` — test: createElementStub, innerHTML, innerHTML + 3 more (~5808 tok)
 - `clear-filters.test.js` — 「一键清除全部筛选」从书单页扩展到 记录 / 摘抄 / 关联 三页（呼应 07-11 signal）。 (~1551 tok)
 - `combobox-position-and-label.test.js` — bug-415: 关联对话框书籍 combobox 两个问题 (~1472 tok)
