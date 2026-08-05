@@ -4285,3 +4285,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 ---
 
 > 本次 run（2026-07-29）扫描焦点：HTTP executor 与 MCP 的对称性缺口、AI 上下文完整性（all_books_summary 剩余字段）、聊天压缩策略再评估。新发现 3 条：E233（HTTP ActionExecutor.link_thought 无重复关联守卫，S，northstar 中，OPT-138 MCP 修复的 HTTP 对称缺口，2-路径不对称）、E234（压缩阈值重评估，S，northstar 弱中，2026-07-26 批量记录 signal 间接相关）、E235（all_books_summary 缺 notes 字段，S，northstar 弱中，summary action 写入后 AI 无法读取形成闭环）。提拔 OPT-143（E233，HTTP link_thought 去重，S，northstar 中，最强对称缺口）、OPT-144（E234，压缩阈值 10→20，S，northstar 弱中，探讨是 owner 最高频回顾操作）。所有断言均基于实际代码读取，已标注 file:line。
+
+## 2026-08-06
+
+> 扫描焦点：2026-07-31 显式长期记忆 signal、聊天数据删除失败语义、复用书籍 combobox 的检索一致性与可访问性。基于最新 `feature/agent`，核对 backlog、triage、roadmap、signals、当前源码与 open PR（当前无目标为 `feature/agent` 的 open PR）。旧条目已覆盖并排除：E220（quote prompt 长度）、E228（限流重试）、E234/OPT-144（压缩阈值）、E235（all_books_summary 缺 notes），本次不重复登记。
+
+### E236 — 产品 Agent 没有用户可控的显式长期记忆，跨会话稳定偏好只能困在分片聊天与有损摘要中 (M)
+
+**What (verified):** `optimization/signals.md:38` 明确要求把用户确认的阅读偏好、稳定观点、持续目标与待办保存为可查看、可编辑、可删除的长期记忆。当前后端 `INITIAL_STATE`（`app_server.py:206-213`）和 `sanitize_state()` 返回白名单（`app_server.py:712-770`）都没有 memories 字段；前端 `initialState` / `normalizeStateShape()`（`app.js:6-14,389-402`）也没有对应集合。PromptBuilder 只发送当前聊天的 `chat_history[-40:]`（`app_server.py:2668-2681`），且超过 10 条会把旧消息压成 200 字摘要（`app_server.py:2555-2587`）。
+
+**Why it matters:** 现有机制只解决“当前上下文续聊”，不解决“跨书、跨会话的稳定认识”。偏好与观点会被 context key 分片、40 条裁剪或摘要压缩；用户无法知道系统记住了什么，也无法纠错或删除。这是 7/31 明确信号，不是从代码臆测出的功能。
+
+**Complexity:** M。先做用户确认式 MVP：新增 `memories[]` 数据模型；记忆候选必须由用户确认后落库；提供查看/编辑/删除；PromptBuilder 按全局稳定偏好与当前 book/quote 相关性选择少量注入。补 sanitize、导入导出、删除和 prompt 测试。
+
+**Files:** `app_server.py:206-213,712-770,2555-2587,2623-2681`；`app.js:6-14,389-402`；`index.html`；相关 tests。
+
+**northstar:** 高——直接增强 Theme 2 的长期探讨连续性与用户控制。→ promoted to OPT-148
+
+---
+
+### E237 — 清空探讨 DELETE 失败被吞掉，调用方仍清空本地 UI，刷新后历史重新出现 (S)
+
+**What (verified):** `app.js:5357-5380` 的 `clearChatHistory()` 在 catch 中只显示 toast，没有 throw 或失败返回值。`chat.js:801-814` 的确认回调 await 之后无条件执行 `history = []` 和 `resetMessages()`。只要 DELETE 因网络、鉴权或服务端错误失败，界面仍表现为成功。
+
+**Why it matters:** 用户刚明确执行删除，却看到记录在刷新后“复活”，这是数据控制路径的 false-success。修复应使 UI 只在服务端确认后变更，并在失败时保留当前消息供重试。
+
+**Complexity:** S。`clearChatHistory()` 失败后重新抛出或返回 boolean；调用方仅在成功时 reset；补失败/成功两条前端回归测试。
+
+**Files:** `app.js:5357-5380`；`chat.js:801-814`；`tests/frontend/`。
+
+**northstar:** 中——保护探讨数据控制的可信度。→ promoted to OPT-149
+
+---
+
+### E238 — 复用书籍 combobox 只搜书名/作者，与书单搜索的 tags/notes/review/短评口径分叉 (S)
+
+**What (verified):** 书单 `matchBooks()` 已检索 title、author、tags、notes、review、doubanComment（`app.js:1491-1500`）；但用于新增记录、摘抄和建立关联的 `filteredBooks()` 仍只做 title/author 的小写 substring 匹配（`app.js:5432-5441`）。`index.html:535-539,560-564,758-766,788-796` 显示这一 combobox 被多个核心表单复用。
+
+**Why it matters:** 用户已通过标签/简介按主题找书，但进入“给某本成长主题书补摘抄/建立关联”时，同一个主题词又找不到，检索能力在浏览与操作入口之间不一致。当前无直接任务失败 signal，因此先留探索池，不提拔。
+
+**Complexity:** S。抽取统一 `bookMatchesQuery()`，让 matchBooks 与 combobox 共用字段口径；同时保留 wishlist 过滤和“在读优先”排序。
+
+**Files:** `app.js:1491-1500,5418-5441`；相关 combobox 前端测试。
+
+**northstar:** 弱中——减少为书绑定记录/摘抄/关联时的检索摩擦，但缺直接 signal。
+
+---
+
+### E239 — 自制 book/quote combobox 只有鼠标/触摸选择，无 combobox 语义与键盘导航 (S-M)
+
+**What (verified):** 六个输入框均为普通 text input + ul，未设置 `role=combobox`、`aria-expanded`、`aria-controls` 或 listbox/option 语义（`index.html:535-539,560-564,758-766,788-796`）。初始化逻辑只监听 focus、input、blur，以及 mousedown/touchstart 选项（`app.js:5418-5505,5533-5621`）；没有 ArrowDown、ArrowUp、Enter、Escape 或 active descendant 管理。
+
+**Why it matters:** 键盘和屏幕阅读器用户无法得知下拉状态，也不能用方向键选择。项目已有 a11y 基线，但 roadmap 当前对无真实 a11y signal 的项统一 parked，因此记录为 P3 方向，不挤占产品信号项。
+
+**Complexity:** S-M。为 input/list/options 加 WAI-ARIA combobox/listbox 语义，维护 highlighted index 与 aria-activedescendant，支持方向键、Enter、Escape；两套 book/quote combobox 共用 helper 与测试。
+
+**Files:** `index.html:535-539,560-564,758-766,788-796`；`app.js:5418-5505,5533-5621`；`tests/frontend/a11y-baseline.test.js`。
+
+**northstar:** 弱——无当前 a11y signal，保留为 P3 code/UX health。
+
+---
+
+> 本次 run 新发现 4 条：E236（显式长期记忆，M，强 signal）、E237（清空探讨 false-success，S，明确 correctness）、E238（书籍 combobox 检索字段分叉，S）、E239（combobox 键盘/ARIA 缺口，S-M）。提拔 OPT-148 与 OPT-149；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
