@@ -94,7 +94,7 @@
             <button class="filter-chip" type="button" data-status-filter="wishlist"><span class="chip-dot chip-dot--wishlist"></span>想读</button>
             <button class="filter-chip" type="button" data-status-filter="finished"><span class="chip-dot chip-dot--finished"></span>已读完</button>
           </div>
-          <div class="tag-filter-strip" id="tagFilterStrip"></div>
+          <div class="tag-filter-strip" id="tagFilterStrip" aria-label="按标签筛选书籍"></div>
           <div class="books-meta-row">
             <span id="booksResultCount">共 0 本</span>
             <button class="link-btn is-hidden" type="button" id="clearBookFiltersBtn">✕ 清除全部筛选</button>
@@ -360,6 +360,24 @@
         </details>
       </section>
     </div>
+
+    <dialog id="tagFilterDialog" aria-labelledby="tag-filter-dialog-label">
+      <div class="dialog-form tag-filter-dialog-form">
+        <div class="section-head">
+          <h2 id="tag-filter-dialog-label">更多标签</h2>
+          <p>搜索或选择一个标签，快速找到同主题的书。</p>
+        </div>
+        <label class="tag-filter-search">
+          <span>搜索标签</span>
+          <input id="tagFilterSearchInput" type="search" placeholder="输入标签名称…" autocomplete="off" />
+        </label>
+        <div id="tagFilterDialogList" class="tag-filter-dialog-list"></div>
+        <p id="tagFilterDialogEmpty" class="tag-filter-dialog-empty" hidden>没有匹配的标签</p>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" data-close-dialog="tagFilterDialog">关闭</button>
+        </div>
+      </div>
+    </dialog>
 
     <dialog id="bookEditDialog" aria-labelledby="book-edit-dialog-label">
       <form id="bookEditForm" class="dialog-form">
