@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nightly Product Agents"
+  short_description: "Run remote nightly triage, implementation, and exploration"
+  default_prompt: "Use $nightly-product-agents to run the requested nightly phase against feature/agent."

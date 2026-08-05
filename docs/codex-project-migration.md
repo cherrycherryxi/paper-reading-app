@@ -94,6 +94,25 @@ Agent1 `trig_01KpBBHSZTbhiu2Ysvh2L6ZU`, Agent2
 `trig_01EZrUPo57BrDbXytCdENqdm`. They must remain disabled/unavailable while
 the Codex launchd jobs are enabled.
 
+## Nightly Cloud Scheduled correction (2026-08-05)
+
+The 2026-08-04 migration preserved the Agent responsibilities but changed the
+execution model from Claude's remote Routine to local launchd. That was not an
+equivalent migration: it required the Mac and ChatGPT/Codex login to remain
+available, and a failed Implement run caused both Explore schedules to skip.
+
+The replacement architecture is defined in
+`docs/codex-cloud-scheduled-migration.md` and the repository skill
+`.agents/skills/nightly-product-agents/`. Three ChatGPT/Codex Scheduled tasks
+run in a configured Cloud environment against `feature/agent`. GitHub commits,
+PR metadata, and dated document sections provide idempotency; no home-directory
+completion markers are used, and Explore no longer depends on Implement.
+
+The local launchd jobs remain a temporary rollback path only. Do not run local
+and Cloud schedules concurrently. Cut over only after all three paused Cloud
+tasks pass a manual run; unload the local jobs before enabling the Cloud
+schedules, then observe two nightly cycles before deleting rollback artifacts.
+
 ## Verification
 
 - `openwolf scan` completed with 203 indexed files.
