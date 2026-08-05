@@ -130,6 +130,7 @@ const els = {
   bookDetailDialog: document.querySelector("#bookDetailDialog"),
   bookDetailTitle: document.querySelector("#bookDetailTitle"),
   bookDetailMeta: document.querySelector("#bookDetailMeta"),
+  bookDetailTags: document.querySelector("#bookDetailTags"),
   bookDetailIntro: document.querySelector("#bookDetailIntro"),
   bookDetailSessionsSummary: document.querySelector("#bookDetailSessionsSummary"),
   bookDetailSessions: document.querySelector("#bookDetailSessions"),
@@ -924,27 +925,14 @@ function getProgress(book) {
 }
 
 function buildRenderCache() {
-  const metricsMap = new Map();
   const quoteCountMap = new Map();
-  const connCountMap = new Map();
   const firstQuoteImageMap = new Map();
 
-  for (const s of state.sessions) {
-    const m = metricsMap.get(s.bookId) || { count: 0, minutes: 0, pages: 0 };
-    m.count++;
-    m.minutes += Number(s.minutes || 0);
-    m.pages += Number(s.pagesRead || 0);
-    metricsMap.set(s.bookId, m);
-  }
   for (const q of state.quotes) {
-    quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+    if (isRegularQuote(q)) quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
     if (q.imageUrl && !firstQuoteImageMap.has(q.bookId)) firstQuoteImageMap.set(q.bookId, q.imageUrl);
   }
-  for (const c of state.connections || []) {
-    connCountMap.set(c.sourceId, (connCountMap.get(c.sourceId) || 0) + 1);
-    connCountMap.set(c.targetId, (connCountMap.get(c.targetId) || 0) + 1);
-  }
-  return { metricsMap, quoteCountMap, connCountMap, firstQuoteImageMap };
+  return { quoteCountMap, firstQuoteImageMap };
 }
 
 function getBookSessions(bookId) {
@@ -953,15 +941,6 @@ function getBookSessions(bookId) {
 
 function isRegularQuote(item) {
   return item?.kind !== "question";
-}
-
-function getBookMetrics(bookId) {
-  const sessions = getBookSessions(bookId);
-  return {
-    count: sessions.length,
-    minutes: sessions.reduce((sum, item) => sum + Number(item.minutes || 0), 0),
-    pages: sessions.reduce((sum, item) => sum + Number(item.pagesRead || 0), 0),
-  };
 }
 
 function getQuoteCount(bookId) {
@@ -1588,9 +1567,7 @@ function toggleCardMenu(menuBtn) {
 
 function buildBookSearchCard(book, cache) {
   const progress = getProgress(book);
-  const metrics = cache ? (cache.metricsMap.get(book.id) || { count: 0, minutes: 0, pages: 0 }) : getBookMetrics(book.id);
   const qCount = cache ? (cache.quoteCountMap.get(book.id) || 0) : getQuoteCount(book.id);
-  const cCount = cache ? (cache.connCountMap.get(book.id) || 0) : getConnectionCount(book.id);
   const fallbackImg = cache ? (cache.firstQuoteImageMap.get(book.id) || "") : (state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
   const rawCover = book.coverImageUrl || fallbackImg || DEFAULT_BOOK_COVER_URL;
   const coverImage = resolveImageUrl(rawCover);            // 原图（onerror 兜底 / 详情用）
@@ -1603,13 +1580,6 @@ function buildBookSearchCard(book, cache) {
       : progress === null
         ? `已读到第 ${book.currentPage || 0} 页`
         : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
-
-  const MAX_TAGS = 3;
-  const tags = Array.isArray(book.tags) && book.tags.length
-    ? book.tags.slice(0, MAX_TAGS).map(t => `<span class="book-tag-chip">${escapeHtml(t)}</span>`).join("") +
-      (book.tags.length > MAX_TAGS ? `<span class="book-tag-chip book-tag-more">+${book.tags.length - MAX_TAGS}</span>` : "")
-    : "";
-  const ratingHtml = book.rating ? `<span class="book-rating">${"★".repeat(book.rating)}</span>` : "";
 
   const card = document.createElement("article");
   card.className = "book-grid-card";
@@ -1632,10 +1602,10 @@ function buildBookSearchCard(book, cache) {
     <div class="book-grid-body">
       <h3>${formatBookTitle(book.title)}</h3>
       <p class="book-grid-author">${escapeHtml(book.author || "作者未填写")}</p>
-      ${ratingHtml}
-      <div class="book-grid-meta">🕐 ${metrics.count} 次 · ✍️ ${qCount} 张${cCount ? ` · 🔗 ${cCount} 关联` : ""}</div>
-      <div class="book-grid-meta">📖 ${escapeHtml(progressText)}</div>
-      ${tags ? `<div class="book-tag-row">${tags}</div>` : ""}
+      <div class="book-grid-summary">
+        <span class="book-grid-progress">${escapeHtml(progressText)}</span>
+        <span class="book-grid-quote-count" aria-label="${qCount} 条摘抄">✍️ ${qCount}</span>
+      </div>
     </div>
   `;
 
@@ -3968,6 +3938,14 @@ function openBookDetailDialog(bookId) {
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   if (book.rating) {
     els.bookDetailMeta.textContent += " · " + "★".repeat(book.rating) + "☆".repeat(5 - book.rating);
+  }
+
+  const detailTags = Array.isArray(book.tags) ? book.tags.filter(Boolean) : [];
+  if (els.bookDetailTags) {
+    els.bookDetailTags.innerHTML = detailTags
+      .map((tag) => `<span class="book-detail-tag">${escapeHtml(tag)}</span>`)
+      .join("");
+    els.bookDetailTags.classList.toggle("is-hidden", detailTags.length === 0);
   }
 
   // OPT-074: show reading dates (auto-filled by saveSession, or set in edit dialog).
