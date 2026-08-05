@@ -260,6 +260,8 @@ Format per item:
 
 ### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
 - status: triaged
+- priority: P3
+- size: S
 - northstar: 无直接贡献(磁盘卫生,仅间接长期可靠性)。按 roadmap §5 北极星税 → P3 parked,预算富余周再做。
 - area: backend
 - description: `get_conn()` 在 `app_server.py:334` 启动时设置 `PRAGMA journal_mode = WAL`，但从未显式触发完整检查点（TRUNCATE 模式）。SQLite 默认的自动检查点（PASSIVE，1000 页阈值）在并发读负载下遇到活跃 reader 时会跳过，不回收 WAL 文件磁盘空间。`_run_gc()` 每 6 小时运行一次，使用独立 connection，是执行显式检查点的天然位置。
@@ -282,6 +284,8 @@ Format per item:
 
 ### OPT-035 — `TraceManager` 三个方法使用 `now_iso()` (naive 本地时间)，与项目 UTC 时间戳策略不一致 — 由 explore E56 提拔
 - status: triaged
+- priority: P3
+- size: S
 - northstar: 无直接贡献(纯内部观测时间戳一致性,用户不可见)。→ P3 parked。
 - area: backend
 - description: `TraceManager.create_trace()`（`app_server.py:2676`）、`log_event()`（line 2695）、`update_trace()`（line 2702）均调用 `now_iso()` 写入 `agent_traces` 和 `agent_trace_events` 表的 `created_at`/`updated_at`。项目已通过 OPT-014/024/031 将所有用户可见时间戳迁移到 `utc_now_iso()`，但 `TraceManager` 属于独立类，在上述修复中被遗漏。`/debug/agent-dashboard` 展示这些时间戳，`/api/account/export` 也包含 `agentTraces`。
@@ -290,6 +294,8 @@ Format per item:
 
 ### OPT-036 — `summarize_metrics()` 对全量历史数据做 O(n) 扫描——每次打开 `/debug/logs` 线性变慢 — 由 explore E40 提拔
 - status: triaged
+- priority: P3
+- size: S
 - northstar: 弱——debug 看板是运营工具,不影响阅读主流程。→ P3 parked(2026-06-16 产品负责人仪式:对北极星无直接贡献,纯运营工具优化,预算富余周再做)。
 - area: backend
 - description: `MetricsCollector.summarize_metrics()`（`app_server.py:2870-2940`）执行 `SELECT … FROM agent_metrics WHERE user_id = ?`，无任何时间过滤，无 `LIMIT`。Plus 用户每天 240 次请求，一年后 `agent_metrics` 表超 87,000 行；每次 `/debug/logs` 或 `/debug/metrics` 加载都触发完整拉取 + 逐行 `json.loads()`，延迟随使用时长线性增长。`idx_agent_metrics_user` 索引（OPT-017）避免了跨用户扫描，但仍返回该用户所有历史行。
@@ -355,6 +361,8 @@ Format per item:
 
 ### OPT-044 — `payments` 表 `created_at`/`updated_at` 使用 `now_iso()`（naive 本地时间），`plan_expires_at` 用 `datetime.fromtimestamp()` 转换 Stripe 时间戳为本地时间 — 由 explore E67 提拔
 - status: triaged
+- priority: P3
+- size: S
 - northstar: 无——billing 已按 roadmap §1 冻结,冻结期间财务表时间戳无用户价值。→ P3 parked,直至项目定位升级到 C(认真做产品)。
 - area: backend
 - description: Stripe webhook handler（`app_server.py:1850-1940`）在所有 4 处 `payments` INSERT 中用 `now_iso()` 写入 `created_at`/`updated_at`（约 lines 1852, 1890, 1915, 1935）。`period_end_iso`（line 1876）将 Stripe 的 UTC Unix 时间戳 `period_end` 用 `datetime.fromtimestamp(int(period_end)).isoformat()` 转为 naive 本地时间后存入 `users.plan_expires_at`。UTC 清理系列（OPT-014/024/031/035/038, E56/E58/E60/E63/E64/E65）已覆盖所有其他表；`payments` 是唯一尚未迁移的财务审计表。
@@ -364,6 +372,8 @@ Format per item:
 ### OPT-046 — Tab 导航缺少 ARIA role/aria-selected 属性，屏幕阅读器无法感知 Tab 切换（WCAG 4.1.2 Level A） — 由 explore E70 提拔
 - status: triaged
 - area: frontend
+- priority: P3
+- size: S
 - northstar: 无直接贡献——商业化（定位 C）已冻结，当前 8 周按定位 A「个人工具」执行，唯一用户=owner 本人，屏幕阅读器 a11y 对单人无价值。→ **P3 parked（2026-W27 仪式）**：与已 parked 的 OPT-048（chat `role="log"`）同一逻辑，a11y 系列统一留待定位升级到 B/C 再批量重启。原写「商业化基线」属把未选定的定位 C 当现实，与 roadmap §1「未来 8 周按 A 执行」不符。
 - description: `<nav class="mobile-tabs">` 的 6 个 `<button>` 无 `role="tablist"`/`role="tab"`/`aria-selected`/`aria-controls`，`activateTab()` 只切换 CSS class，不更新任何 ARIA 状态。屏幕阅读器用户听到的是 6 个匿名按钮，无选中/未选中提示，无法用箭头键按 ARIA tab 模式导航。
 - why: WCAG 2.1 SC 4.1.2（Name, Role, Value — Level A）要求 Tab 组件声明正确的 role 并在切换时同步 `aria-selected`。Level A 是商业化最严格的合规等级；这 6 个 Tab 是 App 的主导航骨架，修复后所有后续 ARIA 修复才有完整语义上下文。修复是纯加法（HTML 属性 + 1 行 JS），零逻辑变更，零风险。
@@ -388,6 +398,8 @@ Format per item:
 ### OPT-048 — `#chatMessages` 缺少 `role="log"` live region，屏幕阅读器无法感知新消息（WCAG 4.1.3 AA） — 由 explore E75 提拔
 - status: triaged
 - area: frontend
+- priority: P3
+- size: S
 - northstar: 弱——延续已有 a11y 系列（OPT-013/018/019/033/046），Chat 是 AI 对话核心入口，`role="log"` 使 AA 级合规在对话模块闭环。S 复杂度，1 行 HTML + 1 条测试。→ P3 parked（2026-06-16 仪式：当前定位 A「个人工具」唯一用户为 owner 本人，屏幕阅读器 a11y 对单人无直接价值；留待定位升级到 B/C 再批量重启 a11y 系列）。
 - description: `<div id="chatMessages" class="chat-messages chat-messages-inline">` at `index.html:177` has no `role="log"`, `aria-live`, or `aria-relevant` attribute. `chat.js` never sets any live-region attribute on this element. Without `role="log"` (which implies `aria-live="polite"` + `aria-relevant="additions text"`), screen readers do not announce incoming AI replies as they stream in. The `a11y-baseline.test.js` already guards OPT-013/018/019 but has no assertion for this gap.
 - why: Chat是 AI 交互的主界面。缺少 live region，屏幕阅读器用户每次交换后必须手动导航到消息列表——无法听到实时回复。与 OPT-019（toast `role="status"`）性质完全相同，修复量更小（1 个 HTML 属性 + 1 条测试断言），零 JS/backend 改动。
@@ -404,7 +416,9 @@ Format per item:
 ### OPT-050 — `deleteQuote()` 删除摘抄时遗漏 chatHistories / chatContexts 清理，产生孤儿状态
 - status: triaged
 - area: frontend
-- northstar: 弱——防止 state blob 随摘抄删除操作静默膨胀，属数据健康度修缮。state 整洁是一切功能可靠性的基础；与 Theme 1「采集顺滑」间接相关（删除操作是采集流程的清理环节）。
+- priority: P3
+- size: S
+- northstar: 无合理直接贡献——只清理删除摘抄后的孤儿 state key，不改善当前 Theme 2 回顾任务，也无真实 signal；按 roadmap §5 北极星税 parked。
 - description: `app.js:2316-2332` 的 `deleteQuote()` 删除 quote 本体及其 connections，但未清理 `state.chatHistories["quote:${quoteId}"]` 和 `state.chatContexts["quote:${quoteId}"]`。key 格式由 `app_server.py:608-614` 的 `chat_context_history_key()` 确认（`return f"quote:{normalized['quoteId']}"`）。每次删摘抄后，两个死键随 `syncState()` 永久写入服务器 SQLite blob，状态随使用次数线性膨胀。
 - why: `deleteBook()` 在 `app.js:2088-2100` 已有完整清理模式（`delete state.chatHistories[...]` + `delete state.chatContexts[...]` + 遍历 context.bookId）。`deleteQuote()` 缺少对应逻辑，是功能对等性缺口。
 - how: 在 `app.js` `deleteQuote()` 的 `onConfirm` 回调中，`await syncState()` 之前插入：`delete (state.chatHistories || {})["quote:" + quoteId]; delete (state.chatContexts || {})["quote:" + quoteId];`。复杂度 S，2 行改动，无测试变动（state hygiene 可在现有 integration test 中验证）。
@@ -428,6 +442,8 @@ Format per item:
 ### OPT-051 — 添加 Web App Manifest，使 Android/Chrome 用户可以「添加到主屏幕」安装 PWA
 - status: triaged
 - area: frontend
+- priority: P3
+- size: S
 - northstar: 无直接贡献（当前定位 A：唯一用户=owner 本人，每天用 iPhone，已有 Apple PWA meta；Android/Chrome 安装收益此刻为零，无 signal 佐证）。按 roadmap §5 北极星税 → **P3 parked（2026-W26 仪式）**；仅当定位升级到 §1 option B（10–100 人分享、Android 入场）时重启，届时 manifest 是必要前置。
 - park-reason (2026-06-22): 定位 A 下唯一用户不用 Android，PWA 安装属「为假想未来用户做」，违反 §0「为做而做」批判；15 行成本不急，升级到 B 当周再做即可。
 - description: `index.html:8-10` 仅有 Apple 专属 PWA meta 标签（`apple-mobile-web-app-capable` / `apple-mobile-web-app-title`），没有 `<link rel="manifest">`。仓库根目录无 `manifest.json` 文件。Android Chrome 的「添加到主屏幕」和 PWA 安装提示均依赖 manifest；缺失时用户只能手动将网址固定到浏览器书签，不会触发系统级安装提示。
@@ -483,8 +499,10 @@ Format per item:
 - how: `app.js:2261` 将 `new Date().toISOString().split("T")[0]` 改为 `new Intl.DateTimeFormat("sv").format(new Date())`（`"sv"` locale 返回 `YYYY-MM-DD` 本地时区格式，所有现代浏览器兼容，无 polyfill 需求）；可同步在 JS 初始化时动态给 `index.html:430` 的 `<input name="date">` 设置 `max` 属性（防未来日期）。Touch: `app.js:2261`（主改动点）；可选 `index.html:430` + JS 初始化段设置 `max`。
 
 ### OPT-060 — 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 — 由 explore E95 提拔
-- status: triaged
+- status: done (PR #60, merged 2026-07-10；OPT-088 实现的 `getSearchLabel()` 已将 source/target 摘抄正文纳入关联搜索)
 - area: frontend
+- priority: P2
+- size: S
 - northstar: 中——Theme 2「回顾有价值」的关键检索入口：关联是 app 的差异化功能，「按摘抄内容找关联」是回顾时最自然的方式；现在按摘抄原文搜索无法命中关联，等于让连接网络对用户半透明；积累 20+ 个关联后影响显著，是 Theme 2 北极星第三个数「回顾/检索/关联操作次数 > 0」的前提。
 - description: `app.js:740-756`（`renderConnections()` 搜索过滤块）的 haystack 仅含 `getBookTitle()`（`app.js:742-748`，对 quote 类型只返回书名）和 `c.thought`，不含摘抄原文（`quote.content`）。若用户建立了「笛卡尔」摘抄→「AI」摘抄的关联，搜索"笛卡尔"时若两书名均不含该词则返回零结果，即使 thought 字段也没有该词。注意：`resolveConnectionSide()`（`app.js:679-688`）在卡面**展示**时确实包含摘抄原文预览（`quote.content.slice(0,36)`），但搜索 haystack 的构建路径（`getBookTitle()`）与展示路径（`resolveConnectionSide()`）分离，搜索和展示不对齐。
 - why: 用户建立关联时脑中记住的往往是「那句话说了什么」，而不是「它属于哪本书」；按摘抄原文检索关联才能「想到就找到」；是 Theme 2 最低成本的检索改进之一（6 行改动，无后端变更）。
@@ -545,7 +563,7 @@ Format per item:
 - how: 在 `if (existingId)` 编辑分支末（`app.js:2037` 之后）补全 book 字段重算：`book.currentPage = Math.max(...state.sessions.filter(s=>s.bookId===bookId).map(s=>s.endPage||0)); book.lastReadAt = date; book.updatedAt = new Date().toISOString();`；并补 finished 判断（与新建分支对称）。Touch: `app.js:2029-2037`（session 编辑分支）。
 
 ### OPT-067 — `contextFromHistoryKey()` 缺少 `quote:` 前缀处理，前后端逻辑不对称 — 由 explore E106 提拔
-- status: triaged
+- status: done (PR #104, merged 2026-08-04；前后端均恢复 quote-scoped context，并有双端回归测试)
 - area: frontend
 - priority: P2
 - size: S
@@ -687,10 +705,10 @@ Format per item:
 ### OPT-081 — Organize/Candidates 批量采集功能全链路失活：前端完整实现但 HTML Dialog 不存在、无调用者、后端无 `/api/organize/parse` 端点 — 由 explore E133 提拔 [2026-06-30]
 - status: triaged
 - area: frontend, backend
-- priority: P3 parked (2026-07-13 周一 PO 仪式)
+- priority: P3
 - park 理由: 零 signal 佐证（自 6/30 提拔以来 signals.md 无任何相关摩擦记录）；Theme 1「采集顺滑」已收尾，真机录入摩擦项已清空（PR #59/#60）；用 M 复杂度（前端 dialog + 后端新端点）去激活一条从没人要过的「文字粘贴批量采集」路径，对北极星无贡献（roadmap §5 北极星税）。代码保留不删，若未来出现「手里有一段电子书文字想批量入库」的真实 signal 再解冻。
 - size: M
-- northstar: 中/强（如激活）——批量从粘贴文字中提取摘抄候选、AI 拆分 + 审批入库，直接支撑 Theme 1「采集顺滑」；现有 OCR 路径仅支持逐图识别，文字粘贴批量路径覆盖「书中已有电子文字」「读书笔记 App 导出」等场景，是一条沉睡的高价值采集通道。
+- northstar: 无合理当前贡献——Theme 1 已收尾，且从无“批量粘贴文字采集”的真实 signal；潜在价值不足以激活一条全链路失活的 M 级路径，按 roadmap §5 parked。
 - description: `app.js:114-127` 共 11 个 `els.*` 引用（`els.organizeDialog`/`els.candidatesDialog` 等）全部指向**不存在于 `index.html` 的 DOM 元素**，运行时返回 `null`。`index.html` 全文无 `id="organizeDialog"` 或 `id="candidatesDialog"` 定义。`openOrganizeDialog()`（`app.js:2808`）在整个代码库无任何调用者。前端 `submitOrganizePaste()` 调用 `/api/organize/parse`（`app.js:2862`），但 `app_server.py` 无此端点。功能实现代码约 150 行（`app.js:2808-2914`：`openOrganizeDialog`、`switchOrganizeTab`、`handleOrganizeImageSelect`、`submitOrganizePaste`、`openCandidatesDialog`、`approveCandidateItem`、`ignoreCandidateItem`），三层均失活。
 - why: 这是一笔已完成的前端投资：用户可粘贴书中文字或读书笔记，AI 识别并拆分为多条摘抄候选，用户逐条审批保存——整个 UX 流程已在 JS 中实现，只差激活。与逐图 OCR 互补，覆盖电子文字场景。激活代价（补 HTML + 后端端点 + 一个触发按钮）远低于重写，且产出价值对 Theme 1 是正向的。
 - how: ① `index.html`：补写 `<dialog id="organizeDialog">` 粘贴/拍照双 Tab 界面（`organizeRawText` textarea + `organizeSubmitBtn`）和 `<dialog id="candidatesDialog">` 候选审批列表；② `app.js`：在 `openBookDetailDialog()` 的 `dialog-actions` 区域或 OCR 入口旁增加「整理文字摘抄」按钮，点击调用 `openOrganizeDialog(bookId)`；③ `app_server.py`：新增 `POST /api/organize/parse`，接收 `{bookId, rawText}`，调用 `PromptBuilder` + `call_deepseek()` + `ActionExecutor` 链路，返回 `{candidates: [{id, type, confidence, data:{content,tags}}]}`。
@@ -776,9 +794,9 @@ Format per item:
 ### OPT-089 — clearSampleData 不清理 chatHistories / chatContexts
 - status: triaged
 - area: frontend
-- priority: P2
+- priority: P3
 - size: S
-- northstar: 弱-中——onboarding「示例→清除→空白起步」是新用户留存关键路径；清除后残留孤儿聊天历史会污染导出数据，且与「像没来过一样」的语义相悖。
+- northstar: 无合理直接贡献——只清理示例数据路径的孤儿 state key；Theme B0 已休眠、没有清除示例失败的真实 signal，按 roadmap §5 parked。
 - description: `app.js:1729-1744`：`clearSampleData()` 只过滤 `SAMPLE_COLLECTIONS = ["books","quotes","connections","sessions"]`，不清理 `state.chatHistories` / `state.chatContexts`。若用户对示例书发起过对话，「一键清除」后孤儿聊天历史随 syncState 写回后端。对比 `deleteBook()`（`app.js:2353-2366`）已正确清理 chatHistories/chatContexts。现有测试 `tests/frontend/sample-onboarding.test.js:95-108` 不覆盖此场景。
 - why: 「清除示例」的用户期望是「恢复零状态」；残留的聊天历史不仅是静默数据污染，还会在用户导出 state 时带走无书籍锚点的孤儿记录，影响导入恢复体验。
 - how: `clearSampleData()` 补全 chatHistories/chatContexts 清理：遍历所有示例书/摘抄 id（`isSample:true`），逐一执行与 `deleteBook()` 相同的 key 删除逻辑（`delete state.chatHistories[id]`、`delete state.chatHistories["book:"+id]`、`delete state.chatContexts[*]`）。`tests/frontend/sample-onboarding.test.js` 补充断言。Touch: `app.js:clearSampleData`，`tests/frontend/sample-onboarding.test.js`。
@@ -1035,7 +1053,7 @@ Format per item:
 ### OPT-117 — 豆瓣 ID 一键生成阅读偏好画像——新用户 onboarding 的「即时兑现」钩子 — owner 渠道复盘直接提出 [2026-07-16]
 - status: **blocked** — 2026-07-17 调研结论：原方案（服务端代抓）技术上不成立，作为增长钩子的目标（陌生手机用户 30 秒生成画像）无可行路径。降级 P3 搁置，等待新证据再解冻。
 - area: fullstack
-- priority: P3（原 P1，2026-07-17 调研后降级）
+- priority: P3
 - size: L
 - northstar: ~~高~~ → **无法兑现**。原设想：分享物料承诺「扫码生成你的阅读画像」，新用户注册后面对空书架，承诺-兑现落差是转化断点；本项拟用豆瓣数据填平。**但豆瓣侧的墙让这个目标在手机端无解**（见 how 的调研结论）。承诺-兑现落差本身仍是真问题，改由 OPT-118（书架照片一键建库）承接。
 - description: 现状：`tools/douban_export.py` 是本地 CLI（owner 亲测公开书架无 cookie 可抓 110 本，但那是**单人、自家 IP、2.5s 间隔**的特殊条件）；`importDoubanCsv()`（app.js:4374）要求用户自己跑脚本得到 CSV。缺「用户把豆瓣数据交给我们」的可行路径——**注意入库侧已完全就绪**（匹配/回填/新增语义 + 测试齐备），缺的只有数据获取这一段。
@@ -1121,15 +1139,15 @@ Format per item:
 ### OPT-124 — `_run_gc()` 不包含 `model_logs` 等五张观测表；LLM 全文 blob 无限累积，SQLite 文件长期膨胀 — 由 explore E197 提拔 [2026-07-18]
 - status: triaged
 - area: backend
-- priority: P2
+- priority: P3
 - size: S
-- northstar: 中——基础设施可靠性。`model_logs` 是 `/debug/logs`（AI 交互唯一追溯入口）的数据源；表无限增长会拖慢该页面渲染，并在个人服务器上造成不可预期的磁盘压力；S 修复，新增 2 个 GC 函数 + `_run_gc()` 中各 1 行调用，保持服务器长期运行健康。
+- northstar: 无合理直接贡献——只改善长期磁盘卫生与内部 debug 性能，不改变阅读采集或回顾行为；无容量/性能 signal，按 roadmap §5 parked。
 - description: `app_server.py:5986-6004`，`_run_gc()` 每 6 小时调用 `gc_expired_sessions`、`gc_expired_password_reset_tokens`、`gc_old_server_errors`、`gc_old_rate_limit_rows` 四个辅助函数。`model_logs`（`app_server.py:456-468`，含 `prompt/input/output` 三个全文 LLM blob）、`agent_traces`（`app_server.py:470-486`）、`agent_actions`（`app_server.py:488-502`）、`agent_trace_events`（`app_server.py:504-511`）、`agent_metrics`（`app_server.py:513-523`）均无对应 GC 函数，仅在账号注销时整体删除（`app_server.py:5906,5949-5952`）。估算：日均 3-5 次对话 × 约 5-10 KB/行 model_logs ≈ 60-150 MB/年；agent trace 系列额外叠加。
 - why: E11（OPT-010，PR#13）修复了「4 个 GC 函数已定义但未调用」，但 model_logs 等表从未有对应 GC 函数——是该修复遗漏的 N+1 张表。个人常驻服务器典型长尾问题：短期不可见，1-2 年后 DB 文件膨胀数百 MB，影响备份速度与 `/debug/logs` 渲染性能。S 修复：2 个新 GC 函数参照 `gc_old_server_errors`（`app_server.py:2211-2216`）结构实现，保留近 90 天数据足够 debug 追溯。
 - how: `app_server.py:2211-2227` 附近新增两个函数：`gc_old_model_logs(conn, keep_days=90)` → `DELETE FROM model_logs WHERE created_at < ?`；`gc_old_agent_data(conn, keep_days=90)` → 串行执行 `DELETE FROM agent_metrics / agent_trace_events / agent_actions / agent_traces WHERE created_at < ?`（注意外键顺序：先删子表）；在 `_run_gc()`（`app_server.py:5993-5996`）添加两行调用并纳入日志打印。Touch: `app_server.py:2211-2227`（新 GC 函数）、`app_server.py:5993-5999`（`_run_gc` 调用 + 日志）。
 
 ### OPT-125 — `deleteBook()` 确认弹窗仅显示书名，不显示将被删除的记录/摘抄/关联数量；破坏性操作信息透明度缺口 — 由 explore E199 提拔 [2026-07-19]
-- status: triaged
+- status: done (PR #102, merged 2026-08-03；确认弹窗已显示阅读记录、摘抄/笔记与关联数量，并有回归测试)
 - area: frontend
 - priority: P2
 - size: S
@@ -1239,7 +1257,7 @@ Format per item:
 - how: `app_server.py:2617`：将 `[] if book_id else user_state.get("connections", [])[:20]` 替换为条件过滤——book_id 非空时取 `[c for c in conns if c.get("sourceId") == book_id or c.get("targetId") == book_id or any(q.get("bookId") == book_id for q in quotes if q.get("id") in {c.get("sourceId"), c.get("targetId")})][:10]`；book_id 为空时保留 `conns[:20]`。约 5-8 行，可提取辅助函数。Touch: `app_server.py:2617`（existing_connections 构建逻辑）。
 
 ### OPT-136 — 书籍详情对话框无阅读记录概览：Theme 2 回顾缺少书级阅读足迹摘要（每次读到哪页、花了多少时间）— 由 explore E214 提拔 [2026-07-24]
-- status: triaged — P3 parked (2026-08-03 PO 仪式；7/16 signal 是「记录页几乎不用，希望自动推算或砍掉」，并非要求换页展示 session；无新 signal 前不做)
+- status: done (PR #101, merged 2026-08-03；书籍详情已展示最近 5 条记录、次数/分钟汇总与“查看全部”入口)
 - area: frontend
 - priority: P3
 - size: M
@@ -1309,7 +1327,7 @@ Format per item:
 - how: `app.js:5308-5309`（`filteredQuotes` filter 条件）末尾加 `|| (item.tags || []).some(t => t.toLowerCase().includes(lower))`（约 1 行）。可选：同时加 `|| (item.reflection || "").toLowerCase().includes(lower)` 与 `renderQuotes` haystack 对齐。Touch: `app.js:5308-5309`（filteredQuotes filter）。
 
 ### OPT-143 — HTTP `ActionExecutor.link_thought` 无重复关联守卫：与 MCP 路径（OPT-138）形成非对称缺口 — 由 explore E233 提拔 [2026-07-29]
-- status: new
+- status: done (PR #103, merged 2026-08-04；重复同向实体对返回 skipped，connection 不再重复写入，并有后端回归测试)
 - area: backend
 - priority: P2
 - size: S
@@ -1334,9 +1352,9 @@ Format per item:
 - priority: P1
 - size: M
 - northstar: 强——Theme 2「回顾有价值」的检索入口；owner 8/2 真机直接标为 P1，146 本书已有约 50 个标签，但想按主题找书时无法高效发现和选择目标标签。
-- description: `renderTagFilterChips()`（`app.js:1370-1410`）收集全部书籍标签、字母排序后逐个渲染；`#tagFilterStrip`（`index.html:97`）只有一个横向容器，`.tag-filter-strip`（`styles.css:439-452`）设置 `overflow-x:auto` 并隐藏 scrollbar。标签被截断时没有「更多」数量、搜索或展开入口；首屏同时被标签条占用。
+- description: `renderTagFilterChips()`（`app.js:1384-1425`）收集全部书籍标签、字母排序后逐个渲染；`#tagFilterStrip`（`index.html:97`）只有一个横向容器，`.tag-filter-strip`（`styles.css:465-476`）设置 `overflow-x:auto` 并隐藏 scrollbar。标签被截断时没有「更多」数量、搜索或展开入口；首屏同时被标签条占用。
 - why: 2026-08-02 signal：「约 50 个标签横向滚动且隐藏滚动条，截断后缺少可继续横滑提示；建议仅展示常用/最近标签，并增加更多标签弹层或搜索筛选。」这不是视觉偏好，而是已有主题数据无法被取回的直接阻塞。
-- how: 首屏仅渲染有限的常用/最近标签和当前选中项，末尾显示「更多标签（N）」；点击打开可搜索的标签面板，选择后复用 `selectedTagFilter` + `renderBooks()`，确保任一标签可到达、当前项可见、现有「清除全部筛选」继续生效。具体“常用/最近”口径先采用可解释的书籍覆盖数排序；不新增 schema。Touch: `index.html`、`app.js:1370-1410`、`styles.css`，补前端筛选测试。
+- how: 首屏仅渲染有限的常用/最近标签和当前选中项，末尾显示「更多标签（N）」；点击打开可搜索的标签面板，选择后复用 `selectedTagFilter` + `renderBooks()`，确保任一标签可到达、当前项可见、现有「清除全部筛选」继续生效。具体“常用/最近”口径先采用可解释的书籍覆盖数排序；不新增 schema。Touch: `index.html`、`app.js:1384-1425`、`styles.css:465-476`，补前端筛选测试。
 
 ### OPT-146 — 书卡元信息层级过密，封面下同时争抢状态、评分、会话、摘抄、关联、进度和标签 [2026-08-03]
 - status: triaged — P3 parked (先完成 OPT-145 并观察真实浏览 signal；当前只有“信息零碎”的体验判断，没有误读或任务失败证据)
