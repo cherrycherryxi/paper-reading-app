@@ -2,17 +2,18 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-05
+Last triaged: 2026-08-06
 
 ## Next up
 
 **本次不指派实现项。**
 
-**预算状态（2026-08-05）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；近 7 天符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 仍为 **2 个**，上限 **8**，剩余 **6 个**。预算未熔断，但 WIP=1 不等于必须制造工作。
+**预算状态（2026-08-06）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **1 个**（PR #98，`auto/opt-141-tags-in-all-books-summary`），上限 **8**，剩余 **7 个**。PR #97 已滚出七天窗口。预算未熔断，但 WIP=1 不等于必须制造工作。
 
-**状态更新：**
-- OPT-145 → done：PR #106（merge commit `997775706a360041230b26b1372955652177cda3`）已于 2026-08-05 合入；标签条现为「全部 + 高频标签 + 更多标签（N）」并提供可搜索面板、选中态与可访问性支持。
-- OPT-146 → done：PR #107（merge commit `ce56b70e9cde29f0d1ca2563d7544ea9cce7cba2`）已于 2026-08-05 合入；书卡已下沉评分、记录、关联和标签到详情，卡面保留进度/读完日期与摘抄数摘要。
+**本次证据核对：**
+- `feature/agent` 当前头提交为 `d8fa4e6`（2026-08-05 triage）；以 2026-07-28 triage 提交 `318ac0f` 为基线比较，分支领先 68 个提交，近八天产品与知识文件变更已在当前 backlog/triage 中完成对账。
+- 最近 50 个目标 PR 中最新仍为已合入的 PR #107；PR #106/#107 对 OPT-145/OPT-146 的完成证据未变化，没有新的实现 PR 需要回写。
+- `optimization/signals.md` 最新记录仍为 2026-08-03 的北极星数据，没有 OPT-145 真机闭环的新 signal。
 
 **为何不继续指派：** roadmap 的 2026-W32 唯一焦点 OPT-145 已完成，下一步明确是用约 50 个真实标签在 iPhone 12 真机走「发现更多入口 → 搜索标签 → 选中 → 清除」闭环并回收 signal。当前其余未完成项均为 P3 parked 或 blocked；在没有新 signal 前继续挑选会违反“North Star 税”和本周 WIP=1 纪律。OPT-146 虽原为 P3，但已由人工 PR 合入，按真实代码与 PR 证据记为完成，不据此顺延 OPT-147。
 
