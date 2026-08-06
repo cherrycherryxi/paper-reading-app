@@ -4401,3 +4401,40 @@
 | 10:36 | Completed OPT-146 | `app.js`, `index.html`, `styles.css`, `tests/frontend/book-card-hierarchy.test.js` | PR #107 merged to `feature/agent`: book cards now show status + progress/finish date + quote count; rating/tags/records/connections remain reachable in detail; Python 436 + 23 subtests and frontend 475 all green | ~0 |
 | 10:36 | Book-list UI convention | `app.js`, `styles.css` | Tag discovery belongs in the searchable filter dialog; list cards optimize for scanning and keep only one core behavioral metric. Move secondary metadata to book detail instead of deleting it or adding a display-mode setting. | ~0 |
 | 10:37 | Created ../../.claude/paper-loop/today-pick.md | — | ~71 |
+| 10:39 | Session end: 10 writes across 6 files (index.html, app.js, styles.css, book-tag-filter-more.test.js, book-card-hierarchy.test.js) | 0 reads | ~225330 tok |
+| 11:17 | Session end: 10 writes across 6 files (index.html, app.js, styles.css, book-tag-filter-more.test.js, book-card-hierarchy.test.js) | 0 reads | ~225330 tok |
+| 11:24 | Session end: 10 writes across 6 files (index.html, app.js, styles.css, book-tag-filter-more.test.js, book-card-hierarchy.test.js) | 0 reads | ~225330 tok |
+| 11:28 | Session end: 10 writes across 6 files (index.html, app.js, styles.css, book-tag-filter-more.test.js, book-card-hierarchy.test.js) | 0 reads | ~225330 tok |
+| 11:57 | Created .agents/skills/nightly-product-agents/SKILL.md | — | ~1623 |
+| 11:57 | Created .agents/skills/nightly-product-agents/SKILL.md | — | ~1623 |
+| 11:57 | Created .agents/skills/nightly-product-agents/agents/openai.yaml | — | ~69 |
+| 11:57 | Created .agents/skills/nightly-product-agents/agents/openai.yaml | — | ~69 |
+| 11:59 | Created scripts/codex/cloud-setup.sh | — | ~86 |
+| 11:59 | Created docs/codex-cloud-scheduled-migration.md | — | ~562 |
+| 11:59 | Created tests/agent/codex_cloud_scheduled_test.py | — | ~962 |
+| 12:00 | Created docs/codex-project-migration.md | — | ~2124 |
+| 12:11 | Created .agents/skills/nightly-product-agents/SKILL.md | — | ~1623 |
+| 12:14 | Created .agents/skills/nightly-product-agents/SKILL.md | — | ~1632 |
+| 12:15 | Created docs/codex-cloud-scheduled-migration.md | — | ~562 |
+| 12:15 | Created scripts/codex/cloud-setup.sh | — | ~85 |
+| 12:15 | Created tests/agent/codex_cloud_scheduled_test.py | — | ~962 |
+
+## Session: 2026-08-05 12:15
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-05 12:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-05 13:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-05 23:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
