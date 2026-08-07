@@ -358,7 +358,9 @@ globalThis.__testHooks = {
   setSyncState(fn)  { syncState = fn; },
   setRender(fn)     { render = fn; },
   setShowToast(fn)  { showToast = fn; },
+  setApiFetch(fn) { apiFetch = fn; },
   setSwitchChatToQuote(fn) { window.paperReadingApp.switchChatToQuote = fn; },
+  clearChatHistory,
   bindEvents,
   setLastQuoteBookId(v) { lastQuoteBookId = v; },
 };
@@ -672,6 +674,42 @@ test("quote-scoped clear history prompts for current quote and preserves active 
     { type: "quote", bookId: "book-1", quoteId: "quote-1" },
     "clear history should operate on the active quote context"
   );
+});
+
+test("OPT-149: failed history clear keeps the current chat history", async () => {
+  const harness = createChatHarness({
+    paperReadingApp: {
+      clearChatHistory: async () => {
+        throw new Error("网络连接失败");
+      },
+    },
+  });
+  harness.appState.chatHistories["book:book-1"] = [
+    { role: "user", content: "这本书的核心主题是什么？" },
+    { role: "assistant", content: "它持续追问自由与责任。" },
+  ];
+
+  harness.clearBtn.dispatch("click");
+  await harness.getShowConfirmCalls()[0].onConfirm();
+  assert.equal(
+    harness.appState.chatHistories["book:book-1"].length,
+    2,
+    "DELETE 失败时不得清空本地历史，避免刷新后历史复活"
+  );
+});
+
+test("OPT-149: clearChatHistory reports DELETE failure to its caller", async () => {
+  const hooks = createAppHarness();
+  hooks.setState({
+    books: [{ id: "book-1", title: "测试书" }],
+    sessions: [], quotes: [], connections: [],
+    chatHistories: { "book:book-1": [{ role: "user", content: "不要消失" }] },
+    chatContexts: { "book:book-1": { type: "book", bookId: "book-1" } },
+  });
+  hooks.setApiFetch(async () => { throw new Error("网络连接失败"); });
+
+  await assert.rejects(hooks.clearChatHistory(), /网络连接失败/);
+  assert.equal(hooks.getState().chatHistories["book:book-1"].length, 1);
 });
 
 test("quote context can return to whole-book context", () => {
