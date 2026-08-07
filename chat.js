@@ -802,7 +802,13 @@
       message: `清空 ${scope} 的探讨记录？`,
       confirmLabel: "确认清空",
       onConfirm: async () => {
-        await window.paperReadingApp?.clearChatHistory?.();
+        try {
+          await window.paperReadingApp?.clearChatHistory?.();
+        } catch (_) {
+          // clearChatHistory has already shown the request error. Keep the
+          // visible conversation intact so the user can retry from it.
+          return;
+        }
         history = [];
         resetMessages();
       },
