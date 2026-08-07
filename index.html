@@ -295,6 +295,14 @@
         <ul class="me-action-list">
           <li class="me-action">
             <div class="me-action-info">
+              <div class="me-action-title">阅读长期记忆</div>
+              <div class="me-action-desc">只保存你确认过的阅读偏好、观点和目标；它会在相关探讨中作为你的资料被召回。</div>
+              <form id="memoryForm"><input name="id" type="hidden" /><select name="kind"><option value="preference">偏好</option><option value="viewpoint">观点</option><option value="goal">目标</option><option value="todo">待办</option></select><input name="content" maxlength="500" placeholder="例如：我希望先从具体段落讨论" /><button class="button button-ghost button-small" type="submit">确认保存</button></form>
+              <ul id="memoriesList"></ul>
+            </div>
+          </li>
+          <li class="me-action">
+            <div class="me-action-info">
               <div class="me-action-title">退出所有设备</div>
               <div class="me-action-desc">撤销你在所有手机、平板、电脑上的登录会话，下次都需要重新登录。</div>
             </div>

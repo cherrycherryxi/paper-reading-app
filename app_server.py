@@ -755,6 +755,22 @@ def sanitize_state(payload: dict | None) -> dict:
                     custom_quote_tags.append(cleaned)
         custom_quote_tags = custom_quote_tags[:200]
 
+    memories: list[dict] = []
+    for item in payload.get("memories", []) if isinstance(payload.get("memories"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        content = str(item.get("content", "")).strip()
+        if not content:
+            continue
+        context = item.get("sourceContext") if isinstance(item.get("sourceContext"), dict) else {"type": "global"}
+        memories.append({
+            "id": str(item.get("id", "")).strip() or new_id("memory"),
+            "kind": str(item.get("kind", "preference")).strip() or "preference",
+            "content": content[:500], "sourceContext": normalize_chat_context(context),
+            "status": "confirmed", "createdAt": str(item.get("createdAt", "")),
+            "updatedAt": str(item.get("updatedAt", "")),
+        })
+
     return {
         "books": payload.get("books") if isinstance(payload.get("books"), list) else [],
         "sessions": payload.get("sessions") if isinstance(payload.get("sessions"), list) else [],
@@ -763,6 +779,7 @@ def sanitize_state(payload: dict | None) -> dict:
         "chatContexts": migrated_contexts,
         "connections": payload.get("connections") if isinstance(payload.get("connections"), list) else [],
         "customQuoteTags": custom_quote_tags,
+        "memories": memories[:200],
     }
 
 
@@ -2635,6 +2652,13 @@ class PromptBuilder:
             _ctx_conns = [c for c in _all_conns if c.get("sourceId") in _ctx_ids or c.get("targetId") in _ctx_ids][:20]
         else:
             _ctx_conns = _all_conns[:20]
+        context_memories = []
+        for memory in user_state.get("memories", []):
+            if not isinstance(memory, dict) or memory.get("status") != "confirmed":
+                continue
+            memory_context = normalize_chat_context(memory.get("sourceContext"))
+            if memory_context["type"] == "global" or memory_context.get("bookId") == book_id or memory_context.get("quoteId") == quote_id:
+                context_memories.append({"kind": memory.get("kind", "preference"), "content": memory.get("content", ""), "sourceContext": memory_context})
         book_payload = {
             "book": book or {},
             "quotes": quotes,
@@ -2664,6 +2688,7 @@ class PromptBuilder:
                 for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:120]
             ],
             "existing_connections": _ctx_conns,
+            "confirmed_memories": context_memories[:8],
         }
         history_payload = chat_history[-40:]
         system_instruction = self.build_system_instruction(book_id, bool(focused_quote))

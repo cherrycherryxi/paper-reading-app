@@ -14,6 +14,7 @@ const initialState = {
   chatContexts: {},
   connections: [],
   customQuoteTags: [],
+  memories: [],
 };
 
 const statusMap = {
@@ -94,6 +95,8 @@ const els = {
   planSummary: document.querySelector("#planSummary"),
   exportAccountBtn: document.querySelector("#exportAccountBtn"),
   deleteAccountBtn: document.querySelector("#deleteAccountBtn"),
+  memoryForm: document.querySelector("#memoryForm"),
+  memoriesList: document.querySelector("#memoriesList"),
   booksList: document.querySelector("#booksList"),
   timeline: document.querySelector("#timeline"),
   sessionSearch: document.querySelector("#sessionSearch"),
@@ -398,7 +401,30 @@ function normalizeStateShape(rawState) {
     chatHistories: chat.chatHistories,
     chatContexts: chat.chatContexts,
     customQuoteTags: Array.isArray(base.customQuoteTags) ? base.customQuoteTags : [],
+    memories: Array.isArray(base.memories) ? base.memories : [],
   };
+}
+
+function renderMemories() {
+  if (!els.memoriesList) return;
+  const memories = Array.isArray(state.memories) ? state.memories : [];
+  els.memoriesList.innerHTML = memories.length
+    ? memories.map((memory) => `<li data-memory-id="${escapeHtml(memory.id)}"><strong>${escapeHtml(memory.kind)}</strong> ${escapeHtml(memory.content)} <button type="button" class="button button-ghost button-small" data-edit-memory="${escapeHtml(memory.id)}">编辑</button> <button type="button" class="button button-ghost button-small danger-text" data-delete-memory="${escapeHtml(memory.id)}">删除</button></li>`).join("")
+    : "<li class=\"me-action-desc\">还没有长期记忆。只保存你亲自确认的偏好、观点和目标。</li>";
+}
+
+async function saveMemory(formData) {
+  const content = String(formData.get("content") || "").trim();
+  if (!content) return showToast("请写下要确认的阅读记忆");
+  const id = String(formData.get("id") || "");
+  const now = new Date().toISOString();
+  const memory = { id: id || `memory-${Date.now()}-${Math.random().toString(16).slice(2)}`, kind: String(formData.get("kind") || "preference"), content, sourceContext: { type: "global" }, status: "confirmed", createdAt: now, updatedAt: now };
+  state.memories = (state.memories || []).filter((item) => item.id !== id);
+  state.memories.push(memory);
+  await syncState();
+  formData = null;
+  els.memoryForm?.reset();
+  renderMemories();
 }
 
 // iOS suspends a backgrounded tab and drops its sockets, so any in-flight
@@ -6091,6 +6117,27 @@ function bindEvents() {
   });
 
   els.meAvatarBtn?.addEventListener("click", openMeDrawer);
+  els.meAvatarBtn?.addEventListener("click", renderMemories);
+  els.memoryForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    withSavingState(els.memoryForm.querySelector('[type="submit"]'), "保存中…", () => saveMemory(new FormData(els.memoryForm)));
+  });
+  els.memoriesList?.addEventListener("click", async (event) => {
+    const id = event.target.dataset.deleteMemory || event.target.dataset.editMemory;
+    if (!id) return;
+    const memory = (state.memories || []).find((item) => item.id === id);
+    if (event.target.dataset.editMemory && memory) {
+      els.memoryForm.elements.id.value = memory.id;
+      els.memoryForm.elements.kind.value = memory.kind;
+      els.memoryForm.elements.content.value = memory.content;
+      return;
+    }
+    if (event.target.dataset.deleteMemory) {
+      state.memories = (state.memories || []).filter((item) => item.id !== id);
+      await syncState();
+      renderMemories();
+    }
+  });
   els.meDrawerOverlay?.addEventListener("click", closeMeDrawer);
   els.logoutBtn?.addEventListener("click", () => { logout(); closeMeDrawer(); });
   els.logoutAllBtn?.addEventListener("click", () => { closeMeDrawer(); logoutAllDevices(); });
