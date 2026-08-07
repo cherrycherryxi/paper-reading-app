@@ -5376,6 +5376,10 @@ async function clearChatHistory() {
     state.chatContexts[historyKey] = context;
   } catch (error) {
     showToast(error.message);
+    // The chat view must keep rendering its current history when the DELETE
+    // request fails. Re-throw so its caller never turns this into a false
+    // successful clear that reappears after the next refresh.
+    throw error;
   }
 }
 
