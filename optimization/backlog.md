@@ -1405,3 +1405,22 @@ Format per item:
 - description: `buildBookSearchCard()` 在 `app.js:1594-1608` 仅通过 `getProgress(book)` 和 `book.currentPage || 0` 生成进度文案；`getProgress()`（`app.js:948-951`）同样只读 `book.currentPage`。虽然 `buildRenderCache()` 已遍历该书摘抄用于计数，但没有收集页码。因此一本没有 session、`currentPage=0`、却已有多条带 `page` 摘抄的书，书卡仍稳定显示「已读到第 0 页」。
 - why: 这是当前真实数据下的 false-zero，不是未来推演。用户的实际采集习惯是读完一小节后集中录摘抄，而不是维护 session；继续只信 session 写入的 currentPage，会让书卡进度长期与真实阅读痕迹冲突。S 级显示层修复即可，不应反写 state 或伪造阅读记录。
 - how: 在 `buildRenderCache()` 遍历 regular quotes 时同步维护 `maxQuotePageMap`（仅接受有限正数页码）；`buildBookSearchCard()` 取 `displayPage = max(book.currentPage, maxQuotePage)`，进度文案和百分比统一使用 displayPage，百分比按 totalPages 上限截断。只作为书卡显示回退，不修改 `book.currentPage`、status、finishedAt 或 sessions。补前端测试：无 session + 多条页码摘抄取最大页；已有更高 currentPage 不回退；无效页码忽略；有 totalPages 时百分比正确。Touch: `app.js:948-965,1594-1608`、`tests/frontend/`。
+
+### OPT-151 — 数据备份恢复丢弃长期记忆与自定义摘抄标签 — 由 explore E240 提拔 [2026-08-09]
+- status: new
+- area: frontend / data integrity
+- priority: P1
+- size: S
+- northstar: 高——长期记忆与标签都是用户长期积累的回顾资产；导出文件明明包含这些字段，恢复却静默丢弃，会让备份失去可信度并直接违背 2026-07-31 的显式长期记忆 signal。
+- description: `exportData()` 直接序列化完整 `state`（`app.js:4440-4448`），完整账号导出也把完整 state 放在 `.state`；但 `resolveImportedState()` 只重建 books、sessions、quotes、chatHistories、chatContexts、connections（`app.js:4585-4604`），没有传入 `customQuoteTags` 与 `memories`，随后 `normalizeStateShape()` 会把二者默认成空数组（`app.js:392-405`）。因此任一格式的有效备份在导入后都会静默清空这两类数据；`stateContentCount()` 与导入结果摘要也不计它们（`app.js:4607-4615,4621-4637`），用户得不到丢失提示。
+- how: `resolveImportedState()` 显式保留 `source.customQuoteTags` 和 `source.memories`；把二者纳入覆盖缩减保护和导入结果摘要；补轻量/完整导出两种格式的恢复回归测试。Touch: `app.js:4585-4637`、相关 frontend tests。
+
+### OPT-152 — 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文 — 由 explore E241 提拔 [2026-08-09]
+- status: new
+- area: backend / agent context
+- priority: P2
+- size: S
+- northstar: 高——2026-07-31 signal 要求后续对话按需召回稳定偏好、观点、目标与待办；当前截断顺序使第 9 条起的最新确认内容永久失忆，直接破坏该能力的核心承诺。
+- description: 前端新增或编辑记忆时都用 `state.memories.push(memory)` 放到数组末尾（`app.js:416-427`）。PromptBuilder 按原数组顺序遍历所有匹配记忆（`app_server.py:2655-2661`），最后只取 `context_memories[:8]`（`app_server.py:2690-2692`），没有按 `updatedAt`、上下文相关性或新旧排序。因此全局记忆达到 8 条后，后来新增的第 9 条及以后永远不注入 prompt；编辑旧记忆还会把它移动到末尾并使其落出窗口。
+- how: 先按上下文精确度（quote > book > global）和 `updatedAt` 倒序排序后取 8 条；至少保证最近确认/编辑的记忆可召回。补 9+ 条、编辑后重排和 book/quote 相关性测试。Touch: `app_server.py:2655-2692`、相关 agent tests。
+
