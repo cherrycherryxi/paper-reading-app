@@ -945,20 +945,27 @@ function formatBookTitle(title) {
   return escapeHtml(bare);
 }
 
-function getProgress(book) {
+function getProgress(book, currentPage = book.currentPage || 0) {
   if (!book.totalPages) return null;
-  return Math.max(0, Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100)));
+  return Math.max(0, Math.min(100, Math.round((currentPage / book.totalPages) * 100)));
 }
 
 function buildRenderCache() {
   const quoteCountMap = new Map();
   const firstQuoteImageMap = new Map();
+  const maxQuotePageMap = new Map();
 
   for (const q of state.quotes) {
-    if (isRegularQuote(q)) quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+    if (isRegularQuote(q)) {
+      quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+      const page = Number(q.page);
+      if (Number.isFinite(page) && page > 0) {
+        maxQuotePageMap.set(q.bookId, Math.max(maxQuotePageMap.get(q.bookId) || 0, page));
+      }
+    }
     if (q.imageUrl && !firstQuoteImageMap.has(q.bookId)) firstQuoteImageMap.set(q.bookId, q.imageUrl);
   }
-  return { quoteCountMap, firstQuoteImageMap };
+  return { quoteCountMap, firstQuoteImageMap, maxQuotePageMap };
 }
 
 function getBookSessions(bookId) {
@@ -1592,7 +1599,13 @@ function toggleCardMenu(menuBtn) {
 }
 
 function buildBookSearchCard(book, cache) {
-  const progress = getProgress(book);
+  const maxQuotePage = cache ? (cache.maxQuotePageMap.get(book.id) || 0) : state.quotes.reduce((maxPage, item) => {
+    if (item.bookId !== book.id || !isRegularQuote(item)) return maxPage;
+    const page = Number(item.page);
+    return Number.isFinite(page) && page > 0 ? Math.max(maxPage, page) : maxPage;
+  }, 0);
+  const displayPage = Math.max(Number(book.currentPage) || 0, maxQuotePage);
+  const progress = getProgress(book, displayPage);
   const qCount = cache ? (cache.quoteCountMap.get(book.id) || 0) : getQuoteCount(book.id);
   const fallbackImg = cache ? (cache.firstQuoteImageMap.get(book.id) || "") : (state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
   const rawCover = book.coverImageUrl || fallbackImg || DEFAULT_BOOK_COVER_URL;
@@ -1604,8 +1617,8 @@ function buildBookSearchCard(book, cache) {
     book.status === "finished" && book.finishedAt
       ? `${formatDate(book.finishedAt)} 读完`
       : progress === null
-        ? `已读到第 ${book.currentPage || 0} 页`
-        : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
+        ? `已读到第 ${displayPage} 页`
+        : `${progress}% · ${displayPage}/${book.totalPages} 页`;
 
   const card = document.createElement("article");
   card.className = "book-grid-card";
