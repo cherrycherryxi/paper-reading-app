@@ -12,6 +12,14 @@ import app_server  # noqa: E402
 
 
 class CustomQuoteTagsSanitizeTests(unittest.TestCase):
+    def test_opt148_keeps_confirmed_reading_memories(self):
+        out = app_server.sanitize_state({"memories": [
+            {"id": "m1", "kind": "preference", "content": "  从具体段落开始讨论  ", "sourceContext": {"type": "global"}},
+            {"id": "m2", "content": "   "},
+        ]})
+        self.assertEqual(len(out["memories"]), 1)
+        self.assertEqual(out["memories"][0]["content"], "从具体段落开始讨论")
+        self.assertEqual(out["memories"][0]["status"], "confirmed")
     def test_preserves_custom_quote_tags(self):
         out = app_server.sanitize_state({"customQuoteTags": ["金句", "转折", "隐喻"]})
         self.assertEqual(out["customQuoteTags"], ["金句", "转折", "隐喻"])
