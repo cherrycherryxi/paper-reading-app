@@ -1397,7 +1397,7 @@ Format per item:
 - how: 让 `clearChatHistory()` 在 catch 后重新抛出，或返回明确 boolean；`chat.js` 仅在成功时重置 history/messages，失败时保留当前消息。补前端回归测试：DELETE reject 时消息不消失；成功时才清空。Touch: `app.js:5357-5380`、`chat.js:801-814`、`tests/frontend/`。
 
 ### OPT-150 — 无手动阅读记录时书卡进度忽略摘抄页码，已有阅读痕迹仍显示「已读到 0 页」 [2026-08-08]
-- status: triaged — 2026-08-08 Next up
+- status: in-progress (draft PR #111 open, 2026-08-09 triage 已核对实现范围；未合并前不得标 done)
 - area: frontend
 - priority: P1
 - size: S

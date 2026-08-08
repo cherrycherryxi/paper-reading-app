@@ -2,21 +2,21 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-08
+Last triaged: 2026-08-09
 
 ## Next up
 
-**Next up：OPT-150 — 无手动阅读记录时，书卡以该书有效摘抄的最大页码作为进度显示回退。**
+**本次不新增指派。OPT-150 已由 draft PR #111 实现中，继续作为唯一 WIP。**
 
-**预算状态（2026-08-08）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **2 个**（PR #109、#110，head 均以 `auto/` 开头），上限 **8**，剩余 **6 个**。预算未熔断，且两个 PR 均已合入，没有未完成 nightly WIP。
+**预算状态（2026-08-09）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **3 个**（PR #109、#110、#111，head 均以 `auto/` 开头），上限 **8**，剩余 **5 个**。预算未熔断，但 PR #111 尚未合入，WIP=1。
 
 **本次证据核对：**
-- 已检查 `origin/feature/agent` 过去八天提交；当前头为 `798d7af`（2026-08-08 signal）。自上次 triage 后分支新增 12 个提交，涉及 Explore、OPT-148/149 实现、发布记录与新 signal。
-- OPT-149 → done：PR #109（merge commit `cb8de664dc1e764cf51c1a8f637fa6568bc4bdc2`）已于 2026-08-07 合入；DELETE 失败时聊天历史不再被本地清空。
-- OPT-148 → done：PR #110（merge commit `f58b01bb6f8ddbad986561b9d1f85aee699f1258`）已于 2026-08-08 合入；当前代码已有 confirmed memories 的持久化、管理 UI 与上下文注入。
-- 2026-08-08 新 signal 明确指出：没有手动 session、但已有带页码摘抄的书仍显示「已读到 0 页」。当前 `app.js:1594-1608` 确认进度文案只读 `book.currentPage || 0`，缺口真实存在。
+- 已检查 `origin/feature/agent` 过去八天提交；当前头为 `44b8b57`。上次 triage 后新增的三个提交只修正 Codex Cloud checkout 与 nightly skill 契约，没有把 OPT-150 的应用代码合入基线。
+- OPT-150 → in-progress：draft PR #111（head `auto/codex-150-20260808`，`Run-Date: 2026-08-08`）仍为 open、未合并；其 diff 已覆盖有效摘抄最大页码回退、已有更高 `currentPage`、无效页码和百分比封顶测试，范围符合实现边界。
+- PR #111 的 Python 全套曾因两条 nightly skill 文案契约测试失败而保持 draft；`feature/agent` 随后已加入相关 CI/skill 修复，需由现有 PR 在最新基线上复核，不在 triage 阶段另开实现项。
+- `optimization/signals.md` 最新仍为 2026-08-08 的 false-zero 记录；没有新的用户 signal 支持提拔其余 P3 parked 或 blocked 项。
 
-**为何选择 OPT-150：** 它同时得到 2026-08-08 的直接 false-zero signal 与 2026-07-16「从摘抄推算阅读足迹」方向支持；只需在现有 render cache 增加每书最大有效摘抄页码，并用于书卡显示，不反写 state、不伪造 session，属于单 PR 可完成的 S 项。它比其余 P3 parked 项有更强的真实任务失败证据，也比继续扩展功能面更符合 North Star 税与 WIP=1。
+**为何不新增指派：** OPT-150 已有符合边界的 open implementation PR，按 WIP=1 应先完成现有工作；其余未完成项仍缺少新的真实任务失败证据，继续提拔会违反 North Star 税。
 
 **实现边界：** 仅修正书卡进度显示回退；忽略非有限数或非正数页码，已有更高 `currentPage` 时不得降低，带 `totalPages` 时百分比需按上限截断。不得修改 `book.currentPage`、status、finishedAt、sessions 或其他 state。
 
@@ -24,7 +24,7 @@ Last triaged: 2026-08-08
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | **P1** | S | **triaged** | **Next up**；8/8 直接 signal + 7/16 推算阅读足迹方向；仅做显示回退，不反写 state |
+| OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | **P1** | S | **in-progress** | draft PR #111 open；等待基于最新 `feature/agent` 复核并完成，期间不新增 WIP |
 | OPT-148 | 面向用户的显式阅读长期记忆 | P1 | M | **done** | ✅ PR #110 / `f58b01b` 已合入 [2026-08-08]；confirmed memories 可管理并按上下文注入 |
 | OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
 | OPT-145 | 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 | P1 | M | **done** | ✅ PR #106 / `9977757` 已合入 [2026-08-05]；更多标签可搜索面板与筛选闭环已实现 |
