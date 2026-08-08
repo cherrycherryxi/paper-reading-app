@@ -2,27 +2,31 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-06
+Last triaged: 2026-08-08
 
 ## Next up
 
-**本次不指派实现项。**
+**Next up：OPT-150 — 无手动阅读记录时，书卡以该书有效摘抄的最大页码作为进度显示回退。**
 
-**预算状态（2026-08-06）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **1 个**（PR #98，`auto/opt-141-tags-in-all-books-summary`），上限 **8**，剩余 **7 个**。PR #97 已滚出七天窗口。预算未熔断，但 WIP=1 不等于必须制造工作。
+**预算状态（2026-08-08）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **2 个**（PR #109、#110，head 均以 `auto/` 开头），上限 **8**，剩余 **6 个**。预算未熔断，且两个 PR 均已合入，没有未完成 nightly WIP。
 
 **本次证据核对：**
-- `feature/agent` 当前头提交为 `d8fa4e6`（2026-08-05 triage）；以 2026-07-28 triage 提交 `318ac0f` 为基线比较，分支领先 68 个提交，近八天产品与知识文件变更已在当前 backlog/triage 中完成对账。
-- 最近 50 个目标 PR 中最新仍为已合入的 PR #107；PR #106/#107 对 OPT-145/OPT-146 的完成证据未变化，没有新的实现 PR 需要回写。
-- `optimization/signals.md` 最新记录仍为 2026-08-03 的北极星数据，没有 OPT-145 真机闭环的新 signal。
+- 已检查 `origin/feature/agent` 过去八天提交；当前头为 `798d7af`（2026-08-08 signal）。自上次 triage 后分支新增 12 个提交，涉及 Explore、OPT-148/149 实现、发布记录与新 signal。
+- OPT-149 → done：PR #109（merge commit `cb8de664dc1e764cf51c1a8f637fa6568bc4bdc2`）已于 2026-08-07 合入；DELETE 失败时聊天历史不再被本地清空。
+- OPT-148 → done：PR #110（merge commit `f58b01bb6f8ddbad986561b9d1f85aee699f1258`）已于 2026-08-08 合入；当前代码已有 confirmed memories 的持久化、管理 UI 与上下文注入。
+- 2026-08-08 新 signal 明确指出：没有手动 session、但已有带页码摘抄的书仍显示「已读到 0 页」。当前 `app.js:1594-1608` 确认进度文案只读 `book.currentPage || 0`，缺口真实存在。
 
-**为何不继续指派：** roadmap 的 2026-W32 唯一焦点 OPT-145 已完成，下一步明确是用约 50 个真实标签在 iPhone 12 真机走「发现更多入口 → 搜索标签 → 选中 → 清除」闭环并回收 signal。当前其余未完成项均为 P3 parked 或 blocked；在没有新 signal 前继续挑选会违反“North Star 税”和本周 WIP=1 纪律。OPT-146 虽原为 P3，但已由人工 PR 合入，按真实代码与 PR 证据记为完成，不据此顺延 OPT-147。
+**为何选择 OPT-150：** 它同时得到 2026-08-08 的直接 false-zero signal 与 2026-07-16「从摘抄推算阅读足迹」方向支持；只需在现有 render cache 增加每书最大有效摘抄页码，并用于书卡显示，不反写 state、不伪造 session，属于单 PR 可完成的 S 项。它比其余 P3 parked 项有更强的真实任务失败证据，也比继续扩展功能面更符合 North Star 税与 WIP=1。
 
-**下一次可指派条件：** 新增真机 signal，或周一仪式更新 roadmap 后，再从有明确用户任务失败证据、能在单 PR 内完成的条目中选择至多一个。
+**实现边界：** 仅修正书卡进度显示回退；忽略非有限数或非正数页码，已有更高 `currentPage` 时不得降低，带 `totalPages` 时百分比需按上限截断。不得修改 `book.currentPage`、status、finishedAt、sessions 或其他 state。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | **P1** | S | **triaged** | **Next up**；8/8 直接 signal + 7/16 推算阅读足迹方向；仅做显示回退，不反写 state |
+| OPT-148 | 面向用户的显式阅读长期记忆 | P1 | M | **done** | ✅ PR #110 / `f58b01b` 已合入 [2026-08-08]；confirmed memories 可管理并按上下文注入 |
+| OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
 | OPT-145 | 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 | P1 | M | **done** | ✅ PR #106 / `9977757` 已合入 [2026-08-05]；更多标签可搜索面板与筛选闭环已实现 |
 | OPT-146 | 书卡状态/评分/计数/进度/标签信息层级过密 | P3 | M | **done** | ✅ PR #107 / `ce56b70` 已合入 [2026-08-05]；默认精简、详情保留完整信息 |
 | OPT-142 | 关联弹窗 filteredQuotes() 不搜摘抄 tags：按标签找目标摘抄失败 | P3 | S | triaged | parked：场景频率低，无直接 signal |
@@ -43,7 +47,7 @@ Last triaged: 2026-08-06
 
 ## Recently reconciled done
 
-OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
+OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
 
 ## Legend
 

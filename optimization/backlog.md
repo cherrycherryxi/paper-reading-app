@@ -1377,7 +1377,7 @@ Format per item:
 - how: parked；先补真机基线（首屏可交互时间、长列表滚动掉帧），达到明确阈值后再在「加载更多」与虚拟列表中选最小方案。
 
 ### OPT-148 — 面向用户的显式阅读长期记忆：可确认、查看、编辑、删除并按需召回 [2026-08-06]
-- status: new
+- status: done (PR #110, merged 2026-08-08 — 已确认记忆可查看/编辑/删除，memories 经 sanitize 持久化并按上下文注入 prompt)
 - area: agent
 - priority: P1
 - size: M
@@ -1387,7 +1387,7 @@ Format per item:
 - how: 先做可控 MVP：state 新增 `memories[]`（id、kind、content、sourceContext、status、createdAt、updatedAt）；只允许用户确认后写入，不做静默自动保存；提供记忆列表的查看/编辑/删除 UI；PromptBuilder 先按全局稳定偏好 + 当前 book/quote 相关性选择少量记忆注入，并显式标注为用户数据。补 sanitize、导入导出、删除与 prompt 单测。Touch: `app_server.py:206-213,712-770,2623-2681`、`app.js:6-14,389-402`、`index.html`、相关 agent/frontend tests。
 
 ### OPT-149 — 清空探讨请求失败时仍清空本地界面，刷新后历史“复活” [2026-08-06]
-- status: new
+- status: done (PR #109, merged 2026-08-07 — DELETE 失败会向上传播，聊天界面仅在成功后清空，并有前端回归测试)
 - area: frontend
 - priority: P2
 - size: S
@@ -1395,3 +1395,13 @@ Format per item:
 - description: `clearChatHistory()` 捕获 DELETE `/api/chat-history` 错误后只 `showToast`，不重新抛出也不返回失败状态（`app.js:5357-5380`）；调用方无条件执行 `history = []` 与 `resetMessages()`（`chat.js:801-814`）。因此网络/服务端失败时 UI 看似已清空，服务端历史仍在，重新进入或刷新后再次出现。
 - why: 这是可复现的 false-success，而非纯代码卫生。它还与 app 其他写操作的失败语义不一致：失败应保留原数据和界面，允许用户重试。
 - how: 让 `clearChatHistory()` 在 catch 后重新抛出，或返回明确 boolean；`chat.js` 仅在成功时重置 history/messages，失败时保留当前消息。补前端回归测试：DELETE reject 时消息不消失；成功时才清空。Touch: `app.js:5357-5380`、`chat.js:801-814`、`tests/frontend/`。
+
+### OPT-150 — 无手动阅读记录时书卡进度忽略摘抄页码，已有阅读痕迹仍显示「已读到 0 页」 [2026-08-08]
+- status: triaged — 2026-08-08 Next up
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——2026-08-08 owner 真机直接报告任务失败，且与 2026-07-16「很少新增阅读记录，希望从带页码摘抄推算阅读足迹」的明确方向一致；让高频摘抄数据回流为可信进度，直接服务 Theme 2「回顾有价值」。
+- description: `buildBookSearchCard()` 在 `app.js:1594-1608` 仅通过 `getProgress(book)` 和 `book.currentPage || 0` 生成进度文案；`getProgress()`（`app.js:948-951`）同样只读 `book.currentPage`。虽然 `buildRenderCache()` 已遍历该书摘抄用于计数，但没有收集页码。因此一本没有 session、`currentPage=0`、却已有多条带 `page` 摘抄的书，书卡仍稳定显示「已读到第 0 页」。
+- why: 这是当前真实数据下的 false-zero，不是未来推演。用户的实际采集习惯是读完一小节后集中录摘抄，而不是维护 session；继续只信 session 写入的 currentPage，会让书卡进度长期与真实阅读痕迹冲突。S 级显示层修复即可，不应反写 state 或伪造阅读记录。
+- how: 在 `buildRenderCache()` 遍历 regular quotes 时同步维护 `maxQuotePageMap`（仅接受有限正数页码）；`buildBookSearchCard()` 取 `displayPage = max(book.currentPage, maxQuotePage)`，进度文案和百分比统一使用 displayPage，百分比按 totalPages 上限截断。只作为书卡显示回退，不修改 `book.currentPage`、status、finishedAt 或 sessions。补前端测试：无 session + 多条页码摘抄取最大页；已有更高 currentPage 不回退；无效页码忽略；有 totalPages 时百分比正确。Touch: `app.js:948-965,1594-1608`、`tests/frontend/`。
