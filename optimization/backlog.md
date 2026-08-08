@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 65811)
+Total output lines: 1407
+
 # Optimization Backlog
 
 Raw optimization ideas. Append new ideas at the bottom as a new `### OPT-NNN` block.
@@ -683,131 +686,7 @@ Format per item:
 - how: ① 在 `sanitize_state()`（`app_server.py:633-667`）的返回 dict 中增加 `customQuoteTags` 字段（默认值 `[]`）；② `saveCustomQuoteTags()`（`app.js:483-484`）改为双写：先 `localStorage.setItem(...)` 保持 UI 即时响应，再将 `state.customQuoteTags` 更新并调用 `syncState()` 持久化到服务端；③ `getCustomQuoteTags()`（`app.js:480-481`）改为优先读 `state.customQuoteTags`（若存在且非空），回退 localStorage（迁移过渡期）；④ 更新 `tests/agent/state_sanitization_test.py` 中的 schema 快照测试（如有）。Touch: `app.js:480-484`；`app_server.py:633-667`（`sanitize_state`）。
 
 ### OPT-079 — 摘抄卡 ⋯ 菜单增加「建立关联」直达入口 — 由 explore E129 提拔 [2026-06-29]
-- status: done (2026-07-07, 合入 feature/agent 提交 8ea4793；dev 已上线；原 PR #56 因误设 base=main 已关闭，代码经 feature/agent 落地，待发版到 prod)
-- area: frontend
-- northstar: 中——Theme 2「回顾有价值」；从摘抄卡直接触发关联消除 2 步固定摩擦，降低建立关联的放弃率；signal 2026-06-29 佐证
-- priority: P2
-- size: S
-- description: `app.js:1528-1531` — 摘抄卡 ⋯ 右键菜单仅含「去聊」「编辑」「删除」三项，无「建立关联」。当前唯一触发路径：点卡 → 打开详情弹窗 → 点「建立关联」按钮（3 步）。⋯ 菜单加「建立关联」选项可减为 1 步；`quoteMenuHandler` 已有分发机制，加 `case "connect"` 无结构改动。
-- why: 「建立关联」是 app 差异化功能；owner 2026-06-29 signal 明确指出从摘抄触发关联有摩擦（来源未自动填入）；减少触发步骤 + OPT-080 修复目标可辨识度，合并 PR 可系统性解决该摩擦点。
-- how: ① `app.js:1528-1531` 菜单模板加 `<li><button type="button" data-quote-menu="connect">建立关联</button></li>`；② `quoteMenuHandler`（`app.js:~1535`）加 `case "connect"` 分支，调用 `openConnectionDialog({ sourceType: "quote", sourceId: quote.id })`。同 PR 可顺带修复 E131（`app.js:3914` 目标类型默认值）和 E132（`app.js:3820` slice 30 → 50），形成「建立关联」体验修复包。Touch: `app.js:1528-1535`。
-
-### OPT-080 — 关联对话框目标摘抄标签截断至 32 字 + CSS 双重省略导致同书摘抄无法辨识 — 由 explore E130 提拔 [2026-06-29]
-- status: done (2026-07-07, 合入 feature/agent 提交 8ea4793，两行封顶 -webkit-line-clamp；dev 已上线；原 PR #56 已关闭，代码经 feature/agent 落地，待发版到 prod)
-- area: frontend
-- northstar: 中——Theme 2「建立关联」核心路径；目标摘抄可辨识度直接决定关联建立质量；signal 2026-06-29 明确佐证「目标显示不完整、看不清内容、找不到想关联的那一条」
-- priority: P2
-- size: S
-- description: `quoteLabel()`（`app.js:3812-3817`）将摘抄内容截断至 32 字，且 `<li>` 样式（`app.js:3849`）设 `white-space:nowrap;text-overflow:ellipsis`，双重截断。同一本书有多段摘抄时，候选列表每条标签仅剩「书名 · 前32字…」，内容高度重叠，无法准确定位目标摘抄。
-- why: 关联目标无法辨识直接导致关联功能可用性降为零；这是 Theme 2 最高密度痛点；最小改动代价（一行 slice 值）即可显著改善；与 OPT-079 合并为单一 PR 成本最低。
-- how: ① `app.js:3815` 将 `slice(0, 32)` 改为 `slice(0, 60)`（下拉候选列表 60 字仍可单行或允许折行）；② 可选：`app.js:3849` 的 `<li>` 样式改为双行布局（书名一行、内容一行，去掉 `nowrap`），彻底解决截断问题；③ 建议同一 PR 合并 OPT-079 + OPT-080 + E131（目标类型默认值 `app.js:3914`）+ E132（slice 30 → 50），将「建立关联」体验作为整体修复包。Touch: `app.js:3815`；可选 `app.js:3849`。
-
-### OPT-081 — Organize/Candidates 批量采集功能全链路失活：前端完整实现但 HTML Dialog 不存在、无调用者、后端无 `/api/organize/parse` 端点 — 由 explore E133 提拔 [2026-06-30]
-- status: triaged
-- area: frontend, backend
-- priority: P3
-- park 理由: 零 signal 佐证（自 6/30 提拔以来 signals.md 无任何相关摩擦记录）；Theme 1「采集顺滑」已收尾，真机录入摩擦项已清空（PR #59/#60）；用 M 复杂度（前端 dialog + 后端新端点）去激活一条从没人要过的「文字粘贴批量采集」路径，对北极星无贡献（roadmap §5 北极星税）。代码保留不删，若未来出现「手里有一段电子书文字想批量入库」的真实 signal 再解冻。
-- size: M
-- northstar: 无合理当前贡献——Theme 1 已收尾，且从无“批量粘贴文字采集”的真实 signal；潜在价值不足以激活一条全链路失活的 M 级路径，按 roadmap §5 parked。
-- description: `app.js:114-127` 共 11 个 `els.*` 引用（`els.organizeDialog`/`els.candidatesDialog` 等）全部指向**不存在于 `index.html` 的 DOM 元素**，运行时返回 `null`。`index.html` 全文无 `id="organizeDialog"` 或 `id="candidatesDialog"` 定义。`openOrganizeDialog()`（`app.js:2808`）在整个代码库无任何调用者。前端 `submitOrganizePaste()` 调用 `/api/organize/parse`（`app.js:2862`），但 `app_server.py` 无此端点。功能实现代码约 150 行（`app.js:2808-2914`：`openOrganizeDialog`、`switchOrganizeTab`、`handleOrganizeImageSelect`、`submitOrganizePaste`、`openCandidatesDialog`、`approveCandidateItem`、`ignoreCandidateItem`），三层均失活。
-- why: 这是一笔已完成的前端投资：用户可粘贴书中文字或读书笔记，AI 识别并拆分为多条摘抄候选，用户逐条审批保存——整个 UX 流程已在 JS 中实现，只差激活。与逐图 OCR 互补，覆盖电子文字场景。激活代价（补 HTML + 后端端点 + 一个触发按钮）远低于重写，且产出价值对 Theme 1 是正向的。
-- how: ① `index.html`：补写 `<dialog id="organizeDialog">` 粘贴/拍照双 Tab 界面（`organizeRawText` textarea + `organizeSubmitBtn`）和 `<dialog id="candidatesDialog">` 候选审批列表；② `app.js`：在 `openBookDetailDialog()` 的 `dialog-actions` 区域或 OCR 入口旁增加「整理文字摘抄」按钮，点击调用 `openOrganizeDialog(bookId)`；③ `app_server.py`：新增 `POST /api/organize/parse`，接收 `{bookId, rawText}`，调用 `PromptBuilder` + `call_deepseek()` + `ActionExecutor` 链路，返回 `{candidates: [{id, type, confidence, data:{content,tags}}]}`。
-
-### OPT-082 — `renderTimeline()` 阅读统计摘要（sessionStats）仅在搜索时显示，默认视图无累计阅读数据 — 由 explore E134 提拔 [2026-06-30]
-- status: done (与 OPT-053 完全重复；OPT-053 PR #74 2026-07-18 已实现 sessionStats 常显；backlog 2026-07-23 补标)
-- area: frontend
-- priority: P2
-- size: S
-- northstar: 中——roadmap §2 将「本周使用天数」列为北极星代理指标；「记录」Tab 默认视图展示全量聚合摘要（总次数 / 总分钟 / 估算总页数）让积累可感知，符合北极星「不假思索的默认工具」体感（app 主动告知阅读量，不靠用户手算）。
-- description: `renderTimeline()`（`app.js:1418-1428`）的 `sessionStats` 控制块：`if (searchRaw && sessions.length)` 守卫使聚合数据仅在用户主动搜索时显示；无搜索的默认视图（最近 10 条）永远 `is-hidden`。用户有 30 条 session 时，「记录」Tab 默认不显示「共 30 次 · 累计 1 800 分钟 · 约 2 500 页」——owner 无法一眼感知阅读量积累。
-- why: 聚合摘要（总次数 / 总分钟）是「阅读量可感知」的最低成本实现；roadmap §2 指定了三个需每周记录的代理指标，其中「本周使用天数」依赖 session 记录——默认视图展示聚合数据可帮助 owner 在不搜索的情况下自然验证指标；S 复杂度，单处条件改动。
-- how: `app.js:1419` 将 `if (searchRaw && sessions.length)` 改为 `if (allSorted.length)`（含搜索词时展示匹配计，无搜索时展示全量统计）；对应 `textContent` 区分两种文案：有搜索时保持「N 次记录 · 共 T 分钟 · 约 P 页」；无搜索时改为「共 N 次 · 累计 T 分钟 · 约 P 页」（含 10 条截断时在 OPT-076 修复后可进一步完善）。Touch: `app.js:1418-1428`。
-
-### OPT-083 — `renderQuotes()` 搜索 haystack 不含 `ocrText`：AI-OCR 直存摘抄完全不可搜 — 由 explore E136 提拔 [2026-07-01]
-- status: done (PR #60, merged 2026-07-10)
-- area: frontend
-- priority: P1
-- size: S
-- northstar: 强——Theme 2「回顾有价值」的前提是摘抄可被搜到；快速 OCR 未编辑直接保存的摘抄（content=""，ocrText=识别全文）在「摘抄」Tab 搜索中完全不可见，OCR 路径积累越多回顾越失准；S 复杂度单行热修，性价比极高。
-- description: `renderQuotes()`（`app.js:1495-1503`）haystack 数组包含 `item.content || ""`（`app.js:1498`），但**不含 `item.ocrText`**。同函数第 1519 行显示逻辑使用 `quote.content || quote.ocrText`——两者不一致。快速 OCR 识别成功后若用户未手动编辑即保存，数据结构为 `{content: "", ocrText: "<识别全文>"}` ；这类摘抄可显示但搜索完全命中不了。`matchQuotes()`（`app.js:1143`）同样只校验 `quote.content || ""`，影响 Chat 摘抄上下文召回。
-- why: 快速 OCR 是最高频的「采集顺滑」输出路径，用户积累的 OCR 摘抄越多，「摘抄」Tab 搜索越失准；存进去找不回来是对北极星「不假思索的默认工具」的直接否定。
-- how: ① `app.js:1498`：将 `item.content || ""` 改为 `item.content || item.ocrText || ""`（或在 haystack 数组追加 `item.ocrText || ""`）；② `app.js:1143`：将 `fuzzyMatch(quote.content || "", query)` 改为 `fuzzyMatch(quote.content || quote.ocrText || "", query)`。两处改动，无副作用，建议同 PR。Touch: `app.js:1498`、`app.js:1143`。
-
-### OPT-084 — `openNewSessionForBook()` 从不预填 `startPage`，每次录入需手动输入已知起始页 — 由 explore E137 提拔 [2026-07-01]
-- status: done (PR #59, merged 2026-07-07 — openNewSessionForBook startPage value 改为 book.currentPage+1 预填)
-- area: frontend
-- priority: P2
-- size: S
-- northstar: 中——Theme 1「采集顺滑」每日触点；session 录入是 roadmap W27 焦点路径（OPT-059/058/061/066 同路径），startPage 预填减少每次录入 1–2 次交互，积少成多；S 复杂度，建议与同路径修复包搭车。
-- description: `openNewSessionForBook()`（`app.js:2436`）每次打开对话框时将 `startPage` 强制清空（`value = ""`）。`addSession()`（`app.js:2221-2225`）每次提交都更新 `book.currentPage = Math.max(book.currentPage || 0, endPage)`——该值等于该书所有 session 中最大的 endPage。对顺序阅读用户，下次 session 的 startPage = book.currentPage + 1，值已知但每次须手动输入。
-- why: 「记阅读 session」是 owner 最活跃的录入路径（6/26 signal 佐证，W27 焦点）；startPage 手动输入是已知可消除的重复摩擦；预填值以「建议值」呈现（用户仍可改），不存在强制覆盖风险。同时修复 E138（deleteSession 不回写 book.currentPage）可确保预填基准正确。
-- how: `app.js:2436`：将 `value = ""` 改为 `value = (book && book.currentPage > 0 ? book.currentPage + 1 : "")`；需在该行前确保 `book = state.books.find(b => b.id === bookId)`（openNewSessionForBook 入参已有 bookId）。建议同 PR 修复 E138（deleteSession 回写逻辑），消除数据不对称。Touch: `app.js:2430-2441`；参照 `app.js:2221-2232`（addSession currentPage 维护逻辑）。
-
-### OPT-085 — 书封面上传未压缩（单张可达 4.6MB），拖慢移动端书单加载 — owner 2026-07-02 手机亲测
-- status: done (2026-07-06 — 方案 A：前端压缩早已实现，本次只做历史存量清理)
-- done note (2026-07-06，实测核对后重定范围): **原描述「封面上传未压缩」已过时。** 三条封面上传路径（新建 `bookImageInput` app.js:4559 / 编辑 `bookEditImageInput` app.js:4545 / 更换 `changeBookCover` app.js:3068）自 `2026-05-14`（`resizeImageToDataUrl`）起**已全部压缩到 1200px/q0.85**，backlog「推荐方案①前端 canvas 限宽」即已上线代码。磁盘实测证实：>1MB 大图 12 张（合计 36MB）**mtime 全在 4月–5月13日**（压缩上线前），压缩后仅 2 张 >1MB 且是摘抄 OCR 图（`QUOTE_IMAGE_MAX_PX=1800/q0.92` 为识别质量保高分辨率，非封面）。「书单巨卡」本已被缩略图(opt2 `.thumb.jpg` ~30KB)+懒加载遮蔽。**真正剩余工作=一次性历史清理**：`scripts/generate_thumbnails.py --recompress-originals`（就地重压 >1.2MB 老图到 1600px/q0.80，保持文件名/格式→URL 不变，压前备份到 `uploads-recompress-backup-<date>/`，仅更小才替换）。2026-07-06 dev 已执行：12 张 36MB→4.6MB（省 31.4MB），缩略图已重生成，备份完好。回归测试 `tests/agent/recompress_originals_test.py`（6 例：目标选择/阈值/dry-run 无副作用/flag 解析）。**prod 侧同样的历史大图需在 prod checkout 各跑一次**（`paper-reading-app-prod/uploads`）。
-- area: frontend (+ backend 可选)
-- priority: P2
-- size: M
-- northstar: 强——owner 2026-07-02 在手机上打开 read.readjot.com 亲测「封面不显示 + 刷新巨卡」（owner 直接体验 signal，最高级别）。首屏加载慢直接否定北极星「不假思索的默认工具」——工具卡到不想打开就不会成为默认。
-- description: 上传封面时原图直接存 uploads/，无限宽/重编码。33 张封面原图共 28.1MB（单张最大 4.6MB）。移动端首次加载要从家用 Mac 上行带宽吐几十 MB → 封面像没显示又巨卡。opt2 缩略图（书单显示）已缓解，但原图仍超大：详情页、以及新上传的封面仍是全分辨率。
-- why: 加书/换封面是高频「采集」触点；不做源头压缩，用户每传一张巨图就给自己和（未来）访客留一份几 MB 负担，缩略图只是遮羞，治标不治本。
-- how: ①（推荐）前端上传前用 canvas 限宽（如最长边 ≤1600px）+ 重编码 JPEG q≈0.8，再走现有上传链路；或 ② 后端落盘时用 sips/Pillow 压缩（注意 app_server.py 目前纯 stdlib，加 Pillow 是依赖决策）。这是移动端性能三步走的第 3 步：opt1 懒加载 + opt2 缩略图（app.js + scripts/generate_thumbnails.py）已实现，本项防新封面再出 4.6MB 巨图。Touch: 上传入口 `uploadBookCoverImage()` / `uploadBookImageIfNeeded()`（app.js ~2146/2630）。
-
-### OPT-086 — 前端静态资源 no-store，每次刷新重下 ~330KB JS/CSS/HTML — owner 2026-07-02 手机亲测
-- status: done (commit 239e6e9, 2026-07-02 — `_STATIC` 响应头改 `max-age=31536000,immutable`；index.html 中 app.js/chat.js/styles.css 引用加自动版本串；owner 直接合入 feature/agent，不计 auto/ 预算)
-- area: backend (+ frontend 版本串)
-- priority: P2
-- size: M
-- northstar: 强——同 OPT-085 出处（owner 手机亲测「刷新非常卡」）。移动端每次刷新白等几秒重下前端，直接损伤「随手打开就能用」的默认工具体验。
-- description: app_server.py 的 do_GET `_STATIC` 给 index.html/app.js/chat.js/styles.css 统一设 `Cache-Control: no-store, no-cache, must-revalidate`（约 app_server.py:3421），为「永远拿最新前端」。代价：移动端每次刷新都重下 app.js(172KB)+styles.css(77KB)+index.html(42KB)+chat.js(39KB) ≈ 330KB，走隧道额外几秒。
-- why: 无构建流程的项目为省心用 no-store，但移动端 + 隧道放大了代价；封面图已用 immutable 缓存受益，静态 JS/CSS 反而每刷必重下，是当前刷新耗时的固定大头之一。
-- how: 静态资源版本化长缓存——JS/CSS 引用加内容哈希或版本串（项目已有 `?v=20260531a` 雏形），响应头由 no-store 改为 `Cache-Control: public, max-age=31536000, immutable`，发版时改版本串即让缓存失效。需建立「发版必改版本串」的纪律，否则会推不出新前端。Touch: app_server.py `_STATIC` 响应头（~3416-3425）+ index.html 里对 app.js/chat.js/styles.css 的引用加版本串。
-
-### OPT-087 — 摘抄/书/思想碰撞「一键生成分享图」(内容卡自传播增长引擎)
-- status: done (2026-07-06 — 三版式全部落地，代码已合入 feature/agent)
-- progress (2026-07-06): 采用**方案 A（前端纯 Canvas 原生绘制，零依赖，契合项目「无构建/不引重库」约定）**。三版式照 `~/Downloads/又买了一本书-分享物料/` 复刻，共用 header/footer/divider/pill/tags 绘制助手（`drawShareHeader`/`drawShareFooter`/`drawShareDivider`/`drawSharePill`/`layoutShareTags`/`newShareCanvas`/`loadShareAssets`），全部动态高度：
-  - **摘抄卡** `renderQuoteShareCard`：装饰引号+衬线正文+《出处》+批注；slogan「买书容易，读完才算。/扫码，记录你自己的阅读」。入口:摘抄 ⋯ 菜单 + 摘抄详情弹窗。
-  - **思想碰撞卡** `renderConnectionShareCard`：kind 胶囊(◎ 思想碰撞·{kind})+顶部装饰圆+双书纵向堆叠(↓)+thought+标签；slogan「发现你书架上的暗线/扫码，让 AI 帮你连起来」。入口:关联卡 action 分享按钮。
-  - **书卡** `renderBookShareCard`：真实封面裁圆(左)+书名/作者/状态胶囊(✓读完·N页·M天读完)/标签(右)+左绿边「我的读后」卡；slogan「买书容易，读完才算。/扫码，管理你自己的书架」。入口:书卡 ⋯ 菜单 + 书详情弹窗。
-  统一收尾 `openShareCardDialog()`→`shareCardDialog` 预览(长按存图/下载)。三版式均经 **headless Chrome 真渲染验收**。
-  **owner 反馈迭代(2026-07-06)**:① 长文本会撑成巨图 → 加 `truncateForShare()`(摘抄≤240/thought≤220/书简介≤150 字，超出加省略号)，分享图恒为海报尺寸；② 书卡原用参照图的「我的读后」标签，但本应用 `book.notes` 官方语义是「内容简介/备注」(index.html:360)——先纠正为「内容简介」；③ owner 要「有读后感优先展示读后感」→ **新增 book.review 字段**(纯前端，`sanitize_state` 对 books 透传、零后端改动)：书编辑表单加「读后感」textarea、`openBookEditDialog`/`saveBookEdit` 存取、书卡与书详情**优先展示 review(标签「我的读后」)、无则回落 notes(标签「内容简介」)**。
-  测试 `tests/frontend/share-card.test.js` **9 例**(三渲染器内容入画+折行+dialog/下载+空内容拒绝+三入口接线+read-priority+截断)。Touch: `app.js`、`index.html`(shareCardDialog+详情弹窗按钮+book.review 输入)、`styles.css`(.share-card-preview+.book-detail-review)。**剩余**:真机视觉 QC；分享埋点(北极星获客可观测)；(可选)新增书表单/OCR 加书也支持 review。
-- area: frontend
-- priority: P2（owner 主动为读书会推广提出，获客侧价值高，可争 P1）
-- size: L（三版式均已实现；剩 QC/埋点收尾）
-- northstar: 强——owner 2026-07-02 为线下读书会推广主动提出。内容卡自带二维码，用户每次分享摘抄/书籍关联都在替产品拉新，直击北极星「成为默认阅读工具」的获客侧。flomo / 微信读书同款自传播逻辑。
-- description: 在每张摘抄卡 / 书卡 / 思想碰撞(关联)卡上加「生成分享图」按钮，一键渲染成带品牌 + 二维码的竖版海报，可保存 / 发朋友圈。三种版式：摘抄卡=留白衬线；关联卡=深色「发现感」；书卡=封面+评分+读后感金句。
-- why: 分享「一句摘抄 / 一个书籍关联」比分享落地页更抓人——转发者替产品传播，扫码者被内容勾入，转化质量远高于硬广。每个用户都是获客节点，是可持续自传播。2026-07-02 已手工做出成品（assets/brand + Chrome 渲染）验证视觉与吸引力，本项是把它产品化进 App。
-- how: 前端出图两条路：① html2canvas / dom-to-image 把现有卡片 DOM 截图（注意跨域封面图、中文字体嵌入）；② 后端复用「HTML 模板 + 无头浏览器渲染」出图（app_server 目前纯 stdlib，引入无头浏览器是重依赖决策）。二维码内嵌静态 SVG 指向 read.readjot.com。可参考手工模板：quote-card / connection-card / wechat-poster HTML；品牌资源在 assets/brand/。Touch: 摘抄/书/关联卡 UI(app.js) + 新出图模块。
-
-### OPT-088 — renderConnections 搜索 haystack 缺少摘抄内容
-- status: done (PR #60, merged 2026-07-10)
-- area: frontend
-- priority: P1
-- size: S
-- northstar: 中——关联搜索是 Theme 2「回顾有价值」的核心交互；当前按摘抄内容搜索关联结果为零，功能形同虚设。S 级修复直接打通「找到相关联想法」的使用闭环。
-- description: `app.js:847-860` 的 `getBookTitle(type, id)` 在 type==="quote" 时只返回书名，不含 quote.content / ocrText。haystack = `[书名, 书名, thought]`，摘抄文字无法命中搜索。用户积累了「摘抄 ↔ 摘抄」关联后，按摘抄关键词找不到连线，Theme 2 回顾场景直接受损。
-- why: 关联的主体（尤其摘抄-摘抄型）其搜索词自然是摘抄内容本身；书名仅覆盖「按书找关联」场景，排除了「按想法找关联」的高频需求。6/29 signal 已记录「建立关联」摩擦，修复 haystack 是将已建立的关联用起来的前提。
-- how: 将 `getBookTitle` 重命名为 `getSearchLabel`，quote 分支追加 `(q?.content || q?.ocrText || "").slice(0, 60)` 拼入返回串；haystack 构造不变。约 3 行修改，纯前端，无后端影响。Touch: `app.js:847-860`。
-
-### OPT-089 — clearSampleData 不清理 chatHistories / chatContexts
-- status: triaged
-- area: frontend
-- priority: P3
-- size: S
-- northstar: 无合理直接贡献——只清理示例数据路径的孤儿 state key；Theme B0 已休眠、没有清除示例失败的真实 signal，按 roadmap §5 parked。
-- description: `app.js:1729-1744`：`clearSampleData()` 只过滤 `SAMPLE_COLLECTIONS = ["books","quotes","connections","sessions"]`，不清理 `state.chatHistories` / `state.chatContexts`。若用户对示例书发起过对话，「一键清除」后孤儿聊天历史随 syncState 写回后端。对比 `deleteBook()`（`app.js:2353-2366`）已正确清理 chatHistories/chatContexts。现有测试 `tests/frontend/sample-onboarding.test.js:95-108` 不覆盖此场景。
-- why: 「清除示例」的用户期望是「恢复零状态」；残留的聊天历史不仅是静默数据污染，还会在用户导出 state 时带走无书籍锚点的孤儿记录，影响导入恢复体验。
-- how: `clearSampleData()` 补全 chatHistories/chatContexts 清理：遍历所有示例书/摘抄 id（`isSample:true`），逐一执行与 `deleteBook()` 相同的 key 删除逻辑（`delete state.chatHistories[id]`、`delete state.chatHistories["book:"+id]`、`delete state.chatContexts[*]`）。`tests/frontend/sample-onboarding.test.js` 补充断言。Touch: `app.js:clearSampleData`，`tests/frontend/sample-onboarding.test.js`。
-
-### OPT-090 — `editSession()` 日期预填用 `toISOString()` 而非已有的 `isoToDateInput()` 辅助，编辑路径存在与 OPT-059 对称的时区 bug — 由 explore E145 提拔 [2026-07-03]
-- status: done (PR #59, merged 2026-07-07 — editSession 日期预填改用 isoToDateInput())
-- area: frontend
-- priority: P1
-- size: S
-- northstar: 中——直接在 W27 唯一焦点「记阅读 session」路径上消除日期预填时区错误，与 OPT-059（新建路径）构成完整对，Theme 1「数据准确」验收要求两个入口均正确。
-- description: `app.js:2412`：`editSession()` 使用 `new Date(session.date).toISOString().split("T")[0]` 预填日期字段，在 UTC+8 深夜（00:00–07:59 本地）创建、date 字段未手动选择的 session 场景下，`toISOString()` 返回 UTC 前一天日期，编辑时日期字段显示错一天。`isoToDateInput()`（`app.js:477-484`）已是本地时区感知辅助函数，且已被书籍编辑表单（`app.js:2647-2648`）正确调用，但 `editSession()` 未使用它。
+- status:…5811 tokens truncated…:2412`：`editSession()` 使用 `new Date(session.date).toISOString().split("T")[0]` 预填日期字段，在 UTC+8 深夜（00:00–07:59 本地）创建、date 字段未手动选择的 session 场景下，`toISOString()` 返回 UTC 前一天日期，编辑时日期字段显示错一天。`isoToDateInput()`（`app.js:477-484`）已是本地时区感知辅助函数，且已被书籍编辑表单（`app.js:2647-2648`）正确调用，但 `editSession()` 未使用它。
 - why: OPT-059 修复新建路径（已指派 PR #54），但编辑路径存在相同 bug。两个入口共同构成「记阅读 session」的完整录入链路；若只修新建不修编辑，owner 在 00:00–08:00 记录的 session 虽新建时日期正确，但打开编辑时仍见到昨天的日期，Theme 1 验收缺口未完全填上。
 - how: `app.js:2412` 将 `new Date(session.date).toISOString().split("T")[0]` 改为 `isoToDateInput(session.date)`；1 行修改，复用已有辅助。Touch: `app.js:2412`（editSession）。
 
@@ -1377,7 +1256,7 @@ Format per item:
 - how: parked；先补真机基线（首屏可交互时间、长列表滚动掉帧），达到明确阈值后再在「加载更多」与虚拟列表中选最小方案。
 
 ### OPT-148 — 面向用户的显式阅读长期记忆：可确认、查看、编辑、删除并按需召回 [2026-08-06]
-- status: new
+- status: done (PR #110, merged 2026-08-08 — 已确认记忆可查看/编辑/删除，memories 经 sanitize 持久化并按上下文注入 prompt)
 - area: agent
 - priority: P1
 - size: M
@@ -1387,7 +1266,7 @@ Format per item:
 - how: 先做可控 MVP：state 新增 `memories[]`（id、kind、content、sourceContext、status、createdAt、updatedAt）；只允许用户确认后写入，不做静默自动保存；提供记忆列表的查看/编辑/删除 UI；PromptBuilder 先按全局稳定偏好 + 当前 book/quote 相关性选择少量记忆注入，并显式标注为用户数据。补 sanitize、导入导出、删除与 prompt 单测。Touch: `app_server.py:206-213,712-770,2623-2681`、`app.js:6-14,389-402`、`index.html`、相关 agent/frontend tests。
 
 ### OPT-149 — 清空探讨请求失败时仍清空本地界面，刷新后历史“复活” [2026-08-06]
-- status: new
+- status: done (PR #109, merged 2026-08-07 — DELETE 失败会向上传播，聊天界面仅在成功后清空，并有前端回归测试)
 - area: frontend
 - priority: P2
 - size: S
@@ -1395,3 +1274,13 @@ Format per item:
 - description: `clearChatHistory()` 捕获 DELETE `/api/chat-history` 错误后只 `showToast`，不重新抛出也不返回失败状态（`app.js:5357-5380`）；调用方无条件执行 `history = []` 与 `resetMessages()`（`chat.js:801-814`）。因此网络/服务端失败时 UI 看似已清空，服务端历史仍在，重新进入或刷新后再次出现。
 - why: 这是可复现的 false-success，而非纯代码卫生。它还与 app 其他写操作的失败语义不一致：失败应保留原数据和界面，允许用户重试。
 - how: 让 `clearChatHistory()` 在 catch 后重新抛出，或返回明确 boolean；`chat.js` 仅在成功时重置 history/messages，失败时保留当前消息。补前端回归测试：DELETE reject 时消息不消失；成功时才清空。Touch: `app.js:5357-5380`、`chat.js:801-814`、`tests/frontend/`。
+
+### OPT-150 — 无手动阅读记录时书卡进度忽略摘抄页码，已有阅读痕迹仍显示「已读到 0 页」 [2026-08-08]
+- status: triaged — 2026-08-08 Next up
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——2026-08-08 owner 真机直接报告任务失败，且与 2026-07-16「很少新增阅读记录，希望从带页码摘抄推算阅读足迹」的明确方向一致；让高频摘抄数据回流为可信进度，直接服务 Theme 2「回顾有价值」。
+- description: `buildBookSearchCard()` 在 `app.js:1594-1608` 仅通过 `getProgress(book)` 和 `book.currentPage || 0` 生成进度文案；`getProgress()`（`app.js:948-951`）同样只读 `book.currentPage`。虽然 `buildRenderCache()` 已遍历该书摘抄用于计数，但没有收集页码。因此一本没有 session、`currentPage=0`、却已有多条带 `page` 摘抄的书，书卡仍稳定显示「已读到第 0 页」。
+- why: 这是当前真实数据下的 false-zero，不是未来推演。用户的实际采集习惯是读完一小节后集中录摘抄，而不是维护 session；继续只信 session 写入的 currentPage，会让书卡进度长期与真实阅读痕迹冲突。S 级显示层修复即可，不应反写 state 或伪造阅读记录。
+- how: 在 `buildRenderCache()` 遍历 regular quotes 时同步维护 `maxQuotePageMap`（仅接受有限正数页码）；`buildBookSearchCard()` 取 `displayPage = max(book.currentPage, maxQuotePage)`，进度文案和百分比统一使用 displayPage，百分比按 totalPages 上限截断。只作为书卡显示回退，不修改 `book.currentPage`、status、finishedAt 或 sessions。补前端测试：无 session + 多条页码摘抄取最大页；已有更高 currentPage 不回退；无效页码忽略；有 totalPages 时百分比正确。Touch: `app.js:948-965,1594-1608`、`tests/frontend/`。
