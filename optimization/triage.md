@@ -6,7 +6,7 @@ Last triaged: 2026-08-08
 
 ## Next up
 
-**Next up：OPT-150 — 无手动阅读记录时，书卡以该书有效摘抄的最大页码作为进度显示回退。**
+**Next up：OPT-150 — 无手动阅读记录时，书卡以该书有效摘抄的最大页码作为进度显示回退。（in-progress — Codex cloud PR pending）**
 
 **预算状态（2026-08-08）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **2 个**（PR #109、#110，head 均以 `auto/` 开头），上限 **8**，剩余 **6 个**。预算未熔断，且两个 PR 均已合入，没有未完成 nightly WIP。
 
@@ -24,7 +24,7 @@ Last triaged: 2026-08-08
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | **P1** | S | **triaged** | **Next up**；8/8 直接 signal + 7/16 推算阅读足迹方向；仅做显示回退，不反写 state |
+| OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | **P1** | S | **in-progress — Codex cloud PR pending** | **Next up**；8/8 直接 signal + 7/16 推算阅读足迹方向；仅做显示回退，不反写 state |
 | OPT-148 | 面向用户的显式阅读长期记忆 | P1 | M | **done** | ✅ PR #110 / `f58b01b` 已合入 [2026-08-08]；confirmed memories 可管理并按上下文注入 |
 | OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
 | OPT-145 | 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 | P1 | M | **done** | ✅ PR #106 / `9977757` 已合入 [2026-08-05]；更多标签可搜索面板与筛选闭环已实现 |
