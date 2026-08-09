@@ -1443,3 +1443,22 @@ Format per item:
 - description: `index.html:606` 的 `#ocrLineSelector` 位于 quote dialog 内；其组件样式（`styles.css:1869-1954`）没有 `touch-action`，页面 viewport 也保留浏览器默认缩放语义。移动端在核对卡片时快速双击会被解释为 double-tap zoom，导致视口放大并丢失当前阅读位置。
 - why: 这是 2026-08-09 owner 真机直接反馈，不是推测。不能用 `user-scalable=no` 或 `maximum-scale=1` 全局禁用缩放，那会伤害可访问性；应只约束出现问题的交互区域并保留 pinch zoom。
 - how: 在 `#quoteDialog` 或更窄的 `.ocr-line-selector` 核对区域应用 `touch-action: manipulation`，禁用 double-tap zoom 同时保留平移与双指缩放；避免对全站 viewport 做不可缩放设置。补 CSS 约束测试，并在 iPhone 12 真机验证单击编辑、滚动、双击不放大、双指缩放仍可用。Touch: `styles.css:1869-1954`、相关 frontend CSS test。
+
+### OPT-155 — Agent 标签确认卡将未转义标签写入 innerHTML，可被模型输出触发 DOM 注入 — 由 explore E244 提拔 [2026-08-10]
+- status: new
+- area: frontend / security
+- priority: P2
+- size: S
+- northstar: 中——Agent 建议确认卡位于高频探讨路径；用户输入会影响模型生成的标签，未转义内容进入 DOM 会破坏界面可信度，恶意标签还可执行同源页面脚本。
+- description: `_showNextAgentAction()` 用模板字符串赋给 `container.innerHTML`（`chat.js:955-971`），其中插入 `renderActionText(action)`。该函数对 add_note、add_book、question、link_thought 均调用 `escapeHtml()`，唯独 tag 分支直接返回 `(d.tags || []).join("、")`（`chat.js:1034-1043`）。后端 `ActionValidator` 只做 schema 检查并原样保留 data（`app_server.py:2984-3021`），随后把模型 action 持久化并回传（`app_server.py:5600-5610`）；因此包含 HTML 的标签会在用户点确认前就被解析为 DOM。
+- how: tag 分支逐项执行 `escapeHtml(String(tag))` 后再 join；补恶意标签（`<img onerror=...>`、引号、ampersand）只显示纯文本且不生成元素的前端测试。长期可将确认卡改为 DOM API + `textContent`，减少分支遗漏。Touch: `chat.js:955-971,1034-1043`、相关 frontend tests。
+
+### OPT-156 — 忽略 Agent 建议失败时仍移除确认卡并显示“已忽略” — 由 explore E245 提拔 [2026-08-10]
+- status: new
+- area: frontend / error handling
+- priority: P2
+- size: S
+- northstar: 中——用户对 Agent 写操作的确认/拒绝必须可信；拒绝失败却继续展示成功，会让服务端保留的待处理 action 与界面认知分叉。
+- description: `cancelBtn.onclick` 调用 `POST /api/agent-actions/{id}/reject`（`chat.js:1008-1016`），catch 只写 console（`chat.js:1017-1019`）；无论请求是否成功，随后都执行 `container.remove()`、追加“已忽略”并展示下一项（`chat.js:1020-1022`）。网络、鉴权或服务端失败时 action 仍处于原状态，但当前页面永久丢失该确认卡，形成与已修清空聊天 false-success（OPT-149）同类的数据控制语义错误。
+- how: reject 失败时保留卡片、恢复两个按钮与 `handled=false`，把忽略按钮改为“重试忽略”并 toast 错误；只有服务端确认成功后才移除卡片和推进队列。补成功/失败两条前端测试。Touch: `chat.js:1008-1022`、相关 frontend tests。
+
