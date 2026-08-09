@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-08T05:55:24.941Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-08T08:15:09.221Z
 > Files: 270 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -111,7 +111,7 @@
 
 ## .agents/skills/nightly-product-agents/
 
-- `SKILL.md` — Nightly Product Agents (~1530 tok)
+- `SKILL.md` — Nightly Product Agents (~1814 tok)
 
 ## .agents/skills/nightly-product-agents/agents/
 
