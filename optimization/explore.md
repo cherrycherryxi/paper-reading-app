@@ -4410,3 +4410,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 
 > 本次 run 新发现 4 条：E240（备份恢复丢失 memories/customQuoteTags，S，数据完整性）、E241（8 条截断让最新记忆永久不进 prompt，S，召回正确性）、E242（confirmed_memories 缺系统规则，S，Agent 可控性）、E243（记忆写失败留下幽灵本地变更，S-M，错误处理）。提拔 OPT-151 与 OPT-152；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
 
+## 2026-08-10
+
+> 扫描焦点：Agent action 确认卡的渲染安全与拒绝失败语义，以及最新 OCR 行核对组件的文本正确性和可访问性。基于最新 `feature/agent` 核对 backlog、triage、roadmap、signals、当前源码与 open PR。已排除：PR #112 / OPT-151（备份恢复）、OPT-152（记忆截断）、OPT-153（OCR 删除撤销）、OPT-154（双击缩放）及 E242/E243 的既有记忆边界，本次不重复登记。
+
+### E244 — tag action 的标签未转义即进入确认卡 innerHTML，可触发 DOM 注入 (S)
+
+**What (verified):** `_showNextAgentAction()` 将包含 `renderActionText(action)` 的模板赋给 `container.innerHTML`（`chat.js:955-971`）。`renderActionText()` 对 add_note、add_book、question 和 link_thought 都调用 `escapeHtml()`，但 tag 分支直接返回 `(d.tags || []).join("、")`（`chat.js:1034-1043`）。后端 `ActionValidator` 在 schema 校验后原样保留 data（`app_server.py:2984-3021`），模型生成的 action 随后被持久化并回传（`app_server.py:5600-5610`），没有 HTML 编码步骤。
+
+**Why it matters:** 用户输入可影响模型建议的标签；若标签包含 `<img onerror=...>` 等 HTML，它会在“确认执行”卡片出现时立即被浏览器解析，甚至无需用户批准 action。相邻 action 类型均已转义，说明 tag 是单一漏网分支，不是既定信任边界。
+
+**Complexity:** S。tag 分支对每个标签调用 `escapeHtml(String(tag))` 后 join；补恶意标签只显示文本、不创建 DOM 元素的回归测试。更彻底的后续方案是使用 DOM API 和 `textContent` 构造确认卡。
+
+**Files:** `chat.js:955-971,1034-1043`；`app_server.py:2984-3021,5600-5610`；相关 frontend tests。
+
+**northstar:** 中——保护 Agent 探讨入口的完整性和用户信任。→ promoted to OPT-155
+
+---
+
+### E245 — reject action 请求失败被吞掉，UI 仍声称“已忽略”并推进下一项 (S)
+
+**What (verified):** 忽略按钮先调用 `POST /api/agent-actions/{id}/reject`（`chat.js:1008-1016`），catch 只输出 console（`chat.js:1017-1019`）。之后无条件执行 `container.remove()`、插入“⏭ 已忽略”系统消息并调用 `_showNextAgentAction(remaining)`（`chat.js:1020-1022`）。
+
+**Why it matters:** 网络、鉴权或服务端异常时，服务端 action 仍未被拒绝，但页面永久移除唯一的处理入口并展示成功文案；用户无法在当前会话重试，也不知道服务端仍保留待处理状态。这与 OPT-149 已修复的“清空失败仍清空 UI”属于同类 false-success，但作用于独立的 Agent action 状态机，历史条目未覆盖。
+
+**Complexity:** S。失败时恢复按钮、`handled=false`、显示重试文案并停止队列；只有 reject 成功才移除卡片和显示下一项。补成功/失败回归测试。
+
+**Files:** `chat.js:1008-1022`；相关 frontend tests。
+
+**northstar:** 中——保证用户拒绝 Agent 写操作的控制权真实生效。→ promoted to OPT-156
+
+---
+
+### E246 — OCR 行回写使用无分隔拼接，拉丁文字跨物理行时会把相邻单词粘连 (S)
+
+**What (verified):** `renderOcrLineSelector()` 对每个物理行先执行 `rawLine.trim()`（`app.js:2689-2703`），去掉行尾空格；`rebuildQuoteContentFromOcrPanel()` 再用 `parts.join("")` 合并同段各行（`app.js:2664-2678`）。中文排版通常可以直接拼接，但英文文本如 `"This is"` 与 `"a book"` 会变成 `"This isa book"`；用户只要编辑或删除任一行触发重建，就会把原本可读的 OCR 文本写坏。
+
+**Why it matters:** 当前应用以中文阅读为主，但书名、原文和 OCR 内容并不保证全是中文。无条件空串拼接把“去除 OCR 物理换行”的合理目标扩大成“删除所有词间边界”；这是文本正确性问题，不应依赖用户逐处补空格。
+
+**Complexity:** S。合并相邻行时按边界字符决定是否补空格：中文/标点相接保持空串，两个拉丁字母或数字边界之间插入一个空格；补中英文混排、标点、跨页分段测试。
+
+**Files:** `app.js:2664-2678,2689-2703`；相关 OCR frontend tests。
+
+**northstar:** 弱中——保护 OCR 原文准确性，但暂无真实英文 OCR 失败 signal，先留探索池。
+
+---
+
+### E247 — OCR 删除按钮的 accessible name 全部相同，读屏用户无法判断将删除哪一行 (S)
+
+**What (verified):** 行输入框使用“第 N 行内容”的编号标签，但每个相邻删除按钮都固定为 `aria-label="删除此行"`（`app.js:2711-2717`）。多行面板可一次生成数十个完全同名按钮；按钮自身只有视觉字符“✕”，accessible name 不包含行号或内容预览。
+
+**Why it matters:** 屏幕阅读器的按钮列表会重复播报“删除此行”，用户无法区分目标，只能在 textarea 与按钮间反复导航并记忆位置。当前 roadmap 对无直接 a11y signal 的方向统一 parked，因此只记录，不提拔。
+
+**Complexity:** S。生成按钮时使用 `aria-label="删除第 N 行：<短预览>"`，预览需安全截断；删除后若保留编号语义，应同步更新剩余按钮标签。补 accessible-name 测试。
+
+**Files:** `app.js:2711-2717,2730-2738`；相关 frontend a11y tests。
+
+**northstar:** 弱——无当前辅助技术使用 signal，保留为 accessibility health。
+
+---
+
+> 本次 run 新发现 4 条：E244（Agent tag 确认卡 DOM 注入，S，渲染安全）、E245（忽略 action false-success，S，错误处理）、E246（英文 OCR 行拼接丢空格，S，文本正确性）、E247（OCR 删除按钮无法被读屏区分，S，无障碍）。提拔 OPT-155 与 OPT-156；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
+
