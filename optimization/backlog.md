@@ -1397,7 +1397,7 @@ Format per item:
 - how: 让 `clearChatHistory()` 在 catch 后重新抛出，或返回明确 boolean；`chat.js` 仅在成功时重置 history/messages，失败时保留当前消息。补前端回归测试：DELETE reject 时消息不消失；成功时才清空。Touch: `app.js:5357-5380`、`chat.js:801-814`、`tests/frontend/`。
 
 ### OPT-150 — 无手动阅读记录时书卡进度忽略摘抄页码，已有阅读痕迹仍显示「已读到 0 页」 [2026-08-08]
-- status: in-progress (draft PR #111 open, 2026-08-09 triage 已核对实现范围；未合并前不得标 done)
+- status: done (PR #111, merged 2026-08-09 — 书卡以最大有效摘抄页码作为显示回退，已有更高 currentPage 不降低，百分比封顶并有回归测试)
 - area: frontend
 - priority: P1
 - size: S
@@ -1407,7 +1407,7 @@ Format per item:
 - how: 在 `buildRenderCache()` 遍历 regular quotes 时同步维护 `maxQuotePageMap`（仅接受有限正数页码）；`buildBookSearchCard()` 取 `displayPage = max(book.currentPage, maxQuotePage)`，进度文案和百分比统一使用 displayPage，百分比按 totalPages 上限截断。只作为书卡显示回退，不修改 `book.currentPage`、status、finishedAt 或 sessions。补前端测试：无 session + 多条页码摘抄取最大页；已有更高 currentPage 不回退；无效页码忽略；有 totalPages 时百分比正确。Touch: `app.js:948-965,1594-1608`、`tests/frontend/`。
 
 ### OPT-151 — 数据备份恢复丢弃长期记忆与自定义摘抄标签 — 由 explore E240 提拔 [2026-08-09]
-- status: new
+- status: in-progress (PR #112 open, 2026-08-10 triage 已核对范围与全量测试结果)
 - area: frontend / data integrity
 - priority: P1
 - size: S
@@ -1416,7 +1416,7 @@ Format per item:
 - how: `resolveImportedState()` 显式保留 `source.customQuoteTags` 和 `source.memories`；把二者纳入覆盖缩减保护和导入结果摘要；补轻量/完整导出两种格式的恢复回归测试。Touch: `app.js:4585-4637`、相关 frontend tests。
 
 ### OPT-152 — 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文 — 由 explore E241 提拔 [2026-08-09]
-- status: new
+- status: triaged
 - area: backend / agent context
 - priority: P2
 - size: S
@@ -1424,3 +1424,22 @@ Format per item:
 - description: 前端新增或编辑记忆时都用 `state.memories.push(memory)` 放到数组末尾（`app.js:416-427`）。PromptBuilder 按原数组顺序遍历所有匹配记忆（`app_server.py:2655-2661`），最后只取 `context_memories[:8]`（`app_server.py:2690-2692`），没有按 `updatedAt`、上下文相关性或新旧排序。因此全局记忆达到 8 条后，后来新增的第 9 条及以后永远不注入 prompt；编辑旧记忆还会把它移动到末尾并使其落出窗口。
 - how: 先按上下文精确度（quote > book > global）和 `updatedAt` 倒序排序后取 8 条；至少保证最近确认/编辑的记忆可召回。补 9+ 条、编辑后重排和 book/quote 相关性测试。Touch: `app_server.py:2655-2692`、相关 agent tests。
 
+### OPT-153 — 快速识别误删一行后无法撤销，只能重新发起 OCR [2026-08-09]
+- status: triaged
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——owner 在真实快速识别核对流程中直接误触；一次点错就丢失已识别内容并迫使用户重新识别，直接破坏 Theme 1「采集顺滑」和对结果可控性的信任。
+- description: `renderOcrLineSelector()` 的删除处理（`app.js:2731-2744`）命中 `.ocr-line-selector__del` 后立即执行 `row.remove()` 并重建正文；被删行的文本、section 与原顺序均未保存在任何可恢复状态中。当前提示只写「可继续编辑或删除」，没有撤销入口。
+- why: 这是 2026-08-09 owner 直接反馈的可复现任务失败。OCR 行核对本就要求连续点删，44px 删除按钮虽降低误触概率，却无法消除误操作；识别结果仍在确认阶段，不应在一次点击后不可逆丢弃。
+- how: 将删行改为对原 DOM 行做可恢复的软删除：保留 textarea 值、section 与顺序，标记 deleted 后从 `rebuildQuoteContentFromOcrPanel()` 排除，并在原位置显示「已删除 · 撤销」；点撤销恢复该行及正文。只有最终保存卡片时才真正丢弃隐藏行。补删除后正文排除、撤销恢复原顺序/分段、连续删除及全部删除后仍可撤销的前端测试。Touch: `app.js:2665-2744`、`styles.css:1869-1954`、`tests/frontend/ocr-line-selector.test.js`。
+
+### OPT-154 — 快速识别卡片核对时双击触发浏览器页面放大 [2026-08-09]
+- status: triaged
+- area: frontend / mobile UX
+- priority: P2
+- size: S
+- northstar: 中——owner 直接反馈，发生在高频的识别结果核对路径；意外缩放会改变视口并打断逐行检查，但不造成数据丢失，优先级低于 OPT-153。
+- description: `index.html:606` 的 `#ocrLineSelector` 位于 quote dialog 内；其组件样式（`styles.css:1869-1954`）没有 `touch-action`，页面 viewport 也保留浏览器默认缩放语义。移动端在核对卡片时快速双击会被解释为 double-tap zoom，导致视口放大并丢失当前阅读位置。
+- why: 这是 2026-08-09 owner 真机直接反馈，不是推测。不能用 `user-scalable=no` 或 `maximum-scale=1` 全局禁用缩放，那会伤害可访问性；应只约束出现问题的交互区域并保留 pinch zoom。
+- how: 在 `#quoteDialog` 或更窄的 `.ocr-line-selector` 核对区域应用 `touch-action: manipulation`，禁用 double-tap zoom 同时保留平移与双指缩放；避免对全站 viewport 做不可缩放设置。补 CSS 约束测试，并在 iPhone 12 真机验证单击编辑、滚动、双击不放大、双指缩放仍可用。Touch: `styles.css:1869-1954`、相关 frontend CSS test。
