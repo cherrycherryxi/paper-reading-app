@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:41:32.857Z
 > Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -236,7 +236,7 @@
 ## scripts/codex/
 
 - `cloud-setup.sh` — Codex Cloud environment setup for paper-reading-app. (~85 tok)
-- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~408 tok)
+- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~692 tok)
 - `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1219 tok)
 - `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~1654 tok)
 - `nightly-triage.sh` — 每日 01:00：在隔离 worktree 中执行夜间 Agent1（Triage）。 (~1406 tok)

@@ -6,10 +6,15 @@ ROOT="$(git rev-parse --show-toplevel)"
 PROD="/Users/huangnanqi/CursorProjects/paper-reading-app-prod"
 REMOTE="${REMOTE:-origin}"
 YES=0
+FROM_MAIN=0
 
-if [ "${1:-}" = "-y" ] || [ "${1:-}" = "--yes" ]; then
-  YES=1
-fi
+for arg in "$@"; do
+  case "$arg" in
+    -y|--yes) YES=1 ;;
+    --from-main) FROM_MAIN=1 ;;
+    *) echo "用法: $0 [--yes] [--from-main]" >&2; exit 2 ;;
+  esac
+done
 
 cd "$ROOT"
 [ "$(git branch --show-current)" = "feature/agent" ] || {
@@ -23,11 +28,21 @@ cd "$ROOT"
 }
 
 git fetch "$REMOTE" feature/agent main
-BASE="$(git rev-parse "$REMOTE/main")"
-TARGET="$(git rev-parse HEAD)"
+if [ "$FROM_MAIN" = 1 ]; then
+  BASE="$(git -C "$PROD" rev-parse HEAD)"
+  TARGET="$(git rev-parse "$REMOTE/main")"
+else
+  BASE="$(git rev-parse "$REMOTE/main")"
+  TARGET="$(git rev-parse HEAD)"
+fi
 [ "$BASE" != "$TARGET" ] || {
-  echo "没有待发布的新提交：feature/agent 与 main 已一致。"
+  echo "没有待发布的新提交：Prod 已是 main 当前版本。"
   exit 0
+}
+
+git merge-base --is-ancestor "$BASE" "$TARGET" || {
+  echo "发布已停止：待发布版本不是 Prod 当前版本的后继，拒绝回退或跨线发布。" >&2
+  exit 1
 }
 
 echo "即将发布：$BASE -> $TARGET"
@@ -36,13 +51,32 @@ if [ "$YES" != 1 ]; then
   case "$answer" in y|Y|yes|YES) ;; *) echo "已取消。"; exit 0 ;; esac
 fi
 
-NOTES="docs/releases/$(date +%Y-%m-%d)-${TARGET:0:8}.md"
-scripts/codex/release-hook.sh "$BASE" "$TARGET" "$NOTES"
-git add "$NOTES"
-git commit -m "docs: add production release notes $(date +%Y-%m-%d)"
+if [ "$FROM_MAIN" = 1 ]; then
+  RELEASE_WORKTREE="$(mktemp -d /private/tmp/paper-release-main.XXXXXX)"
+  cleanup_release_worktree() {
+    git worktree remove --force "$RELEASE_WORKTREE" 2>/dev/null || true
+  }
+  trap cleanup_release_worktree EXIT
+  git worktree add --detach "$RELEASE_WORKTREE" "$TARGET"
+  NOTES="docs/releases/$(date +%Y-%m-%d)-${TARGET:0:8}.md"
+  (
+    cd "$RELEASE_WORKTREE"
+    "$ROOT/scripts/codex/release-hook.sh" "$BASE" "$TARGET" "$NOTES"
+    git add "$NOTES"
+    git commit -m "docs: add production release notes $(date +%Y-%m-%d)"
+    ALLOW_MAIN_PUSH=1 git push "$REMOTE" HEAD:main
+  )
+  TARGET="$(git -C "$RELEASE_WORKTREE" rev-parse HEAD)"
+else
+  NOTES="docs/releases/$(date +%Y-%m-%d)-${TARGET:0:8}.md"
+  scripts/codex/release-hook.sh "$BASE" "$TARGET" "$NOTES"
+  git add "$NOTES"
+  git commit -m "docs: add production release notes $(date +%Y-%m-%d)"
 
-git push "$REMOTE" feature/agent
-ALLOW_MAIN_PUSH=1 git push "$REMOTE" feature/agent:main
+  git push "$REMOTE" feature/agent
+  ALLOW_MAIN_PUSH=1 git push "$REMOTE" feature/agent:main
+  TARGET="$(git rev-parse HEAD)"
+fi
 
 git -C "$PROD" pull --ff-only "$REMOTE" main
 launchctl kickstart -k "gui/$(id -u)/com.huangnanqi.paper-backend-prod"
