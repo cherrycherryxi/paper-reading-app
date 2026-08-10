@@ -9,10 +9,16 @@ Run exactly one requested phase: `triage`, `implement`, or `explore`. Treat GitH
 
 ## Shared guardrails
 
-1. Work from the latest `origin/feature/agent`. Never push or merge `main`, deploy, access production credentials, or modify production data.
+1. Work from the latest `origin/feature/agent` when it is available; otherwise establish the equivalent verified `feature/agent` baseline before any phase work.
+
+   - If `origin/feature/agent` is available, run `git fetch origin feature/agent` and use `origin/feature/agent` as `BASE_REF`.
+   - If no `origin` remote exists, treat this as a Codex Cloud checkout. Use the connected GitHub tool to fetch the current tip SHA of `cherrycherryxi/paper-reading-app:feature/agent`; compare it with `git rev-parse HEAD`. Continue only when the SHAs are identical, then use `HEAD` as `BASE_REF`.
+   - If neither verification path is available, return `FAILED`; do not assume that a local branch named `work` is based on `feature/agent`.
+
+   Never push or merge `main`, deploy, access production credentials, or modify production data.
 2. Read `AGENTS.md`, then `.wolf/anatomy.md` and `.wolf/cerebrum.md`. For `implement` and `explore`, also read `.wolf/buglog.json`.
 3. Use Asia/Shanghai's calendar date as `RUN_DATE` (`YYYY-MM-DD`). Include it in commits, branches, PR bodies, and completion summaries.
-4. Fetch GitHub evidence once per phase. Prefer the connected GitHub tool; otherwise use authenticated `gh`. Never infer PR state from local history alone.
+4. Fetch GitHub evidence once per phase. Prefer the connected GitHub tool; otherwise use authenticated `gh`. Never infer branch or PR state from local history alone. When the checkout has no `origin` remote, use the connected GitHub tool both to verify `feature/agent` and to publish commits, branches, and pull requests; do not run `git push`.
 5. Do not use local launchd markers, `/Users/...` paths, Bark scripts, or another machine's worktree.
 6. Keep `.wolf/` out of implementation PRs. OpenWolf may update those files during the run; leave them uncommitted rather than discarding or staging them on an implementation branch. Triage and explore may include directly relevant `.wolf/` bookkeeping in their knowledge-only commit.
 7. End with `PHASE`, `RUN_DATE`, `STATUS`, `ARTIFACT`, and a concise Chinese summary. `STATUS` must be `COMPLETED`, `SKIPPED`, or `FAILED`.
@@ -42,7 +48,12 @@ Read `optimization/triage.md` and identify its single `Next up` item.
    - `.venv/bin/python -m pytest tests/ -v`
    - `node --test tests/frontend/*.test.js`
 6. Create branch `auto/codex-<item-number>-<YYYYMMDD>`. Commit only product code, tests, and the permitted triage edit; exclude `.wolf/`.
-7. Push the branch and open a PR targeting `feature/agent`. Never merge it. The PR body must contain:
+7. Publish the branch and open a PR targeting `feature/agent`. Never merge it.
+
+   - If `origin` is available, publish with Git normally.
+   - Otherwise, publish through the connected GitHub tool: create the required branch or commit from the verified base SHA, upload only the intended files, and open the required PR through GitHub.
+
+   The PR body must contain:
    - `Nightly-Agent: implement`
    - `Run-Date: RUN_DATE`
    - `Backlog: OPT-NNN`

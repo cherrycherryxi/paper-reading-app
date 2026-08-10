@@ -77,6 +77,59 @@ test("书卡正文只保留作者、进度和一个摘抄指标", () => {
   assert.doesNotMatch(body, /阅读记录|关联/);
 });
 
+test("OPT-150: 无阅读记录时以有效摘抄的最大页码显示书卡进度", () => {
+  const h = harness();
+  const book = sampleBook({ currentPage: 0 });
+  h.setState({
+    books: [book], sessions: [], connections: [], chatHistories: {}, chatContexts: {},
+    quotes: [
+      { id: "q1", bookId: "b1", kind: "quote", page: 24 },
+      { id: "q2", bookId: "b1", kind: "quote", page: "80" },
+    ],
+  });
+  const card = h.buildBookSearchCard(book, h.buildRenderCache());
+  assert.match(card.innerHTML, /40% · 80\/200 页/);
+});
+
+test("OPT-150: 已有 currentPage 更高时不被摘抄页码降低", () => {
+  const h = harness();
+  const book = sampleBook({ currentPage: 120 });
+  h.setState({
+    books: [book], sessions: [], connections: [], chatHistories: {}, chatContexts: {},
+    quotes: [{ id: "q1", bookId: "b1", kind: "quote", page: 80 }],
+  });
+  const card = h.buildBookSearchCard(book, h.buildRenderCache());
+  assert.match(card.innerHTML, /60% · 120\/200 页/);
+});
+
+test("OPT-150: 忽略非有限、非正数和提问页码", () => {
+  const h = harness();
+  const book = sampleBook({ currentPage: 0, totalPages: 0 });
+  h.setState({
+    books: [book], sessions: [], connections: [], chatHistories: {}, chatContexts: {},
+    quotes: [
+      { id: "q1", bookId: "b1", kind: "quote", page: 0 },
+      { id: "q2", bookId: "b1", kind: "quote", page: -5 },
+      { id: "q3", bookId: "b1", kind: "quote", page: "not-a-page" },
+      { id: "q4", bookId: "b1", kind: "quote", page: Infinity },
+      { id: "q5", bookId: "b1", kind: "question", page: 99 },
+    ],
+  });
+  const card = h.buildBookSearchCard(book, h.buildRenderCache());
+  assert.match(card.innerHTML, /已读到第 0 页/);
+});
+
+test("OPT-150: 摘抄页码超过总页数时百分比封顶为 100%", () => {
+  const h = harness();
+  const book = sampleBook({ currentPage: 0 });
+  h.setState({
+    books: [book], sessions: [], connections: [], chatHistories: {}, chatContexts: {},
+    quotes: [{ id: "q1", bookId: "b1", kind: "quote", page: 240 }],
+  });
+  const card = h.buildBookSearchCard(book, h.buildRenderCache());
+  assert.match(card.innerHTML, /100% · 240\/200 页/);
+});
+
 test("完整评分和标签从卡面降级到书籍详情，不丢失信息", () => {
   const h = harness();
   const book = sampleBook();

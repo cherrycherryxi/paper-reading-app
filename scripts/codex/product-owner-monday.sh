@@ -81,15 +81,40 @@ $MERGED_PRS
 3. 同步修正 backlog/triage 中与真实代码或提交不一致的状态；无北极星贡献的未完成项可标 P3 parked 并写理由。
 4. $PRUNE_TASK
 5. 仅允许修改 optimization/roadmap.md、optimization/backlog.md、optimization/explore.md、optimization/triage.md 和 .wolf/。不得修改其他文件。
-6. 最后在回复中输出 250 字以内中文摘要，放在单独成行的 <<<SUMMARY_START>>> 与 <<<SUMMARY_END>>> 之间，包含：上周达成率、本周唯一焦点、原因、本周事项、park/prune（如有）。
+6. 最后输出 350-600 字中文邮件摘要，放在单独成行的 <<<SUMMARY_START>>> 与 <<<SUMMARY_END>>> 之间。必须严格使用以下五个小节：
+【上周结算】达成率 N/M；每个未完成项的去向（合入/继续/park/owner）。
+【本周唯一焦点】一句话，只能一个。
+【为什么现在】至少一条真实 signal，及一项 Git/PR/北极星/代码证据；没有证据不得下结论。
+【本周三件事】恰好三条，标明 owner 白天或夜间执行及可验收结果；PR 编号只作追溯，不可替代事项说明。
+【明确不做】本周 park/prune 项及理由；没有则写“无”。
+
+禁止只罗列 OPT/PR 编号、把内部自动化当作用户价值，或省略未完成项去向。
 
 所有完成状态必须基于真实文件、代码或上述提交证据，不得臆造。"
 
 RAW=$(run_timeout 900 "$CODEX" exec -C "$WT" --sandbox workspace-write --ephemeral "$PROMPT" 2>>"$LOG" || true)
 PRODUCT_SUMMARY=$(printf '%s\n' "$RAW" | awk '/<<<SUMMARY_START>>>/{f=1;next} /<<<SUMMARY_END>>>/{f=0;next} f')
 [ -z "$PRODUCT_SUMMARY" ] && PRODUCT_SUMMARY=$(printf '%s\n' "$RAW" | sed -n '/上周.*达成/,$p' | head -40)
-[ -n "$PRODUCT_SUMMARY" ] && [ "$(printf '%s' "$PRODUCT_SUMMARY" | wc -c | tr -d ' ')" -ge 80 ] \
-  || fail_stage "Codex 未产出合格摘要"
+SUMMARY_SIZE=$(printf '%s' "$PRODUCT_SUMMARY" | wc -c | tr -d ' ')
+SUMMARY_ISSUES=()
+[ "$SUMMARY_SIZE" -ge 350 ] && [ "$SUMMARY_SIZE" -le 1800 ] || SUMMARY_ISSUES+=("正文长度不在 350-600 字范围")
+for heading in '【上周结算】' '【本周唯一焦点】' '【为什么现在】' '【本周三件事】' '【明确不做】'; do
+  printf '%s\n' "$PRODUCT_SUMMARY" | grep -q "$heading" || SUMMARY_ISSUES+=("缺少 $heading")
+done
+if [ "${#SUMMARY_ISSUES[@]}" -gt 0 ]; then
+  {
+    printf '# 本周焦点需人工确认 · %s\n\n' "$WEEK"
+    printf '正式焦点未生成，未提交产品规划变更、未推进后续自动任务。\n\n'
+    printf '## 缺失项\n'; printf -- '- %s\n' "${SUMMARY_ISSUES[@]}"
+    printf '\n## 模型原始摘要\n\n%s\n' "${PRODUCT_SUMMARY:-（模型未返回摘要；请查看日志。）}"
+    printf '\n日志：%s\n' "$LOG"
+  } > "$SUMMARY"
+  if [ "$DRY_RUN" != 1 ]; then
+    "$PYTHON" "$EMAIL_SCRIPT" --subject "本周焦点 · ${WEEK}（需人工确认）" --body-file "$SUMMARY" >> "$LOG" 2>&1 || true
+    alert "⚠️ 产品焦点需确认" "$WEEK 缺少决策字段，已发送原始摘要供确认。"
+  fi
+  exit 0
+fi
 
 CHANGED=$( { git -C "$WT" diff --name-only; git -C "$WT" ls-files --others --exclude-standard; } | sort -u )
 [ -n "$CHANGED" ] || fail_stage "Codex 未更新产品文件"

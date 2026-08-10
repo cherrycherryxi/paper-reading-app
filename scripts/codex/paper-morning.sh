@@ -42,8 +42,9 @@ rm -f "$REVIEW_SUMMARY"
    - 审查无阻断问题 → 跑测试：\`.venv/bin/python -m pytest tests/ -q\` 以及相关 \`node --test tests/frontend/*.test.js\`；全绿 → \`gh pr merge <n> --squash --delete-branch\`。
    - 有可修的小问题 → 在该 PR 分支上直接改，commit & push 到同分支，重跑测试；全绿再 --squash 合并。
    - 重大问题（设计取舍 / 安全 / 测试反复修仍红 / 需人判断）→ 不合并，留 OPEN，用 \`gh pr comment\` 留一条中文说明原因。
-4. 把每个 PR 的处置结论（编号 / 标题 / 合并|改后合并|留OPEN+原因 / 测试结果）汇总成中文，用 apply_patch 写入 ${REVIEW_SUMMARY}。
-5. 合并完切回 feature/agent，运行 \`bash .wolf/sync-knowledge.sh\` 同步远端（它会确定性合并 .wolf 知识文件：union 合 md、jq 按 .id 去重 buglog.json）。**严禁用 \`git reset --hard\` 或 \`git rebase\` 去解 .wolf 冲突，严禁丢弃任何本地 .wolf 提交**——.wolf 的一切冲突一律交给 sync-knowledge.sh。
+4. 每个 PR 合并后必须完成**选题状态对账**：切回并同步最新 \`feature/agent\`，按合并 PR 的标题、正文（\`Backlog: OPT-NNN\`）和合并提交核实对应条目；将已实现的 OPT 在 \`optimization/triage.md\` 和 \`optimization/backlog.md\` 标为 \`done\`，写入 PR/commit 证据。若没有对应 OPT，不要臆造条目。把这次对账作为独立 \`chore(triage): reconcile morning merges ${TODAY}\` 提交推送到 \`feature/agent\`，再继续；绝不能让已合并条目仍以 \`in-progress\` 进入候选卡。
+5. 把每个 PR 的处置结论（编号 / 标题 / 合并|改后合并|留OPEN+原因 / 测试结果）汇总成中文，用 apply_patch 写入 ${REVIEW_SUMMARY}。
+6. 合并完切回 feature/agent，运行 \`bash .wolf/sync-knowledge.sh\` 同步远端（它会确定性合并 .wolf 知识文件：union 合 md、jq 按 .id 去重 buglog.json）。**严禁用 \`git reset --hard\` 或 \`git rebase\` 去解 .wolf 冲突，严禁丢弃任何本地 .wolf 提交**——.wolf 的一切冲突一律交给 sync-knowledge.sh。
 断言任何「已合并 / 测试通过」前必须真实执行核实，不要臆造。" \
    >> "$LOG" 2>&1
 
@@ -62,7 +63,11 @@ else
     rm -f "$CARDS"
     "$CODEX" exec -C "$REPO" --dangerously-bypass-approvals-and-sandbox --ephemeral "开始今天的工作
 
-额外要求（不写应用代码、不做深度调研，只在按流程选出 2 张卡片后）：把你最终选出的这 2 张候选卡片用 apply_patch 写入文件 ${CARDS}，严格用如下格式（不要写别的）：
+候选前的硬性对账：先 \`git fetch origin feature/agent\` 并同步到最新 \`feature/agent\`；读取 \`optimization/roadmap.md\`、\`optimization/triage.md\`、\`optimization/backlog.md\`，并读取 \`$HOME/.claude/product-owner-latest.md\`（若存在）和 \`$HOME/.claude/weekly-reports/\` 下最新一份周报（若存在）。周一焦点、roadmap 与周报是候选优先级的参考：优先选择能推进本周唯一焦点、回应上周待改进点或验证周报信号的条目；在卡片的「价值」中说明这种关联。它们不是完成状态的证据，不能据此复活已完成工作。
+
+再用 \`gh pr list --state all --base feature/agent\` 和最近合并提交核实。候选只能来自当前仍未完成的 \`new\` 或 \`triaged\` 条目。**绝不能**把 \`done\`、\`in-progress\`、已有 open PR、已合并 PR 或当前代码已经实现的条目写入候选卡；文档状态与代码/PR 证据冲突时，以 GitHub 已合并 PR 和当前代码为准并排除该条目。写卡前逐一复核两个编号均满足这些条件；若只剩一个合格项，只写一张卡，不得用已完成项凑数。
+
+额外要求（不写应用代码、不做深度调研，只在按流程选出最多 2 张卡片后）：把最终候选卡片用 apply_patch 写入文件 ${CARDS}。有两个合格项时严格用如下两张格式；只有一个时只写卡片①，绝不伪造卡片②（不要写别的）：
 ## 卡片①
 编号: <OPT/E 编号>
 标题: <标题>

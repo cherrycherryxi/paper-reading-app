@@ -2,27 +2,36 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-06
+Last triaged: 2026-08-10
 
 ## Next up
 
-**本次不指派实现项。**
+**本次不新增指派。OPT-151 已由 PR #112 合入并完成对账；当前 WIP=0。**
 
-**预算状态（2026-08-06）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **1 个**（PR #98，`auto/opt-141-tags-in-all-books-summary`），上限 **8**，剩余 **7 个**。PR #97 已滚出七天窗口。预算未熔断，但 WIP=1 不等于必须制造工作。
+**预算状态（2026-08-10）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **4 个**（PR #109、#110、#111、#112，head 均以 `auto/` 开头），上限 **8**，剩余 **4 个**。预算未熔断；PR #112 已合入，WIP=0。
 
 **本次证据核对：**
-- `feature/agent` 当前头提交为 `d8fa4e6`（2026-08-05 triage）；以 2026-07-28 triage 提交 `318ac0f` 为基线比较，分支领先 68 个提交，近八天产品与知识文件变更已在当前 backlog/triage 中完成对账。
-- 最近 50 个目标 PR 中最新仍为已合入的 PR #107；PR #106/#107 对 OPT-145/OPT-146 的完成证据未变化，没有新的实现 PR 需要回写。
-- `optimization/signals.md` 最新记录仍为 2026-08-03 的北极星数据，没有 OPT-145 真机闭环的新 signal。
+- 已检查 `feature/agent` 合并后的提交；当前头含 PR #112 squash merge `2a673281d270520108c76d256dd274d2ffd7c4e5`。
+- OPT-150 → done：PR #111 已于 2026-08-09 合入（merge commit `8af9b8bb696888a5b474f0a17f70dfaa02263f72`）；当前 `app.js:948-968,1602-1608` 已按书缓存最大有效摘抄页码并用 `displayPage` 生成书卡进度，回归测试随提交合入。
+- OPT-151 → done：PR #112 已于 2026-08-10 squash 合入（merge commit `2a673281d270520108c76d256dd274d2ffd7c4e5`）；`app.js` 已恢复两种备份格式中的 `memories` / `customQuoteTags`，并覆盖缩减保护与导入结果摘要。本次实跑 `.venv/bin/python -m pytest tests/ -q` 及 `node --test tests/frontend/*.test.js` 均成功，PR CI 两个 `Python and frontend tests` 均为 SUCCESS。
+- 2026-08-09 owner 真实反馈新增两项快速识别摩擦：`app.js:2731-2737` 删除行时直接 `row.remove()`，没有撤销或恢复状态；OCR 核对面板及 quote dialog 也没有 `touch-action` 约束，双击会触发移动浏览器页面缩放。分别登记为 OPT-153（P1/S）与 OPT-154（P2/S）。
+- OPT-152 的 8 条截断缺口仍有代码证据，但尚无“最新记忆未召回”的直接使用失败，保持 P2/S；其余未完成项继续按原 P3 parked / blocked 结论处理。
 
-**为何不继续指派：** roadmap 的 2026-W32 唯一焦点 OPT-145 已完成，下一步明确是用约 50 个真实标签在 iPhone 12 真机走「发现更多入口 → 搜索标签 → 选中 → 清除」闭环并回收 signal。当前其余未完成项均为 P3 parked 或 blocked；在没有新 signal 前继续挑选会违反“North Star 税”和本周 WIP=1 纪律。OPT-146 虽原为 P3，但已由人工 PR 合入，按真实代码与 PR 证据记为完成，不据此顺延 OPT-147。
+**为何不新增指派：** 本次仅处理已完成 PR 的状态对账，不在夜间合并闸门中扩展选题；OPT-153 虽有最高等级 owner signal，仍保留在已核实队列，等待独立决策。
 
-**下一次可指派条件：** 新增真机 signal，或周一仪式更新 roadmap 后，再从有明确用户任务失败证据、能在单 PR 内完成的条目中选择至多一个。
+**本次对账范围：** PR #112 仅修复导入恢复链路对 `memories` / `customQuoteTags` 的保留、缩减确认与结果摘要；未扩展为新的导入格式或 schema 变更。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10]；轻量/完整备份恢复与覆盖保护已落地 |
+| OPT-153 | 快速识别误删一行后无法撤销，只能重新识别 | **P1** | S | **triaged** | 8/9 owner 直接 signal；现有 `row.remove()` 无恢复状态，待当前 WIP 完成后优先评估 |
+| OPT-152 | 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文 | P2 | S | **triaged** | 代码缺口明确，但尚无直接召回失败 signal；低于当前 owner 实测摩擦 |
+| OPT-154 | 快速识别卡片核对时双击触发页面放大 | P2 | S | **triaged** | 8/9 owner 直接 signal；局部手势修复，保留 pinch zoom 与可访问性 |
+| OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | P1 | S | **done** | ✅ PR #111 / `8af9b8b` 已合入 [2026-08-09]；显示层回退与边界测试已落地 |
+| OPT-148 | 面向用户的显式阅读长期记忆 | P1 | M | **done** | ✅ PR #110 / `f58b01b` 已合入 [2026-08-08]；confirmed memories 可管理并按上下文注入 |
+| OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
 | OPT-145 | 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 | P1 | M | **done** | ✅ PR #106 / `9977757` 已合入 [2026-08-05]；更多标签可搜索面板与筛选闭环已实现 |
 | OPT-146 | 书卡状态/评分/计数/进度/标签信息层级过密 | P3 | M | **done** | ✅ PR #107 / `ce56b70` 已合入 [2026-08-05]；默认精简、详情保留完整信息 |
 | OPT-142 | 关联弹窗 filteredQuotes() 不搜摘抄 tags：按标签找目标摘抄失败 | P3 | S | triaged | parked：场景频率低，无直接 signal |
@@ -43,7 +52,7 @@ Last triaged: 2026-08-06
 
 ## Recently reconciled done
 
-OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
+OPT-151, OPT-150, OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
 
 ## Legend
 

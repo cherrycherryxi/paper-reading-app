@@ -4347,3 +4347,128 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 ---
 
 > 本次 run 新发现 4 条：E236（显式长期记忆，M，强 signal）、E237（清空探讨 false-success，S，明确 correctness）、E238（书籍 combobox 检索字段分叉，S）、E239（combobox 键盘/ARIA 缺口，S-M）。提拔 OPT-148 与 OPT-149；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
+
+## 2026-08-09
+
+> 扫描焦点：OPT-148 合入后的长期记忆恢复完整性、召回截断策略、提示词契约与写入失败语义。基于最新 `feature/agent`，核对 backlog、triage、roadmap、signals、当前源码和目标为 `feature/agent` 的 open PR。PR #111 仅覆盖 OPT-150 书卡摘抄页码回退，与本轮方向无重叠；E236/OPT-148 已实现的“记忆 MVP”本身不重复登记，本轮只记录合入后新暴露的边界。
+
+### E240 — 备份导入静默丢弃 `memories` 与 `customQuoteTags`，长期资产无法可靠恢复 (S)
+
+**What (verified):** 轻量备份 `exportData()` 会完整执行 `JSON.stringify(state)`（`app.js:4440-4448`），完整账号导出也把 state 放在 `.state`。但恢复入口 `resolveImportedState()` 仅传递 books、sessions、quotes、chatHistories、chatContexts、connections（`app.js:4585-4604`），遗漏 `memories` 和 `customQuoteTags`；随后 `normalizeStateShape()` 对缺失字段回落为空数组（`app.js:392-405`）。`stateContentCount()` 与成功摘要也只统计书籍、记录、摘抄、关联和聊天（`app.js:4607-4637`），所以导入不会提示这两类长期资产被清空。
+
+**Why it matters:** 这是可复现的数据恢复缺口：用户拿应用自己生成的有效备份恢复账号，书和摘抄仍在，却失去所有确认记忆与自定义标签词表。它直接违背 2026-07-31 “记忆可控且跨会话保留”的 signal，也削弱导入导出这条数据安全路径的可信度。
+
+**Complexity:** S。恢复时显式保留两个数组，将它们纳入缩减确认和导入结果摘要；补轻量与完整账号导出两种格式的恢复测试。
+
+**Files:** `app.js:392-405,4440-4448,4585-4637`；相关 frontend tests。
+
+**northstar:** 高——保护长期回顾资产与备份可信度。→ promoted to OPT-151
+
+---
+
+### E241 — 记忆截断取“最早 8 条”，第 9 条起的最新确认记忆永久不进 prompt (S)
+
+**What (verified):** `saveMemory()` 对新增和编辑都先过滤旧项，再用 `state.memories.push(memory)` 放到数组末尾（`app.js:416-427`）。PromptBuilder 按原数组顺序收集匹配记忆（`app_server.py:2655-2661`），然后直接使用 `context_memories[:8]`（`app_server.py:2690-2692`），没有按 `updatedAt` 或上下文相关性排序。
+
+**Why it matters:** 当全局记忆达到 8 条，用户刚确认的第 9 条偏好、目标或待办不会出现在任何后续对话里；编辑已有记忆还会将它移到数组末尾并可能使其“消失”。这不是容量上限提示，而是 UI 显示已保存、Agent 实际永远收不到的 false-success。
+
+**Complexity:** S。按 quote/book/global 相关性和 `updatedAt` 倒序排序后取 8 条；补 9+ 条、编辑重排和上下文优先级测试。
+
+**Files:** `app.js:416-427`；`app_server.py:2655-2692`；相关 agent tests。
+
+**northstar:** 高——保证用户最新确认的稳定认识真正被召回。→ promoted to OPT-152
+
+---
+
+### E242 — Prompt 注入了 `confirmed_memories`，系统规则却从未说明其权威性与使用方式 (S)
+
+**What (verified):** Prompt payload 已包含 `confirmed_memories`（`app_server.py:2690-2705`），但 `build_system_instruction()` 的公共规则只逐项解释 `all_books_summary` 与 `existing_connections`（`app_server.py:2709-2718`），全文没有说明 confirmed_memories 的字段语义、何时引用、冲突时以最新用户消息为准，或不得把记忆当成系统指令。
+
+**Why it matters:** 字段名能让模型猜到大意，却不能稳定兑现产品承诺：偏好可能被忽略，todo 可能被误当成已经完成的事实，旧记忆与当前消息冲突时也没有明确优先级。当前已有 XML 边界把整段标为 user_data，但缺少行为契约会让召回效果依赖模型偶然理解。
+
+**Complexity:** S。在 common rules 中补 confirmed_memories 的数据语义、引用边界、冲突优先级与 todo 口径；补 prompt 文案契约测试。
+
+**Files:** `app_server.py:2690-2718`；相关 agent prompt tests。
+
+**northstar:** 中——提高长期记忆召回的可预测性；当前暂无具体误用 signal，先留探索池。
+
+---
+
+### E243 — 记忆保存/删除先改本地 state 再同步，失败会留下“界面未更新但下一次写入可能补做”的幽灵变更 (S-M)
+
+**What (verified):** `saveMemory()` 在 `await syncState()` 前已替换并 push 记忆（`app.js:416-424`）；删除点击路径同样先 filter，再 await，且没有 try/catch（`app.js:6125-6139`）。普通网络失败时 `syncState()` 会抛错但不恢复调用前快照（`app.js:1108-1137`）。保存按钮包装器只负责禁用状态，删除路径的 rejected Promise 还会成为未处理异常。
+
+**Why it matters:** 请求失败后列表可能暂时看起来未变，但内存 state 已被修改；用户随后保存书籍或摘抄时，下一次全量 `PUT /api/state` 会把此前“失败”的记忆新增/删除一起提交，造成延迟发生且无法解释的变更。删除是用户控制长期记忆的关键路径，语义必须原子化。
+
+**Complexity:** S-M。记忆写操作保存旧数组快照，只有同步成功才刷新 UI；失败时回滚并 toast。更稳妥的长期方案是抽取统一 transactional state mutation helper，供其他先改 state 再 sync 的路径复用。
+
+**Files:** `app.js:1108-1137,416-427,6125-6139`；相关 frontend tests。
+
+**northstar:** 中——保障长期记忆控制的可信度；可与后续全局 state mutation 原子化一起处理，暂不提拔。
+
+---
+
+> 本次 run 新发现 4 条：E240（备份恢复丢失 memories/customQuoteTags，S，数据完整性）、E241（8 条截断让最新记忆永久不进 prompt，S，召回正确性）、E242（confirmed_memories 缺系统规则，S，Agent 可控性）、E243（记忆写失败留下幽灵本地变更，S-M，错误处理）。提拔 OPT-151 与 OPT-152；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
+
+## 2026-08-10
+
+> 扫描焦点：Agent action 确认卡的渲染安全与拒绝失败语义，以及最新 OCR 行核对组件的文本正确性和可访问性。基于最新 `feature/agent` 核对 backlog、triage、roadmap、signals、当前源码与 open PR。已排除：PR #112 / OPT-151（备份恢复）、OPT-152（记忆截断）、OPT-153（OCR 删除撤销）、OPT-154（双击缩放）及 E242/E243 的既有记忆边界，本次不重复登记。
+
+### E244 — tag action 的标签未转义即进入确认卡 innerHTML，可触发 DOM 注入 (S)
+
+**What (verified):** `_showNextAgentAction()` 将包含 `renderActionText(action)` 的模板赋给 `container.innerHTML`（`chat.js:955-971`）。`renderActionText()` 对 add_note、add_book、question 和 link_thought 都调用 `escapeHtml()`，但 tag 分支直接返回 `(d.tags || []).join("、")`（`chat.js:1034-1043`）。后端 `ActionValidator` 在 schema 校验后原样保留 data（`app_server.py:2984-3021`），模型生成的 action 随后被持久化并回传（`app_server.py:5600-5610`），没有 HTML 编码步骤。
+
+**Why it matters:** 用户输入可影响模型建议的标签；若标签包含 `<img onerror=...>` 等 HTML，它会在“确认执行”卡片出现时立即被浏览器解析，甚至无需用户批准 action。相邻 action 类型均已转义，说明 tag 是单一漏网分支，不是既定信任边界。
+
+**Complexity:** S。tag 分支对每个标签调用 `escapeHtml(String(tag))` 后 join；补恶意标签只显示文本、不创建 DOM 元素的回归测试。更彻底的后续方案是使用 DOM API 和 `textContent` 构造确认卡。
+
+**Files:** `chat.js:955-971,1034-1043`；`app_server.py:2984-3021,5600-5610`；相关 frontend tests。
+
+**northstar:** 中——保护 Agent 探讨入口的完整性和用户信任。→ promoted to OPT-155
+
+---
+
+### E245 — reject action 请求失败被吞掉，UI 仍声称“已忽略”并推进下一项 (S)
+
+**What (verified):** 忽略按钮先调用 `POST /api/agent-actions/{id}/reject`（`chat.js:1008-1016`），catch 只输出 console（`chat.js:1017-1019`）。之后无条件执行 `container.remove()`、插入“⏭ 已忽略”系统消息并调用 `_showNextAgentAction(remaining)`（`chat.js:1020-1022`）。
+
+**Why it matters:** 网络、鉴权或服务端异常时，服务端 action 仍未被拒绝，但页面永久移除唯一的处理入口并展示成功文案；用户无法在当前会话重试，也不知道服务端仍保留待处理状态。这与 OPT-149 已修复的“清空失败仍清空 UI”属于同类 false-success，但作用于独立的 Agent action 状态机，历史条目未覆盖。
+
+**Complexity:** S。失败时恢复按钮、`handled=false`、显示重试文案并停止队列；只有 reject 成功才移除卡片和显示下一项。补成功/失败回归测试。
+
+**Files:** `chat.js:1008-1022`；相关 frontend tests。
+
+**northstar:** 中——保证用户拒绝 Agent 写操作的控制权真实生效。→ promoted to OPT-156
+
+---
+
+### E246 — OCR 行回写使用无分隔拼接，拉丁文字跨物理行时会把相邻单词粘连 (S)
+
+**What (verified):** `renderOcrLineSelector()` 对每个物理行先执行 `rawLine.trim()`（`app.js:2689-2703`），去掉行尾空格；`rebuildQuoteContentFromOcrPanel()` 再用 `parts.join("")` 合并同段各行（`app.js:2664-2678`）。中文排版通常可以直接拼接，但英文文本如 `"This is"` 与 `"a book"` 会变成 `"This isa book"`；用户只要编辑或删除任一行触发重建，就会把原本可读的 OCR 文本写坏。
+
+**Why it matters:** 当前应用以中文阅读为主，但书名、原文和 OCR 内容并不保证全是中文。无条件空串拼接把“去除 OCR 物理换行”的合理目标扩大成“删除所有词间边界”；这是文本正确性问题，不应依赖用户逐处补空格。
+
+**Complexity:** S。合并相邻行时按边界字符决定是否补空格：中文/标点相接保持空串，两个拉丁字母或数字边界之间插入一个空格；补中英文混排、标点、跨页分段测试。
+
+**Files:** `app.js:2664-2678,2689-2703`；相关 OCR frontend tests。
+
+**northstar:** 弱中——保护 OCR 原文准确性，但暂无真实英文 OCR 失败 signal，先留探索池。
+
+---
+
+### E247 — OCR 删除按钮的 accessible name 全部相同，读屏用户无法判断将删除哪一行 (S)
+
+**What (verified):** 行输入框使用“第 N 行内容”的编号标签，但每个相邻删除按钮都固定为 `aria-label="删除此行"`（`app.js:2711-2717`）。多行面板可一次生成数十个完全同名按钮；按钮自身只有视觉字符“✕”，accessible name 不包含行号或内容预览。
+
+**Why it matters:** 屏幕阅读器的按钮列表会重复播报“删除此行”，用户无法区分目标，只能在 textarea 与按钮间反复导航并记忆位置。当前 roadmap 对无直接 a11y signal 的方向统一 parked，因此只记录，不提拔。
+
+**Complexity:** S。生成按钮时使用 `aria-label="删除第 N 行：<短预览>"`，预览需安全截断；删除后若保留编号语义，应同步更新剩余按钮标签。补 accessible-name 测试。
+
+**Files:** `app.js:2711-2717,2730-2738`；相关 frontend a11y tests。
+
+**northstar:** 弱——无当前辅助技术使用 signal，保留为 accessibility health。
+
+---
+
+> 本次 run 新发现 4 条：E244（Agent tag 确认卡 DOM 注入，S，渲染安全）、E245（忽略 action false-success，S，错误处理）、E246（英文 OCR 行拼接丢空格，S，文本正确性）、E247（OCR 删除按钮无法被读屏区分，S，无障碍）。提拔 OPT-155 与 OPT-156；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
+

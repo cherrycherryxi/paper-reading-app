@@ -945,20 +945,27 @@ function formatBookTitle(title) {
   return escapeHtml(bare);
 }
 
-function getProgress(book) {
+function getProgress(book, currentPage = book.currentPage || 0) {
   if (!book.totalPages) return null;
-  return Math.max(0, Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100)));
+  return Math.max(0, Math.min(100, Math.round((currentPage / book.totalPages) * 100)));
 }
 
 function buildRenderCache() {
   const quoteCountMap = new Map();
   const firstQuoteImageMap = new Map();
+  const maxQuotePageMap = new Map();
 
   for (const q of state.quotes) {
-    if (isRegularQuote(q)) quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+    if (isRegularQuote(q)) {
+      quoteCountMap.set(q.bookId, (quoteCountMap.get(q.bookId) || 0) + 1);
+      const page = Number(q.page);
+      if (Number.isFinite(page) && page > 0) {
+        maxQuotePageMap.set(q.bookId, Math.max(maxQuotePageMap.get(q.bookId) || 0, page));
+      }
+    }
     if (q.imageUrl && !firstQuoteImageMap.has(q.bookId)) firstQuoteImageMap.set(q.bookId, q.imageUrl);
   }
-  return { quoteCountMap, firstQuoteImageMap };
+  return { quoteCountMap, firstQuoteImageMap, maxQuotePageMap };
 }
 
 function getBookSessions(bookId) {
@@ -1592,7 +1599,13 @@ function toggleCardMenu(menuBtn) {
 }
 
 function buildBookSearchCard(book, cache) {
-  const progress = getProgress(book);
+  const maxQuotePage = cache ? (cache.maxQuotePageMap.get(book.id) || 0) : state.quotes.reduce((maxPage, item) => {
+    if (item.bookId !== book.id || !isRegularQuote(item)) return maxPage;
+    const page = Number(item.page);
+    return Number.isFinite(page) && page > 0 ? Math.max(maxPage, page) : maxPage;
+  }, 0);
+  const displayPage = Math.max(Number(book.currentPage) || 0, maxQuotePage);
+  const progress = getProgress(book, displayPage);
   const qCount = cache ? (cache.quoteCountMap.get(book.id) || 0) : getQuoteCount(book.id);
   const fallbackImg = cache ? (cache.firstQuoteImageMap.get(book.id) || "") : (state.quotes.find((item) => item.bookId === book.id && item.imageUrl)?.imageUrl || "");
   const rawCover = book.coverImageUrl || fallbackImg || DEFAULT_BOOK_COVER_URL;
@@ -1604,8 +1617,8 @@ function buildBookSearchCard(book, cache) {
     book.status === "finished" && book.finishedAt
       ? `${formatDate(book.finishedAt)} 读完`
       : progress === null
-        ? `已读到第 ${book.currentPage || 0} 页`
-        : `${progress}% · ${book.currentPage || 0}/${book.totalPages} 页`;
+        ? `已读到第 ${displayPage} 页`
+        : `${progress}% · ${displayPage}/${book.totalPages} 页`;
 
   const card = document.createElement("article");
   card.className = "book-grid-card";
@@ -2676,6 +2689,7 @@ function autoGrowOcrInput(el) {
 function renderOcrLineSelector(text) {
   const sel = els.ocrLineSelector;
   if (!sel) return;
+  let lastDeletedLine = null;
   let section = 0;
   let sawContent = false;
   const lines = [];
@@ -2696,7 +2710,7 @@ function renderOcrLineSelector(text) {
     return;
   }
   sel.hidden = false;
-  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接修改，或点 ✕ 删除；会保留两页分段：</p>`;
+  const header = `<div class="ocr-line-selector__header"><p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接修改，或点 ✕ 删除；会保留两页分段：</p><button type="button" class="ocr-line-selector__undo" hidden>撤销删除</button></div>`;
   const items = lines
     .map(
       ({ line, section: sectionId }, i) =>
@@ -2715,20 +2729,35 @@ function renderOcrLineSelector(text) {
     rebuildQuoteContentFromOcrPanel(sel);
   };
   sel.onclick = (e) => {
+    const undoTarget = e.target.closest(".ocr-line-selector__undo");
+    if (undoTarget && lastDeletedLine) {
+      const rows = Array.from(sel.querySelectorAll(".ocr-line-selector__row"));
+      const nextRow = rows[lastDeletedLine.index];
+      if (nextRow) nextRow.before(lastDeletedLine.row);
+      else sel.appendChild(lastDeletedLine.row);
+      lastDeletedLine = null;
+      undoTarget.hidden = true;
+      rebuildQuoteContentFromOcrPanel(sel);
+      const hint = sel.querySelector(".ocr-line-selector__hint");
+      if (hint) hint.textContent = `已保留 ${sel.querySelectorAll(".ocr-line-selector__row").length} 行（保留两页分段，可继续编辑或删除）：`;
+      return;
+    }
     const btn = e.target.closest(".ocr-line-selector__del");
     if (!btn) return;
     const row = btn.closest(".ocr-line-selector__row");
-    if (row) row.remove();
+    if (row) {
+      lastDeletedLine = {
+        row,
+        index: Array.from(sel.querySelectorAll(".ocr-line-selector__row")).indexOf(row),
+      };
+      row.remove();
+    }
     rebuildQuoteContentFromOcrPanel(sel);
     const remaining = sel.querySelectorAll(".ocr-line-selector__row").length;
     const hint = sel.querySelector(".ocr-line-selector__hint");
     if (hint) hint.textContent = `已保留 ${remaining} 行（保留两页分段，可继续编辑或删除）：`;
-    if (remaining === 0) {
-      sel.hidden = true;
-      sel.innerHTML = "";
-      sel.onclick = null;
-      sel.oninput = null;
-    }
+    const undoButton = sel.querySelector(".ocr-line-selector__undo");
+    if (undoButton) undoButton.hidden = !lastDeletedLine;
   };
 }
 
@@ -4601,6 +4630,8 @@ function resolveImportedState(parsed) {
           : {},
     chatContexts: typeof source.chatContexts === "object" && source.chatContexts ? source.chatContexts : {},
     connections: Array.isArray(source.connections) ? source.connections : [],
+    customQuoteTags: Array.isArray(source.customQuoteTags) ? source.customQuoteTags : [],
+    memories: Array.isArray(source.memories) ? source.memories : [],
   });
 }
 
@@ -4611,7 +4642,9 @@ function stateContentCount(s) {
     (Array.isArray(s.sessions) ? s.sessions.length : 0) +
     (Array.isArray(s.quotes) ? s.quotes.length : 0) +
     (Array.isArray(s.connections) ? s.connections.length : 0) +
-    Object.keys(s.chatHistories || {}).length
+    Object.keys(s.chatHistories || {}).length +
+    (Array.isArray(s.customQuoteTags) ? s.customQuoteTags.length : 0) +
+    (Array.isArray(s.memories) ? s.memories.length : 0)
   );
 }
 
@@ -4624,6 +4657,8 @@ function showImportResult(s) {
     ["摘抄", "条", Array.isArray(s.quotes) ? s.quotes.length : 0],
     ["记录", "条", Array.isArray(s.sessions) ? s.sessions.length : 0],
     ["关联", "条", Array.isArray(s.connections) ? s.connections.length : 0],
+    ["自定义摘抄标签", "个", Array.isArray(s.customQuoteTags) ? s.customQuoteTags.length : 0],
+    ["长期记忆", "条", Array.isArray(s.memories) ? s.memories.length : 0],
   ];
   if (!els.importResultDialog || !els.importResultList) {
     showToast("数据已导入");
@@ -4664,7 +4699,7 @@ function importData(file) {
     // explicit confirmation instead of silently overwriting with nothing.
     if (stateContentCount(resolved) === 0 && stateContentCount(state) > 0) {
       showConfirmDialog({
-        message: "该文件未识别到任何书单 / 摘抄 / 记录内容，导入将清空当前账号的全部数据。确定继续？",
+        message: "该文件未识别到任何书单 / 摘抄 / 记录 / 自定义摘抄标签 / 长期记忆，导入将清空当前账号的全部数据。确定继续？",
         confirmLabel: "仍要清空导入",
         onConfirm: applyImport,
       });
@@ -4673,7 +4708,15 @@ function importData(file) {
     // Decrease guard (OPT-043): importing an older backup silently shrinks
     // counts in one or more categories — the most common real data-loss
     // scenario (bug-274). Require explicit confirmation listing what will be lost.
-    const _categoryLabels = { books: "书籍", quotes: "摘抄", sessions: "记录", connections: "关联", chatHistories: "聊天记录" };
+    const _categoryLabels = {
+      books: "书籍",
+      quotes: "摘抄",
+      sessions: "记录",
+      connections: "关联",
+      chatHistories: "聊天记录",
+      customQuoteTags: "自定义摘抄标签",
+      memories: "长期记忆",
+    };
     const _losses = Object.entries(_categoryLabels)
       .map(([key, label]) => {
         const cur = Array.isArray(state[key]) ? state[key].length : Object.keys(state[key] || {}).length;

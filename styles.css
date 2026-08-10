@@ -1872,6 +1872,8 @@ textarea {
   background: var(--color-surface);
   padding: 0.5rem 0.75rem 0.25rem;
   margin-top: 0.5rem;
+  /* 禁用核对行的双击页面缩放，但仍允许正常滚动和双指缩放。 */
+  touch-action: manipulation;
   /* 不要在这里加 max-height + overflow：本元素是 .dialog-form（CSS Grid）的
      grid 子项，带 overflow 的 grid 子项会被网格行塌成 ~0 高（offsetHeight=14
      而 scrollHeight=383，内容被裁成一条缝，面板看似消失）。.dialog-form 自身
@@ -1883,6 +1885,34 @@ textarea {
   color: var(--color-ink-light, var(--color-ink));
   opacity: 0.7;
   margin: 0 0 0.4rem;
+}
+
+.ocr-line-selector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ocr-line-selector__header .ocr-line-selector__hint {
+  flex: 1;
+}
+
+.ocr-line-selector__undo {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.ocr-line-selector__undo:hover,
+.ocr-line-selector__undo:focus-visible {
+  background: var(--color-danger-bg, #fde8e8);
 }
 
 .ocr-line-selector__row {

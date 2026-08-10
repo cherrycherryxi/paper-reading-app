@@ -131,7 +131,10 @@ globalThis.__hooks = {
 }
 
 function emptyState() {
-  return { books: [], sessions: [], quotes: [], connections: [], chatHistories: {}, chatContexts: {} };
+  return {
+    books: [], sessions: [], quotes: [], connections: [], chatHistories: {}, chatContexts: {},
+    customQuoteTags: [], memories: [],
+  };
 }
 
 // --- OPT-067: quote history context recovery ---
@@ -178,6 +181,31 @@ test("OPT-040: full GDPR export (exportFormat + nested .state) is unwrapped", ()
   const resolved = h.resolveImportedState(gdpr);
   assert.equal(resolved.books.length, 2, "should read books from .state, not top level");
   assert.equal(resolved.quotes.length, 1);
+});
+
+test("OPT-151: lightweight backup restores confirmed memories and custom quote tags", () => {
+  const h = createHarness();
+  const resolved = h.resolveImportedState({
+    customQuoteTags: ["金句", "主题"],
+    memories: [{ id: "m1", kind: "preference", content: "偏爱散文" }],
+  });
+  assert.deepEqual([...resolved.customQuoteTags], ["金句", "主题"]);
+  assert.equal(resolved.memories.length, 1);
+  assert.equal(resolved.memories[0].content, "偏爱散文");
+  assert.equal(h.stateContentCount(resolved), 3, "记忆和自定义标签是有效备份内容");
+});
+
+test("OPT-151: full GDPR export restores confirmed memories and custom quote tags", () => {
+  const h = createHarness();
+  const resolved = h.resolveImportedState({
+    exportFormat: 1,
+    state: {
+      customQuoteTags: ["灵感"],
+      memories: [{ id: "m2", kind: "goal", content: "今年读二十本" }],
+    },
+  });
+  assert.deepEqual([...resolved.customQuoteTags], ["灵感"]);
+  assert.equal(resolved.memories[0].content, "今年读二十本");
 });
 
 test("OPT-040: nested .state without exportFormat still unwraps (no top-level books)", () => {
@@ -229,6 +257,23 @@ test("OPT-040: a file resolving to empty does NOT silently wipe a non-empty acco
   await flush();
   assert.equal(h.getState().books.length, 0, "after explicit confirm the wipe applies");
   assert.equal(h.els.importResultDialog.open, true, "confirmed import shows the result dialog");
+});
+
+test("OPT-151: import warns before an older backup drops memories or custom quote tags", async () => {
+  const h = createHarness();
+  h.setState({
+    ...emptyState(),
+    customQuoteTags: ["保留标签"],
+    memories: [{ id: "m1", kind: "preference", content: "保留记忆" }],
+  });
+  h.setCurrentUser({ id: "u1" });
+  h.setAuth("tok");
+  h.importData({ __text: JSON.stringify(emptyState()) });
+  await h.getReaderPromise();
+  await flush();
+  assert.equal(h.els.confirmDialog.open, true, "must prompt before losing long-lived data");
+  assert.match(h.els.confirmDialogMessage.textContent, /自定义摘抄标签/);
+  assert.match(h.els.confirmDialogMessage.textContent, /长期记忆/);
 });
 
 test("OPT-040: invalid JSON shows a parse error and leaves state untouched", async () => {

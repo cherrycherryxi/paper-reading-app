@@ -18,7 +18,7 @@ TARGET_DATE="$(git show -s --format=%cs "$TARGET")"
 COMMIT_COUNT="$(git rev-list --count "$BASE..$TARGET")"
 STAT="$(git diff --stat "$BASE..$TARGET")"
 FILES="$(git diff --name-status "$BASE..$TARGET")"
-COMMITS="$(git log --no-merges --format='- `%h` %s' "$BASE..$TARGET")"
+COMMITS="$(git log --no-merges --format='%h%x1f%s%x1f%b%x1e' "$BASE..$TARGET")"
 
 export RELEASE_DATE="$TARGET_DATE" RELEASE_TARGET="$TARGET" RELEASE_BASE="$BASE" \
   RELEASE_COUNT="$COMMIT_COUNT" RELEASE_SUBJECT="$TARGET_SUBJECT" RELEASE_STAT="$STAT" \
@@ -35,26 +35,38 @@ out = pathlib.Path(sys.argv[1])
 def env(name):
     return os.environ.get(name, "")
 
-change_blocks = []
-for line in env("RELEASE_COMMITS").splitlines():
-    match = re.match(r"- `([^`]+)` (.+)", line)
-    if not match:
+internal_prefixes = ("chore", "docs", "test", "ci", "build", "refactor")
+user_changes, maintenance = [], []
+for record in env("RELEASE_COMMITS").split("\x1e"):
+    parts = record.strip().split("\x1f", 2)
+    if len(parts) < 2:
         continue
-    sha, subject = match.groups()
-    if subject.startswith(("feat", "perf")):
-        goal = "补充或优化对应产品能力，降低使用成本。"
-    elif subject.startswith(("fix", "bug")):
-        goal = "消除该问题，恢复相关流程的稳定表现。"
+    sha, subject = parts[:2]
+    body = parts[2].strip() if len(parts) > 2 else ""
+    title = re.sub(r"^[a-z]+(?:\([^)]*\))?!?:\s*", "", subject, flags=re.I)
+    item = (sha, subject, title, body)
+    if subject.lower().startswith(internal_prefixes):
+        maintenance.append(item)
     else:
-        goal = "完成本次发布范围内的工程或产品改进。"
-    change_blocks.append(
-        f"### `{sha}` {subject}\n\n"
-        f"**存在的问题**：{subject}（发布后可补充真实用户触发场景）。\n\n"
-        f"**目标**：{goal}\n\n"
-        f"**实现方法**：详见提交 `{sha}` 及下方变更文件列表。\n\n"
-        f"**最终效果**：已纳入本次生产发布，发布后的接口和公网入口由发布脚本自动校验。"
-    )
-change_details = "\n\n".join(change_blocks) or "本次发布没有可解析的提交明细，请人工补充。"
+        user_changes.append(item)
+
+def summary(body):
+    # Commit/PR 正文是唯一可用证据；保留前几段，不用标题臆测用户场景。
+    text = re.sub(r"\n{3,}", "\n\n", body).strip()
+    text = re.sub(r"(?m)^\s*(?:#{1,6}|[-*])\s*(?:tests?|验证|test results?)\b.*$", "", text, flags=re.I)
+    return text[:900].rstrip()
+
+blocks = []
+for sha, subject, title, body in user_changes:
+    detail = summary(body)
+    blocks.append(f"### {title}\n\n"
+                  f"**本次变化**：{subject}。\n\n"
+                  f"**实现依据**：{detail if detail else '提交未提供正文说明；请查看提交和下方文件清单。'}\n\n"
+                  f"**发布结果**：已随本版本进入生产；接口与公网入口由发布脚本校验。\n\n"
+                  f"_追溯：`{sha}`_")
+change_details = "\n\n".join(blocks) or "本次没有面向用户的功能提交；仅包含维护性变更。"
+commit_list = "\n".join(f"- `{sha}` {subject}" for sha, subject, _, _ in user_changes) or "- 无"
+maintenance_list = "\n".join(f"- `{sha}` {subject}" for sha, subject, _, _ in maintenance) or "- 无"
 
 out.write_text(f"""# 生产版本更新说明
 
@@ -65,12 +77,12 @@ out.write_text(f"""# 生产版本更新说明
 
 ## 一句话概览
 
-本次发布围绕「{env('RELEASE_SUBJECT')}」完成了一组产品改进，重点是让阅读记录、内容采集和日常使用更加稳定、顺畅。
+本次发布包含 {len(user_changes)} 项面向用户的变化和 {len(maintenance)} 项维护性变更。以下内容只陈述提交正文和代码范围能够支持的事实。
 
 ## 解决了什么问题
 
-- 本次发布涉及的用户问题和缺陷，来自以下变更记录：
-{env('RELEASE_COMMITS')}
+- 面向用户的提交：
+{commit_list}
 
 ## 新功能与改进
 
@@ -78,10 +90,9 @@ out.write_text(f"""# 生产版本更新说明
 
 {change_details}
 
-### 面向用户的变化
+### 内部维护（不作为新功能宣传）
 
-- 具体功能、修复和体验变化见上方提交明细；其中带有 `OPT-`、`bug-` 或 `fix` 标记的条目代表已纳入本次发布范围的问题闭环。
-- 不改变现有账号数据结构和使用方式；已有数据会沿用现有兼容逻辑。
+{maintenance_list}
 
 ### 实现与质量保障
 

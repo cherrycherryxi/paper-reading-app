@@ -18,6 +18,15 @@ TODAY="${PAPER_WEEKLY_TODAY:-$(date +%F)}"
 DRY_RUN="${PAPER_WEEKLY_DRY_RUN:-0}"
 LOCK_DIR="${PAPER_WEEKLY_LOCK_DIR:-$HOME/.claude/.codex-weekly-report.lock}"
 
+# The report is a Sunday close-of-week artifact.  A migration/manual invocation
+# on Monday must not consume that ISO week's report and email markers.  An
+# explicit week is an operator recovery action; otherwise only dry-runs may run
+# outside Sunday.
+if [ "$DRY_RUN" != 1 ] && [ -z "${PAPER_WEEKLY_WEEK:-}" ] && [ "$(date +%w)" != 0 ]; then
+  echo "[$(date)] 非周日运行被拒绝；请使用 PAPER_WEEKLY_DRY_RUN=1，或显式设置 PAPER_WEEKLY_WEEK 进行补发。" >> "$LOG"
+  exit 0
+fi
+
 mkdir -p "$REPORTDIR" "$(dirname "$LOG")"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "[$(date)] $WEEK 已有周报任务运行，跳过。" >> "$LOG"
@@ -76,7 +85,7 @@ fi
 
 FILES=()
 for i in 6 5 4 3 2 1 0; do
-  day=$(date -v-${i}d +%F 2>/dev/null || date -d "-${i} day" +%F 2>/dev/null || true)
+  day=$(date -j -f %F -v-${i}d "$TODAY" +%F 2>/dev/null || date -d "$TODAY -${i} day" +%F 2>/dev/null || true)
   [ -n "$day" ] && [ -f "$LOGDIR/$day.md" ] && FILES+=("$LOGDIR/$day.md")
 done
 

@@ -1347,7 +1347,7 @@ Format per item:
 - how: `app_server.py:2524`：将 `_COMPRESS_THRESHOLD = 10` 改为 `_COMPRESS_THRESHOLD = 20`；可选：同步调整 `_COMPRESS_KEEP_RECENT = 6` 为 `10`，保留更多最近消息。1-2 行改动，无 schema/接口/前端变更。需在测试中更新 threshold 相关常量引用。Touch: `app_server.py:2524-2525`；相关测试文件（grep `_COMPRESS_THRESHOLD`）。
 
 ### OPT-145 — 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 [2026-08-03]
-- status: triaged — 2026-W32 唯一焦点
+- status: done (PR #106, merged 2026-08-05 — 「更多标签」搜索面板、当前选中项与清除筛选闭环已落地)
 - area: frontend
 - priority: P1
 - size: M
@@ -1357,7 +1357,7 @@ Format per item:
 - how: 首屏仅渲染有限的常用/最近标签和当前选中项，末尾显示「更多标签（N）」；点击打开可搜索的标签面板，选择后复用 `selectedTagFilter` + `renderBooks()`，确保任一标签可到达、当前项可见、现有「清除全部筛选」继续生效。具体“常用/最近”口径先采用可解释的书籍覆盖数排序；不新增 schema。Touch: `index.html`、`app.js:1384-1425`、`styles.css:465-476`，补前端筛选测试。
 
 ### OPT-146 — 书卡元信息层级过密，封面下同时争抢状态、评分、会话、摘抄、关联、进度和标签 [2026-08-03]
-- status: triaged — P3 parked (先完成 OPT-145 并观察真实浏览 signal；当前只有“信息零碎”的体验判断，没有误读或任务失败证据)
+- status: done (PR #107, merged 2026-08-05 — 默认书卡已精简，完整信息保留在详情中)
 - area: frontend
 - priority: P3
 - size: M
@@ -1377,7 +1377,7 @@ Format per item:
 - how: parked；先补真机基线（首屏可交互时间、长列表滚动掉帧），达到明确阈值后再在「加载更多」与虚拟列表中选最小方案。
 
 ### OPT-148 — 面向用户的显式阅读长期记忆：可确认、查看、编辑、删除并按需召回 [2026-08-06]
-- status: new
+- status: done (PR #110, merged 2026-08-08 — 已确认记忆可查看/编辑/删除，memories 经 sanitize 持久化并按上下文注入 prompt)
 - area: agent
 - priority: P1
 - size: M
@@ -1387,7 +1387,7 @@ Format per item:
 - how: 先做可控 MVP：state 新增 `memories[]`（id、kind、content、sourceContext、status、createdAt、updatedAt）；只允许用户确认后写入，不做静默自动保存；提供记忆列表的查看/编辑/删除 UI；PromptBuilder 先按全局稳定偏好 + 当前 book/quote 相关性选择少量记忆注入，并显式标注为用户数据。补 sanitize、导入导出、删除与 prompt 单测。Touch: `app_server.py:206-213,712-770,2623-2681`、`app.js:6-14,389-402`、`index.html`、相关 agent/frontend tests。
 
 ### OPT-149 — 清空探讨请求失败时仍清空本地界面，刷新后历史“复活” [2026-08-06]
-- status: new
+- status: done (PR #109, merged 2026-08-07 — DELETE 失败会向上传播，聊天界面仅在成功后清空，并有前端回归测试)
 - area: frontend
 - priority: P2
 - size: S
@@ -1395,3 +1395,69 @@ Format per item:
 - description: `clearChatHistory()` 捕获 DELETE `/api/chat-history` 错误后只 `showToast`，不重新抛出也不返回失败状态（`app.js:5357-5380`）；调用方无条件执行 `history = []` 与 `resetMessages()`（`chat.js:801-814`）。因此网络/服务端失败时 UI 看似已清空，服务端历史仍在，重新进入或刷新后再次出现。
 - why: 这是可复现的 false-success，而非纯代码卫生。它还与 app 其他写操作的失败语义不一致：失败应保留原数据和界面，允许用户重试。
 - how: 让 `clearChatHistory()` 在 catch 后重新抛出，或返回明确 boolean；`chat.js` 仅在成功时重置 history/messages，失败时保留当前消息。补前端回归测试：DELETE reject 时消息不消失；成功时才清空。Touch: `app.js:5357-5380`、`chat.js:801-814`、`tests/frontend/`。
+
+### OPT-150 — 无手动阅读记录时书卡进度忽略摘抄页码，已有阅读痕迹仍显示「已读到 0 页」 [2026-08-08]
+- status: done (PR #111, merged 2026-08-09 — 书卡以最大有效摘抄页码作为显示回退，已有更高 currentPage 不降低，百分比封顶并有回归测试)
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——2026-08-08 owner 真机直接报告任务失败，且与 2026-07-16「很少新增阅读记录，希望从带页码摘抄推算阅读足迹」的明确方向一致；让高频摘抄数据回流为可信进度，直接服务 Theme 2「回顾有价值」。
+- description: `buildBookSearchCard()` 在 `app.js:1594-1608` 仅通过 `getProgress(book)` 和 `book.currentPage || 0` 生成进度文案；`getProgress()`（`app.js:948-951`）同样只读 `book.currentPage`。虽然 `buildRenderCache()` 已遍历该书摘抄用于计数，但没有收集页码。因此一本没有 session、`currentPage=0`、却已有多条带 `page` 摘抄的书，书卡仍稳定显示「已读到第 0 页」。
+- why: 这是当前真实数据下的 false-zero，不是未来推演。用户的实际采集习惯是读完一小节后集中录摘抄，而不是维护 session；继续只信 session 写入的 currentPage，会让书卡进度长期与真实阅读痕迹冲突。S 级显示层修复即可，不应反写 state 或伪造阅读记录。
+- how: 在 `buildRenderCache()` 遍历 regular quotes 时同步维护 `maxQuotePageMap`（仅接受有限正数页码）；`buildBookSearchCard()` 取 `displayPage = max(book.currentPage, maxQuotePage)`，进度文案和百分比统一使用 displayPage，百分比按 totalPages 上限截断。只作为书卡显示回退，不修改 `book.currentPage`、status、finishedAt 或 sessions。补前端测试：无 session + 多条页码摘抄取最大页；已有更高 currentPage 不回退；无效页码忽略；有 totalPages 时百分比正确。Touch: `app.js:948-965,1594-1608`、`tests/frontend/`。
+
+### OPT-151 — 数据备份恢复丢弃长期记忆与自定义摘抄标签 — 由 explore E240 提拔 [2026-08-09]
+- status: done (PR #112 squash merged into feature/agent on 2026-08-10; merge commit `2a673281d270520108c76d256dd274d2ffd7c4e5`; 本次实跑 Python/Node 全量测试成功，PR CI 两个 `Python and frontend tests` 均 SUCCESS)
+- area: frontend / data integrity
+- priority: P1
+- size: S
+- northstar: 高——长期记忆与标签都是用户长期积累的回顾资产；导出文件明明包含这些字段，恢复却静默丢弃，会让备份失去可信度并直接违背 2026-07-31 的显式长期记忆 signal。
+- description: `exportData()` 直接序列化完整 `state`（`app.js:4440-4448`），完整账号导出也把完整 state 放在 `.state`；但 `resolveImportedState()` 只重建 books、sessions、quotes、chatHistories、chatContexts、connections（`app.js:4585-4604`），没有传入 `customQuoteTags` 与 `memories`，随后 `normalizeStateShape()` 会把二者默认成空数组（`app.js:392-405`）。因此任一格式的有效备份在导入后都会静默清空这两类数据；`stateContentCount()` 与导入结果摘要也不计它们（`app.js:4607-4615,4621-4637`），用户得不到丢失提示。
+- how: `resolveImportedState()` 显式保留 `source.customQuoteTags` 和 `source.memories`；把二者纳入覆盖缩减保护和导入结果摘要；补轻量/完整导出两种格式的恢复回归测试。Touch: `app.js:4585-4637`、相关 frontend tests。
+
+### OPT-152 — 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文 — 由 explore E241 提拔 [2026-08-09]
+- status: triaged
+- area: backend / agent context
+- priority: P2
+- size: S
+- northstar: 高——2026-07-31 signal 要求后续对话按需召回稳定偏好、观点、目标与待办；当前截断顺序使第 9 条起的最新确认内容永久失忆，直接破坏该能力的核心承诺。
+- description: 前端新增或编辑记忆时都用 `state.memories.push(memory)` 放到数组末尾（`app.js:416-427`）。PromptBuilder 按原数组顺序遍历所有匹配记忆（`app_server.py:2655-2661`），最后只取 `context_memories[:8]`（`app_server.py:2690-2692`），没有按 `updatedAt`、上下文相关性或新旧排序。因此全局记忆达到 8 条后，后来新增的第 9 条及以后永远不注入 prompt；编辑旧记忆还会把它移动到末尾并使其落出窗口。
+- how: 先按上下文精确度（quote > book > global）和 `updatedAt` 倒序排序后取 8 条；至少保证最近确认/编辑的记忆可召回。补 9+ 条、编辑后重排和 book/quote 相关性测试。Touch: `app_server.py:2655-2692`、相关 agent tests。
+
+### OPT-153 — 快速识别误删一行后无法撤销，只能重新发起 OCR [2026-08-09]
+- status: triaged
+- area: frontend
+- priority: P1
+- size: S
+- northstar: 强——owner 在真实快速识别核对流程中直接误触；一次点错就丢失已识别内容并迫使用户重新识别，直接破坏 Theme 1「采集顺滑」和对结果可控性的信任。
+- description: `renderOcrLineSelector()` 的删除处理（`app.js:2731-2744`）命中 `.ocr-line-selector__del` 后立即执行 `row.remove()` 并重建正文；被删行的文本、section 与原顺序均未保存在任何可恢复状态中。当前提示只写「可继续编辑或删除」，没有撤销入口。
+- why: 这是 2026-08-09 owner 直接反馈的可复现任务失败。OCR 行核对本就要求连续点删，44px 删除按钮虽降低误触概率，却无法消除误操作；识别结果仍在确认阶段，不应在一次点击后不可逆丢弃。
+- how: 将删行改为对原 DOM 行做可恢复的软删除：保留 textarea 值、section 与顺序，标记 deleted 后从 `rebuildQuoteContentFromOcrPanel()` 排除，并在原位置显示「已删除 · 撤销」；点撤销恢复该行及正文。只有最终保存卡片时才真正丢弃隐藏行。补删除后正文排除、撤销恢复原顺序/分段、连续删除及全部删除后仍可撤销的前端测试。Touch: `app.js:2665-2744`、`styles.css:1869-1954`、`tests/frontend/ocr-line-selector.test.js`。
+
+### OPT-154 — 快速识别卡片核对时双击触发浏览器页面放大 [2026-08-09]
+- status: triaged
+- area: frontend / mobile UX
+- priority: P2
+- size: S
+- northstar: 中——owner 直接反馈，发生在高频的识别结果核对路径；意外缩放会改变视口并打断逐行检查，但不造成数据丢失，优先级低于 OPT-153。
+- description: `index.html:606` 的 `#ocrLineSelector` 位于 quote dialog 内；其组件样式（`styles.css:1869-1954`）没有 `touch-action`，页面 viewport 也保留浏览器默认缩放语义。移动端在核对卡片时快速双击会被解释为 double-tap zoom，导致视口放大并丢失当前阅读位置。
+- why: 这是 2026-08-09 owner 真机直接反馈，不是推测。不能用 `user-scalable=no` 或 `maximum-scale=1` 全局禁用缩放，那会伤害可访问性；应只约束出现问题的交互区域并保留 pinch zoom。
+- how: 在 `#quoteDialog` 或更窄的 `.ocr-line-selector` 核对区域应用 `touch-action: manipulation`，禁用 double-tap zoom 同时保留平移与双指缩放；避免对全站 viewport 做不可缩放设置。补 CSS 约束测试，并在 iPhone 12 真机验证单击编辑、滚动、双击不放大、双指缩放仍可用。Touch: `styles.css:1869-1954`、相关 frontend CSS test。
+
+### OPT-155 — Agent 标签确认卡将未转义标签写入 innerHTML，可被模型输出触发 DOM 注入 — 由 explore E244 提拔 [2026-08-10]
+- status: new
+- area: frontend / security
+- priority: P2
+- size: S
+- northstar: 中——Agent 建议确认卡位于高频探讨路径；用户输入会影响模型生成的标签，未转义内容进入 DOM 会破坏界面可信度，恶意标签还可执行同源页面脚本。
+- description: `_showNextAgentAction()` 用模板字符串赋给 `container.innerHTML`（`chat.js:955-971`），其中插入 `renderActionText(action)`。该函数对 add_note、add_book、question、link_thought 均调用 `escapeHtml()`，唯独 tag 分支直接返回 `(d.tags || []).join("、")`（`chat.js:1034-1043`）。后端 `ActionValidator` 只做 schema 检查并原样保留 data（`app_server.py:2984-3021`），随后把模型 action 持久化并回传（`app_server.py:5600-5610`）；因此包含 HTML 的标签会在用户点确认前就被解析为 DOM。
+- how: tag 分支逐项执行 `escapeHtml(String(tag))` 后再 join；补恶意标签（`<img onerror=...>`、引号、ampersand）只显示纯文本且不生成元素的前端测试。长期可将确认卡改为 DOM API + `textContent`，减少分支遗漏。Touch: `chat.js:955-971,1034-1043`、相关 frontend tests。
+
+### OPT-156 — 忽略 Agent 建议失败时仍移除确认卡并显示“已忽略” — 由 explore E245 提拔 [2026-08-10]
+- status: new
+- area: frontend / error handling
+- priority: P2
+- size: S
+- northstar: 中——用户对 Agent 写操作的确认/拒绝必须可信；拒绝失败却继续展示成功，会让服务端保留的待处理 action 与界面认知分叉。
+- description: `cancelBtn.onclick` 调用 `POST /api/agent-actions/{id}/reject`（`chat.js:1008-1016`），catch 只写 console（`chat.js:1017-1019`）；无论请求是否成功，随后都执行 `container.remove()`、追加“已忽略”并展示下一项（`chat.js:1020-1022`）。网络、鉴权或服务端失败时 action 仍处于原状态，但当前页面永久丢失该确认卡，形成与已修清空聊天 false-success（OPT-149）同类的数据控制语义错误。
+- how: reject 失败时保留卡片、恢复两个按钮与 `handled=false`，把忽略按钮改为“重试忽略”并 toast 错误；只有服务端确认成功后才移除卡片和推进队列。补成功/失败两条前端测试。Touch: `chat.js:1008-1022`、相关 frontend tests。

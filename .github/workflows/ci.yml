@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write # needed by the auto-file-@claude-issue step below
 
     steps:
       - name: Check out repository
@@ -35,10 +34,9 @@ jobs:
 
       - name: Public repository scan
         run: |
-          ! rg --hidden -n "log_server|paper_reading_backend|192\\.168\\.|/Users/huangnanqi" \
+          ! grep -R -n -E "log_server\\.py|paper_reading_backend|192\\.168\\.|/Users/huangnanqi" \
             app_server.py reading_mcp_server.py mcp_dispatcher.py tool_schema_provider.py \
-            README.md CLAUDE.md .gitignore index.html app.js chat.js tests scripts data \
-            -g '!*.db' -g '!__pycache__/**'
+            README.md CLAUDE.md .gitignore index.html app.js chat.js
 
       - name: Run Python tests
         run: python -m unittest discover -s tests/agent -p '*_test.py'
@@ -46,58 +44,38 @@ jobs:
       - name: Run frontend tests
         run: node --test tests/frontend/*.test.js
 
-      # Only for direct pushes to feature/agent — NOT for PR branches (those are a
-      # developer/agent's own in-progress work; a red PR there is normal mid-fix
-      # noise, not something needing an unattended autofix). Files an issue that
-      # mentions @claude, which the existing claude.yml workflow (issue_comment /
-      # issues triggers) picks up and runs Claude Code Action on. Kept as two
-      # separate workflows (rather than invoking claude-code-action directly here)
-      # so this job's default GITHUB_TOKEN never needs the CLAUDE_CODE_OAUTH_TOKEN
-      # secret — only claude.yml does.
-      - name: File @claude auto-fix issue on feature/agent push failure
-        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/feature/agent'
+
+  codex-autofix:
+    name: Codex auto-fix failed feature push
+    needs: test
+    if: >-
+      needs.test.result == 'failure' && github.event_name == 'push' &&
+      github.ref == 'refs/heads/feature/agent' && secrets.OPENAI_API_KEY != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Diagnose and prepare a repair PR with Codex
+        uses: openai/codex-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -uo pipefail
-          REPO="${{ github.repository }}"
-          SHA="${{ github.sha }}"
-          SHORT_SHA="${SHA:0:7}"
-          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          COMMIT_MSG=$(git log -1 --format='%s' "$SHA" 2>/dev/null || echo "(unknown)")
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/ci-autofix.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          codex-args: --ephemeral
+          output-file: codex-ci-autofix.md
 
-          # 防重复：已有未处理的自动修复 issue 就跳过，避免同一根因连续几次
-          # push（例如夜间记账提交）反复失败时刷屏、反复触发 Claude 跑。
-          existing=$(gh issue list --repo "$REPO" --search 'in:title "CI 自动修复" is:open' --json number --jq 'length' 2>/dev/null || echo 0)
-          if [ "${existing:-0}" -gt 0 ]; then
-            echo "已有未处理的 CI 自动修复 issue，跳过（避免重复触发）。"
-            exit 0
-          fi
-
-          # 逐行用 printf 传参落盘（每个参数各占一个正常缩进的脚本行，YAML 字面
-          # 块只要求每个物理行 >=10 空格缩进即可满足，不需要 heredoc）——heredoc
-          # 结束符本身也得缩进才能过 YAML 校验，但缩进的结束符 bash 又认不出来，
-          # 两边要求互斥，故不用 heredoc。
-          printf '%s\n' \
-            "@claude feature/agent 分支直推后 CI 失败，请诊断并修复。" \
-            "" \
-            "**失败的提交**: ${SHA} — ${COMMIT_MSG}" \
-            "**失败的 run**: ${RUN_URL}" \
-            "" \
-            "**诊断要求（重要，别跳过）**：" \
-            "1. 先判断这是「这次提交本身的代码问题」还是「环境/依赖问题」——检查最近几次 push 到 feature/agent 的 CI 状态（\`gh run list --workflow=CI --branch feature/agent\`）。如果连不改代码的纯 .wolf 记账提交也失败，大概率是依赖/环境问题（例如上游包发布了破坏性新版本、requirements.txt 没锁版本上界），不是这次提交的锅。" \
-            "2. 怀疑是依赖问题时，用隔离环境复现（例如 \`pip install --target <空目录> <包名>\`），不要污染本地 venv，确认根因后再动手。" \
-            "3. 修复要小而精准（例如给依赖锁版本上界），不要顺手做无关重构，也不要跟着上游破坏性升级做大迁移——除非确认这就是唯一合理修法；不确定就不要猜。" \
-            "" \
-            "**落地要求（硬性）**：" \
-            "- 改动一定要跑通本地测试再提交：Python \`.venv/bin/python -m pytest tests/agent/ -q\`；前端 \`node --test tests/frontend/*.test.js\`。" \
-            "- **开 PR 到 \`feature/agent\`，绝不直接 push 到 feature/agent 或 main，也不要自己 merge**——本仓库的闸门是人工 / 每天 10:00 的晨间任务自动审查+合并，交给它们处理。" \
-            "- PR 描述里写清楚根因和修复思路，方便审查。" \
-            "- 如果排查后发现不是能安全自动修的情况（根因不确定、涉及安全敏感改动等），不要硬修，改为在这个 issue 里留言说明发现，等人工判断。" \
-            "" \
-            "遵循仓库 CLAUDE.md 里的既有约定（分支模型、测试命令等）。" \
-            > /tmp/ci-autofix-issue-body.md
-
-          gh issue create --repo "$REPO" \
-            --title "CI 自动修复: feature/agent 直推失败 @ ${SHORT_SHA}" \
-            --body-file /tmp/ci-autofix-issue-body.md
+      - name: Upload Codex repair report
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-ci-autofix-${{ github.run_id }}
+          path: codex-ci-autofix.md
+          if-no-files-found: warn

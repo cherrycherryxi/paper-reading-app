@@ -10,7 +10,7 @@ STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
 LOG="${PAPER_NIGHTLY_TRIAGE_LOG:-$HOME/.claude/codex-nightly-triage.log}"
 BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
 PYTHON="${PAPER_NIGHTLY_PYTHON:-/usr/bin/python3}"
-TODAY="${PAPER_NIGHTLY_TODAY:-$(date -u +%F)}"
+TODAY="${PAPER_NIGHTLY_TODAY:-$(date +%F)}"
 DRY_RUN="${PAPER_NIGHTLY_DRY_RUN:-0}"
 SKIP_FETCH="${PAPER_NIGHTLY_SKIP_FETCH:-0}"
 BASE_REF="${PAPER_NIGHTLY_BASE_REF:-origin/feature/agent}"
@@ -66,7 +66,7 @@ else
   AUTO_COUNT="UNKNOWN"
 fi
 
-PROMPT="你是 paper-reading-app 夜间 Agent1（Triage）。当前 UTC 日期是 ${TODAY}。当前目录是隔离 worktree；不要 commit、push、开 PR 或发布。
+PROMPT="你是 paper-reading-app 夜间 Agent1（Triage）。当前上海日期是 ${TODAY}。当前目录是隔离 worktree；不要 commit、push、开 PR 或发布。
 
 先完整遵循 AGENTS.md，并按要求读取 .wolf/anatomy.md、.wolf/cerebrum.md；这是规划维护，不写应用代码。读取 optimization/roadmap.md、optimization/signals.md、optimization/backlog.md、optimization/triage.md，并用真实代码和下方证据核实状态。GitHub 数据已经由外层一次性获取，不要再调用 gh 或逐个访问 GitHub API。
 

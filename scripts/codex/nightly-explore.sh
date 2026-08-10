@@ -8,7 +8,7 @@ REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
 LOG="${PAPER_NIGHTLY_EXPLORE_LOG:-$HOME/.claude/codex-nightly-explore.log}"
 BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
-TODAY="${PAPER_NIGHTLY_TODAY:-$(date -u +%F)}"
+TODAY="${PAPER_NIGHTLY_TODAY:-$(date +%F)}"
 DRY_RUN="${PAPER_NIGHTLY_DRY_RUN:-0}"
 SKIP_FETCH="${PAPER_NIGHTLY_SKIP_FETCH:-0}"
 SKIP_DEP="${PAPER_NIGHTLY_SKIP_DEPENDENCY:-0}"
@@ -57,7 +57,7 @@ for attempt in 1 2 3; do
 done
 [ -n "$OPEN_PRS" ] || OPEN_PRS="（无 open PR 或 GitHub 数据不可用；不得据此臆造状态。）"
 
-PROMPT="你是 paper-reading-app 夜间 Agent3（Explore）。当前 UTC 日期是 ${TODAY}。当前目录是隔离 worktree；不要 commit、push、开 PR、合并或发布。
+PROMPT="你是 paper-reading-app 夜间 Agent3（Explore）。当前上海日期是 ${TODAY}。当前目录是隔离 worktree；不要 commit、push、开 PR、合并或发布。
 
 完整遵循 AGENTS.md，先读 .wolf/anatomy.md、.wolf/cerebrum.md、.wolf/buglog.json。读取 optimization/backlog.md、optimization/triage.md、optimization/roadmap.md、optimization/signals.md，并查看最近 git 历史。
 
