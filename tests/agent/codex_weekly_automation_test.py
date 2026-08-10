@@ -30,6 +30,12 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn('grep -Fqx "$METRICS_ROW"', source)
         self.assertIn("worktree add", source)
 
+    def test_weekly_script_rejects_implicit_non_sunday_runs(self):
+        source = (CODEX_DIR / "weekly-report.sh").read_text()
+        self.assertIn('date +%w', source)
+        self.assertIn('PAPER_WEEKLY_WEEK:-', source)
+        self.assertIn('非周日运行被拒绝', source)
+
     def test_product_owner_is_isolated_and_path_guarded(self):
         source = (CODEX_DIR / "product-owner-monday.sh").read_text()
         self.assertIn("worktree add --quiet --detach", source)
@@ -40,10 +46,20 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertNotIn("push origin main", source)
         self.assertNotIn("deploy-prod", source)
 
+    def test_product_owner_summary_requires_a_complete_decision_record(self):
+        source = (CODEX_DIR / "product-owner-monday.sh").read_text()
+        for heading in ("【上周结算】", "【本周唯一焦点】", "【为什么现在】", "【本周三件事】", "【明确不做】"):
+            self.assertIn(heading, source)
+        self.assertIn("SUMMARY_SIZE", source)
+        self.assertIn("禁止只罗列 OPT/PR 编号", source)
+        self.assertIn("需人工确认", source)
+        self.assertIn("模型原始摘要", source)
+
     def test_launchd_schedules_and_commands(self):
         cases = {
             "com.huangnanqi.paper-codex-weekly-report.plist": (0, 18, "weekly-report.sh"),
             "com.huangnanqi.paper-codex-product-owner.plist": (1, 9, "product-owner-monday.sh"),
+            "com.huangnanqi.paper-codex-weekly-prod-release.plist": (0, 17, "weekly-prod-release.sh"),
         }
         for filename, (weekday, hour, script) in cases.items():
             with (LAUNCHD_DIR / filename).open("rb") as handle:
@@ -61,7 +77,7 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
             logs = root / "daily"
             reports = root / "reports"
             logs.mkdir()
-            (logs / f"{date.today().isoformat()}.md").write_text("# 日报\n" + "完成真实产品工作。" * 20)
+            (logs / "2099-01-07.md").write_text("# 日报\n" + "完成真实产品工作。" * 20)
 
             fake_codex = root / "codex"
             report_body = "# 周报 2099-W01\n\n## 本周进展\n" + "已完成可靠迁移。" * 40

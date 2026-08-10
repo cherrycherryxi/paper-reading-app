@@ -8,7 +8,7 @@ REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
 LOG="${PAPER_NIGHTLY_IMPLEMENT_LOG:-$HOME/.claude/codex-nightly-implement.log}"
 BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
-TODAY="${PAPER_NIGHTLY_TODAY:-$(date -u +%F)}"
+TODAY="${PAPER_NIGHTLY_TODAY:-$(date +%F)}"
 DRY_RUN="${PAPER_NIGHTLY_DRY_RUN:-0}"
 SKIP_FETCH="${PAPER_NIGHTLY_SKIP_FETCH:-0}"
 SKIP_DEP="${PAPER_NIGHTLY_SKIP_DEPENDENCY:-0}"
@@ -48,7 +48,7 @@ TMP_ROOT=$(mktemp -d)
 WT="$TMP_ROOT/wt"
 git -C "$REPO" worktree add --quiet --detach "$WT" "$BASE_REF" >> "$LOG" 2>&1 || fail "创建隔离 worktree"
 
-PROMPT="你是 paper-reading-app 夜间 Agent2（Implement）。当前 UTC 日期是 ${TODAY}。当前目录是隔离 worktree；只修改文件，不执行 git/gh，不 commit、不 push、不开 PR、不合并、不发布。
+PROMPT="你是 paper-reading-app 夜间 Agent2（Implement）。当前上海日期是 ${TODAY}。当前目录是隔离 worktree；只修改文件，不执行 git/gh，不 commit、不 push、不开 PR、不合并、不发布。
 
 完整遵循 AGENTS.md：先读 .wolf/anatomy.md、.wolf/cerebrum.md、.wolf/buglog.json。读取 optimization/triage.md。
 

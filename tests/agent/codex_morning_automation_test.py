@@ -28,6 +28,10 @@ class CodexMorningAutomationTests(unittest.TestCase):
     def test_candidate_prompt_excludes_completed_and_in_progress_items(self):
         source = MORNING.read_text()
         prompt = source[source.index("候选前的硬性对账"):source.index("额外要求")]
+        self.assertIn("optimization/roadmap.md", prompt)
+        self.assertIn("product-owner-latest.md", prompt)
+        self.assertIn("weekly-reports", prompt)
+        self.assertIn("不是完成状态的证据", prompt)
         self.assertIn(r"\`new\` 或 \`triaged\`", prompt)
         self.assertIn(r"\`done\`、\`in-progress\`、已有 open PR、已合并 PR", prompt)
         self.assertIn("当前代码已经实现", prompt)
