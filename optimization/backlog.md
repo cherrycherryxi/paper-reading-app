@@ -1347,7 +1347,7 @@ Format per item:
 - how: `app_server.py:2524`：将 `_COMPRESS_THRESHOLD = 10` 改为 `_COMPRESS_THRESHOLD = 20`；可选：同步调整 `_COMPRESS_KEEP_RECENT = 6` 为 `10`，保留更多最近消息。1-2 行改动，无 schema/接口/前端变更。需在测试中更新 threshold 相关常量引用。Touch: `app_server.py:2524-2525`；相关测试文件（grep `_COMPRESS_THRESHOLD`）。
 
 ### OPT-145 — 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 [2026-08-03]
-- status: triaged — 2026-W32 唯一焦点
+- status: done (PR #106, merged 2026-08-05 — 「更多标签」搜索面板、当前选中项与清除筛选闭环已落地)
 - area: frontend
 - priority: P1
 - size: M
@@ -1357,7 +1357,7 @@ Format per item:
 - how: 首屏仅渲染有限的常用/最近标签和当前选中项，末尾显示「更多标签（N）」；点击打开可搜索的标签面板，选择后复用 `selectedTagFilter` + `renderBooks()`，确保任一标签可到达、当前项可见、现有「清除全部筛选」继续生效。具体“常用/最近”口径先采用可解释的书籍覆盖数排序；不新增 schema。Touch: `index.html`、`app.js:1384-1425`、`styles.css:465-476`，补前端筛选测试。
 
 ### OPT-146 — 书卡元信息层级过密，封面下同时争抢状态、评分、会话、摘抄、关联、进度和标签 [2026-08-03]
-- status: triaged — P3 parked (先完成 OPT-145 并观察真实浏览 signal；当前只有“信息零碎”的体验判断，没有误读或任务失败证据)
+- status: done (PR #107, merged 2026-08-05 — 默认书卡已精简，完整信息保留在详情中)
 - area: frontend
 - priority: P3
 - size: M
@@ -1461,4 +1461,3 @@ Format per item:
 - northstar: 中——用户对 Agent 写操作的确认/拒绝必须可信；拒绝失败却继续展示成功，会让服务端保留的待处理 action 与界面认知分叉。
 - description: `cancelBtn.onclick` 调用 `POST /api/agent-actions/{id}/reject`（`chat.js:1008-1016`），catch 只写 console（`chat.js:1017-1019`）；无论请求是否成功，随后都执行 `container.remove()`、追加“已忽略”并展示下一项（`chat.js:1020-1022`）。网络、鉴权或服务端失败时 action 仍处于原状态，但当前页面永久丢失该确认卡，形成与已修清空聊天 false-success（OPT-149）同类的数据控制语义错误。
 - how: reject 失败时保留卡片、恢复两个按钮与 `handled=false`，把忽略按钮改为“重试忽略”并 toast 错误；只有服务端确认成功后才移除卡片和推进队列。补成功/失败两条前端测试。Touch: `chat.js:1008-1022`、相关 frontend tests。
-
