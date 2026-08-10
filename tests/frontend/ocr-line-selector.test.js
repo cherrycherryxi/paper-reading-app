@@ -50,6 +50,7 @@ function createOcrLineSelectorStub() {
   const _rows = []; // { value, removed }
 
   const hintStub = { textContent: "" };
+  const undoStub = { hidden: true };
 
   const makeInputStub = (entry) => ({
     classList: { contains: (c) => c === "ocr-line-selector__input" },
@@ -59,7 +60,10 @@ function createOcrLineSelectorStub() {
     set value(v) { entry.value = String(v); },
   });
   const makeRowStub = (entry) => ({
+    _entry: entry,
+    dataset: { section: "0" },
     remove() { entry.removed = true; },
+    before(other) { (other?._entry || entry).removed = false; },
     querySelector() { return null; },
   });
 
@@ -84,6 +88,7 @@ function createOcrLineSelectorStub() {
     set oninput(v) { state.oninput = v; },
     querySelector(sel) {
       if (sel === ".ocr-line-selector__hint") return hintStub;
+      if (sel === ".ocr-line-selector__undo") return undoStub;
       return null;
     },
     querySelectorAll(sel) {
@@ -94,6 +99,8 @@ function createOcrLineSelectorStub() {
     },
     _rows,
     _hint: hintStub,
+    _undo: undoStub,
+    appendChild(row) { row.before(); },
   };
   return stub;
 }
@@ -109,6 +116,10 @@ function deleteClickEvent(sel, idx) {
     },
   };
   return { target: { closest: (s) => (s === ".ocr-line-selector__del" ? fakeBtn : null) } };
+}
+
+function undoClickEvent(sel) {
+  return { target: { closest: (s) => (s === ".ocr-line-selector__undo" ? sel._undo : null) } };
 }
 
 const inputEvent = { target: { classList: { contains: (c) => c === "ocr-line-selector__input" }, style: {}, scrollHeight: 24 } };
@@ -239,6 +250,17 @@ test("click ✕ removes a row and rebuilds textarea continuously", () => {
   assert.ok(!quoteContentEl.value.includes("\n"), "no newline after delete");
 });
 
+test("click 撤销删除 restores the row at its original position", () => {
+  const { hooks, ocrLineSelectorEl, quoteContentEl } = createHarness();
+  hooks.renderOcrLineSelector("行一\n行二\n行三");
+  ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 1));
+  assert.equal(quoteContentEl.value, "行一行三");
+  assert.equal(ocrLineSelectorEl._undo.hidden, false, "undo is offered after deletion");
+  ocrLineSelectorEl.onclick(undoClickEvent(ocrLineSelectorEl));
+  assert.equal(quoteContentEl.value, "行一行二行三", "deleted row restored in place");
+  assert.equal(ocrLineSelectorEl._undo.hidden, true, "undo is consumed after restore");
+});
+
 test("panel stays visible while ≥1 row remains (delete to 1)", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
   hooks.renderOcrLineSelector("行一\n行二\n行三");
@@ -248,15 +270,14 @@ test("panel stays visible while ≥1 row remains (delete to 1)", () => {
   assert.equal(ocrLineSelectorEl.hidden, false, "still visible at 1 row (so it stays editable)");
 });
 
-test("panel auto-hides only when the last row is removed", () => {
+test("deleting the last row keeps an undo entry point", () => {
   const { hooks, ocrLineSelectorEl } = createHarness();
   hooks.renderOcrLineSelector("行一\n行二\n行三");
   ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0));
   ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0));
   ocrLineSelectorEl.onclick(deleteClickEvent(ocrLineSelectorEl, 0)); // last one
-  assert.equal(ocrLineSelectorEl.hidden, true, "hidden when 0 rows remain");
-  assert.equal(ocrLineSelectorEl.onclick, null, "onclick cleared");
-  assert.equal(ocrLineSelectorEl.oninput, null, "oninput cleared");
+  assert.equal(ocrLineSelectorEl.hidden, false, "panel remains so the final deletion can be undone");
+  assert.equal(ocrLineSelectorEl._undo.hidden, false, "undo remains available with zero rows");
 });
 
 test("hideOcrLineSelector resets state including oninput", () => {
