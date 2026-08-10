@@ -1407,7 +1407,7 @@ Format per item:
 - how: 在 `buildRenderCache()` 遍历 regular quotes 时同步维护 `maxQuotePageMap`（仅接受有限正数页码）；`buildBookSearchCard()` 取 `displayPage = max(book.currentPage, maxQuotePage)`，进度文案和百分比统一使用 displayPage，百分比按 totalPages 上限截断。只作为书卡显示回退，不修改 `book.currentPage`、status、finishedAt 或 sessions。补前端测试：无 session + 多条页码摘抄取最大页；已有更高 currentPage 不回退；无效页码忽略；有 totalPages 时百分比正确。Touch: `app.js:948-965,1594-1608`、`tests/frontend/`。
 
 ### OPT-151 — 数据备份恢复丢弃长期记忆与自定义摘抄标签 — 由 explore E240 提拔 [2026-08-09]
-- status: in-progress (PR #112 open, 2026-08-10 triage 已核对范围与全量测试结果)
+- status: done (PR #112 squash merged into feature/agent on 2026-08-10; merge commit `2a673281d270520108c76d256dd274d2ffd7c4e5`; 本次实跑 Python/Node 全量测试成功，PR CI 两个 `Python and frontend tests` 均 SUCCESS)
 - area: frontend / data integrity
 - priority: P1
 - size: S
