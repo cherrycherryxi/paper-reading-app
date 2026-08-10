@@ -342,3 +342,10 @@ test("[CSS] .ocr-line-selector has no overflow/max-height (it is a grid child of
   assert.ok(!/overflow\s*:/i.test(body), "must not set overflow (collapses as a grid item)");
   assert.ok(!/max-height\s*:/i.test(body), "must not set max-height (collapses as a grid item)");
 });
+
+test("[CSS] OCR line review blocks double-tap zoom but keeps pinch zoom", () => {
+  const css = fs.readFileSync(path.join(__dirname, "..", "..", "styles.css"), "utf8");
+  const m = css.match(/\.ocr-line-selector\s*\{([^}]*)\}/);
+  assert.ok(m, ".ocr-line-selector rule must exist");
+  assert.match(m[1], /touch-action\s*:\s*manipulation\s*;/, "manipulation disables double-tap zoom and retains pinch zoom");
+});
