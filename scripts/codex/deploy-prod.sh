@@ -53,8 +53,14 @@ fi
 
 if [ "$FROM_MAIN" = 1 ]; then
   RELEASE_WORKTREE="$(mktemp -d /private/tmp/paper-release-main.XXXXXX)"
+  BARE_SETTING="$(git config --local --get core.bare || true)"
   cleanup_release_worktree() {
     git worktree remove --force "$RELEASE_WORKTREE" 2>/dev/null || true
+    if [ -n "$BARE_SETTING" ]; then
+      git config --local core.bare "$BARE_SETTING"
+    else
+      git config --local --unset-all core.bare 2>/dev/null || true
+    fi
   }
   trap cleanup_release_worktree EXIT
   git worktree add --detach "$RELEASE_WORKTREE" "$TARGET"
