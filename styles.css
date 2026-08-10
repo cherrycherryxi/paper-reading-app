@@ -1885,6 +1885,34 @@ textarea {
   margin: 0 0 0.4rem;
 }
 
+.ocr-line-selector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ocr-line-selector__header .ocr-line-selector__hint {
+  flex: 1;
+}
+
+.ocr-line-selector__undo {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.ocr-line-selector__undo:hover,
+.ocr-line-selector__undo:focus-visible {
+  background: var(--color-danger-bg, #fde8e8);
+}
+
 .ocr-line-selector__row {
   display: flex;
   align-items: flex-start;

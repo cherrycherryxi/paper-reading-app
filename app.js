@@ -2689,6 +2689,7 @@ function autoGrowOcrInput(el) {
 function renderOcrLineSelector(text) {
   const sel = els.ocrLineSelector;
   if (!sel) return;
+  let lastDeletedLine = null;
   let section = 0;
   let sawContent = false;
   const lines = [];
@@ -2709,7 +2710,7 @@ function renderOcrLineSelector(text) {
     return;
   }
   sel.hidden = false;
-  const header = `<p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接修改，或点 ✕ 删除；会保留两页分段：</p>`;
+  const header = `<div class="ocr-line-selector__header"><p class="ocr-line-selector__hint">整页全文已识别 ${lines.length} 行——可直接修改，或点 ✕ 删除；会保留两页分段：</p><button type="button" class="ocr-line-selector__undo" hidden>撤销删除</button></div>`;
   const items = lines
     .map(
       ({ line, section: sectionId }, i) =>
@@ -2728,20 +2729,35 @@ function renderOcrLineSelector(text) {
     rebuildQuoteContentFromOcrPanel(sel);
   };
   sel.onclick = (e) => {
+    const undoTarget = e.target.closest(".ocr-line-selector__undo");
+    if (undoTarget && lastDeletedLine) {
+      const rows = Array.from(sel.querySelectorAll(".ocr-line-selector__row"));
+      const nextRow = rows[lastDeletedLine.index];
+      if (nextRow) nextRow.before(lastDeletedLine.row);
+      else sel.appendChild(lastDeletedLine.row);
+      lastDeletedLine = null;
+      undoTarget.hidden = true;
+      rebuildQuoteContentFromOcrPanel(sel);
+      const hint = sel.querySelector(".ocr-line-selector__hint");
+      if (hint) hint.textContent = `已保留 ${sel.querySelectorAll(".ocr-line-selector__row").length} 行（保留两页分段，可继续编辑或删除）：`;
+      return;
+    }
     const btn = e.target.closest(".ocr-line-selector__del");
     if (!btn) return;
     const row = btn.closest(".ocr-line-selector__row");
-    if (row) row.remove();
+    if (row) {
+      lastDeletedLine = {
+        row,
+        index: Array.from(sel.querySelectorAll(".ocr-line-selector__row")).indexOf(row),
+      };
+      row.remove();
+    }
     rebuildQuoteContentFromOcrPanel(sel);
     const remaining = sel.querySelectorAll(".ocr-line-selector__row").length;
     const hint = sel.querySelector(".ocr-line-selector__hint");
     if (hint) hint.textContent = `已保留 ${remaining} 行（保留两页分段，可继续编辑或删除）：`;
-    if (remaining === 0) {
-      sel.hidden = true;
-      sel.innerHTML = "";
-      sel.onclick = null;
-      sel.oninput = null;
-    }
+    const undoButton = sel.querySelector(".ocr-line-selector__undo");
+    if (undoButton) undoButton.hidden = !lastDeletedLine;
   };
 }
 
