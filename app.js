@@ -4614,6 +4614,8 @@ function resolveImportedState(parsed) {
           : {},
     chatContexts: typeof source.chatContexts === "object" && source.chatContexts ? source.chatContexts : {},
     connections: Array.isArray(source.connections) ? source.connections : [],
+    customQuoteTags: Array.isArray(source.customQuoteTags) ? source.customQuoteTags : [],
+    memories: Array.isArray(source.memories) ? source.memories : [],
   });
 }
 
@@ -4624,7 +4626,9 @@ function stateContentCount(s) {
     (Array.isArray(s.sessions) ? s.sessions.length : 0) +
     (Array.isArray(s.quotes) ? s.quotes.length : 0) +
     (Array.isArray(s.connections) ? s.connections.length : 0) +
-    Object.keys(s.chatHistories || {}).length
+    Object.keys(s.chatHistories || {}).length +
+    (Array.isArray(s.customQuoteTags) ? s.customQuoteTags.length : 0) +
+    (Array.isArray(s.memories) ? s.memories.length : 0)
   );
 }
 
@@ -4637,6 +4641,8 @@ function showImportResult(s) {
     ["摘抄", "条", Array.isArray(s.quotes) ? s.quotes.length : 0],
     ["记录", "条", Array.isArray(s.sessions) ? s.sessions.length : 0],
     ["关联", "条", Array.isArray(s.connections) ? s.connections.length : 0],
+    ["自定义摘抄标签", "个", Array.isArray(s.customQuoteTags) ? s.customQuoteTags.length : 0],
+    ["长期记忆", "条", Array.isArray(s.memories) ? s.memories.length : 0],
   ];
   if (!els.importResultDialog || !els.importResultList) {
     showToast("数据已导入");
@@ -4677,7 +4683,7 @@ function importData(file) {
     // explicit confirmation instead of silently overwriting with nothing.
     if (stateContentCount(resolved) === 0 && stateContentCount(state) > 0) {
       showConfirmDialog({
-        message: "该文件未识别到任何书单 / 摘抄 / 记录内容，导入将清空当前账号的全部数据。确定继续？",
+        message: "该文件未识别到任何书单 / 摘抄 / 记录 / 自定义摘抄标签 / 长期记忆，导入将清空当前账号的全部数据。确定继续？",
         confirmLabel: "仍要清空导入",
         onConfirm: applyImport,
       });
@@ -4686,7 +4692,15 @@ function importData(file) {
     // Decrease guard (OPT-043): importing an older backup silently shrinks
     // counts in one or more categories — the most common real data-loss
     // scenario (bug-274). Require explicit confirmation listing what will be lost.
-    const _categoryLabels = { books: "书籍", quotes: "摘抄", sessions: "记录", connections: "关联", chatHistories: "聊天记录" };
+    const _categoryLabels = {
+      books: "书籍",
+      quotes: "摘抄",
+      sessions: "记录",
+      connections: "关联",
+      chatHistories: "聊天记录",
+      customQuoteTags: "自定义摘抄标签",
+      memories: "长期记忆",
+    };
     const _losses = Object.entries(_categoryLabels)
       .map(([key, label]) => {
         const cur = Array.isArray(state[key]) ? state[key].length : Object.keys(state[key] || {}).length;
