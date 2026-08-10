@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:46:07.939Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T15:01:55.324Z
 > Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -148,7 +148,7 @@
 
 ## .github/workflows/
 
-- `ci.yml` — CI: CI (~664 tok)
+- `ci.yml` — CI: CI (~682 tok)
 - `claude-code-review.yml` — CI: Claude Code Review (~360 tok)
 - `claude.yml` — CI: Claude Code (~539 tok)
 
@@ -243,11 +243,11 @@
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1792 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
-- `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1680 tok)
+- `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1682 tok)
 - `README.md` — Project documentation (~927 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
-- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~318 tok)
-- `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1453 tok)
+- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
+- `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
 
 ## scripts/codex/launchd/
 
@@ -284,7 +284,7 @@
 - `codex_cloud_scheduled_test.py` — Contracts for the remote Codex Cloud Scheduled nightly pipeline. (~962 tok)
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
-- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1587 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)

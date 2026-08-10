@@ -13,8 +13,8 @@ EMAIL_SCRIPT="${PAPER_WEEKLY_EMAIL:-$HOME/.claude/scripts/send-email.py}"
 METRICS_SCRIPT="${PAPER_WEEKLY_METRICS:-$HOME/.claude/scripts/northstar-metrics.py}"
 BARK="${PAPER_WEEKLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
 PYTHON="${PAPER_WEEKLY_PYTHON:-/usr/bin/python3}"
-WEEK="${PAPER_WEEKLY_WEEK:-$(date +%G-W%V)}"
-TODAY="${PAPER_WEEKLY_TODAY:-$(date +%F)}"
+REQUESTED_WEEK="${PAPER_WEEKLY_WEEK:-}"
+WEEK="${REQUESTED_WEEK:-$(date +%G-W%V)}"
 DRY_RUN="${PAPER_WEEKLY_DRY_RUN:-0}"
 LOCK_DIR="${PAPER_WEEKLY_LOCK_DIR:-$HOME/.claude/.codex-weekly-report.lock}"
 
@@ -28,6 +28,28 @@ if [ "$DRY_RUN" != 1 ] && [ -z "${PAPER_WEEKLY_WEEK:-}" ] && [ "$(date +%w)" != 
 fi
 
 mkdir -p "$REPORTDIR" "$(dirname "$LOG")"
+if [ -n "$REQUESTED_WEEK" ]; then
+  WEEK_END=$("$PYTHON" -c '
+import datetime
+import re
+import sys
+
+match = re.fullmatch(r"(\d{4})-W(\d{2})", sys.argv[1])
+if not match:
+    raise SystemExit("周次必须为 YYYY-Www")
+print(datetime.date.fromisocalendar(int(match.group(1)), int(match.group(2)), 7).isoformat())
+' "$WEEK") || {
+    echo "[$(date)] 无法解析补发周次：$WEEK" >> "$LOG"
+    exit 2
+  }
+  if [ -n "${PAPER_WEEKLY_TODAY:-}" ] && [ "$PAPER_WEEKLY_TODAY" != "$WEEK_END" ]; then
+    echo "[$(date)] 补发日期必须是 $WEEK 的周日 $WEEK_END，拒绝使用 $PAPER_WEEKLY_TODAY。" >> "$LOG"
+    exit 2
+  fi
+  TODAY="$WEEK_END"
+else
+  TODAY="${PAPER_WEEKLY_TODAY:-$(date +%F)}"
+fi
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "[$(date)] $WEEK 已有周报任务运行，跳过。" >> "$LOG"
   exit 0

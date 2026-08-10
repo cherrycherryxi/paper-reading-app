@@ -95,9 +95,9 @@ $MERGED_PRS
 RAW=$(run_timeout 900 "$CODEX" exec -C "$WT" --sandbox workspace-write --ephemeral "$PROMPT" 2>>"$LOG" || true)
 PRODUCT_SUMMARY=$(printf '%s\n' "$RAW" | awk '/<<<SUMMARY_START>>>/{f=1;next} /<<<SUMMARY_END>>>/{f=0;next} f')
 [ -z "$PRODUCT_SUMMARY" ] && PRODUCT_SUMMARY=$(printf '%s\n' "$RAW" | sed -n '/上周.*达成/,$p' | head -40)
-SUMMARY_SIZE=$(printf '%s' "$PRODUCT_SUMMARY" | wc -c | tr -d ' ')
+SUMMARY_SIZE=$(printf '%s' "$PRODUCT_SUMMARY" | wc -m | tr -d '[:space:]')
 SUMMARY_ISSUES=()
-[ "$SUMMARY_SIZE" -ge 350 ] && [ "$SUMMARY_SIZE" -le 1800 ] || SUMMARY_ISSUES+=("正文长度不在 350-600 字范围")
+[ "$SUMMARY_SIZE" -ge 350 ] && [ "$SUMMARY_SIZE" -le 600 ] || SUMMARY_ISSUES+=("正文长度不在 350-600 字范围")
 for heading in '【上周结算】' '【本周唯一焦点】' '【为什么现在】' '【本周三件事】' '【明确不做】'; do
   printf '%s\n' "$PRODUCT_SUMMARY" | grep -q "$heading" || SUMMARY_ISSUES+=("缺少 $heading")
 done

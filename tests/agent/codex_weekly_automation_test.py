@@ -36,6 +36,25 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn('PAPER_WEEKLY_WEEK:-', source)
         self.assertIn('非周日运行被拒绝', source)
 
+    def test_weekly_reissue_derives_the_requested_iso_week_sunday(self):
+        source = (CODEX_DIR / "weekly-report.sh").read_text()
+        self.assertIn("datetime.date.fromisocalendar", source)
+        self.assertIn("补发日期必须是", source)
+        self.assertIn('TODAY="$WEEK_END"', source)
+
+    def test_weekly_production_release_runs_both_project_test_suites(self):
+        source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
+        self.assertIn(".venv/bin/python -m pytest tests/ -v", source)
+        self.assertIn("node --test tests/frontend/*.test.js", source)
+        self.assertLess(source.index("node --test tests/frontend/*.test.js"), source.index("deploy-prod.sh --yes"))
+
+    def test_codex_autofix_checks_the_secret_at_step_scope(self):
+        source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        job = source.split("  codex-autofix:", 1)[1]
+        self.assertNotIn("secrets.OPENAI_API_KEY != ''", job.split("steps:", 1)[0])
+        self.assertIn("if: env.OPENAI_API_KEY != ''", job)
+        self.assertIn("openai-api-key: ${{ env.OPENAI_API_KEY }}", job)
+
     def test_product_owner_is_isolated_and_path_guarded(self):
         source = (CODEX_DIR / "product-owner-monday.sh").read_text()
         self.assertIn("worktree add --quiet --detach", source)
@@ -51,6 +70,8 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         for heading in ("【上周结算】", "【本周唯一焦点】", "【为什么现在】", "【本周三件事】", "【明确不做】"):
             self.assertIn(heading, source)
         self.assertIn("SUMMARY_SIZE", source)
+        self.assertIn("wc -m", source)
+        self.assertIn('SUMMARY_SIZE" -le 600', source)
         self.assertIn("禁止只罗列 OPT/PR 编号", source)
         self.assertIn("需人工确认", source)
         self.assertIn("模型原始摘要", source)
@@ -77,7 +98,7 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
             logs = root / "daily"
             reports = root / "reports"
             logs.mkdir()
-            (logs / "2099-01-07.md").write_text("# 日报\n" + "完成真实产品工作。" * 20)
+            (logs / "2099-01-04.md").write_text("# 日报\n" + "完成真实产品工作。" * 20)
 
             fake_codex = root / "codex"
             report_body = "# 周报 2099-W01\n\n## 本周进展\n" + "已完成可靠迁移。" * 40
@@ -104,7 +125,6 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
                 "PAPER_WEEKLY_LOG": str(root / "weekly.log"),
                 "PAPER_WEEKLY_METRICS": str(fake_metrics),
                 "PAPER_WEEKLY_WEEK": "2099-W01",
-                "PAPER_WEEKLY_TODAY": "2099-01-07",
                 "PAPER_WEEKLY_LOCK_DIR": str(root / "weekly.lock"),
             })
             result = subprocess.run(

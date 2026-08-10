@@ -50,8 +50,10 @@ jobs:
     needs: test
     if: >-
       needs.test.result == 'failure' && github.event_name == 'push' &&
-      github.ref == 'refs/heads/feature/agent' && secrets.OPENAI_API_KEY != ''
+      github.ref == 'refs/heads/feature/agent'
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     permissions:
       actions: read
       contents: write
@@ -62,11 +64,12 @@ jobs:
           fetch-depth: 0
 
       - name: Diagnose and prepare a repair PR with Codex
+        if: env.OPENAI_API_KEY != ''
         uses: openai/codex-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
         with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ env.OPENAI_API_KEY }}
           prompt-file: .github/codex/prompts/ci-autofix.md
           sandbox: workspace-write
           safety-strategy: drop-sudo

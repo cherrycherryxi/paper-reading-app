@@ -19,4 +19,13 @@ git fetch origin feature/agent main >> "$LOG" 2>&1
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/feature/agent)" ] || { echo "[$(date)] 本地不是最新 feature/agent，拒绝发布。" >> "$LOG"; exit 1; }
 [ "$(git rev-parse origin/main)" != "$(git rev-parse origin/feature/agent)" ] || { echo "[$(date)] 无待发布提交。" >> "$LOG"; exit 0; }
 
+if ! .venv/bin/python -m pytest tests/ -v >> "$LOG" 2>&1; then
+  echo "[$(date)] Python 测试失败，拒绝发布。" >> "$LOG"
+  exit 1
+fi
+if ! node --test tests/frontend/*.test.js >> "$LOG" 2>&1; then
+  echo "[$(date)] 前端测试失败，拒绝发布。" >> "$LOG"
+  exit 1
+fi
+
 bash scripts/codex/deploy-prod.sh --yes >> "$LOG" 2>&1

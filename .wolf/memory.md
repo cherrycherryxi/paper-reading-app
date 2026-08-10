@@ -4597,3 +4597,19 @@
 |------|--------|---------|---------|--------|
 | 22:41 | Created scripts/codex/deploy-prod.sh | — | ~692 |
 | 22:46 | Created scripts/codex/deploy-prod.sh | — | ~754 |
+| 22:46 | Session end: 2 writes across 1 files (deploy-prod.sh) | 0 reads | ~1550 tok |
+
+## Session: 2026-08-10 22:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+| 23:xx | 修复 Codex PR Review 指出的问题 | `.github/workflows/ci.yml`, `scripts/codex/{weekly-prod-release,weekly-report,product-owner-monday}.sh`, `tests/agent/codex_weekly_automation_test.py` | 将 secret 判断移至 step；发布前全量测试；补发按 ISO 周取周日；摘要按 Unicode 字符数校验 | — |
+|------|--------|---------|---------|--------|
+| 23:01 | Created .github/workflows/ci.yml | — | ~682 |
+| 23:01 | Created scripts/codex/weekly-prod-release.sh | — | ~382 |
+| 23:01 | Created scripts/codex/weekly-report.sh | — | ~1623 |
+| 23:01 | Created scripts/codex/product-owner-monday.sh | — | ~1682 |
+| 23:01 | Created tests/agent/codex_weekly_automation_test.py | — | ~1682 |
+| 23:01 | Created scripts/codex/weekly-report.sh | — | ~1622 |
+| 23:01 | Created tests/agent/codex_weekly_automation_test.py | — | ~1913 |
+| 23:02 | Session end: 7 writes across 5 files (ci.yml, weekly-prod-release.sh, weekly-report.sh, product-owner-monday.sh, codex_weekly_automation_test.py) | 0 reads | ~9964 tok |
+| 23:04 | Session end: 7 writes across 5 files (ci.yml, weekly-prod-release.sh, weekly-report.sh, product-owner-monday.sh, codex_weekly_automation_test.py) | 0 reads | ~9964 tok |
