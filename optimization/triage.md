@@ -2,33 +2,32 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-10
+Last triaged: 2026-08-11
 
 ## Next up
 
-**本次不新增指派。OPT-151 已由 PR #112 合入并完成对账；当前 WIP=0。**
+**指派：OPT-152 — 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文（P1 / S）。**
 
-**预算状态（2026-08-10）：** 检查最近 50 个目标分支为 `feature/agent` 的 PR；按本次运行时点向前滚动 7 天，符合 nightly implementation 预算口径（head 以 `auto/` 开头，或正文含 `Nightly-Agent: implement`）的 PR 为 **4 个**（PR #109、#110、#111、#112，head 均以 `auto/` 开头），上限 **8**，剩余 **4 个**。预算未熔断；PR #112 已合入，WIP=0。
+理由：2026-07-31 owner 直接要求确认后的稳定偏好、观点、目标与待办可按需召回；当前 `app_server.py:2655-2691` 按插入顺序截取前 8 条，新增或编辑后的第 9 条会稳定落出 prompt。它是 Theme 3「积累可信」中、在 OPT-151/153/154 已合入后唯一仍未闭合的直接 signal 项；排序并补 9+ 条回归测试可在单 PR 完成。关键文件：`app_server.py:2655-2691`、`tests/agent/prompt_builder_memories_test.py`。
+
+**预算状态（2026-08-11）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 **4**；未达上限，故仅指派上述 1 项。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 已检查 `feature/agent` 合并后的提交；当前头含 PR #112 squash merge `2a673281d270520108c76d256dd274d2ffd7c4e5`。
-- OPT-150 → done：PR #111 已于 2026-08-09 合入（merge commit `8af9b8bb696888a5b474f0a17f70dfaa02263f72`）；当前 `app.js:948-968,1602-1608` 已按书缓存最大有效摘抄页码并用 `displayPage` 生成书卡进度，回归测试随提交合入。
-- OPT-151 → done：PR #112 已于 2026-08-10 squash 合入（merge commit `2a673281d270520108c76d256dd274d2ffd7c4e5`）；`app.js` 已恢复两种备份格式中的 `memories` / `customQuoteTags`，并覆盖缩减保护与导入结果摘要。本次实跑 `.venv/bin/python -m pytest tests/ -q` 及 `node --test tests/frontend/*.test.js` 均成功，PR CI 两个 `Python and frontend tests` 均为 SUCCESS。
-- 2026-08-09 owner 真实反馈新增两项快速识别摩擦：`app.js:2731-2737` 删除行时直接 `row.remove()`，没有撤销或恢复状态；OCR 核对面板及 quote dialog 也没有 `touch-action` 约束，双击会触发移动浏览器页面缩放。分别登记为 OPT-153（P1/S）与 OPT-154（P2/S）。
-- OPT-152 的 8 条截断缺口仍有代码证据，但尚无“最新记忆未召回”的直接使用失败，保持 P2/S；其余未完成项继续按原 P3 parked / blocked 结论处理。
-
-**为何不新增指派：** 本次仅处理已完成 PR 的状态对账，不在夜间合并闸门中扩展选题；OPT-153 虽有最高等级 owner signal，仍保留在已核实队列，等待独立决策。
-
-**本次对账范围：** PR #112 仅修复导入恢复链路对 `memories` / `customQuoteTags` 的保留、缩减确认与结果摘要；未扩展为新的导入格式或 schema 变更。
+- `feature/agent` 当前 HEAD 为 `a9e44cb`；给定近 8 日记录含 PR #113 `e7e108c` 与 PR #114 `6ec326b`。本地代码复核：`app.js:2689-2762` 有删除行保存/撤销恢复；`styles.css:1869-1883` 有局部 `touch-action: manipulation`，且 `tests/frontend/ocr-line-selector.test.js:258-280,350` 覆盖二者。因此 OPT-153、OPT-154 均改 done，非凭描述推断。
+- OPT-151 继续 done：PR #112 merge `2a67328` 已在给定记录及本地历史中；OPT-150 继续 done：PR #111 merge `8af9b8b` 在同一记录中。
+- OPT-152 尚未完成：`app_server.py:2655-2661` 仍按原数组收集匹配记忆，`2691` 仍为 `context_memories[:8]`，没有相关性或更新时间排序。
+- OPT-155 仍未完成：`chat.js:1034-1043` 的 tag 分支仍直接 `join`，未转义；OPT-156 仍未完成：`chat.js:1008-1022` 的 reject catch 后仍移除卡片。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10]；轻量/完整备份恢复与覆盖保护已落地 |
-| OPT-153 | 快速识别误删一行后无法撤销，只能重新识别 | **P1** | S | **triaged** | 8/9 owner 直接 signal；现有 `row.remove()` 无恢复状态，待当前 WIP 完成后优先评估 |
-| OPT-152 | 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文 | P2 | S | **triaged** | 代码缺口明确，但尚无直接召回失败 signal；低于当前 owner 实测摩擦 |
-| OPT-154 | 快速识别卡片核对时双击触发页面放大 | P2 | S | **triaged** | 8/9 owner 直接 signal；局部手势修复，保留 pinch zoom 与可访问性 |
+| OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10] |
+| OPT-153 | 快速识别误删一行后无法撤销 | **P1** | S | **done** | ✅ PR #113 / `e7e108c`；撤销与全删恢复测试已在树中 |
+| OPT-154 | 快速识别核对时双击页面放大 | P2 | S | **done** | ✅ PR #114 / `6ec326b`；局部 manipulation 约束与测试已在树中 |
+| OPT-152 | 长期记忆新内容被 8 条上限截断 | **P1** | S | **triaged / assigned** | 7/31 直接 signal + Theme 3；排序后取 8 条，单 PR 可验 |
+| OPT-155 | Agent 标签确认卡 DOM 注入 | P2 | S | new | 探讨写操作可信度；代码证实，暂无直接 signal |
+| OPT-156 | 忽略 Agent 建议失败仍显示成功 | P2 | S | new | 数据控制 false-success；代码证实，暂无直接 signal |
 | OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | P1 | S | **done** | ✅ PR #111 / `8af9b8b` 已合入 [2026-08-09]；显示层回退与边界测试已落地 |
 | OPT-148 | 面向用户的显式阅读长期记忆 | P1 | M | **done** | ✅ PR #110 / `f58b01b` 已合入 [2026-08-08]；confirmed memories 可管理并按上下文注入 |
 | OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
@@ -52,7 +51,7 @@ Last triaged: 2026-08-10
 
 ## Recently reconciled done
 
-OPT-151, OPT-150, OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
+OPT-154, OPT-153, OPT-151, OPT-150, OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
 
 ## Legend
 

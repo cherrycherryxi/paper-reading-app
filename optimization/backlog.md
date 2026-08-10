@@ -501,7 +501,7 @@ Format per item:
 ### OPT-060 — 关联搜索 haystack 只含书名，按摘抄原文无法检索关联关系 — 由 explore E95 提拔
 - status: done (PR #60, merged 2026-07-10；OPT-088 实现的 `getSearchLabel()` 已将 source/target 摘抄正文纳入关联搜索)
 - area: frontend
-- priority: P2
+- priority: P1 (2026-08-11 triage：Theme 3「积累可信」内唯一尚未闭合的直接 signal 项；可在单 PR 修复)
 - size: S
 - northstar: 中——Theme 2「回顾有价值」的关键检索入口：关联是 app 的差异化功能，「按摘抄内容找关联」是回顾时最自然的方式；现在按摘抄原文搜索无法命中关联，等于让连接网络对用户半透明；积累 20+ 个关联后影响显著，是 Theme 2 北极星第三个数「回顾/检索/关联操作次数 > 0」的前提。
 - description: `app.js:740-756`（`renderConnections()` 搜索过滤块）的 haystack 仅含 `getBookTitle()`（`app.js:742-748`，对 quote 类型只返回书名）和 `c.thought`，不含摘抄原文（`quote.content`）。若用户建立了「笛卡尔」摘抄→「AI」摘抄的关联，搜索"笛卡尔"时若两书名均不含该词则返回零结果，即使 thought 字段也没有该词。注意：`resolveConnectionSide()`（`app.js:679-688`）在卡面**展示**时确实包含摘抄原文预览（`quote.content.slice(0,36)`），但搜索 haystack 的构建路径（`getBookTitle()`）与展示路径（`resolveConnectionSide()`）分离，搜索和展示不对齐。
@@ -1425,7 +1425,7 @@ Format per item:
 - how: 先按上下文精确度（quote > book > global）和 `updatedAt` 倒序排序后取 8 条；至少保证最近确认/编辑的记忆可召回。补 9+ 条、编辑后重排和 book/quote 相关性测试。Touch: `app_server.py:2655-2692`、相关 agent tests。
 
 ### OPT-153 — 快速识别误删一行后无法撤销，只能重新发起 OCR [2026-08-09]
-- status: triaged
+- status: done (PR #113, merged 2026-08-10; merge commit `e7e108c`。当前 `app.js:2689-2762` 保留最近删除行及原索引，撤销后重建正文；`tests/frontend/ocr-line-selector.test.js` 覆盖撤销与删除全部行。)
 - area: frontend
 - priority: P1
 - size: S
@@ -1435,7 +1435,7 @@ Format per item:
 - how: 将删行改为对原 DOM 行做可恢复的软删除：保留 textarea 值、section 与顺序，标记 deleted 后从 `rebuildQuoteContentFromOcrPanel()` 排除，并在原位置显示「已删除 · 撤销」；点撤销恢复该行及正文。只有最终保存卡片时才真正丢弃隐藏行。补删除后正文排除、撤销恢复原顺序/分段、连续删除及全部删除后仍可撤销的前端测试。Touch: `app.js:2665-2744`、`styles.css:1869-1954`、`tests/frontend/ocr-line-selector.test.js`。
 
 ### OPT-154 — 快速识别卡片核对时双击触发浏览器页面放大 [2026-08-09]
-- status: triaged
+- status: done (PR #114, merged 2026-08-10; merge commit `6ec326b`。当前 `styles.css:1869-1883` 对 `.ocr-line-selector` 设置 `touch-action: manipulation`；同一前端测试守卫该约束。)
 - area: frontend / mobile UX
 - priority: P2
 - size: S
