@@ -988,7 +988,7 @@
         confirmBtn.textContent = "已完成 ✅";
         setTimeout(() => {
           container.remove();
-          appendBubble("system", `✅ 已执行：${renderActionText(action)}`);
+          appendBubble("system", `✅ 已执行：${renderActionText(action, false)}`);
           _showNextAgentAction(remaining);
         }, 600);
       } catch (e) {
@@ -1018,7 +1018,7 @@
         console.error("rejectAction error:", e);
       }
       container.remove();
-      appendBubble("system", `⏭ 已忽略：${renderActionText(action)}`);
+      appendBubble("system", `⏭ 已忽略：${renderActionText(action, false)}`);
       _showNextAgentAction(remaining);
     };
   }
@@ -1031,15 +1031,19 @@
       .replace(/"/g, "&quot;");
   }
 
-  function renderActionText(action) {
+  function renderActionText(action, escapeForHtml = true) {
     const d = action.data || {};
+    const display = (value) => {
+      const text = String(value || '');
+      return escapeForHtml ? escapeHtml(text) : text;
+    };
     switch (action.type) {
-      case 'add_note':    return `📝 新增笔记：${escapeHtml(String(d.content || ''))}`;
-      case 'add_book':    return `📚 加入书单：${escapeHtml(String(d.title || '').replace(/^《+|》+$/g, '').trim())}`;
+      case 'add_note':    return `📝 新增笔记：${display(d.content)}`;
+      case 'add_book':    return `📚 加入书单：${display(String(d.title || '').replace(/^《+|》+$/g, '').trim())}`;
       case 'summary':     return `📌 生成阶段总结`;
-      case 'question':    return `❓ 提出问题：${escapeHtml(String(d.content || ''))}`;
-      case 'tag':         return `🏷 添加标签：${(d.tags || []).map((tag) => escapeHtml(String(tag))).join('、')}`;
-      case 'link_thought': return `🔗 建立关联（${escapeHtml(String(d.kind || ''))}）：${escapeHtml(String(d.thought || '').slice(0, 40))}${String(d.thought || '').length > 40 ? '…' : ''}`;
+      case 'question':    return `❓ 提出问题：${display(d.content)}`;
+      case 'tag':         return `🏷 添加标签：${(d.tags || []).map(display).join('、')}`;
+      case 'link_thought': return `🔗 建立关联（${display(d.kind)}）：${display(String(d.thought || '').slice(0, 40))}${String(d.thought || '').length > 40 ? '…' : ''}`;
       default:            return '未知操作';
     }
   }
