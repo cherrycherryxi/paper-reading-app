@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T17:03:55.213Z
-> Files: 281 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T04:40:29.078Z
+> Files: 284 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -17,6 +17,18 @@
 
 - `backlog.md` — Optimization Backlog (~39818 tok)
 - `triage.md` — Triage (~2209 tok)
+
+## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.qb1wv7VY/wt/
+
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~77134 tok)
+
+## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.qb1wv7VY/wt/optimization/
+
+- `triage.md` — Triage (~1106 tok)
+
+## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.qb1wv7VY/wt/tests/agent/
+
+- `prompt_builder_memories_test.py` — PromptBuilderMemoriesTests: setUp, test_opt148_injects_global_and_current_book_confirmed_memories, t (~524 tok)
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.tCpRInQE/wt/.wolf/
 
