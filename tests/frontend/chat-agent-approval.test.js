@@ -318,6 +318,43 @@ test("OPT-155: tag confirmation escapes model-provided HTML before inserting it"
   assert.doesNotMatch(cardHtml, /<img/);
 });
 
+test("OPT-155: executed and rejected tag status bubbles keep raw text", async () => {
+  const tag = "R&D";
+  function createTagHarness() {
+    let harness;
+    harness = createHarness({
+      apiFetch: async (url, options) => {
+        harness.apiCalls.push({ url, options });
+        if (url === "/api/chat") {
+          return {
+            reply: "assistant reply",
+            history: [],
+            actions: [{ id: "action-1", type: "tag", data: { tags: [tag] }, status: "PENDING_APPROVAL" }],
+          };
+        }
+        if (url === "/api/agent-actions/action-1/approve") {
+          return { ok: true, state: harness.getAppState() };
+        }
+        if (url === "/api/agent-actions/action-1/reject") {
+          return { ok: true };
+        }
+        throw new Error(`Unhandled apiFetch: ${url}`);
+      },
+    });
+    return harness;
+  }
+
+  for (const [buttonSelector, expectedPrefix] of [[".agent-confirm-btn", "✅ 已执行"], [".agent-cancel-btn", "⏭ 已忽略"]]) {
+    const harness = createTagHarness();
+    harness.input.value = "hello";
+    await harness.sendBtn.dispatch("click");
+    await harness.getConfirmContainer().querySelector(buttonSelector).onclick();
+    const statusBubble = harness.messages.children.find((child) => child.className === "chat-bubble chat-bubble-system");
+    assert.equal(statusBubble.textContent, `${expectedPrefix}：🏷 添加标签：${tag}`);
+    assert.doesNotMatch(statusBubble.textContent, /&amp;/);
+  }
+});
+
 test("e2e: approving add_book action preserves current associated book selection", async () => {
   const harness = createHarness({
     apiFetch: async (url, options) => {
