@@ -1416,7 +1416,7 @@ Format per item:
 - how: `resolveImportedState()` 显式保留 `source.customQuoteTags` 和 `source.memories`；把二者纳入覆盖缩减保护和导入结果摘要；补轻量/完整导出两种格式的恢复回归测试。Touch: `app.js:4585-4637`、相关 frontend tests。
 
 ### OPT-152 — 长期记忆超过 8 条后最新记忆不会进入 Agent 上下文 — 由 explore E241 提拔 [2026-08-09]
-- status: triaged
+- status: done (PR #116, merged 2026-08-11 — confirmed memories 先按 quote > book > global 上下文优先级、再按 updatedAt 倒序取前 8 条；9+ 条、编辑后新鲜度与上下文优先级回归测试已落地)
 - area: backend / agent context
 - priority: P2
 - size: S
@@ -1445,7 +1445,7 @@ Format per item:
 - how: 在 `#quoteDialog` 或更窄的 `.ocr-line-selector` 核对区域应用 `touch-action: manipulation`，禁用 double-tap zoom 同时保留平移与双指缩放；避免对全站 viewport 做不可缩放设置。补 CSS 约束测试，并在 iPhone 12 真机验证单击编辑、滚动、双击不放大、双指缩放仍可用。Touch: `styles.css:1869-1954`、相关 frontend CSS test。
 
 ### OPT-155 — Agent 标签确认卡将未转义标签写入 innerHTML，可被模型输出触发 DOM 注入 — 由 explore E244 提拔 [2026-08-10]
-- status: new
+- status: done (PR #117, merged 2026-08-11 — tag 分支逐项 escapeHtml，恶意 HTML 标签仅作为文本显示；后续 PR #118 保留执行/忽略状态气泡的原始文本)
 - area: frontend / security
 - priority: P2
 - size: S
