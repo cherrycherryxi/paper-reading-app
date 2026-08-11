@@ -293,6 +293,31 @@ test("e2e: approving an agent action calls backend execute endpoint and updates 
   assert.equal(harness.getRemoteLogLoads(), 2);
 });
 
+test("OPT-155: tag confirmation escapes model-provided HTML before inserting it", async () => {
+  const maliciousTag = '<img src=x onerror="window.injected=1">&\"';
+  let harness;
+  harness = createHarness({
+    apiFetch: async (url, options) => {
+      harness.apiCalls.push({ url, options });
+      if (url === "/api/chat") {
+        return {
+          reply: "assistant reply",
+          history: [],
+          actions: [{ id: "action-1", type: "tag", data: { tags: [maliciousTag] }, status: "PENDING_APPROVAL" }],
+        };
+      }
+      throw new Error(`Unhandled apiFetch: ${url}`);
+    },
+  });
+  harness.input.value = "hello";
+
+  await harness.sendBtn.dispatch("click");
+
+  const cardHtml = harness.getConfirmContainer().innerHTML;
+  assert.match(cardHtml, /&lt;img src=x onerror=&quot;window\.injected=1&quot;&gt;&amp;&quot;/);
+  assert.doesNotMatch(cardHtml, /<img/);
+});
+
 test("e2e: approving add_book action preserves current associated book selection", async () => {
   const harness = createHarness({
     apiFetch: async (url, options) => {
