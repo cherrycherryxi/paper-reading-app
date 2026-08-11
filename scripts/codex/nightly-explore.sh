@@ -11,18 +11,12 @@ BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
 TODAY="${PAPER_NIGHTLY_TODAY:-$(date +%F)}"
 DRY_RUN="${PAPER_NIGHTLY_DRY_RUN:-0}"
 SKIP_FETCH="${PAPER_NIGHTLY_SKIP_FETCH:-0}"
-SKIP_DEP="${PAPER_NIGHTLY_SKIP_DEPENDENCY:-0}"
 BASE_REF="${PAPER_NIGHTLY_BASE_REF:-origin/feature/agent}"
 LOCK_DIR="${PAPER_NIGHTLY_EXPLORE_LOCK:-$STATE_DIR/.explore.lock}"
-IMPLEMENT_MARK="$STATE_DIR/implement-$TODAY.done"
 DONE_MARK="$STATE_DIR/explore-$TODAY.done"
 
 mkdir -p "$STATE_DIR" "$(dirname "$LOG")"
 [ "$DRY_RUN" = 1 ] || [ ! -f "$DONE_MARK" ] || exit 0
-if [ "$SKIP_DEP" != 1 ] && [ ! -f "$IMPLEMENT_MARK" ]; then
-  echo "[$(date)] explore 暂不运行：implement 尚未完成；等待补偿调度。" >> "$LOG"
-  exit 75
-fi
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "[$(date)] explore 已在运行，跳过。" >> "$LOG"
   exit 0

@@ -36,19 +36,19 @@ unloaded while their Codex equivalents are loaded.
 - `nightly-implement.sh` — 04:00, requires today's triage marker, implements one
   item, runs both full test suites, and opens a PR targeting `feature/agent`.
   It never merges; a failing suite produces a draft PR.
-- `nightly-explore.sh` — 05:00 with a 07:00 recovery trigger, requires today's
-  implement marker, appends evidence-backed findings and promotes at most two.
+- `nightly-explore.sh` — 05:00 with a 07:00 recovery trigger, runs independently
+  of Implement, appends evidence-backed findings and promotes at most two.
 
 Each task runs in an isolated worktree and has a per-day completion marker plus
-a lock directory under `~/.claude/codex-nightly`. The marker chain prevents the
-historical scheduling race: implement cannot consume stale triage, and explore
-cannot overtake implement. The second explore trigger is idempotent and exists
-only to recover when implementation runs past 05:00.
+a lock directory under `~/.claude/codex-nightly`. The triage marker prevents
+Implement from consuming stale work; Explore has no Implement dependency. The
+second Explore trigger is idempotent and recovers a failed or interrupted 05:00
+Explore run.
 
 For side-effect-free verification, set `PAPER_NIGHTLY_DRY_RUN=1`,
-`PAPER_NIGHTLY_SKIP_FETCH=1`, `PAPER_NIGHTLY_SKIP_DEPENDENCY=1`, and optionally
-`PAPER_NIGHTLY_BASE_REF=HEAD`. Dry-run never commits, pushes, creates PRs, sends
-alerts, or writes completion markers.
+`PAPER_NIGHTLY_SKIP_FETCH=1`, and optionally `PAPER_NIGHTLY_BASE_REF=HEAD`.
+Dry-run never commits, pushes, creates PRs, sends alerts, or writes completion
+markers.
 
 Before changing the active schedule, run both new scripts with their
 `PAPER_WEEKLY_DRY_RUN=1` / `PAPER_PRODUCT_DRY_RUN=1` flags and verify Codex
