@@ -2658,12 +2658,26 @@ class PromptBuilder:
                 continue
             memory_context = normalize_chat_context(memory.get("sourceContext"))
             if memory_context["type"] == "global" or memory_context.get("bookId") == book_id or memory_context.get("quoteId") == quote_id:
-                # OPT-152: the state keeps memories in creation order, so slicing first
-                # would permanently exclude newly added or edited memories after eight.
-                context_memories.append((
-                    memory.get("updatedAt") or memory.get("createdAt") or "",
-                    {"kind": memory.get("kind", "preference"), "content": memory.get("content", ""), "sourceContext": memory_context},
-                ))
+                context_memories.append({
+                    "kind": memory.get("kind", "preference"),
+                    "content": memory.get("content", ""),
+                    "sourceContext": memory_context,
+                    "updatedAt": str(memory.get("updatedAt") or memory.get("createdAt") or ""),
+                })
+        # OPT-152: memories are appended when confirmed or edited.  Taking the
+        # first eight therefore made every later memory permanently invisible.
+        # Prefer the most specific matching context, then the most recently
+        # confirmed/edited content, so the compact prompt window stays useful.
+        memory_context_rank = {"global": 0, "book": 1, "quote": 2}
+        context_memories.sort(
+            key=lambda memory: (
+                memory_context_rank.get(memory["sourceContext"].get("type"), 0),
+                memory.get("updatedAt", ""),
+            ),
+            reverse=True,
+        )
+        for memory in context_memories:
+            memory.pop("updatedAt", None)
         book_payload = {
             "book": book or {},
             "quotes": quotes,
@@ -2693,7 +2707,7 @@ class PromptBuilder:
                 for b in sorted(user_state.get("books", []), key=lambda b: b.get("updatedAt", ""), reverse=True)[:120]
             ],
             "existing_connections": _ctx_conns,
-            "confirmed_memories": [memory for _, memory in sorted(context_memories, key=lambda item: item[0], reverse=True)[:8]],
+            "confirmed_memories": context_memories[:8],
         }
         history_payload = chat_history[-40:]
         system_instruction = self.build_system_instruction(book_id, bool(focused_quote))

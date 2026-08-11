@@ -1038,7 +1038,7 @@
       case 'add_book':    return `📚 加入书单：${escapeHtml(String(d.title || '').replace(/^《+|》+$/g, '').trim())}`;
       case 'summary':     return `📌 生成阶段总结`;
       case 'question':    return `❓ 提出问题：${escapeHtml(String(d.content || ''))}`;
-      case 'tag':         return `🏷 添加标签：${(d.tags || []).join('、')}`;
+      case 'tag':         return `🏷 添加标签：${(d.tags || []).map((tag) => escapeHtml(String(tag))).join('、')}`;
       case 'link_thought': return `🔗 建立关联（${escapeHtml(String(d.kind || ''))}）：${escapeHtml(String(d.thought || '').slice(0, 40))}${String(d.thought || '').length > 40 ? '…' : ''}`;
       default:            return '未知操作';
     }
