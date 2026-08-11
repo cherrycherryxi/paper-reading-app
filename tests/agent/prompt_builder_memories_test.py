@@ -21,3 +21,24 @@ class PromptBuilderMemoriesTests(unittest.TestCase):
         self.assertIn("我偏好具体段落", prompt)
         self.assertIn("这本书要关注叙事", prompt)
         self.assertNotIn("不应召回", prompt)
+
+    def test_opt152_keeps_eight_most_recent_relevant_memories(self):
+        memories = [
+            {
+                "id": f"memory-{index}",
+                "content": f"记忆 {index}",
+                "sourceContext": {"type": "global"},
+                "createdAt": f"2026-08-{index:02d}T00:00:00Z",
+                "updatedAt": f"2026-08-{index:02d}T00:00:00Z",
+            }
+            for index in range(1, 10)
+        ]
+        state = app_server.sanitize_state({"memories": memories})
+        prompt = app_server.PromptBuilder().build_chat_prompt(state, "", [])
+        payload = json.loads(prompt.split("<user_data>\n", 1)[1].split("\n</user_data>", 1)[0])
+
+        self.assertEqual(
+            [memory["content"] for memory in payload["confirmed_memories"]],
+            [f"记忆 {index}" for index in range(9, 1, -1)],
+        )
+        self.assertNotIn("记忆 1", prompt)

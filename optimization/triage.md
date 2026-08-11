@@ -25,7 +25,7 @@ Last triaged: 2026-08-11
 | OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10] |
 | OPT-153 | 快速识别误删一行后无法撤销 | **P1** | S | **done** | ✅ PR #113 / `e7e108c`；撤销与全删恢复测试已在树中 |
 | OPT-154 | 快速识别核对时双击页面放大 | P2 | S | **done** | ✅ PR #114 / `6ec326b`；局部 manipulation 约束与测试已在树中 |
-| OPT-152 | 长期记忆新内容被 8 条上限截断 | **P1** | S | **triaged / assigned** | 7/31 直接 signal + Theme 3；排序后取 8 条，单 PR 可验 |
+| OPT-152 | 长期记忆新内容被 8 条上限截断 | **P1** | S | **in-progress** | Codex nightly PR pending；7/31 直接 signal + Theme 3；按更新时间排序后取 8 条，单 PR 可验 |
 | OPT-155 | Agent 标签确认卡 DOM 注入 | P2 | S | new | 探讨写操作可信度；代码证实，暂无直接 signal |
 | OPT-156 | 忽略 Agent 建议失败仍显示成功 | P2 | S | new | 数据控制 false-success；代码证实，暂无直接 signal |
 | OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | P1 | S | **done** | ✅ PR #111 / `8af9b8b` 已合入 [2026-08-09]；显示层回退与边界测试已落地 |
