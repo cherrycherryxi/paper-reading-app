@@ -1016,6 +1016,12 @@
         }
       } catch (e) {
         console.error("rejectAction error:", e);
+        cancelBtn.textContent = "重试忽略";
+        cancelBtn.disabled = false;
+        confirmBtn.disabled = false;
+        handled = false;
+        window.paperReadingApp.showToast("忽略失败，请重试");
+        return;
       }
       container.remove();
       appendBubble("system", `⏭ 已忽略：${renderActionText(action, false)}`);

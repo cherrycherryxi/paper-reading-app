@@ -465,6 +465,52 @@ test("e2e: rejecting an agent action calls backend reject endpoint and removes c
   assert.equal(harness.getConfirmContainer(), null);
 });
 
+test("OPT-156: reject failure keeps confirmation card and allows retry", async () => {
+  let rejectAttempts = 0;
+  const harness = createHarness({
+    apiFetch: async (url, options) => {
+      harness.apiCalls.push({ url, options });
+      if (url === "/api/chat") {
+        return {
+          reply: "assistant reply",
+          history: [],
+          actions: [{ id: "action-1", type: "tag", data: { tags: ["哲学"] }, status: "PENDING_APPROVAL" }],
+        };
+      }
+      if (url === "/api/agent-actions/action-1/reject") {
+        rejectAttempts += 1;
+        if (rejectAttempts === 1) throw new Error("backend failed");
+        return { ok: true, action: { id: "action-1", status: "REJECTED" } };
+      }
+      throw new Error(`Unhandled apiFetch: ${url}`);
+    },
+  });
+  harness.input.value = "hello";
+
+  await harness.sendBtn.dispatch("click");
+  const confirmContainer = harness.getConfirmContainer();
+  const cancelBtn = confirmContainer.querySelector(".agent-cancel-btn");
+  const confirmBtn = confirmContainer.querySelector(".agent-confirm-btn");
+
+  await cancelBtn.onclick();
+
+  assert.equal(harness.getConfirmContainer(), confirmContainer);
+  assert.equal(cancelBtn.textContent, "重试忽略");
+  assert.equal(cancelBtn.disabled, false);
+  assert.equal(confirmBtn.disabled, false);
+  assert.ok(harness.toasts.includes("忽略失败，请重试"));
+  assert.equal(
+    harness.messages.children.some((child) => child.className === "chat-bubble chat-bubble-system"),
+    false
+  );
+
+  await cancelBtn.onclick();
+
+  assert.equal(rejectAttempts, 2);
+  assert.equal(harness.getConfirmContainer(), null);
+  assert.ok(harness.messages.children.some((child) => child.className === "chat-bubble chat-bubble-system"));
+});
+
 test("e2e: execution failure is surfaced in the confirmation button state", async () => {
   const errors = [];
   const harness = createHarness({
