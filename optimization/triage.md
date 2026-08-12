@@ -2,21 +2,19 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-12
+Last triaged: 2026-08-13
 
 ## Next up
 
-**指派：OPT-156 — 忽略 Agent 建议失败时仍移除确认卡并显示“已忽略”（P2 / S）。**
+**无指派。**
 
-理由：当前 Theme 3「积累可信」要求用户对 Agent 写操作的确认/拒绝与真实服务端状态一致。`chat.js:1008-1022` 在 reject 请求失败后仍移除确认卡并写入“已忽略”，使待处理 action 与用户认知分叉；这是可复现的数据控制 false-success。虽无新 owner signal，仍有合理的可信积累贡献，且仅需把失败路径改为保留卡片、恢复按钮并允许重试，单 PR 可完成。关键文件：`chat.js:1008-1022`、`tests/frontend/chat-agent-approval.test.js`。
+理由：最高优先级的未完成项均为 P3 parked 或 P3/L blocked；没有一项同时具备当前 Theme 3「积累可信」或近期真实 signal 的直接、可验证北极星贡献。按 roadmap 的北极星税，它们不能被指派为夜间实现 PR。
 
-**预算状态（2026-08-12）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **6**，上限 **8**，剩余 **2**；未达上限，故仅指派上述 1 项。未调用 `gh` 或 GitHub API。
+**预算状态（2026-08-13）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **7**，上限 **8**，剩余 **1**；预算未耗尽，但没有合格候选，故不指派。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 当前 HEAD 为 `0f31016`；给定近 8 日记录包含 PR #116 merge `a1d08b0` 与 PR #117 merge `d2e3832`。本地 `app_server.py:2655-2710` 已按 quote > book > global 与 `updatedAt` 倒序选前 8 条，`tests/agent/prompt_builder_memories_test.py:20-53` 覆盖 9+ 条、最近性和上下文优先级，故 OPT-152 改 done。
-- 当前 `chat.js:1034-1043` 的 tag 分支逐项使用 `escapeHtml`，`tests/frontend/chat-agent-approval.test.js:296-317` 断言恶意 HTML 只显示为文本；与 PR #117 `d2e3832` 一致，故 OPT-155 改 done。
-- OPT-156 未完成：`chat.js:1008-1022` 的 reject catch 仅记录错误，之后仍 `container.remove()`、追加“已忽略”并展示下一项；现有拒绝测试仅覆盖成功路径（`tests/frontend/chat-agent-approval.test.js:448-465`）。
-- 其余未完成项逐项维持 backlog 的 P3/S-M（OPT-032、035、036、044、046、048、050、051、081、089、124、142、144、147）或 P3/L blocked（OPT-117）：均无当前 Theme 3 的直接真实 signal 或可验证北极星贡献，继续 parked，不指派。
+- 给定近 8 日记录的 PR #119 合入提交为 `e14f0ac`。当前 `chat.js:1017-1025` 在 reject 失败时恢复两个按钮、置 `handled=false`、提示重试并提前返回；`tests/frontend/chat-agent-approval.test.js:470-516` 覆盖首次失败保留卡片、第二次成功移除。已运行 `node --test tests/frontend/chat-agent-approval.test.js`：10 passed、0 failed，故 OPT-156 在 backlog 与本表改 done。
+- 其余未完成项逐项评估维持：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、142、144；P3/M 为 OPT-081、147；P3/L blocked 为 OPT-117。它们分别是内部观测/磁盘卫生/billing 冻结/a11y、孤儿 state、休眠采集路径、未来性能推演或不可行外部依赖；signals 最新直接证据仍是 8/09 OCR 核对摩擦，且对应 OPT-153、154 已 done。均无当前 Theme 3 直接贡献，继续 parked，不指派。
 
 ## Prioritized backlog
 
@@ -27,7 +25,7 @@ Last triaged: 2026-08-12
 | OPT-154 | 快速识别核对时双击页面放大 | P2 | S | **done** | ✅ PR #114 / `6ec326b`；局部 manipulation 约束与测试已在树中 |
 | OPT-152 | 长期记忆新内容被 8 条上限截断 | **P1** | S | **done** | ✅ PR #116 / `a1d08b0` 已合入 [2026-08-11]；按上下文优先级与更新时间选取，9+ 条回归测试已落地 |
 | OPT-155 | Agent 标签确认卡 DOM 注入 | P2 | S | **done** | ✅ PR #117 / `d2e3832` 已合入 [2026-08-11]；tag HTML 转义与恶意标签回归测试已落地 |
-| OPT-156 | 忽略 Agent 建议失败仍显示成功 | P2 | S | new | 数据控制 false-success；代码证实，暂无直接 signal |
+| OPT-156 | 忽略 Agent 建议失败仍显示成功 | P2 | S | **done** | ✅ PR #119 / `e14f0ac` 已合入 [2026-08-12]；失败保留确认卡并可重试，前端回归测试通过 |
 | OPT-150 | 无 session 时书卡忽略摘抄页码，已有阅读痕迹仍显示 0 页 | P1 | S | **done** | ✅ PR #111 / `8af9b8b` 已合入 [2026-08-09]；显示层回退与边界测试已落地 |
 | OPT-148 | 面向用户的显式阅读长期记忆 | P1 | M | **done** | ✅ PR #110 / `f58b01b` 已合入 [2026-08-08]；confirmed memories 可管理并按上下文注入 |
 | OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
@@ -51,7 +49,7 @@ Last triaged: 2026-08-12
 
 ## Recently reconciled done
 
-OPT-155, OPT-152, OPT-154, OPT-153, OPT-151, OPT-150, OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
+OPT-156, OPT-155, OPT-152, OPT-154, OPT-153, OPT-151, OPT-150, OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
 
 ## Legend
 
