@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T17:02:19.928Z
-> Files: 296 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-12T04:58:58.567Z
+> Files: 298 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -138,6 +138,7 @@
 - `cards-2026-08-06.md` — 卡片① (~46 tok)
 - `cards-2026-08-07.md` — 卡片① (~46 tok)
 - `cards-2026-08-11.md` — 卡片① (~57 tok)
+- `cards-2026-08-12.md` — 卡片① (~35 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -294,14 +295,15 @@
 
 - `cloud-setup.sh` — Codex Cloud environment setup for paper-reading-app. (~85 tok)
 - `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~754 tok)
-- `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1157 tok)
-- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~2243 tok)
-- `nightly-triage.sh` — 每日 01:00：在隔离 worktree 中执行夜间 Agent1（Triage）。 (~1406 tok)
+- `nightly-common.sh` — Shared isolation helpers for the local Codex nightly tasks. (~448 tok)
+- `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1169 tok)
+- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~2231 tok)
+- `nightly-triage.sh` — 每日 01:00：在隔离 clone 中执行夜间 Agent1（Triage）。 (~1418 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1792 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
 - `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1682 tok)
-- `README.md` — Project documentation (~907 tok)
+- `README.md` — Project documentation (~943 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
 - `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
@@ -340,7 +342,7 @@
 - `ci_workflow_contract_test.py` — Regression contracts for the CI and Codex auto-remediation wiring. (~402 tok)
 - `codex_cloud_scheduled_test.py` — Contracts for the remote Codex Cloud Scheduled nightly pipeline. (~962 tok)
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
-- `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~4190 tok)
+- `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5569 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
@@ -448,20 +450,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -469,30 +471,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)

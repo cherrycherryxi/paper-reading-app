@@ -5,6 +5,7 @@ export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 CODEX="${PAPER_NIGHTLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
 REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
+source "$(cd "$(dirname "$0")" && pwd)/nightly-common.sh"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
 LOG="${PAPER_NIGHTLY_IMPLEMENT_LOG:-$HOME/.claude/codex-nightly-implement.log}"
 BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
@@ -16,11 +17,18 @@ BASE_REF="${PAPER_NIGHTLY_BASE_REF:-origin/feature/agent}"
 LOCK_DIR="${PAPER_NIGHTLY_IMPLEMENT_LOCK:-$STATE_DIR/.implement.lock}"
 TRIAGE_MARK="$STATE_DIR/triage-$TODAY.done"
 DONE_MARK="$STATE_DIR/implement-$TODAY.done"
+PICK="${PAPER_NIGHTLY_PICK:-$HOME/.claude/paper-loop/today-pick.md}"
 
 mkdir -p "$STATE_DIR" "$(dirname "$LOG")"
 [ "$DRY_RUN" = 1 ] || [ ! -f "$DONE_MARK" ] || exit 0
-if [ "$SKIP_DEP" != 1 ] && [ ! -f "$TRIAGE_MARK" ]; then
-  echo "[$(date)] implement 跳过：缺少当天 triage 完成标记。" >> "$LOG"
+PICK_STATUS=$(awk '/^STATUS:/{print $2; exit}' "$PICK" 2>/dev/null || true)
+PICK_CHOICE=$(awk '/^CHOICE:/{print $2; exit}' "$PICK" 2>/dev/null || true)
+if [ "$DRY_RUN" != 1 ] && [ "$PICK_STATUS" != "IMPLEMENTING" ]; then
+  echo "[$(date)] implement 正常跳过：today-pick 不是 IMPLEMENTING（${PICK_STATUS:-缺失}）。" >> "$LOG"
+  exit 0
+fi
+if [ "$DRY_RUN" != 1 ] && [ -z "$PICK_CHOICE" ]; then
+  echo "[$(date)] implement 跳过：today-pick 缺少 CHOICE。" >> "$LOG"
   exit 75
 fi
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -30,48 +38,37 @@ fi
 
 TMP_ROOT=""
 WT=""
+RUN_FAILED=0
 HOOKS_FILE=""
 HOOKS_BACKUP=""
 cleanup() {
-  restore_codex_hooks
-  if [ -n "$WT" ] && [ -d "$WT" ]; then git -C "$REPO" worktree remove --force "$WT" >> "$LOG" 2>&1 || true; fi
-  [ -n "$TMP_ROOT" ] && rmdir "$TMP_ROOT" 2>/dev/null || true
+  nightly_restore_project_hooks
+  nightly_cleanup_clone
   rmdir "$LOCK_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 run_timeout() { perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$@"; }
 alert() { [ "$DRY_RUN" = 1 ] || bash "$BARK" "$1" "$2" "paper-nightly-implement" "timeSensitive" >> "$LOG" 2>&1 || true; }
-fail() { echo "[$(date)] implement 失败：${1}" >> "$LOG"; alert "❌ 夜间 Implement 失败" "${TODAY}：${1}"; exit 1; }
+fail() { RUN_FAILED=1; echo "[$(date)] implement 失败：${1}" >> "$LOG"; alert "❌ 夜间 Implement 失败" "${TODAY}：${1}"; exit 1; }
 require_gh_auth() {
   gh auth status --active --hostname github.com >> "$LOG" 2>&1 || fail "gh OAuth 无效；请先在登录桌面会话执行 gh auth login -h github.com --web"
 }
-disable_codex_hooks() {
-  HOOKS_FILE="$WT/.codex/hooks.json"
-  HOOKS_BACKUP="$TMP_ROOT/codex-hooks.json"
-  [ -f "$HOOKS_FILE" ] || return 0
-  mv "$HOOKS_FILE" "$HOOKS_BACKUP" || fail "隔离 Codex 生命周期 hook"
-  echo "[$(date)] 已临时隔离 worktree 内 Codex/OpenWolf hooks。" >> "$LOG"
-}
-restore_codex_hooks() {
-  [ -n "${HOOKS_FILE:-}" ] && [ -n "${HOOKS_BACKUP:-}" ] && [ -f "$HOOKS_BACKUP" ] \
-    && mv "$HOOKS_BACKUP" "$HOOKS_FILE" 2>>"$LOG" || true
-}
-record_worktree_state() {
+record_clone_state() {
   {
-    echo "[$(date)] === implement worktree state ==="
+    echo "[$(date)] === implement clone state ==="
     git -C "$WT" status --short
     git -C "$WT" diff --name-status
     git -C "$WT" diff --binary
-    echo "[$(date)] === end implement worktree state ==="
+    echo "[$(date)] === end implement clone state ==="
   } >> "$LOG" 2>&1
 }
 run_codex_implement() {
   local prompt="$1"
-  disable_codex_hooks
+  nightly_disable_project_hooks || fail "隔离 clone 内 Codex hooks"
   RAW=$(run_timeout 1800 "$CODEX" exec -C "$WT" --dangerously-bypass-approvals-and-sandbox --ephemeral "$prompt" 2>>"$LOG" || true)
-  restore_codex_hooks
+  nightly_restore_project_hooks
   printf '%s\n' "$RAW" >> "$LOG"
-  record_worktree_state
+  record_clone_state
 }
 
 echo "[$(date)] === Codex nightly implement $TODAY (dry_run=$DRY_RUN) ===" >> "$LOG"
@@ -79,11 +76,9 @@ if [ "$DRY_RUN" != 1 ]; then require_gh_auth; fi
 if [ "$SKIP_FETCH" != 1 ]; then
   git -C "$REPO" fetch origin feature/agent >> "$LOG" 2>&1 || fail "fetch feature/agent"
 fi
-TMP_ROOT=$(mktemp -d)
-WT="$TMP_ROOT/wt"
-git -C "$REPO" worktree add --quiet --detach "$WT" "$BASE_REF" >> "$LOG" 2>&1 || fail "创建隔离 worktree"
+nightly_create_clone || fail "创建或校验隔离 clone"
 
-PROMPT="你是 paper-reading-app 夜间 Agent2（Implement）。当前上海日期是 ${TODAY}。当前目录是隔离 worktree；只修改文件，不执行 git/gh，不 commit、不 push、不开 PR、不合并、不发布。
+PROMPT="你是 paper-reading-app 夜间 Agent2（Implement）。当前上海日期是 ${TODAY}。当前目录是隔离 clone；只修改文件，不执行 git/gh，不 commit、不 push、不开 PR、不合并、不发布。
 
 完整遵循 AGENTS.md：先读 .wolf/anatomy.md、.wolf/cerebrum.md、.wolf/buglog.json。读取 optimization/triage.md。
 
@@ -111,6 +106,7 @@ OPT-NNN
 不要声称测试通过；测试由外层 shell 真实执行。"
 
 run_codex_implement "$PROMPT"
+nightly_assert_clone || fail "隔离 clone Git 状态失效；现场已保留"
 STATUS=$(printf '%s\n' "$RAW" | awk '/<<<NIGHTLY_STATUS>>>/{f=1;next} /<<<NIGHTLY_STATUS_END>>>/{f=0;next} f' | head -1 | tr -d '[:space:]')
 if [ "$STATUS" = "SKIP" ]; then
   if [ "$DRY_RUN" != 1 ]; then
@@ -134,6 +130,7 @@ if [ -z "$CHANGED" ]; then
 
 上一次运行返回了 IMPLEMENT 但没有留下任何 worktree 文件变更。本次必须使用 apply_patch 对实际文件写入；不要只在回复中展示 diff。完成前确认至少一个允许文件已改变。"
   run_codex_implement "$RETRY_PROMPT"
+  nightly_assert_clone || fail "受控重试后隔离 clone Git 状态失效；现场已保留"
   STATUS=$(printf '%s\n' "$RAW" | awk '/<<<NIGHTLY_STATUS>>>/{f=1;next} /<<<NIGHTLY_STATUS_END>>>/{f=0;next} f' | head -1 | tr -d '[:space:]')
   [ "$STATUS" = "IMPLEMENT" ] || fail "受控重试未返回 IMPLEMENT"
   ITEM_ID=$(printf '%s\n' "$RAW" | awk '/<<<ITEM_ID>>>/{f=1;next} /<<<ITEM_ID_END>>>/{f=0;next} f' | head -1 | tr -d '[:space:]')

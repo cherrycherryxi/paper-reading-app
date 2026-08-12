@@ -1,11 +1,12 @@
 #!/bin/bash
-# 每日 01:00：在隔离 worktree 中执行夜间 Agent1（Triage）。
+# 每日 01:00：在隔离 clone 中执行夜间 Agent1（Triage）。
 # Codex 只改规划/知识白名单；commit 与 push 由 shell 校验后执行。
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 CODEX="${PAPER_NIGHTLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
 REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
+source "$(cd "$(dirname "$0")" && pwd)/nightly-common.sh"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
 LOG="${PAPER_NIGHTLY_TRIAGE_LOG:-$HOME/.claude/codex-nightly-triage.log}"
 BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
@@ -26,23 +27,24 @@ fi
 
 TMP_ROOT=""
 WT=""
+RUN_FAILED=0
+HOOKS_FILE=""
+HOOKS_BACKUP=""
 cleanup() {
-  if [ -n "$WT" ] && [ -d "$WT" ]; then git -C "$REPO" worktree remove --force "$WT" >> "$LOG" 2>&1 || true; fi
-  [ -n "$TMP_ROOT" ] && rmdir "$TMP_ROOT" 2>/dev/null || true
+  nightly_restore_project_hooks
+  nightly_cleanup_clone
   rmdir "$LOCK_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 run_timeout() { perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$@"; }
 alert() { [ "$DRY_RUN" = 1 ] || bash "$BARK" "$1" "$2" "paper-nightly-triage" "timeSensitive" >> "$LOG" 2>&1 || true; }
-fail() { echo "[$(date)] triage 失败：${1}" >> "$LOG"; alert "❌ 夜间 Triage 失败" "${TODAY}：${1}"; exit 1; }
+fail() { RUN_FAILED=1; echo "[$(date)] triage 失败：${1}" >> "$LOG"; alert "❌ 夜间 Triage 失败" "${TODAY}：${1}"; exit 1; }
 
 echo "[$(date)] === Codex nightly triage $TODAY (dry_run=$DRY_RUN) ===" >> "$LOG"
 if [ "$SKIP_FETCH" != 1 ]; then
   git -C "$REPO" fetch origin feature/agent >> "$LOG" 2>&1 || fail "fetch feature/agent"
 fi
-TMP_ROOT=$(mktemp -d)
-WT="$TMP_ROOT/wt"
-git -C "$REPO" worktree add --quiet --detach "$WT" "$BASE_REF" >> "$LOG" 2>&1 || fail "创建隔离 worktree"
+nightly_create_clone || fail "创建或校验隔离 clone"
 
 RECENT_LOG=$(git -C "$WT" log --all --since='8 days ago' --pretty='- %h %cs %s' --date=short | head -120)
 PR_JSON=""
@@ -66,7 +68,7 @@ else
   AUTO_COUNT="UNKNOWN"
 fi
 
-PROMPT="你是 paper-reading-app 夜间 Agent1（Triage）。当前上海日期是 ${TODAY}。当前目录是隔离 worktree；不要 commit、push、开 PR 或发布。
+PROMPT="你是 paper-reading-app 夜间 Agent1（Triage）。当前上海日期是 ${TODAY}。当前目录是隔离 clone；不要 commit、push、开 PR 或发布。
 
 先完整遵循 AGENTS.md，并按要求读取 .wolf/anatomy.md、.wolf/cerebrum.md；这是规划维护，不写应用代码。读取 optimization/roadmap.md、optimization/signals.md、optimization/backlog.md、optimization/triage.md，并用真实代码和下方证据核实状态。GitHub 数据已经由外层一次性获取，不要再调用 gh 或逐个访问 GitHub API。
 
@@ -88,9 +90,13 @@ ${PR_EVIDENCE}
 
 所有判断必须有仓库证据。"
 
+nightly_disable_project_hooks || fail "隔离 clone 内 Codex hooks"
 RAW=$(run_timeout 1200 "$CODEX" exec -C "$WT" --sandbox workspace-write --ephemeral "$PROMPT" 2>>"$LOG" || true)
+nightly_restore_project_hooks
 SUMMARY=$(printf '%s\n' "$RAW" | awk '/<<<SUMMARY_START>>>/{f=1;next} /<<<SUMMARY_END>>>/{f=0;next} f')
 [ -n "$SUMMARY" ] || fail "Codex 未产出摘要"
+
+nightly_assert_clone || fail "隔离 clone Git 状态失效；现场已保留"
 
 CHANGED=$( { git -C "$WT" diff --name-only; git -C "$WT" ls-files --others --exclude-standard; } | sort -u )
 [ -n "$CHANGED" ] || fail "Codex 未更新 triage"

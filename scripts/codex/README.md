@@ -33,17 +33,19 @@ unloaded while their Codex equivalents are loaded.
 ## Nightly autonomous pipeline
 
 - `nightly-triage.sh` — 01:00, reconciles backlog/triage and assigns one item.
-- `nightly-implement.sh` — 04:00, requires today's triage marker, implements one
-  item, runs both full test suites, and opens a PR targeting `feature/agent`.
+- `nightly-implement.sh` — 04:00, only runs after `today-pick.md` is explicitly
+  claimed (`STATUS: IMPLEMENTING` with `CHOICE`); it then implements one item,
+  runs both full test suites, and opens a PR targeting `feature/agent`.
   It never merges; a failing suite produces a draft PR.
 - `nightly-explore.sh` — 05:00 with a 07:00 recovery trigger, runs independently
   of Implement, appends evidence-backed findings and promotes at most two.
 
-Each task runs in an isolated worktree and has a per-day completion marker plus
-a lock directory under `~/.claude/codex-nightly`. The triage marker prevents
-Implement from consuming stale work; Explore has no Implement dependency. The
-second Explore trigger is idempotent and recovers a failed or interrupted 05:00
-Explore run.
+Each task runs in an isolated disposable clone, never a linked worktree, and
+has a per-day completion marker plus a lock directory under
+`~/.claude/codex-nightly`. A failed clone is retained and logged for diagnosis;
+it is never reported as an empty Codex change. Explore has no Implement
+dependency. The second Explore trigger is idempotent and recovers a failed or
+interrupted 05:00 Explore run.
 
 For side-effect-free verification, set `PAPER_NIGHTLY_DRY_RUN=1`,
 `PAPER_NIGHTLY_SKIP_FETCH=1`, and optionally `PAPER_NIGHTLY_BASE_REF=HEAD`.

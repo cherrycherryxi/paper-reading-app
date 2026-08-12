@@ -5,6 +5,7 @@ export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 CODEX="${PAPER_NIGHTLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
 REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
+source "$(cd "$(dirname "$0")" && pwd)/nightly-common.sh"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
 LOG="${PAPER_NIGHTLY_EXPLORE_LOG:-$HOME/.claude/codex-nightly-explore.log}"
 BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
@@ -24,23 +25,24 @@ fi
 
 TMP_ROOT=""
 WT=""
+RUN_FAILED=0
+HOOKS_FILE=""
+HOOKS_BACKUP=""
 cleanup() {
-  if [ -n "$WT" ] && [ -d "$WT" ]; then git -C "$REPO" worktree remove --force "$WT" >> "$LOG" 2>&1 || true; fi
-  [ -n "$TMP_ROOT" ] && rmdir "$TMP_ROOT" 2>/dev/null || true
+  nightly_restore_project_hooks
+  nightly_cleanup_clone
   rmdir "$LOCK_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 run_timeout() { perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$@"; }
 alert() { [ "$DRY_RUN" = 1 ] || bash "$BARK" "$1" "$2" "paper-nightly-explore" "timeSensitive" >> "$LOG" 2>&1 || true; }
-fail() { echo "[$(date)] explore 失败：${1}" >> "$LOG"; alert "❌ 夜间 Explore 失败" "${TODAY}：${1}"; exit 1; }
+fail() { RUN_FAILED=1; echo "[$(date)] explore 失败：${1}" >> "$LOG"; alert "❌ 夜间 Explore 失败" "${TODAY}：${1}"; exit 1; }
 
 echo "[$(date)] === Codex nightly explore $TODAY (dry_run=$DRY_RUN) ===" >> "$LOG"
 if [ "$SKIP_FETCH" != 1 ]; then
   git -C "$REPO" fetch origin feature/agent >> "$LOG" 2>&1 || fail "fetch feature/agent"
 fi
-TMP_ROOT=$(mktemp -d)
-WT="$TMP_ROOT/wt"
-git -C "$REPO" worktree add --quiet --detach "$WT" "$BASE_REF" >> "$LOG" 2>&1 || fail "创建隔离 worktree"
+nightly_create_clone || fail "创建或校验隔离 clone"
 
 OPEN_PRS=""
 for attempt in 1 2 3; do
@@ -51,7 +53,7 @@ for attempt in 1 2 3; do
 done
 [ -n "$OPEN_PRS" ] || OPEN_PRS="（无 open PR 或 GitHub 数据不可用；不得据此臆造状态。）"
 
-PROMPT="你是 paper-reading-app 夜间 Agent3（Explore）。当前上海日期是 ${TODAY}。当前目录是隔离 worktree；不要 commit、push、开 PR、合并或发布。
+PROMPT="你是 paper-reading-app 夜间 Agent3（Explore）。当前上海日期是 ${TODAY}。当前目录是隔离 clone；不要 commit、push、开 PR、合并或发布。
 
 完整遵循 AGENTS.md，先读 .wolf/anatomy.md、.wolf/cerebrum.md、.wolf/buglog.json。读取 optimization/backlog.md、optimization/triage.md、optimization/roadmap.md、optimization/signals.md，并查看最近 git 历史。
 
@@ -67,9 +69,13 @@ $OPEN_PRS
 6. 回复末尾用 <<<SUMMARY_START>>> 与 <<<SUMMARY_END>>> 包住 250 字以内中文摘要。
 "
 
+nightly_disable_project_hooks || fail "隔离 clone 内 Codex hooks"
 RAW=$(run_timeout 1500 "$CODEX" exec -C "$WT" --sandbox workspace-write --ephemeral "$PROMPT" 2>>"$LOG" || true)
+nightly_restore_project_hooks
 SUMMARY=$(printf '%s\n' "$RAW" | awk '/<<<SUMMARY_START>>>/{f=1;next} /<<<SUMMARY_END>>>/{f=0;next} f')
 [ -n "$SUMMARY" ] || fail "Codex 未产出摘要"
+
+nightly_assert_clone || fail "隔离 clone Git 状态失效；现场已保留"
 
 CHANGED=$( { git -C "$WT" diff --name-only; git -C "$WT" ls-files --others --exclude-standard; } | sort -u )
 [ -n "$CHANGED" ] || fail "Codex 未更新 explore"
