@@ -849,6 +849,23 @@ def save_state_checked(
     Atomicity comes from the single conditional UPDATE (... WHERE updated_at = ?)
     — no explicit transaction, so this never nests with another BEGIN IMMEDIATE
     (e.g. ActionExecutor's)."""
+    # bug-5xx: a client on an older schema (page loaded before a schema upgrade)
+    # carries a fresh version token — apiFetch auto-captures stateVersion from
+    # any response — but a state object missing newer top-level keys. A full PUT
+    # from such a client must not wipe fields it doesn't know about (this is how
+    # confirmed memories were lost after the 2026-08-08 schema upgrade). Inherit
+    # server-side values for top-level keys the payload omits; an explicitly
+    # present key (even []) still wins, so users can clear a field on purpose.
+    # The inherit-read is safe against races: a stale expected_version fails the
+    # conditional UPDATE below and nothing inherited is written.
+    current_row = conn.execute(
+        "SELECT state_json FROM user_state WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    if current_row:
+        current_state = json.loads(current_row["state_json"])
+        for key, value in current_state.items():
+            if key not in state:
+                state[key] = value
     sanitized = sanitize_state(state)
     new_version = utc_now_iso()
     cur = conn.execute(
