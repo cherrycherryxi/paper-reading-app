@@ -4772,3 +4772,10 @@
 | 22:46 | Created tests/agent/state_field_inherit_test.py | — | ~2078 |
 | 22:48 | 排查并恢复 prod 丢失的长期记忆(bug-603)：旧schema客户端全量PUT清空memories字段；数据从model_logs找回并恢复，save_state_checked加缺失字段继承，新增回归测试 | app_server.py tests/agent/state_field_inherit_test.py .wolf/buglog.json .wolf/cerebrum.md | 记忆已恢复prod库(备份于backups/)，5个新测试+全量467测试通过 | ~90000 |
 | 22:48 | Session end: 10 writes across 7 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 7 reads | ~340082 tok |
+| 22:51 | Session end: 10 writes across 7 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 7 reads | ~340082 tok |
+| 22:56 | Created optimization/signals.md | — | ~1271 |
+| 22:56 | Session end: 11 writes across 8 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 7 reads | ~341444 tok |
+| 22:57 | Created optimization/signals.md | — | ~1334 |
+| 22:58 | Session end: 12 writes across 8 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 7 reads | ~342873 tok |
+| 22:59 | Created optimization/signals.md | — | ~1404 |
+| 22:59 | Session end: 13 writes across 8 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 7 reads | ~344377 tok |
