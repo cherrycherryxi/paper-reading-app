@@ -2,19 +2,19 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-13
+Last triaged: 2026-08-14
 
 ## Next up
 
-**无指派。**
+**OPT-157 — “我的”主页前置长期记忆与快速导入入口（P1 / M）。**
 
-理由：最高优先级的未完成项均为 P3 parked 或 P3/L blocked；没有一项同时具备当前 Theme 3「积累可信」或近期真实 signal 的直接、可验证北极星贡献。按 roadmap 的北极星税，它们不能被指派为夜间实现 PR。
+理由：2026-08-13 owner 直接指出长期记忆、快速导入书籍藏在“我的”抽屉中，入口过深（`optimization/signals.md:76-81`）。当前主页只有统计与完成率（`index.html:225-249`），而长期记忆和导入实际位于 `#meDrawer`（`index.html:295-351`）；这是可在一个前端 PR 内以入口重排解决的真实任务失败。长期记忆属于当前 Theme 3「积累可信」的可控资产，前置能直接提高其可发现性与重复使用率；其他 8/13 signal 中，封面视觉需设计探索，取消记录页涉及导航/数据取舍，均不适合本次单 PR。
 
-**预算状态（2026-08-13）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **7**，上限 **8**，剩余 **1**；预算未耗尽，但没有合格候选，故不指派。未调用 `gh` 或 GitHub API。
+**预算状态（2026-08-14）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **7**，上限 **8**，剩余 **1**；故仅指派 OPT-157。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 给定近 8 日记录的 PR #119 合入提交为 `e14f0ac`。当前 `chat.js:1017-1025` 在 reject 失败时恢复两个按钮、置 `handled=false`、提示重试并提前返回；`tests/frontend/chat-agent-approval.test.js:470-516` 覆盖首次失败保留卡片、第二次成功移除。已运行 `node --test tests/frontend/chat-agent-approval.test.js`：10 passed、0 failed，故 OPT-156 在 backlog 与本表改 done。
-- 其余未完成项逐项评估维持：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、142、144；P3/M 为 OPT-081、147；P3/L blocked 为 OPT-117。它们分别是内部观测/磁盘卫生/billing 冻结/a11y、孤儿 state、休眠采集路径、未来性能推演或不可行外部依赖；signals 最新直接证据仍是 8/09 OCR 核对摩擦，且对应 OPT-153、154 已 done。均无当前 Theme 3 直接贡献，继续 parked，不指派。
+- 给定近 8 日记录中的 PR #120 合入提交 `14a2a1d`（OPT-142）与 PR #121 合入提交 `778d9fa`（OPT-147），均为 GitHub merge commit；当前 `app.js:5635-5647` 已匹配摘抄标签/我的理解，`tests/frontend/quote-combobox-ocr-label.test.js:142-154` 有回归；`app.js:1822-1884` 已以 24 张分页渲染，`tests/frontend/book-list-progressive-render.test.js:56-78` 守卫首屏上限与加载更多。两项均改 done，不能再作为未完成项。
+- 未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们分别是磁盘/内部观测、冻结 billing、当前无 a11y signal、删除后孤儿 state、休眠采集路径或不可行外部依赖；没有当前 Theme 或真实 signal 的合理北极星贡献，均维持 parked。OPT-157 是唯一 P1/M：来自最新 owner signal、与 Theme 3 直接相关、可单 PR 完成。
 
 ## Prioritized backlog
 
@@ -31,9 +31,10 @@ Last triaged: 2026-08-13
 | OPT-149 | 清空探讨失败时本地界面仍被清空 | P2 | S | **done** | ✅ PR #109 / `cb8de66` 已合入 [2026-08-07]；失败保留历史，成功才重置 |
 | OPT-145 | 书单约 50 个标签全部塞入无滚动提示的横滑条，筛选入口不可发现 | P1 | M | **done** | ✅ PR #106 / `9977757` 已合入 [2026-08-05]；更多标签可搜索面板与筛选闭环已实现 |
 | OPT-146 | 书卡状态/评分/计数/进度/标签信息层级过密 | P3 | M | **done** | ✅ PR #107 / `ce56b70` 已合入 [2026-08-05]；默认精简、详情保留完整信息 |
-| OPT-142 | 关联弹窗 filteredQuotes() 不搜摘抄 tags：按标签找目标摘抄失败 | P3 | S | triaged | parked：场景频率低，无直接 signal |
+| OPT-157 | “我的”主页前置长期记忆与快速导入入口 | **P1** | M | triaged | **Next up**：8/13 owner 直接反馈；Theme 3 可控长期资产入口 |
+| OPT-142 | 关联弹窗 filteredQuotes() 不搜摘抄 tags：按标签找目标摘抄失败 | P3 | S | **done** | ✅ PR #120 / `14a2a1d` 已合入 [2026-08-13]；标签/我的理解检索回归已在树中 |
 | OPT-144 | 聊天压缩阈值 10 可能过低 | P3 | S | triaged | parked：缺少上下文遗忘日志或用户反馈 |
-| OPT-147 | renderBooks 最终渲染全部书卡，未来规模可能变慢 | P3 | M | triaged | parked：146 本无真机卡顿、掉帧或任务放弃证据 |
+| OPT-147 | renderBooks 最终渲染全部书卡，未来规模可能变慢 | P3 | M | **done** | ✅ PR #121 / `778d9fa` 已合入 [2026-08-13]；首屏 24 张 + 加载更多测试已在树中 |
 | OPT-124 | _run_gc() 不包含 model_logs 等观测表 | P3 | S | triaged | parked：磁盘卫生，无用户 signal |
 | OPT-081 | Organize/Candidates 批量采集路径沉睡 | P3 | M | triaged | parked：无人要求，缺北极星贡献 |
 | OPT-050 | deleteQuote() 漏清理 chatHistories/chatContexts | P3 | S | triaged | parked：state hygiene，无 Theme 2 直接贡献 |
@@ -49,7 +50,7 @@ Last triaged: 2026-08-13
 
 ## Recently reconciled done
 
-OPT-156, OPT-155, OPT-152, OPT-154, OPT-153, OPT-151, OPT-150, OPT-148, OPT-149, OPT-067, OPT-125, OPT-141, OPT-138, OPT-143, OPT-136, OPT-120, OPT-102, OPT-135, OPT-137, OPT-139, OPT-140, OPT-133, OPT-038, OPT-134, OPT-072, OPT-131, OPT-132, OPT-129, OPT-130, OPT-126, OPT-077, OPT-127, OPT-094, OPT-123, OPT-128, OPT-070, OPT-071, OPT-109, OPT-095, OPT-073, OPT-121, OPT-122, OPT-093, OPT-082, OPT-060.
+OPT-157 为 Next up。OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 
