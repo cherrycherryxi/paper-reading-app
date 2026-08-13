@@ -5630,7 +5630,9 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
     return allQuotes.filter((item) => {
       const book = state.books.find((b) => b.id === item.bookId);
       return quoteText(item).toLowerCase().includes(lower) ||
-        (book?.title || "").toLowerCase().includes(lower);
+        (book?.title || "").toLowerCase().includes(lower) ||
+        (item.tags || []).some((tag) => String(tag).toLowerCase().includes(lower)) ||
+        String(item.reflection || "").toLowerCase().includes(lower);
     }).slice(0, 30);
   }
 

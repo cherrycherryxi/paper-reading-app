@@ -139,6 +139,20 @@ test("OPT-111: 手打摘抄与书名搜索不受影响", () => {
   assert.deepEqual(c.labels(), ["没有匹配的摘抄"], "无命中时仍显示空态");
 });
 
+test("OPT-142: 按摘抄标签和我的理解都能找到关联目标", () => {
+  const c = mountQuoteCombobox([
+    { ...TYPED_QUOTE, id: "q-tagged", tags: ["哲学", "成长"], reflection: "把自由理解成承担后果。" },
+    { id: "q-other", bookId: "b1", kind: "quote", content: "没有关联的文字。", tags: [], reflection: "" },
+  ]);
+  c.open();
+
+  c.type("成长");
+  assert.deepEqual(c.labels(), ["置身事内 · 手打的摘抄正文。"], "标签应作为关联弹窗的检索字段");
+
+  c.type("承担后果");
+  assert.deepEqual(c.labels(), ["置身事内 · 手打的摘抄正文。"], "我的理解应与摘抄页检索口径一致");
+});
+
 test("OPT-111: 选中 OCR 摘抄后，输入框回填的也是带正文的标签", () => {
   const c = mountQuoteCombobox([OCR_QUOTE]);
   c.wrapper._comboboxSetValue("q-ocr");
