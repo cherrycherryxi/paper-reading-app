@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-12T13:10:11.868Z
-> Files: 299 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-13T14:46:22.419Z
+> Files: 307 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -100,6 +100,23 @@
 - `opt143-pr-body.md` — 动机 (~189 tok)
 - `opt156-pr.md` — 动机 (~208 tok)
 
+## ../../../../tmp/paper-opt-142/
+
+- `app.js` — Declares AUTH_TOKEN_KEY (~72077 tok)
+
+## ../../../../tmp/paper-opt-142/tests/frontend/
+
+- `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~1929 tok)
+
+## ../../../../tmp/paper-opt-147/
+
+- `app.js` — Declares AUTH_TOKEN_KEY (~72158 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~26424 tok)
+
+## ../../../../tmp/paper-opt-147/tests/frontend/
+
+- `book-list-progressive-render.test.js` — OPT-147: 大书单不能在一次 renderBooks() 中创建全部 DOM；按页展开应保持顺序和总数。 (~1000 tok)
+
 ## ../../../../tmp/paper-opt067/
 
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76606 tok)
@@ -140,13 +157,15 @@
 - `cards-2026-08-07.md` — 卡片① (~46 tok)
 - `cards-2026-08-11.md` — 卡片① (~57 tok)
 - `cards-2026-08-12.md` — 卡片① (~35 tok)
+- `cards-2026-08-13.md` — 卡片① (~50 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
 - `review-2026-08-04.md` (~2 tok)
 - `review-2026-08-06.md` (~2 tok)
 - `review-2026-08-07.md` — 2026-08-07 夜间 PR 审查 (~51 tok)
-- `today-pick.md` — 卡片① (~50 tok)
+- `review-2026-08-13.md` (~2 tok)
+- `today-pick.md` — 卡片① (~65 tok)
 
 ## ./
 
@@ -155,7 +174,7 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~76213 tok)
+- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~77573 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~70634 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
@@ -377,6 +396,7 @@
 - `server_errors_test.py` — Regression tests for server-side error monitoring (P1 commercialization). (~2174 tok)
 - `session_expiry_test.py` — Regression tests for session token rolling expiry (P0 commercialization). (~2042 tok)
 - `shelf_ocr_test.py` — OPT-118 书架 OCR：解析器与提示词的真实行为测试。 (~1019 tok)
+- `state_field_inherit_test.py` — Regression tests for the schema-upgrade clobber bug (lost confirmed memories). (~2078 tok)
 - `state_version_test.py` — Regression tests for OPT-029 Layer B / E35: optimistic locking on user state. (~2065 tok)
 - `static_cache_test.py` — OPT-086: 静态资源缓存策略测试。 (~692 tok)
 - `terms_consent_test.py` — Regression tests for ToS/Privacy consent on registration (P1 commercialization). (~1720 tok)
@@ -451,20 +471,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -472,30 +492,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)

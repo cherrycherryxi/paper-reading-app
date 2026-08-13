@@ -4740,3 +4740,35 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 20:xx | Explored OCR verification boundaries | optimization/explore.md | Added E248-E250 with current file evidence; no backlog promotion because isolated clone could not fetch remote feature/agent and therefore could not allocate a safe OPT number | ~0 |
+
+## Session: 2026-08-13 10:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:01 | Created ../../.claude/paper-loop/review-2026-08-13.md | — | ~3 |
+| 10:01 | Session end: 1 writes across 1 files (review-2026-08-13.md) | 0 reads | ~3 tok |
+
+## Session: 2026-08-13 10:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:03 | Created ../../.claude/paper-loop/cards-2026-08-13.md | — | ~53 |
+| 10:03 | Session end: 1 writes across 1 files (cards-2026-08-13.md) | 0 reads | ~57 tok |
+
+## Session: 2026-08-13 16:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:17 | Created ../../../../tmp/paper-opt-142/app.js | — | ~72077 |
+| 16:17 | Created ../../../../tmp/paper-opt-142/tests/frontend/quote-combobox-ocr-label.test.js | — | ~1929 |
+| 16:23 | Created ../../../../tmp/paper-opt-147/app.js | — | ~72158 |
+| 16:23 | Created ../../../../tmp/paper-opt-147/styles.css | — | ~26424 |
+| 16:23 | Created ../../../../tmp/paper-opt-147/tests/frontend/book-list-progressive-render.test.js | — | ~968 |
+| 16:24 | Created ../../../../tmp/paper-opt-147/tests/frontend/book-list-progressive-render.test.js | — | ~999 |
+| 16:24 | Created ../../../../tmp/paper-opt-147/tests/frontend/book-list-progressive-render.test.js | — | ~1000 |
+| 16:28 | Created ../../.claude/paper-loop/today-pick.md | — | ~70 |
+| 16:28 | Session end: 8 writes across 5 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 0 reads | ~175629 tok |
+| 22:45 | Edited app_server.py | modified items() | ~426 |
+| 22:46 | Created tests/agent/state_field_inherit_test.py | — | ~2078 |
+| 22:48 | 排查并恢复 prod 丢失的长期记忆(bug-603)：旧schema客户端全量PUT清空memories字段；数据从model_logs找回并恢复，save_state_checked加缺失字段继承，新增回归测试 | app_server.py tests/agent/state_field_inherit_test.py .wolf/buglog.json .wolf/cerebrum.md | 记忆已恢复prod库(备份于backups/)，5个新测试+全量467测试通过 | ~90000 |
+| 22:48 | Session end: 10 writes across 7 files (app.js, quote-combobox-ocr-label.test.js, styles.css, book-list-progressive-render.test.js, today-pick.md) | 7 reads | ~340082 tok |

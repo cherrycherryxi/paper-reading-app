@@ -9875,10 +9875,40 @@
       "file": "index.html, app.js, app_server.py, tests/frontend/ocr-multi-image.test.js, tests/agent/quote_ocr_engine_test.py",
       "root_cause": "拍照问题来自多图实现依赖同一次 file input change 返回两个 File，而 iOS 相机每次只返回一个新 FileList。文本问题来自时序：第 1 页百度 OCR 返回后立刻调用 renderOcrLineSelector()，该函数会把视觉行回写成连续正文；第 2 页完成时又从已压平的 quoteContent 取第 1 页文本合并，所以最终重绘时第 1 页只剩一个超长行。百度 accurate 含位置结果在后端也曾直接拼接普通视觉行，进一步丢失编辑边界。",
       "fix": "摘抄表单使用独立的第 1/第 2 张照片槽。快速识别保留第 1、2 页各自的原始百度 OCR 文本，等两页完成后只渲染一次；后端对百度含位置结果过滤边页噪声后保留视觉行，大间距仍标记段落。移除每 48 字人为拆分的绕行方案，正文仅在编辑面板回写时按页内连续、页间空行重排。新增真实模拟面板副作用的双页多行回归测试。",
-      "tags": ["ocr", "multi-image", "ios", "camera", "cross-page", "text-formatting"],
-      "related_bugs": ["bug-553"],
+      "tags": [
+        "ocr",
+        "multi-image",
+        "ios",
+        "camera",
+        "cross-page",
+        "text-formatting"
+      ],
+      "related_bugs": [
+        "bug-553"
+      ],
       "occurrences": 2,
       "last_seen": "2026-08-01T20:31:00+08:00"
+    },
+    {
+      "id": "bug-603",
+      "timestamp": "2026-08-13T22:47:41+08:00",
+      "status": "fixed",
+      "fixed_at": "2026-08-13T22:47:41+08:00",
+      "error_message": "用户（Huangnanxi）的长期记忆「从细节区分书的质量，建立自己的审美和品味」在 2026-08-10 发版后被清空：08-09 23:21 chat 还注入该记忆，08-10 00:04 chat 已为空。",
+      "file": "app_server.py (save_state_checked), tests/agent/state_field_inherit_test.py",
+      "root_cause": "08-08 上线 memories 字段后，用户手机上仍有发版前加载的旧 schema 页面。旧页面 state 对象缺 memories 键，但 optimistic-lock 版本令牌会经 apiFetch 自动捕获（app.js:510，任何带 stateVersion 的响应——包括 approve 响应）保持最新。08-10 00:00:38 旧页面做 OCR 摘抄触发全量 PUT：版本校验通过（200），payload 无 memories 键，sanitize_state 覆盖为空数组。版本令牌与 state 内容脱节是 OPT-029 的盲区。",
+      "fix": "save_state_checked 写入前对 payload 缺失的顶层键继承服务器当前值（显式传 [] 仍可清空）；继承读取的竞态由条件 UPDATE 的 version 校验兜底（过期则 409 不写）。数据已从 model_logs 的 prompt 注入记录中找回并恢复 prod 库（备份 backups/app_state.20260813-224515.pre-memory-restore.db），恢复时 bump updated_at 强制前端下次走冲突加载。",
+      "tags": [
+        "data-loss",
+        "optimistic-lock",
+        "schema-upgrade",
+        "memories",
+        "stale-client",
+        "prod"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13"
     }
   ]
 }
