@@ -4472,3 +4472,50 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 
 > 本次 run 新发现 4 条：E244（Agent tag 确认卡 DOM 注入，S，渲染安全）、E245（忽略 action false-success，S，错误处理）、E246（英文 OCR 行拼接丢空格，S，文本正确性）、E247（OCR 删除按钮无法被读屏区分，S，无障碍）。提拔 OPT-155 与 OPT-156；其余留探索池。所有断言均核对当前 `feature/agent` 源码并标注 file:line。
 
+## 2026-08-13
+
+> 扫描焦点：Theme 3「积累可信」下快速识别核对的已合入撤销实现，以及 OCR 临时卡取消后的持久化边界。已核对当前 backlog、triage、roadmap、signals、8/10 Explore 与本地最近历史：OPT-153/154 已分别由 `e7e108c`/`6ec326b` 合入，OPT-155/156 已分别由 `d2e3832`/`e14f0ac` 合入；本节不重复登记它们或 E246/E247。GitHub/open PR 数据按任务前提不可用；`git fetch origin feature/agent` 因隔离 clone 无法写 `.git/FETCH_HEAD` 失败，故不分配未经远端确认的下一个 OPT 编号。
+
+### E248 — OCR 连续删除只保留最后一次的撤销句柄，前一次误删会立刻变成不可恢复 (S)
+
+**What (verified):** `renderOcrLineSelector()` 只以单个局部变量 `lastDeletedLine` 保存删除记录（`app.js:2692`）。每次删除都直接覆盖它（`app.js:2749-2753`），撤销入口也只恢复该一个 row，随后立即清空变量（`app.js:2731-2740`）。因此用户连续删 A、B 后只能撤销 B；A 已从 DOM 移除且没有历史栈。现有回归测试只验证“最后一行删除后仍有撤销入口”（`tests/frontend/ocr-line-selector.test.js:274-281`），未覆盖连续误删的完整恢复。
+
+**Why it matters:** 8/09 owner 的直接 signal 是核对 OCR 时误删一行后必须重跑识别；OPT-153 的目标正是让删除在最终保存前可恢复。逐行核对本身常会连续点删，单级撤销把这一直接反馈只修到第一步：第二次操作后第一次误删又不可逆，仍会迫使用户重新 OCR。
+
+**Complexity:** S。将单条 `lastDeletedLine` 换成按删除顺序保存的栈，撤销按钮逐次恢复最近一行；维持原索引和分段，补“连续删除两行→连续撤销两次”“删至空→全部恢复”测试。
+
+**Files:** `app.js:2692,2731-2761`; `tests/frontend/ocr-line-selector.test.js:254-281`。
+
+**northstar:** 高——直接补齐当前 Theme 3 下 owner 已报告的 OCR 结果可恢复性。
+
+---
+
+### E249 — 少于 3 行的快速 OCR 结果被硬性隐藏行级核对面板，恰好两行时无法逐行删除或编辑 (S)
+
+**What (verified):** 非空 OCR 行少于 3 时，`renderOcrLineSelector()` 直接隐藏并清空面板、解绑事件（`app.js:2705-2710`）；只有 3 行及以上才生成每行 textarea 与删除按钮（`app.js:2712-2729`）。测试明确把“两行应隐藏”固化为预期（`tests/frontend/ocr-line-selector.test.js:184-189`）。因此一张只识别到两物理行的照片，用户只能回到整段文本框，不能使用“点 ✕ 删除”这一快速核对方式。
+
+**Why it matters:** 8/09 的 owner signal 要求 OCR 结果核对中的误删可恢复，6/16 的原始 signal 则是希望“逐行快速删除”。行数阈值不是由数据完整性约束决定；两行短摘抄同样需要逐行保留、编辑或删除，当前入口按识别行数产生不一致行为。
+
+**Complexity:** S。将面板启用阈值降为至少 1 条非空行，同时保留零行隐藏、全部删除后的撤销；更新两行测试并覆盖一行编辑/删除/撤销。
+
+**Files:** `app.js:2695-2729`; `tests/frontend/ocr-line-selector.test.js:184-211`。
+
+**northstar:** 中——减少拍照摘抄后的核对摩擦，延续已验证的“采集顺滑/积累可信”路径。
+
+---
+
+### E250 — 取消 OCR 临时卡时删除同步失败被静默吞掉，本地与服务端会暂时分叉 (S-M)
+
+**What (verified):** 关闭未保存的 OCR 对话框会调用 `discardProvisionalOcrQuote()`（`app.js:6078-6080`）。该函数先从内存 `state.quotes` 和 `state.connections` 移除临时卡（`app.js:2769-2773`），再执行 `syncState().catch(() => {})`（`app.js:2774-2776`）。普通网络失败时 `syncState()` 会抛出且只对 `state_conflict` 做恢复（`app.js:1115-1144`），所以这里既不回滚、也不提示用户；现有取消测试把 `syncState` 替换为空成功函数（`tests/frontend/ocr-cancel-cleanup.test.js:67-84`），未覆盖失败路径。
+
+**Why it matters:** OCR 临时卡已经由服务端创建并保存，取消语义必须可靠。若删除请求失败，当前页看似已取消，刷新后卡片会重新出现；更糟的是随后任意全量 `PUT /api/state` 可能把这次未告知的本地删除补写到服务端。它与 E243 的长期记忆失败边界不同，发生在刚完成拍照识别、用户明确选择取消的 Theme 3 数据控制路径。
+
+**Complexity:** S-M。取消前保留 quotes/connections 快照；同步失败时恢复快照、重渲染并提示“取消未保存，请重试”，或在成功后才提交本地删除；补网络失败与 state-conflict 两条回归测试。
+
+**Files:** `app.js:2766-2776,1115-1144,6078-6080`; `tests/frontend/ocr-cancel-cleanup.test.js:67-84`。
+
+**northstar:** 中——保证拍照摘抄的取消操作与真实持久化状态一致，保护积累可信度。
+
+---
+
+> 本次 run 新发现 3 条：E248（连续删除撤销栈，S，owner OCR 直接 signal）、E249（1-2 行 OCR 缺行级核对，S，OCR 交互一致性）、E250（取消临时 OCR 卡同步失败被吞，S-M，数据控制）。E248 证据最强但未提拔：隔离 clone 禁止写入 `.git/FETCH_HEAD`，无法确认远端 `feature/agent` 的当前最大 OPT 编号；为避免编号冲突，本轮只追加 explore。

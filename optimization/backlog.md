@@ -1454,7 +1454,7 @@ Format per item:
 - how: tag 分支逐项执行 `escapeHtml(String(tag))` 后再 join；补恶意标签（`<img onerror=...>`、引号、ampersand）只显示纯文本且不生成元素的前端测试。长期可将确认卡改为 DOM API + `textContent`，减少分支遗漏。Touch: `chat.js:955-971,1034-1043`、相关 frontend tests。
 
 ### OPT-156 — 忽略 Agent 建议失败时仍移除确认卡并显示“已忽略” — 由 explore E245 提拔 [2026-08-10]
-- status: new
+- status: done (PR #119, merged 2026-08-12 — reject 失败保留确认卡、恢复按钮并允许重试；前端回归测试通过)
 - area: frontend / error handling
 - priority: P2
 - size: S
