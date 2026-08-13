@@ -235,6 +235,8 @@ let selectedStatusFilter = "all";
 let selectedTagFilter = "";
 let searchQuery = "";
 let _renderBooksId = 0;
+// OPT-147: 保持首屏有限，避免书单增长时一次性创建全部书卡和事件监听器。
+const BOOK_LIST_PAGE_SIZE = 24;
 let _bookDetailCurrentId = "";
 let _organizeCurrentBookId = "";
 let _candidatesCurrentBookId = "";
@@ -1857,24 +1859,30 @@ function renderBooks() {
 
   const cache = buildRenderCache();
   const myRender = ++_renderBooksId;
-  const BATCH = 8;
+  let offset = 0;
 
-  for (const book of books.slice(0, BATCH)) {
-    els.booksList.appendChild(buildBookSearchCard(book, cache));
-  }
+  const renderNextPage = () => {
+    if (_renderBooksId !== myRender) return;
+    const nextOffset = Math.min(offset + BOOK_LIST_PAGE_SIZE, books.length);
+    for (const book of books.slice(offset, nextOffset)) {
+      els.booksList.appendChild(buildBookSearchCard(book, cache));
+    }
+    offset = nextOffset;
 
-  if (books.length > BATCH) {
-    let offset = BATCH;
-    const renderNext = () => {
-      if (_renderBooksId !== myRender) return;
-      for (const book of books.slice(offset, offset + BATCH)) {
-        els.booksList.appendChild(buildBookSearchCard(book, cache));
-      }
-      offset += BATCH;
-      if (offset < books.length) requestAnimationFrame(renderNext);
-    };
-    requestAnimationFrame(renderNext);
-  }
+    if (offset < books.length) {
+      const loadMore = document.createElement("button");
+      loadMore.type = "button";
+      loadMore.className = "book-list-load-more";
+      loadMore.textContent = `加载更多（已显示 ${offset}/${books.length}）`;
+      loadMore.addEventListener("click", () => {
+        loadMore.remove();
+        renderNextPage();
+      });
+      els.booksList.appendChild(loadMore);
+    }
+  };
+
+  renderNextPage();
 }
 
 function renderTimeline() {
