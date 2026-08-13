@@ -981,6 +981,23 @@ textarea {
   color: #fff;
 }
 
+/* OPT-147: 书单按页展开，按钮跨越网格整行，避免挤进最后一张卡。 */
+.book-list-load-more {
+  grid-column: 1 / -1;
+  justify-self: center;
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.book-list-load-more:active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
 /* OPT-077: book milestone cards (startedAt / finishedAt) interleaved in the timeline */
 .timeline-milestone {
   grid-column: 1 / -1;
