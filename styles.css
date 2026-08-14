@@ -3580,6 +3580,11 @@ button.conn-mini-card:hover {
   background: var(--color-bg);
 }
 
+.me-memory-card {
+  align-items: stretch;
+  flex-direction: column;
+}
+
 .me-continue-card h4,
 .me-continue-card p {
   margin: 0;
@@ -3599,9 +3604,52 @@ button.conn-mini-card:hover {
 }
 
 .me-continue-eyebrow {
-  color: var(--color-tag-text);
+  color: var(--color-ink-soft);
   font-size: 12px;
   font-weight: 700;
+}
+
+.me-memory-form {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.me-memory-form select,
+.me-memory-form input {
+  min-width: 0;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.me-memory-form .button {
+  min-height: 44px;
+}
+
+.me-memories-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.me-memories-list li {
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.me-memories-list li strong {
+  color: var(--color-ink);
+}
+
+.me-memory-empty {
+  color: var(--color-ink-muted) !important;
 }
 
 .me-import-actions {
@@ -3623,6 +3671,17 @@ button.conn-mini-card:hover {
   .me-continue-card > .button,
   .me-import-actions .button {
     min-height: 44px;
+  }
+
+  .me-memory-form {
+    grid-template-columns: 1fr;
+  }
+
+  /* iOS 会在聚焦小于 16px 的输入框时缩放整个页面。桌面可保持紧凑，
+     但移动端需覆盖上方 .me-memory-form 的 14px 声明。 */
+  .me-memory-form select,
+  .me-memory-form input {
+    font-size: 16px;
   }
 
   .me-import-actions .button {

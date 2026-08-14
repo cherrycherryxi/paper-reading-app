@@ -1,6 +1,6 @@
 // Regression tests for OPT-001: books-page secondary entry for Excel batch import.
 // The books panel gets a #importExcelBooksBtn that forwards clicks to the
-// drawer's existing hidden #importExcelInput, so both entries share one
+// page-level hidden #importExcelInput, so every entry shares one
 // change handler. These assert against the real index.html / app.js.
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -26,10 +26,10 @@ test("OPT-001: the new entry is a real button with an accessible name", () => {
   assert.match(btn[0], /aria-label="[^"]*Excel[^"]*"/, "needs an aria-label mentioning Excel");
 });
 
-test("OPT-001: drawer's original entry and input are untouched", () => {
+test("OPT-001: all Excel entries reuse one page-level file input", () => {
   const inputs = indexHtml.match(/id="importExcelInput"/g) || [];
   assert.equal(inputs.length, 1, "exactly one hidden file input — the new button must reuse it, not clone it");
-  assert.match(indexHtml, /从 Excel 批量加书[\s\S]*?id="importExcelInput"/, "drawer entry stays as the backup path");
+  assert.match(indexHtml, /id="importExcelInput"[^>]*hidden/, "file input stays invisible until an import entry invokes it");
 });
 
 test("OPT-001: books-page button opens the guide dialog (with input fallback)", () => {

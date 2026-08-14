@@ -127,9 +127,9 @@ test("importDoubanCsv：缺「书名」列时报错不导入", async () => {
   assert.equal(h.getState().books.length, 0, "缺书名列不应导入任何书");
 });
 
-test("结构：我的抽屉有豆瓣导入入口 + 绑定 + 只填空缺策略", () => {
-  assert.ok(indexHtml.includes('id="importDoubanInput"'), "index.html 应有豆瓣导入 file input");
-  assert.match(appSource, /els\.importDoubanInput\?\.addEventListener\("change"/, "应绑定豆瓣导入");
+test("结构：豆瓣 CSV 保留导入逻辑，但不在没有获取指引时暴露入口", () => {
+  assert.ok(!indexHtml.includes('id="importDoubanInput"'), "没有 CSV 获取指引时不应暴露豆瓣导入入口");
+  assert.match(appSource, /async function importDoubanCsv/);
   // 只填空缺：评分/日期/豆瓣短评都带「已有非空则跳过」的守卫
   assert.match(appSource, /!\(existing\.rating > 0\)/);
   assert.match(appSource, /!existing\.finishedAt/);

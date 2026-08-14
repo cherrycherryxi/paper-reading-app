@@ -248,32 +248,46 @@
 
           <section class="subpanel me-continue-panel" aria-labelledby="me-continue-title">
             <div class="subpanel-head">
-              <h3 id="me-continue-title">继续使用</h3>
-              <p>把常用的阅读资料和书单带进来。</p>
+              <h3 id="me-continue-title">阅读工具</h3>
+              <p>在这里管理会被探讨调用的记忆，导入书单，或拍书架识别新书。</p>
             </div>
             <div class="me-continue-grid">
-              <article class="me-continue-card">
+              <article class="me-continue-card me-memory-card">
                 <div>
                   <span class="me-continue-eyebrow" id="meMemoryCount">0 条记忆</span>
                   <h4>阅读长期记忆</h4>
                   <p id="meMemoryPreview">保存你确认过的阅读偏好、观点和目标。</p>
                 </div>
-                <button class="button button-ghost button-small" id="manageMemoriesBtn" type="button">管理记忆</button>
+                <form id="memoryForm" class="me-memory-form">
+                  <input name="id" type="hidden" />
+                  <select name="kind" aria-label="记忆类型"><option value="preference">偏好</option><option value="viewpoint">观点</option><option value="goal">目标</option><option value="todo">待办</option></select>
+                  <input name="content" maxlength="500" placeholder="例如：我希望先从具体段落讨论" aria-label="记忆内容" />
+                  <button class="button button-ghost button-small" type="submit">保存记忆</button>
+                </form>
+                <ul id="memoriesList" class="me-memories-list"></ul>
               </article>
               <article class="me-continue-card">
                 <div>
-                  <span class="me-continue-eyebrow">快速导入</span>
+                  <span class="me-continue-eyebrow">书单导入</span>
                   <h4>导入书籍</h4>
-                  <p>从 Excel 批量加书，或用豆瓣 CSV 补全评分、日期和短评。</p>
+                  <p>用 Excel 批量加入已有书单；表格首行需要「书名」，已存在的书不会重复导入。</p>
                 </div>
                 <div class="me-import-actions">
                   <button class="button button-ghost button-small" id="meImportExcelBtn" type="button">Excel</button>
-                  <button class="button button-ghost button-small" id="meImportDoubanBtn" type="button">豆瓣 CSV</button>
                 </div>
+              </article>
+              <article class="me-continue-card">
+                <div>
+                  <span class="me-continue-eyebrow">拍照识别</span>
+                  <h4>拍书架，批量加书</h4>
+                  <p>拍一张清晰、正对书脊的照片，核对识别结果后再一键加入书单。</p>
+                </div>
+                <label class="button button-ghost button-small file-button">拍书架识别<input type="file" id="shelfOcrInput" accept="image/*" /></label>
               </article>
             </div>
           </section>
         </section>
+        <input id="importExcelInput" type="file" hidden accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
       </main>
     </div>
 
@@ -323,14 +337,6 @@
         <ul class="me-action-list">
           <li class="me-action">
             <div class="me-action-info">
-              <div class="me-action-title">阅读长期记忆</div>
-              <div class="me-action-desc">只保存你确认过的阅读偏好、观点和目标；它会在相关探讨中作为你的资料被召回。</div>
-              <form id="memoryForm"><input name="id" type="hidden" /><select name="kind"><option value="preference">偏好</option><option value="viewpoint">观点</option><option value="goal">目标</option><option value="todo">待办</option></select><input name="content" maxlength="500" placeholder="例如：我希望先从具体段落讨论" /><button class="button button-ghost button-small" type="submit">确认保存</button></form>
-              <ul id="memoriesList"></ul>
-            </div>
-          </li>
-          <li class="me-action">
-            <div class="me-action-info">
               <div class="me-action-title">退出所有设备</div>
               <div class="me-action-desc">撤销你在所有手机、平板、电脑上的登录会话，下次都需要重新登录。</div>
             </div>
@@ -356,27 +362,6 @@
               <div class="me-action-desc">从「导出书单备份」生成的 <code>.json</code> 文件恢复。会替换当前账号的全部内容。</div>
             </div>
             <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importInput" accept="application/json" /></label>
-          </li>
-          <li class="me-action">
-            <div class="me-action-info">
-              <div class="me-action-title">拍书架，批量加书</div>
-              <div class="me-action-desc">对着书架拍一张照片，自动识别整排书名和作者，勾选后一键加入书单。书脊清晰、正对拍摄识别更准；<strong>识别结果需你确认后才会加入</strong>，可逐条改书名。</div>
-            </div>
-            <label class="button button-ghost button-small file-button">拍照 / 选图<input type="file" id="shelfOcrInput" accept="image/*" /></label>
-          </li>
-          <li class="me-action">
-            <div class="me-action-info">
-              <div class="me-action-title">从 Excel 批量加书</div>
-              <div class="me-action-desc">从 <code>.xlsx</code> 表格批量添加书单。表格首行需含「书名」列（可选：作者 / 状态 / 标签 / 总页数 / 开始时间 / 完成时间 / 译者 / 简介 / 喜欢程度）。已存在的书不会重复。</div>
-            </div>
-            <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importExcelInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /></label>
-          </li>
-          <li class="me-action">
-            <div class="me-action-info">
-              <div class="me-action-title">从豆瓣导入（评分 / 读完日期 / 短评）</div>
-              <div class="me-action-desc">导入豆瓣「读过」导出的 <code>.csv</code>（首行含「书名」列，可含 作者 / 我的评分 / 读过日期 / 我的短评）。<strong>会回填你书单里已有书的空缺字段</strong>（评分 / 读完日期 / 读后感），不覆盖你已填的；匹配不到的新增为「已读完」。</div>
-            </div>
-            <label class="button button-ghost button-small file-button">选择文件<input type="file" id="importDoubanInput" accept=".csv,text/csv" /></label>
           </li>
           <li class="me-action me-action--danger">
             <div class="me-action-info">

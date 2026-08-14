@@ -1247,12 +1247,12 @@ test("Landing footer 「登录」 links must deep-link to /app#login (not /app)"
 
 test("Me drawer actions list: each row has descriptive title + helper text", () => {
   // Regression for user feedback that the old flex-of-buttons didn't tell
-  // users what each action does (导出数据 vs 完整账号导出, 导入数据 vs Excel).
+  // users what each account action does (导出数据 vs 完整账号导出, 导入数据).
   assert.match(indexHtml, /class="me-action-list"/,
     "me drawer must use the new descriptive list layout");
   for (const label of [
     "退出所有设备", "导出书单备份", "完整账号导出",
-    "导入数据", "从 Excel 批量加书", "注销账号",
+    "导入数据", "注销账号",
   ]) {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Title may carry a trailing qualifier in parens (e.g. "完整账号导出（GDPR/PIPL 合规）")
@@ -1265,7 +1265,6 @@ test("Me drawer actions list: each row has descriptive title + helper text", () 
     /JSON 文件[\s\S]{0,200}书单/,
     /AI 调用日志/,
     /\.json.*?恢复/,
-    /\.xlsx.*?批量添加/,
   ]) {
     assert.match(indexHtml, hint,
       `helper text must explain action format/purpose: ${hint}`);

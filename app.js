@@ -106,9 +106,7 @@ const els = {
   meSummary: document.querySelector("#meSummary"),
   meMemoryCount: document.querySelector("#meMemoryCount"),
   meMemoryPreview: document.querySelector("#meMemoryPreview"),
-  manageMemoriesBtn: document.querySelector("#manageMemoriesBtn"),
   meImportExcelBtn: document.querySelector("#meImportExcelBtn"),
-  meImportDoubanBtn: document.querySelector("#meImportDoubanBtn"),
   meAvatarBtn: document.querySelector("#meAvatarBtn"),
   meAvatarDot: document.querySelector("#meAvatarDot"),
   meDrawer: document.querySelector("#meDrawer"),
@@ -428,7 +426,7 @@ function renderMemories() {
   const memories = Array.isArray(state.memories) ? state.memories : [];
   els.memoriesList.innerHTML = memories.length
     ? memories.map((memory) => `<li data-memory-id="${escapeHtml(memory.id)}"><strong>${escapeHtml(memory.kind)}</strong> ${escapeHtml(memory.content)} <button type="button" class="button button-ghost button-small" data-edit-memory="${escapeHtml(memory.id)}">编辑</button> <button type="button" class="button button-ghost button-small danger-text" data-delete-memory="${escapeHtml(memory.id)}">删除</button></li>`).join("")
-    : "<li class=\"me-action-desc\">还没有长期记忆。只保存你亲自确认的偏好、观点和目标。</li>";
+    : "<li class=\"me-memory-empty\">还没有长期记忆。只保存你亲自确认的偏好、观点和目标。</li>";
 }
 
 async function saveMemory(formData) {
@@ -1426,14 +1424,6 @@ function requireMeHomepageAuth() {
   if (currentUser?.id) return true;
   openMeDrawer();
   return false;
-}
-
-function openMemoryManager() {
-  if (!requireMeHomepageAuth()) return;
-  openMeDrawer();
-  renderMemories();
-  els.memoryForm?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-  els.memoryForm?.elements?.content?.focus?.();
 }
 
 function renderBookSelect(hiddenInput) {
@@ -6396,15 +6386,10 @@ function bindEvents() {
 
   els.meAvatarBtn?.addEventListener("click", openMeDrawer);
   els.meAvatarBtn?.addEventListener("click", renderMemories);
-  els.manageMemoriesBtn?.addEventListener("click", openMemoryManager);
   els.meImportExcelBtn?.addEventListener("click", () => {
     if (!requireMeHomepageAuth()) return;
     if (els.importExcelDialog) els.importExcelDialog.showModal();
     else els.importExcelInput?.click();
-  });
-  els.meImportDoubanBtn?.addEventListener("click", () => {
-    if (!requireMeHomepageAuth()) return;
-    els.importDoubanInput?.click();
   });
   els.memoryForm?.addEventListener("submit", (event) => {
     event.preventDefault();
