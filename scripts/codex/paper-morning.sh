@@ -65,7 +65,7 @@ else
 
 候选前的硬性对账：先 \`git fetch origin feature/agent\` 并同步到最新 \`feature/agent\`；读取 \`optimization/roadmap.md\`、\`optimization/triage.md\`、\`optimization/backlog.md\`，并读取 \`$HOME/.claude/product-owner-latest.md\`（若存在）和 \`$HOME/.claude/weekly-reports/\` 下最新一份周报（若存在）。周一焦点、roadmap 与周报是候选优先级的参考：优先选择能推进本周唯一焦点、回应上周待改进点或验证周报信号的条目；在卡片的「价值」中说明这种关联。它们不是完成状态的证据，不能据此复活已完成工作。
 
-再用 \`gh pr list --state all --base feature/agent\` 和最近合并提交核实。候选只能来自当前仍未完成的 \`new\` 或 \`triaged\` 条目。**绝不能**把 \`done\`、\`in-progress\`、已有 open PR、已合并 PR 或当前代码已经实现的条目写入候选卡；文档状态与代码/PR 证据冲突时，以 GitHub 已合并 PR 和当前代码为准并排除该条目。写卡前逐一复核两个编号均满足这些条件；若只剩一个合格项，只写一张卡，不得用已完成项凑数。
+再用 \`gh pr list --state all --base feature/agent\` 和最近合并提交核实。候选只能来自当前仍未完成的 \`new\` 或 \`triaged\` 条目。**绝不能**把 \`done\`、\`in-progress\`、已有 open PR、已合并 PR 或当前代码已经实现的条目写入候选卡；文档状态与代码/PR 证据冲突时，以 GitHub 已合并 PR 和当前代码为准并排除该条目。额外读取当天 \`optimization/triage.md\` 的 \`Next up\` 编号：它已被夜间路径认领，即使仍显示 \`triaged\` 也必须从晨间卡排除。晨间优先选择 P1 或 M/L，及涉及信息架构、导航、视觉方案、产品取舍、owner 直接反馈需要确认的任务；不要用夜间无人值守的局部 S 任务凑卡。写卡前逐一复核两个编号均满足这些条件；若只剩一个合格项，只写一张卡，不得用已完成项凑数。
 
 额外要求（不写应用代码、不做深度调研，只在按流程选出最多 2 张卡片后）：把最终候选卡片用 apply_patch 写入文件 ${CARDS}。有两个合格项时严格用如下两张格式；只有一个时只写卡片①，绝不伪造卡片②（不要写别的）：
 ## 卡片①

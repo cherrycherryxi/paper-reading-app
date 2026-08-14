@@ -33,9 +33,9 @@ unloaded while their Codex equivalents are loaded.
 ## Nightly autonomous pipeline
 
 - `nightly-triage.sh` — 01:00, reconciles backlog/triage and assigns one item.
-- `nightly-implement.sh` — 04:00, only runs after `today-pick.md` is explicitly
-  claimed (`STATUS: IMPLEMENTING` with `CHOICE`); it then implements one item,
-  runs both full test suites, and opens a PR targeting `feature/agent`.
+- `nightly-implement.sh` — 04:00, reads the same day's `triage.md` `Next up`
+  assignment, then implements one item, runs both full test suites, and opens a PR targeting `feature/agent`.
+  It is independent of the 10:00 morning candidate cards and their owner-reply state.
   It never merges; a failing suite produces a draft PR.
 - `nightly-explore.sh` — 05:00 with a 07:00 recovery trigger, runs independently
   of Implement, appends evidence-backed findings and promotes at most two.

@@ -39,18 +39,26 @@ class CodexNightlyAutomationTests(unittest.TestCase):
             matches = list(re.finditer(r"\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7f]", source))
             self.assertEqual(matches, [], f"unbraced shell variable before non-ASCII text in {path}")
 
-    def test_implement_claim_gate_and_explore_independence(self):
+    def test_implement_is_independent_of_morning_cards_and_explore(self):
         triage = self.scripts["triage"].read_text()
         implement = self.scripts["implement"].read_text()
         explore = self.scripts["explore"].read_text()
+        morning = (CODEX_DIR / "paper-morning.sh").read_text()
         self.assertIn("triage-$TODAY.done", triage)
-        self.assertIn("PICK_STATUS", implement)
-        self.assertIn("PICK_CHOICE", implement)
-        self.assertIn("today-pick 不是 IMPLEMENTING", implement)
+        self.assertNotIn("today-pick.md", implement)
+        self.assertNotIn("PICK_STATUS", implement)
+        self.assertNotIn("PICK_CHOICE", implement)
         self.assertIn("implement-$TODAY.done", implement)
         self.assertNotIn("implement-$TODAY.done", explore)
         self.assertNotIn("SKIP_DEP", explore)
         self.assertIn("explore-$TODAY.done", explore)
+        self.assertIn("复杂度 S", triage)
+        self.assertIn("夜间适配：是", triage)
+        self.assertIn("一律留给 10:00 晨间候选卡", triage)
+        self.assertIn("Next up 明确写“无符合夜间条件的任务”", triage)
+        self.assertIn("Next up", morning)
+        self.assertIn("即使仍显示", morning)
+        self.assertIn("晨间优先选择 P1 或 M/L", morning)
 
     def test_nightly_run_date_uses_local_shanghai_calendar_day(self):
         for path in self.scripts.values():
@@ -152,19 +160,35 @@ class CodexNightlyAutomationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr + "\n" + log_text)
             self.assertFalse((root / "state" / "implement-2099-01-01.done").exists())
 
-    def test_implement_waiting_pick_does_not_start_codex_or_create_a_clone(self):
+    def test_implement_runs_even_when_the_morning_pick_is_waiting(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             pick = root / "today-pick.md"
             pick.write_text("DATE: 2099-01-01\nSTATUS: WAITING\nCHOICE:\n")
+            repo = root / "repo"
+            repo.mkdir()
+            (repo / "README.md").write_text("nightly fixture\n")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "nightly@example.test"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "Nightly Test"], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "fixture"], check=True)
+            fake_gh = root / "gh"
+            fake_gh.write_text("#!/bin/bash\nexit 0\n")
+            fake_gh.chmod(0o755)
             fake_codex = root / "codex"
-            fake_codex.write_text("#!/bin/bash\necho unexpected >&2\nexit 99\n")
+            fake_codex.write_text(
+                "#!/bin/bash\n"
+                "printf '%s\\n' '<<<NIGHTLY_STATUS>>>' SKIP '<<<NIGHTLY_STATUS_END>>>'\n"
+            )
             fake_codex.chmod(0o755)
             env = os.environ.copy()
             env.update({
+                "PATH": f"{root}:{env['PATH']}",
                 "PAPER_NIGHTLY_SKIP_FETCH": "1",
+                "PAPER_NIGHTLY_BASE_REF": "HEAD",
                 "PAPER_NIGHTLY_CODEX": str(fake_codex),
-                "PAPER_NIGHTLY_REPO": str(root / "missing-repo"),
+                "PAPER_NIGHTLY_REPO": str(repo),
                 "PAPER_NIGHTLY_STATE_DIR": str(root / "state"),
                 "PAPER_NIGHTLY_IMPLEMENT_LOG": str(root / "implement.log"),
                 "PAPER_NIGHTLY_PICK": str(pick),
@@ -176,8 +200,8 @@ class CodexNightlyAutomationTests(unittest.TestCase):
             )
             log_text = (root / "implement.log").read_text(errors="replace")
             self.assertEqual(result.returncode, 0, result.stderr + "\n" + log_text)
-            self.assertIn("today-pick 不是 IMPLEMENTING", log_text)
-            self.assertNotIn("unexpected", log_text)
+            self.assertIn("implement 正常跳过", log_text)
+            self.assertTrue((root / "state" / "implement-2099-01-01.done").exists())
 
     def test_implement_retries_once_when_first_implement_response_leaves_no_change(self):
         with tempfile.TemporaryDirectory() as tmp:

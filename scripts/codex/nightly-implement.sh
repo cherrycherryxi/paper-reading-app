@@ -12,25 +12,12 @@ BARK="${PAPER_NIGHTLY_BARK:-$HOME/.claude/scripts/bark-push.sh}"
 TODAY="${PAPER_NIGHTLY_TODAY:-$(date +%F)}"
 DRY_RUN="${PAPER_NIGHTLY_DRY_RUN:-0}"
 SKIP_FETCH="${PAPER_NIGHTLY_SKIP_FETCH:-0}"
-SKIP_DEP="${PAPER_NIGHTLY_SKIP_DEPENDENCY:-0}"
 BASE_REF="${PAPER_NIGHTLY_BASE_REF:-origin/feature/agent}"
 LOCK_DIR="${PAPER_NIGHTLY_IMPLEMENT_LOCK:-$STATE_DIR/.implement.lock}"
-TRIAGE_MARK="$STATE_DIR/triage-$TODAY.done"
 DONE_MARK="$STATE_DIR/implement-$TODAY.done"
-PICK="${PAPER_NIGHTLY_PICK:-$HOME/.claude/paper-loop/today-pick.md}"
 
 mkdir -p "$STATE_DIR" "$(dirname "$LOG")"
 [ "$DRY_RUN" = 1 ] || [ ! -f "$DONE_MARK" ] || exit 0
-PICK_STATUS=$(awk '/^STATUS:/{print $2; exit}' "$PICK" 2>/dev/null || true)
-PICK_CHOICE=$(awk '/^CHOICE:/{print $2; exit}' "$PICK" 2>/dev/null || true)
-if [ "$DRY_RUN" != 1 ] && [ "$PICK_STATUS" != "IMPLEMENTING" ]; then
-  echo "[$(date)] implement 正常跳过：today-pick 不是 IMPLEMENTING（${PICK_STATUS:-缺失}）。" >> "$LOG"
-  exit 0
-fi
-if [ "$DRY_RUN" != 1 ] && [ -z "$PICK_CHOICE" ]; then
-  echo "[$(date)] implement 跳过：today-pick 缺少 CHOICE。" >> "$LOG"
-  exit 75
-fi
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "[$(date)] implement 已在运行，跳过。" >> "$LOG"
   exit 0

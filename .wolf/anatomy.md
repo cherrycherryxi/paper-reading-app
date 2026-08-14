@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-13T14:59:48.870Z
-> Files: 307 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T06:31:43.587Z
+> Files: 310 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -158,6 +158,7 @@
 - `cards-2026-08-11.md` — 卡片① (~57 tok)
 - `cards-2026-08-12.md` — 卡片① (~35 tok)
 - `cards-2026-08-13.md` — 卡片① (~50 tok)
+- `cards-2026-08-14.md` — 卡片① (~62 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -165,6 +166,7 @@
 - `review-2026-08-06.md` (~2 tok)
 - `review-2026-08-07.md` — 2026-08-07 夜间 PR 审查 (~51 tok)
 - `review-2026-08-13.md` (~2 tok)
+- `review-2026-08-14.md` (~2 tok)
 - `today-pick.md` — 卡片① (~65 tok)
 
 ## ./
@@ -175,14 +177,14 @@
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~77573 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~70634 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~74509 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11677 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~12683 tok)
+- `index.html` — 🐛 又买了一本书 (~13239 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -191,7 +193,7 @@
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~26129 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~26721 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -294,6 +296,10 @@
 - `signals.md` — Signals — 真实使用信号日志 (~1316 tok)
 - `triage.md` — Triage (~2029 tok)
 
+## output/pdf/
+
+- `DeepSeek_Harness_横纵分析报告.md` — DeepSeek Harness：DeepSeek 开始争夺模型之上的运行时 (~1872 tok)
+
 ## reading/
 
 - `.DS_Store` (~1640 tok)
@@ -317,13 +323,13 @@
 - `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~754 tok)
 - `nightly-common.sh` — Shared isolation helpers for the local Codex nightly tasks. (~448 tok)
 - `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1169 tok)
-- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~2231 tok)
-- `nightly-triage.sh` — 每日 01:00：在隔离 clone 中执行夜间 Agent1（Triage）。 (~1418 tok)
+- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~2066 tok)
+- `nightly-triage.sh` — 每日 01:00：在隔离 clone 中执行夜间 Agent1（Triage）。 (~1481 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1792 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1835 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
 - `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1682 tok)
-- `README.md` — Project documentation (~943 tok)
+- `README.md` — Project documentation (~953 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
 - `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
@@ -362,7 +368,7 @@
 - `ci_workflow_contract_test.py` — Regression contracts for the CI and Codex auto-remediation wiring. (~402 tok)
 - `codex_cloud_scheduled_test.py` — Contracts for the remote Codex Cloud Scheduled nightly pipeline. (~962 tok)
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
-- `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5569 tok)
+- `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5935 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
@@ -441,7 +447,7 @@
 - `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~1796 tok)
 - `quote-content-display.test.js` — Regression coverage for compact quote cards: (~1190 tok)
 - `quote-image-onerror.test.js` — OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。 (~1526 tok)
-- `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~1628 tok)
+- `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~2594 tok)
 - `quote-page-prefill.test.js` — OPT-095: 新建摘抄对话框的页码字段应预填 book.currentPage（正在读的这一页）， (~1475 tok)
 - `quote-search-card-image.test.js` — OPT-070: buildQuoteSearchCard() must fill quote.imageUrl in the cover like the (~1294 tok)
 - `quote-tag-picker-persist.test.js` — 摘抄标签 picker 的来源 = 默认标签 + 用户经输入框「手动敲过」的自定义标签(localStorage)。 (~1664 tok)
