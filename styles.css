@@ -3561,6 +3561,75 @@ button.conn-mini-card:hover {
   color: var(--color-ink);
 }
 
+.me-continue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.me-continue-card {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg);
+}
+
+.me-continue-card h4,
+.me-continue-card p {
+  margin: 0;
+}
+
+.me-continue-card h4 {
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.me-continue-card p {
+  margin-top: 5px;
+  color: var(--color-ink-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.me-continue-eyebrow {
+  color: var(--color-tag-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.me-import-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .me-continue-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .me-continue-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .me-continue-card > .button,
+  .me-import-actions .button {
+    min-height: 44px;
+  }
+
+  .me-import-actions .button {
+    flex: 1;
+  }
+}
+
 .me-avatar-dot {
   position: absolute;
   top: 2px;
