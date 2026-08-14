@@ -25,6 +25,16 @@ test("OPT-157: 主页展示记忆数量和最近更新摘要", () => {
   assert.match(fn[0], /meMemoryPreview\.textContent = latest\?\.content/);
 });
 
+test("OPT-157: 保存或删除长期记忆后同步刷新主页摘要", () => {
+  const saveMemory = appJs.match(/async function saveMemory\([\s\S]*?\n\}/m);
+  assert.ok(saveMemory, "saveMemory 应存在");
+  assert.match(saveMemory[0], /renderMemories\(\);\s*renderSummary\(\);/);
+
+  const deleteMemory = appJs.match(/if \(event\.target\.dataset\.deleteMemory\) \{[\s\S]*?\n    \}/m);
+  assert.ok(deleteMemory, "删除长期记忆分支应存在");
+  assert.match(deleteMemory[0], /await syncState\(\);\s*renderMemories\(\);\s*renderSummary\(\);/);
+});
+
 test("OPT-157: 未登录入口统一降级到账号抽屉", () => {
   const guard = appJs.match(/function requireMeHomepageAuth\(\)[\s\S]*?\n\}/m);
   assert.ok(guard, "主页入口应有登录守卫");

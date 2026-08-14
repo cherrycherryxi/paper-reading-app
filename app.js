@@ -432,6 +432,7 @@ async function saveMemory(formData) {
   formData = null;
   els.memoryForm?.reset();
   renderMemories();
+  renderSummary();
 }
 
 // iOS suspends a backgrounded tab and drops its sockets, so any in-flight
@@ -6228,6 +6229,7 @@ function bindEvents() {
       state.memories = (state.memories || []).filter((item) => item.id !== id);
       await syncState();
       renderMemories();
+      renderSummary();
     }
   });
   els.meDrawerOverlay?.addEventListener("click", closeMeDrawer);
