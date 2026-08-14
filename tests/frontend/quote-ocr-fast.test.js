@@ -71,7 +71,7 @@ function createHarness() {
   const sourceWithoutBoot = appSource.replace(/\nbindEvents\(\);\nrender\(\);[\s\S]*$/, "\n");
   const instrumented = `${sourceWithoutBoot}
 globalThis.__testHooks = {
-  els, runOcrFromImage,
+  els, runOcrFromImage, quoteImageDataUrl, quoteImagePreviewSources, canCropQuoteImage, uploadQuoteImage, quoteCropFromRenderedRects, resizeQuoteCropFromTopLeft,
   enqueueResponse(r) { globalThis.__rq.push(r); },
   getRequests() { return globalThis.__reqs; },
   setState(v) { state = v; },
@@ -127,6 +127,90 @@ test("fast path: sends engine=fast and fills content synchronously from 200", as
   const sentBody = JSON.parse(ocrReq.options.body);
   assert.equal(sentBody.engine, "fast");
   assert.equal(hooks.els.quoteContent.value, "识别出的正文", "content filled synchronously");
+});
+
+test("cropped image is preferred for OCR over the full-page data URL", async () => {
+  const hooks = createHarness();
+  setupForm(hooks);
+  hooks.setPendingImage({
+    name: "p.jpg",
+    dataUrl: "data:image/jpeg;base64,ZnVsbA==",
+    cropDataUrl: "data:image/jpeg;base64,Y3JvcA==",
+    objectUrl: "blob:full",
+    ocrSource: "",
+  });
+  hooks.enqueueResponse({
+    status: 200,
+    body: { status: "done", quoteId: "q1", recognizedText: "裁剪识别", state: { books: [], sessions: [], quotes: [{ id: "q1", bookId: "book-1", content: "裁剪识别" }], chatHistories: {} } },
+  });
+  hooks.enqueueResponse({ status: 200, body: { logs: [] } });
+
+  await hooks.runOcrFromImage("fast");
+
+  const ocrReq = hooks.getRequests().find((r) => String(r.url).includes("/api/quotes/ocr"));
+  assert.equal(JSON.parse(ocrReq.options.body).imageDataUrl, "data:image/jpeg;base64,Y3JvcA==");
+  assert.equal(hooks.quoteImageDataUrl({ dataUrl: "full", cropDataUrl: "crop" }), "crop");
+});
+
+test("cropped image is also preferred when saving the quote image", async () => {
+  const hooks = createHarness();
+  hooks.enqueueResponse({ status: 200, body: { url: "/uploads/cropped.jpg" } });
+
+  const savedUrl = await hooks.uploadQuoteImage({
+    name: "p.jpg",
+    dataUrl: "data:image/jpeg;base64,ZnVsbA==",
+    cropDataUrl: "data:image/jpeg;base64,Y3JvcA==",
+  });
+
+  assert.equal(savedUrl, "/uploads/cropped.jpg");
+  const uploadReq = hooks.getRequests().find((r) => String(r.url).includes("/api/upload-image"));
+  assert.equal(JSON.parse(uploadReq.options.body).dataUrl, "data:image/jpeg;base64,Y3JvcA==");
+});
+
+test("saved quote images remain previewable and crop-enabled after OCR", () => {
+  const hooks = createHarness();
+  const image = { savedUrl: "/media/u/saved.jpeg", objectUrl: "blob:stale" };
+  assert.equal(hooks.canCropQuoteImage(image), true);
+  assert.deepEqual(
+    [...hooks.quoteImagePreviewSources(image)],
+    ["/media/u/saved.jpeg", "blob:stale"]
+  );
+});
+
+test("crop uses the rendered image bounds rather than its containing dialog", () => {
+  const hooks = createHarness();
+  const crop = hooks.quoteCropFromRenderedRects(
+    { left: 130, top: 280, width: 360, height: 240 },
+    { left: 100, top: 200, width: 600, height: 800 },
+    { x: 0, y: 0, width: 1, height: 1 }
+  );
+  assert.equal(crop.x, 0.05);
+  assert.equal(crop.y, 0.1);
+  assert.equal(crop.width, 0.6);
+  assert.equal(crop.height, 0.3);
+});
+
+test("top-left crop handle keeps the opposite corner fixed and enforces the minimum size", () => {
+  const hooks = createHarness();
+  const resized = hooks.resizeQuoteCropFromTopLeft(
+    { x: 0.2, y: 0.3, width: 0.5, height: 0.4 },
+    0.15,
+    -0.1
+  );
+  assert.equal(Number(resized.x.toFixed(6)), 0.35);
+  assert.equal(Number(resized.y.toFixed(6)), 0.2);
+  assert.equal(Number(resized.width.toFixed(6)), 0.35);
+  assert.equal(Number(resized.height.toFixed(6)), 0.5);
+
+  const minSize = hooks.resizeQuoteCropFromTopLeft(
+    { x: 0.2, y: 0.3, width: 0.5, height: 0.4 },
+    1,
+    1
+  );
+  assert.equal(Number(minSize.width.toFixed(6)), 0.1);
+  assert.equal(Number(minSize.height.toFixed(6)), 0.1);
+  assert.equal(Number((minSize.x + minSize.width).toFixed(6)), 0.7);
+  assert.equal(Number((minSize.y + minSize.height).toFixed(6)), 0.7);
 });
 
 test("ai path: sends engine=ai and does not auto-fill content", async () => {

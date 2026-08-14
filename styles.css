@@ -1867,6 +1867,70 @@ textarea {
   min-height: 44px;
 }
 
+.quote-crop-actions {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
+.quote-crop-actions .button {
+  flex: 1 1 0;
+}
+
+.quote-crop-dialog {
+  width: min(100% - 24px, 620px);
+}
+
+.quote-crop-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #111;
+  touch-action: none;
+}
+
+.quote-crop-stage img {
+  display: block;
+  max-width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.quote-crop-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.48);
+  cursor: grab;
+  touch-action: none;
+}
+
+.quote-crop-frame:active {
+  cursor: grabbing;
+}
+
+.quote-crop-handle {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-sizing: border-box;
+  cursor: nwse-resize;
+}
+
+.quote-crop-handle--top-left {
+  top: -10px;
+  right: auto;
+  bottom: auto;
+  left: -10px;
+}
+
 .quote-photo-tools > .helper-text {
   width: 100%;
 }

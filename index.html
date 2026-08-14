@@ -601,6 +601,10 @@
             <button class="button button-primary" id="ocrButton" type="button">快速识别</button>
             <button class="button button-ghost" id="aiOcrButton" type="button">AI 精识别</button>
           </div>
+          <div class="quote-crop-actions" id="quoteCropActions" hidden>
+            <button class="button button-ghost" id="quoteCropFirstButton" type="button">裁剪第 1 张</button>
+            <button class="button button-ghost" id="quoteCropSecondButton" type="button" hidden>裁剪第 2 张</button>
+          </div>
           <span id="ocrStatus" class="helper-text">「快速识别」秒出整页全文；「AI 精识别」只提取划线/标记的句子，更准、稍慢。</span>
         </div>
         <div id="ocrLineSelector" class="ocr-line-selector" hidden></div>
@@ -612,6 +616,24 @@
           <button type="submit" class="button button-primary">保存卡片</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="quoteCropDialog" class="quote-crop-dialog" aria-labelledby="quoteCropDialogTitle">
+      <div class="dialog-form">
+        <div class="section-head"><h2 id="quoteCropDialogTitle">裁剪识别区域</h2><p>拖动选框，或拖左上角、右下角调整范围。裁剪后的图片会用于 OCR 和保存。</p></div>
+        <div id="quoteCropStage" class="quote-crop-stage">
+          <img id="quoteCropImage" alt="待裁剪的摘抄图片" />
+          <div id="quoteCropFrame" class="quote-crop-frame" aria-label="裁剪区域">
+            <span class="quote-crop-handle quote-crop-handle--top-left" data-crop-resize="top-left" aria-label="调整裁剪范围"></span>
+            <span class="quote-crop-handle" data-crop-resize="bottom-right" aria-label="调整裁剪范围"></span>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="button button-ghost" id="quoteCropResetButton" type="button">恢复整张</button>
+          <button class="button button-ghost" id="quoteCropCancelButton" type="button">取消</button>
+          <button class="button button-primary" id="quoteCropApplyButton" type="button">使用裁剪图片</button>
+        </div>
+      </div>
     </dialog>
 
     <!-- Quote detail (read-only) dialog -->

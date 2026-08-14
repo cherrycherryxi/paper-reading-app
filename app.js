@@ -158,8 +158,18 @@ const els = {
   quoteFirstImageLabel: document.querySelector("#quoteFirstImageLabel"),
   quoteSecondImageControl: document.querySelector("#quoteSecondImageControl"),
   quoteSecondImageLabel: document.querySelector("#quoteSecondImageLabel"),
+  quoteCropActions: document.querySelector("#quoteCropActions"),
+  quoteCropFirstButton: document.querySelector("#quoteCropFirstButton"),
+  quoteCropSecondButton: document.querySelector("#quoteCropSecondButton"),
   quoteImagePreview: document.querySelector("#quoteImagePreview"),
   quotePreviewImg: document.querySelector("#quotePreviewImg"),
+  quoteCropDialog: document.querySelector("#quoteCropDialog"),
+  quoteCropImage: document.querySelector("#quoteCropImage"),
+  quoteCropFrame: document.querySelector("#quoteCropFrame"),
+  quoteCropStage: document.querySelector("#quoteCropStage"),
+  quoteCropResetButton: document.querySelector("#quoteCropResetButton"),
+  quoteCropCancelButton: document.querySelector("#quoteCropCancelButton"),
+  quoteCropApplyButton: document.querySelector("#quoteCropApplyButton"),
   ocrButton: document.querySelector("#ocrButton"),
   aiOcrButton: document.querySelector("#aiOcrButton"),
   ocrStatus: document.querySelector("#ocrStatus"),
@@ -211,6 +221,7 @@ let pendingBookEditImage = null;
 let pendingAiReview = null;
 let pendingQuoteImage = null;
 let pendingQuoteImage2 = null;
+let quoteCropState = null;
 let lastQuoteBookId = "";
 // Whether the open quote dialog is for a brand-new quote (vs editing an
 // existing one). OCR assigns the draft a real id mid-session, so existingId
@@ -2210,8 +2221,40 @@ function syncOpenQuoteFormFromState() {
   }
 }
 
+function quoteImageDataUrl(image) {
+  return image?.cropDataUrl || image?.dataUrl || "";
+}
+
+function canCropQuoteImage(image) {
+  return Boolean(image?.originalDataUrl || quoteImageDataUrl(image) || image?.savedUrl || image?.compressionPromise);
+}
+
+function quoteImagePreviewSources(image) {
+  return [...new Set([
+    image?.cropDataUrl || "",
+    image?.dataUrl || "",
+    image?.savedUrl ? resolveImageUrl(image.savedUrl) : "",
+    image?.objectUrl || "",
+  ].filter(Boolean))];
+}
+
+function setImageSourceWithFallback(imageElement, sources) {
+  let sourceIndex = 0;
+  const loadNext = () => {
+    const source = sources[sourceIndex++];
+    if (!source) {
+      imageElement.onerror = null;
+      return;
+    }
+    imageElement.src = source;
+  };
+  imageElement.onerror = loadNext;
+  loadNext();
+}
+
 function renderImagePreview() {
-  const src = pendingQuoteImage?.objectUrl || pendingQuoteImage?.dataUrl || resolveImageUrl(pendingQuoteImage?.savedUrl || "");
+  const sources = quoteImagePreviewSources(pendingQuoteImage);
+  const src = sources[0] || "";
   if (els.quoteFirstImageLabel) {
     els.quoteFirstImageLabel.textContent = src ? "更换第 1 张" : "添加第 1 张";
   }
@@ -2221,6 +2264,8 @@ function renderImagePreview() {
     els.quoteSecondImageLabel.textContent = pendingQuoteImage2 ? "更换第 2 张" : "添加第 2 张";
   }
   els.quoteSecondImageControl?.classList.toggle("is-loaded", Boolean(pendingQuoteImage2));
+  if (els.quoteCropActions) els.quoteCropActions.hidden = !canCropQuoteImage(pendingQuoteImage);
+  if (els.quoteCropSecondButton) els.quoteCropSecondButton.hidden = !canCropQuoteImage(pendingQuoteImage2);
   if (!src) {
     els.quoteImagePreview.classList.add("is-hidden");
     if (els.quotePreviewImg) els.quotePreviewImg.removeAttribute("src");
@@ -2234,17 +2279,17 @@ function renderImagePreview() {
   newImg.alt = "摘抄图片预览";
   newImg.onload = () =>
     els.quoteImagePreview.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  newImg.src = src;
+  setImageSourceWithFallback(newImg, sources);
   els.quotePreviewImg.replaceWith(newImg);
   els.quotePreviewImg = newImg;
   // OPT-109: show second page preview when two images are loaded
   els.quoteImagePreview.querySelectorAll(".quote-preview-img2").forEach((el) => el.remove());
-  const src2 = pendingQuoteImage2?.objectUrl || pendingQuoteImage2?.dataUrl || "";
-  if (src2) {
+  const sources2 = quoteImagePreviewSources(pendingQuoteImage2);
+  if (sources2.length) {
     const img2 = document.createElement("img");
     img2.className = "quote-preview-img2";
     img2.alt = "摘抄第二页预览";
-    img2.src = src2;
+    setImageSourceWithFallback(img2, sources2);
     els.quoteImagePreview.appendChild(img2);
   }
   els.quoteImagePreview.classList.remove("is-hidden");
@@ -2604,14 +2649,15 @@ function logoutAllDevices() {
 }
 
 async function uploadImageIfNeeded() {
-  if (!pendingQuoteImage || !pendingQuoteImage.dataUrl) return "";
+  const dataUrl = quoteImageDataUrl(pendingQuoteImage);
+  if (!pendingQuoteImage || !dataUrl) return "";
   const payload = await apiFetch(
     "/api/upload-image",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        dataUrl: pendingQuoteImage.dataUrl,
+        dataUrl,
         filename: pendingQuoteImage.name,
       }),
     },
@@ -2622,8 +2668,8 @@ async function uploadImageIfNeeded() {
 
 async function uploadQuoteImage(image) {
   if (!image) return "";
-  if (image.savedUrl && !image.dataUrl && !image.compressionPromise) return image.savedUrl;
-  let dataUrl = image.dataUrl || "";
+  if (image.savedUrl && !quoteImageDataUrl(image) && !image.compressionPromise) return image.savedUrl;
+  let dataUrl = quoteImageDataUrl(image);
   if (!dataUrl && image.compressionPromise) {
     dataUrl = await image.compressionPromise;
   }
@@ -5120,6 +5166,145 @@ async function resizeImageToDataUrl(file, maxPx = 1200, quality = 0.85) {
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+function quoteCropImageForTarget(target) {
+  return target === "second" ? pendingQuoteImage2 : pendingQuoteImage;
+}
+
+function renderQuoteCropFrame() {
+  if (!quoteCropState || !els.quoteCropFrame) return;
+  const { x, y, width, height } = quoteCropState.crop;
+  Object.assign(els.quoteCropFrame.style, {
+    left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%`,
+  });
+}
+
+function setQuoteCrop(crop) {
+  if (!quoteCropState) return;
+  const min = 0.1;
+  const width = Math.min(1, Math.max(min, Number(crop.width) || min));
+  const height = Math.min(1, Math.max(min, Number(crop.height) || min));
+  const x = Math.min(Math.max(0, Number(crop.x) || 0), 1 - width);
+  const y = Math.min(Math.max(0, Number(crop.y) || 0), 1 - height);
+  quoteCropState.crop = { x, y, width, height };
+  renderQuoteCropFrame();
+}
+
+function quoteCropFromRenderedRects(frameRect, imageRect, fallbackCrop) {
+  if (!frameRect || !imageRect || !imageRect.width || !imageRect.height) return fallbackCrop;
+  return {
+    x: (frameRect.left - imageRect.left) / imageRect.width,
+    y: (frameRect.top - imageRect.top) / imageRect.height,
+    width: frameRect.width / imageRect.width,
+    height: frameRect.height / imageRect.height,
+  };
+}
+
+async function openQuoteImageCrop(target = "first") {
+  const image = quoteCropImageForTarget(target);
+  if (!image) { showToast("先拍照或选择一张图片"); return; }
+  let sourceDataUrl = image.originalDataUrl || quoteImageDataUrl(image) || resolveImageUrl(image.savedUrl || "");
+  if (!sourceDataUrl && image.compressionPromise) sourceDataUrl = await image.compressionPromise;
+  if (!sourceDataUrl) { showToast("图片还在处理中，请稍候…"); return; }
+  if (!image.originalDataUrl) image.originalDataUrl = sourceDataUrl;
+  quoteCropState = {
+    target,
+    sourceDataUrl: image.originalDataUrl,
+    crop: image.cropRect || { x: 0.04, y: 0.04, width: 0.92, height: 0.92 },
+    drag: null,
+  };
+  if (els.quoteCropImage) {
+    els.quoteCropImage.onload = () => renderQuoteCropFrame();
+    els.quoteCropImage.src = quoteCropState.sourceDataUrl;
+  }
+  els.quoteCropDialog?.showModal();
+}
+
+function startQuoteCropDrag(event) {
+  if (!quoteCropState || !els.quoteCropImage) return;
+  const bounds = els.quoteCropImage.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return;
+  event.preventDefault();
+  const resizeHandle = event.target.closest("[data-crop-resize]");
+  quoteCropState.drag = {
+    mode: resizeHandle?.dataset.cropResize || "move",
+    startX: event.clientX,
+    startY: event.clientY,
+    startCrop: { ...quoteCropState.crop },
+    bounds,
+  };
+  els.quoteCropFrame?.setPointerCapture?.(event.pointerId);
+}
+
+function resizeQuoteCropFromTopLeft(startCrop, dx, dy) {
+  const min = 0.1;
+  const right = startCrop.x + startCrop.width;
+  const bottom = startCrop.y + startCrop.height;
+  const x = Math.min(right - min, Math.max(0, startCrop.x + dx));
+  const y = Math.min(bottom - min, Math.max(0, startCrop.y + dy));
+  return { x, y, width: right - x, height: bottom - y };
+}
+
+function moveQuoteCropDrag(event) {
+  const drag = quoteCropState?.drag;
+  if (!drag || !quoteCropState) return;
+  const dx = (event.clientX - drag.startX) / drag.bounds.width;
+  const dy = (event.clientY - drag.startY) / drag.bounds.height;
+  if (drag.mode === "bottom-right") {
+    setQuoteCrop({ ...drag.startCrop, width: drag.startCrop.width + dx, height: drag.startCrop.height + dy });
+  } else if (drag.mode === "top-left") {
+    setQuoteCrop(resizeQuoteCropFromTopLeft(drag.startCrop, dx, dy));
+  } else {
+    setQuoteCrop({ ...drag.startCrop, x: drag.startCrop.x + dx, y: drag.startCrop.y + dy });
+  }
+}
+
+function stopQuoteCropDrag() {
+  if (quoteCropState) quoteCropState.drag = null;
+}
+
+function resetQuoteCropSelection() {
+  setQuoteCrop({ x: 0, y: 0, width: 1, height: 1 });
+}
+
+async function applyQuoteImageCrop() {
+  if (!quoteCropState) return;
+  const image = quoteCropImageForTarget(quoteCropState.target);
+  if (!image) return;
+  const source = await new Promise((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error("Image decode failed"));
+    element.src = quoteCropState.sourceDataUrl;
+  }).catch(() => null);
+  if (!source) { showToast("裁剪失败，请重新选择图片"); return; }
+  const naturalWidth = source.naturalWidth || source.width;
+  const naturalHeight = source.naturalHeight || source.height;
+  // 用真实渲染的 <img> 与选框边界换算。iOS 上 dialog/grid 的容器高度可能和
+  // 图片实际绘制高度不同；不能再假设 stage 的比例就是图片像素比例。
+  const crop = quoteCropFromRenderedRects(
+    els.quoteCropFrame?.getBoundingClientRect?.(),
+    els.quoteCropImage?.getBoundingClientRect?.(),
+    quoteCropState.crop
+  );
+  setQuoteCrop(crop);
+  const { x, y, width, height } = quoteCropState.crop;
+  const sx = Math.round(x * naturalWidth);
+  const sy = Math.round(y * naturalHeight);
+  const sw = Math.max(1, Math.round(width * naturalWidth));
+  const sh = Math.max(1, Math.round(height * naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = sw;
+  canvas.height = sh;
+  canvas.getContext("2d").drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
+  const croppedDataUrl = canvas.toDataURL("image/jpeg", QUOTE_IMAGE_QUALITY);
+  image.cropDataUrl = croppedDataUrl;
+  image.dataUrl = croppedDataUrl;
+  image.cropRect = { ...quoteCropState.crop };
+  closeDialog(els.quoteCropDialog);
+  renderImagePreview();
+  showToast("已裁剪，将用于识别和保存");
+}
+
 function buildOcrRequestOptions(dataUrl, metadata) {
   // Send compressed bytes directly when the browser supports Blob/atob. Keep
   // JSON data-url fallback for older WebViews and the test harness.
@@ -5156,14 +5341,19 @@ async function handleQuoteImageChange(file) {
   }
   // Show preview immediately via objectUrl (blob URLs render reliably on iOS Safari)
   const objectUrl = URL.createObjectURL(file);
-  pendingQuoteImage = { name: file.name, objectUrl, dataUrl: null, ocrSource: "" };
+  const image = { name: file.name, objectUrl, dataUrl: null, originalDataUrl: null, cropDataUrl: null, ocrSource: "" };
+  pendingQuoteImage = image;
   renderImagePreview();
   showToast("图片已载入，可以直接保存，也可以先做 OCR");
   // Compress in background — needed for OCR/upload
   const compressionPromise = resizeImageToDataUrl(file, QUOTE_IMAGE_MAX_PX, QUOTE_IMAGE_QUALITY);
-  pendingQuoteImage.compressionPromise = compressionPromise;
+  image.compressionPromise = compressionPromise;
   compressionPromise.then((dataUrl) => {
-    if (pendingQuoteImage) pendingQuoteImage.dataUrl = dataUrl;
+    if (pendingQuoteImage === image) {
+      image.originalDataUrl = dataUrl;
+      if (!image.cropDataUrl) image.dataUrl = dataUrl;
+      renderImagePreview();
+    }
   }).catch(() => {});
 }
 
@@ -5175,12 +5365,17 @@ async function handleQuoteImage2Change(file) {
     return;
   }
   const objectUrl = URL.createObjectURL(file);
-  pendingQuoteImage2 = { name: file.name, objectUrl, dataUrl: null, ocrSource: "" };
+  const image = { name: file.name, objectUrl, dataUrl: null, originalDataUrl: null, cropDataUrl: null, ocrSource: "" };
+  pendingQuoteImage2 = image;
   renderImagePreview();
   const compressionPromise = resizeImageToDataUrl(file, QUOTE_IMAGE_MAX_PX, QUOTE_IMAGE_QUALITY);
-  pendingQuoteImage2.compressionPromise = compressionPromise;
+  image.compressionPromise = compressionPromise;
   compressionPromise.then((dataUrl) => {
-    if (pendingQuoteImage2) pendingQuoteImage2.dataUrl = dataUrl;
+    if (pendingQuoteImage2 === image) {
+      image.originalDataUrl = dataUrl;
+      if (!image.cropDataUrl) image.dataUrl = dataUrl;
+      renderImagePreview();
+    }
   }).catch(() => {});
 }
 
@@ -5216,7 +5411,7 @@ async function runOcrFromImage(engine = "fast") {
   if (els.aiOcrButton) els.aiOcrButton.disabled = true;
   els.ocrStatus.textContent = isAi ? "正在 AI 识别划线句…" : "正在快速识别整页…";
   try {
-    let dataUrl = pendingQuoteImage?.dataUrl || "";
+    let dataUrl = quoteImageDataUrl(pendingQuoteImage);
     if (!dataUrl && pendingQuoteImage?.compressionPromise) {
       dataUrl = await pendingQuoteImage.compressionPromise;
     }
@@ -5303,7 +5498,7 @@ async function runOcrFromImage(engine = "fast") {
       // rendering page 1 before this request would flatten its line structure.
       let didSecondPage = false;
       if (pendingQuoteImage2) {
-        let dataUrl2 = pendingQuoteImage2.dataUrl || "";
+        let dataUrl2 = quoteImageDataUrl(pendingQuoteImage2);
         if (!dataUrl2 && pendingQuoteImage2.compressionPromise) {
           dataUrl2 = await pendingQuoteImage2.compressionPromise;
         }
@@ -6401,6 +6596,16 @@ function bindEvents() {
       event.target.value = "";
     }
   });
+
+  els.quoteCropFirstButton?.addEventListener("click", () => openQuoteImageCrop("first"));
+  els.quoteCropSecondButton?.addEventListener("click", () => openQuoteImageCrop("second"));
+  els.quoteCropFrame?.addEventListener("pointerdown", startQuoteCropDrag);
+  document.addEventListener("pointermove", moveQuoteCropDrag);
+  document.addEventListener("pointerup", stopQuoteCropDrag);
+  els.quoteCropResetButton?.addEventListener("click", resetQuoteCropSelection);
+  els.quoteCropCancelButton?.addEventListener("click", () => closeDialog(els.quoteCropDialog));
+  els.quoteCropApplyButton?.addEventListener("click", applyQuoteImageCrop);
+  els.quoteCropDialog?.addEventListener("close", () => { quoteCropState = null; });
 
   document.addEventListener("click", closeAllCardMenus);
 
