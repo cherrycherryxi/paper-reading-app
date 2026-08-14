@@ -4567,3 +4567,51 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 ---
 
 > 本次 run 新发现 3 条：E251（摘抄卡固定原图封面，owner 直接视觉 signal）、E252（账号抽屉 modal 键盘焦点缺口）、E253（长期记忆表单 accessible name 缺失）。OPT-157 已由本日 triage 指派，未重复；当前 `HEAD` 与 `origin/feature/agent` 同为 `7997e0e`，现有最大编号为 OPT-157，故仅将直接 signal 且边界明确的 E251 提拔为 OPT-158。
+
+## 2026-08-15
+
+> 扫描焦点：昨日合入的“我的”主页长期记忆管理边界。基线为 `HEAD` / `origin/feature/agent` 的 `63d4e09`；任务前提说明 GitHub open PR 数据不可用，因此不臆造 PR 状态。已排除：OPT-157 已完成主页入口前置，OPT-158 已覆盖摘抄卡封面；E243 的同步失败原子性、E252 的抽屉焦点、E253 的表单 accessible name 均为旧 Explore 项，本节不重复。
+
+### E254 — 未登录状态可直接提交长期记忆表单，认证守卫只覆盖相邻的 Excel 入口 (S)
+
+**What (verified):** “我的”主页始终渲染长期记忆表单（`index.html:255-267`）。相邻 Excel 按钮点击时先调用 `requireMeHomepageAuth()`（`app.js:6389-6393`），该守卫会在未登录时打开账号抽屉（`app.js:1423-1426`）；但记忆表单 submit 直接调用 `saveMemory()`，没有同一守卫（`app.js:6394-6397`）。`saveMemory()` 会先修改本地 `state.memories` 再请求同步（`app.js:432-444`），所以匿名用户填完内容后才从失败请求得知不能保存。
+
+**Why it matters:** OPT-157 把入口前置是为了提高可发现性，但同一区域的两个需要账号的工具给出不同的未登录反馈。记忆内容可能是用户认真写下的偏好或目标；提交后才失败会浪费输入，也会落入 E243 已记录的本地幽灵变更风险。这里登记的是新主页的认证入口不一致，不重复 E243 的网络失败原子性。
+
+**Complexity:** S。submit 前复用 `requireMeHomepageAuth()`；未登录时保留已输入内容并打开登录抽屉。补“匿名提交不调用 `saveMemory`、输入不清空、抽屉打开”的前端测试。
+
+**Files:** `index.html:255-267`；`app.js:432-444,1423-1426,6389-6397`；`tests/frontend/me-homepage-entry.test.js:41-47`。
+
+**northstar:** 弱-中——减少高价值长期记忆入口的首次使用失败，但暂无 owner 实际遇到该问题的 signal，暂不提拔。
+
+---
+
+### E255 — 长期记忆列表把内部 `kind` 枚举原样显示为英文代码 (S)
+
+**What (verified):** 表单把四种类型以中文选项呈现，但提交值分别是 `preference`、`viewpoint`、`goal`、`todo`（`index.html:261-265`）。列表渲染时直接输出 `memory.kind`，没有中文映射（`app.js:424-429`）。因此成功保存后，用户看到的是 `preference 我希望……`，而不是刚刚选择的“偏好”。
+
+**Why it matters:** 长期记忆是 Theme 3 的用户可查看、可编辑资产；把存储枚举暴露到中文界面会降低扫读效率，也让“保存前选中文、保存后变英文”的反馈不连续。问题来自当前实际模板和渲染函数，不是假设文案。
+
+**Complexity:** S。增加受控的 kind→中文标签映射，未知值回退为“其他”或安全显示；列表和编辑态共用同一映射，并补四种类型及未知值测试。
+
+**Files:** `index.html:261-265`；`app.js:424-429`；`tests/frontend/me-homepage-entry.test.js:11-39`。
+
+**northstar:** 弱-中——提升长期记忆的可读性与资产感，但没有直接 signal，只留探索池。
+
+---
+
+### E256 — 删除长期记忆无确认且立即持久化，误触没有恢复路径 (S)
+
+**What (verified):** 每条记忆都在行内渲染“删除”按钮（`app.js:424-429`）。点击后事件分支立即从 `state.memories` 过滤目标并调用 `syncState()`（`app.js:6398-6413`），没有 `showConfirmDialog()`、撤销栈或软删除。项目已有通用确认组件 `showConfirmDialog()`（`app.js:3844-3867`），书籍、记录、摘抄和关联删除均调用该组件（如关联删除 `app.js:6039-6053`），长期记忆是当前例外。
+
+**Why it matters:** 已确认记忆会被后续探讨召回，是用户长期积累的偏好、观点、目标和待办；行内“编辑/删除”相邻，移动端误触会永久丢失且没有恢复入口。与 E243 的“同步失败后本地状态分叉”不同，本项关注同步成功时的误删保护。
+
+**Complexity:** S。删除前调用现有确认组件，文案包含类型和截断后的内容预览；取消不改 state，确认后沿用现有同步路径。补取消/确认两条前端测试。
+
+**Files:** `app.js:424-429,3844-3867,6039-6053,6398-6413`；相关 frontend tests。
+
+**northstar:** 中——保护长期记忆这一 Theme 3 用户资产，但暂无误删 signal，证据不足以挤占已有直接 signal 的 OPT-158，本轮不提拔。
+
+---
+
+> 本次 run 新发现 3 条：E254（主页记忆入口缺未登录守卫，S，错误处理）、E255（内部 kind 英文码泄漏到中文列表，S，UX）、E256（长期记忆删除无确认或撤销，S，数据控制）。三项均核对当前代码并排除 backlog、最近合并历史和旧 Explore 重复；因缺少直接 owner signal，本轮不新增 OPT。

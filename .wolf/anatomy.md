@@ -9,6 +9,7 @@
 
 - `optimization/backlog.md` — OPT-157 reconciled done; OPT-158 remains the only signal-backed unfinished P1 and is sized M.
 - `optimization/triage.md` — Last triaged 2026-08-15; no nightly-compatible S task assigned.
+- `optimization/explore.md` — 2026-08-15 Explore added E254-E256 around the newly surfaced homepage memory manager; no promotion because all three lack direct owner signal.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
