@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T06:31:43.587Z
-> Files: 310 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T12:59:17.374Z
+> Files: 315 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -94,6 +94,14 @@
 
 - `chat-agent-approval.test.js` — test: createElementStub, innerHTML, innerHTML + 4 more (~6473 tok)
 
+## ../../../../private/tmp/paper-pr122-review/
+
+- `app.js` — Declares AUTH_TOKEN_KEY (~72625 tok)
+
+## ../../../../private/tmp/paper-pr122-review/tests/frontend/
+
+- `me-homepage-entry.test.js` — Declares test (~780 tok)
+
 ## ../../../../tmp/
 
 - `opt067-pr-body.md` — 动机 (~228 tok)
@@ -147,6 +155,10 @@
 
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20740 tok)
 
+## ../../.claude/
+
+- `settings.json` (~2201 tok)
+
 ## ../../.claude/paper-loop/
 
 - `cards-2026-08-01.md` — 卡片① (~44 tok)
@@ -167,7 +179,11 @@
 - `review-2026-08-07.md` — 2026-08-07 夜间 PR 审查 (~51 tok)
 - `review-2026-08-13.md` (~2 tok)
 - `review-2026-08-14.md` (~2 tok)
-- `today-pick.md` — 卡片① (~65 tok)
+- `today-pick.md` — 卡片① (~76 tok)
+
+## ../../.claude/scripts/configs/
+
+- `claude-settings.json` (~2042 tok)
 
 ## ./
 
@@ -177,14 +193,14 @@
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~77573 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~74509 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~74809 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11677 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~13239 tok)
+- `index.html` — 🐛 又买了一本书 (~13269 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -193,7 +209,7 @@
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~26721 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~27316 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -433,11 +449,12 @@
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~3156 tok)
-- `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1705 tok)
+- `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1695 tok)
 - `entry-bundle-opt058-061-066-090-084-091.test.js` — OPT-058: quoteDialog focus after showModal (openNewQuoteForBook / editQuote) (~5644 tok)
-- `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1716 tok)
+- `excel-entry-books-page.test.js` — Regression tests for OPT-001: books-page secondary entry for Excel batch import. (~1718 tok)
 - `global-search.test.js` — test: createElementStub, innerHTML, innerHTML + 11 more (~4466 tok)
 - `login-fast-and-retry-btn.test.js` — 两个移动端体验修复： (~698 tok)
+- `me-homepage-entry.test.js` — Declares test (~854 tok)
 - `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)
 - `ocr-fast-panel-integration.test.js` — Integration test for the FAST OCR path (runOcrFromImage("fast")): (~1884 tok)
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4036 tok)
@@ -451,7 +468,7 @@
 - `quote-page-prefill.test.js` — OPT-095: 新建摘抄对话框的页码字段应预填 book.currentPage（正在读的这一页）， (~1475 tok)
 - `quote-search-card-image.test.js` — OPT-070: buildQuoteSearchCard() must fill quote.imageUrl in the cover like the (~1294 tok)
 - `quote-tag-picker-persist.test.js` — 摘抄标签 picker 的来源 = 默认标签 + 用户经输入框「手动敲过」的自定义标签(localStorage)。 (~1664 tok)
-- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20380 tok)
+- `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20729 tok)
 - `resolve-connection-side-ocr.test.js` — OPT-127: resolveConnectionSide() 的 quote 分支仅读 content，OCR 摘抄（content 为空、 (~1646 tok)
 - `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2729 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 + OPT-116 (~4149 tok)
