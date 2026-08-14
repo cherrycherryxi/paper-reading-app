@@ -104,6 +104,11 @@ const els = {
   quotesList: document.querySelector("#quotesList"),
   logsList: document.querySelector("#modelLogsList"),
   meSummary: document.querySelector("#meSummary"),
+  meMemoryCount: document.querySelector("#meMemoryCount"),
+  meMemoryPreview: document.querySelector("#meMemoryPreview"),
+  manageMemoriesBtn: document.querySelector("#manageMemoriesBtn"),
+  meImportExcelBtn: document.querySelector("#meImportExcelBtn"),
+  meImportDoubanBtn: document.querySelector("#meImportDoubanBtn"),
   meAvatarBtn: document.querySelector("#meAvatarBtn"),
   meAvatarDot: document.querySelector("#meAvatarDot"),
   meDrawer: document.querySelector("#meDrawer"),
@@ -1364,6 +1369,16 @@ function renderSummary() {
     .join("");
   els.readingCompletionRate.textContent = `${completionRate}%`;
   els.readingCompletionBar.style.width = `${completionRate}%`;
+
+  const memories = Array.isArray(state.memories) ? state.memories : [];
+  if (els.meMemoryCount) els.meMemoryCount.textContent = `${memories.length} 条记忆`;
+  if (els.meMemoryPreview) {
+    const latest = memories.reduce((result, item) => {
+      if (!result) return item;
+      return String(item.updatedAt || item.createdAt || "") > String(result.updatedAt || result.createdAt || "") ? item : result;
+    }, null);
+    els.meMemoryPreview.textContent = latest?.content || "保存你确认过的阅读偏好、观点和目标。";
+  }
 }
 
 function renderAuthPanels() {
@@ -1393,6 +1408,20 @@ function closeMeDrawer() {
   if (!els.meDrawer) return;
   els.meDrawer.classList.remove("is-open");
   els.meDrawerOverlay.classList.remove("is-open");
+}
+
+function requireMeHomepageAuth() {
+  if (currentUser?.id) return true;
+  openMeDrawer();
+  return false;
+}
+
+function openMemoryManager() {
+  if (!requireMeHomepageAuth()) return;
+  openMeDrawer();
+  renderMemories();
+  els.memoryForm?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  els.memoryForm?.elements?.content?.focus?.();
 }
 
 function renderBookSelect(hiddenInput) {
@@ -6171,6 +6200,16 @@ function bindEvents() {
 
   els.meAvatarBtn?.addEventListener("click", openMeDrawer);
   els.meAvatarBtn?.addEventListener("click", renderMemories);
+  els.manageMemoriesBtn?.addEventListener("click", openMemoryManager);
+  els.meImportExcelBtn?.addEventListener("click", () => {
+    if (!requireMeHomepageAuth()) return;
+    if (els.importExcelDialog) els.importExcelDialog.showModal();
+    else els.importExcelInput?.click();
+  });
+  els.meImportDoubanBtn?.addEventListener("click", () => {
+    if (!requireMeHomepageAuth()) return;
+    els.importDoubanInput?.click();
+  });
   els.memoryForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     withSavingState(els.memoryForm.querySelector('[type="submit"]'), "保存中…", () => saveMemory(new FormData(els.memoryForm)));
