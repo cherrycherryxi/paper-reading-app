@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T12:59:17.374Z
-> Files: 315 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z
+> Files: 316 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -233,6 +233,10 @@
 ## .codex/hooks/
 
 - `apply-patch-adapter.js` — Declares configuredRoot (~382 tok)
+
+## .git/info/
+
+- `exclude` — git ls-files --others --exclude-from=.git/info/exclude (~150 tok)
 
 ## .githooks/
 

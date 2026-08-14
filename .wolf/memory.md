@@ -4904,3 +4904,4 @@
 | 20:57 | Session end: 6 writes across 5 files (settings.json, claude-settings.json, me-homepage-entry.test.js, douban-import.test.js, styles.css) | 0 reads | ~34880 tok |
 | 20:59 | Created ../../.claude/paper-loop/today-pick.md | — | ~82 |
 | 21:03 | Session end: 7 writes across 6 files (settings.json, claude-settings.json, me-homepage-entry.test.js, douban-import.test.js, styles.css) | 0 reads | ~34967 tok |
+| 21:10 | Created .git/info/exclude | — | ~150 |
