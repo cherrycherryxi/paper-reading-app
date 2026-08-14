@@ -5,6 +5,11 @@
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
 > Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
+## Current planning state (2026-08-15)
+
+- `optimization/backlog.md` — OPT-157 reconciled done; OPT-158 remains the only signal-backed unfinished P1 and is sized M.
+- `optimization/triage.md` — Last triaged 2026-08-15; no nightly-compatible S task assigned.
+
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
 - `backlog.md` — Optimization Backlog (~39737 tok)
