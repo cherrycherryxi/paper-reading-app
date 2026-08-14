@@ -4519,3 +4519,51 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 ---
 
 > 本次 run 新发现 3 条：E248（连续删除撤销栈，S，owner OCR 直接 signal）、E249（1-2 行 OCR 缺行级核对，S，OCR 交互一致性）、E250（取消临时 OCR 卡同步失败被吞，S-M，数据控制）。E248 证据最强但未提拔：隔离 clone 禁止写入 `.git/FETCH_HEAD`，无法确认远端 `feature/agent` 的当前最大 OPT 编号；为避免编号冲突，本轮只追加 explore。
+
+## 2026-08-14
+
+> 扫描焦点：最新 Theme 3 owner signals 的可执行边界，以及“我的”抽屉的可访问性。基线为 `origin/feature/agent` / `7997e0e`；当前任务前提明确 GitHub open PR 数据不可用，未臆造 PR 状态。已排除：OPT-157 已在本日 triage 中占用“我的”主页入口前置；E192/E198 的记录页替代方向、E243 的记忆同步失败、E248-E250 的 OCR 边界均为旧 explore 项，不重复登记。
+
+### E251 — 摘抄卡把拍摄原图固定为顶部封面，3:1 裁切与 owner 的回顾视觉偏好冲突 (S-M)
+
+**What (verified):** `renderQuotes()` 对每条有 `quote.imageUrl` 的卡片都无条件插入图片（`app.js:2091-2095`）；`.entry-card-cover` 固定 3:1，而图片统一 `object-fit: cover`（`styles.css:1271-1273,1289-1294`）。图片加载失败时才隐藏 `<img>`，没有正常加载时的纯色或轻量视觉分支。`optimization/signals.md:60-66` 记录 owner 已直接指出该拍摄照片封面“不好看”，希望改回纯色或其他更有趣的设计。
+
+**Why it matters:** 摘抄页是回顾和浏览入口，原始拍摄图可在详情里承担溯源作用，却不必主导卡片墙的第一视觉层；目前实现使该直接 signal 持续出现。
+
+**Complexity:** S-M。默认使用与类型/书籍信息协调的纯色或轻量图形，保留详情原图；或提供清晰的显示策略。需在 iPhone 12 验收有图、无图、失效图三类卡片。
+
+**Files:** `app.js:2081-2106,3099-3145`；`styles.css:1260-1323`；相关 frontend tests。
+
+**northstar:** 高——直接回应当前 owner signal，改善高频摘抄回顾入口。→ promoted to OPT-158
+
+---
+
+### E252 — 账号抽屉声明为 modal，但没有焦点进入、焦点约束或键盘关闭路径 (S)
+
+**What (verified):** 抽屉以 `<div role="dialog" aria-modal="true">` 呈现（`index.html:252-255`），但 `openMeDrawer()` 只添加两个 `is-open` class（`app.js:1385-1390`），`closeMeDrawer()` 只移除 class（`app.js:1392-1396`）。现有事件仅绑定头像打开、遮罩点击关闭（`app.js:6172-6173,6194`）；当前 `app.js` 中没有针对该抽屉的 Escape、首次焦点或关闭后归还焦点处理。
+
+**Why it matters:** `aria-modal` 不会自动移动或限制键盘焦点。键盘和读屏用户可继续落到被遮罩的页面控件，也不能用 Escape 关闭抽屉；OPT-157 将让此入口更常被打开，modal 基础行为需要与可发现性改造同步可靠。
+
+**Complexity:** S。打开时保存触发元素并将焦点移至抽屉内首个可操作元素；处理 Escape 与 Tab 循环；关闭后恢复触发元素。补键盘回归测试。
+
+**Files:** `index.html:252-355`；`app.js:1385-1396,6172-6199`；相关 frontend a11y tests。
+
+**northstar:** 弱-中——不直接新增功能使用，但避免 Theme 3 高价值入口对键盘/读屏用户不可操作；不提拔。
+
+---
+
+### E253 — 长期记忆表单的类型与内容输入缺少可访问名称 (S)
+
+**What (verified):** 长期记忆区把 `<select name="kind">`、`<input name="content">` 和保存按钮直接并列在一行（`index.html:295-301`）；二者均没有关联 `<label>`、`aria-label` 或 `aria-labelledby`。输入框只有 placeholder 示例。渲染列表虽会显示已有记忆类型和内容（`app.js:410-415`），但新建/编辑时读屏用户无法获知下拉框和输入框的语义。
+
+**Why it matters:** 长期记忆是 Theme 3 的用户可控资产，OPT-157 正在提升其入口可见性；若表单本身不可清楚理解，前置入口无法兑现“可查看、可编辑、可删除”的承诺。
+
+**Complexity:** S。为类型选择和内容输入补可见或仅读屏 label；编辑态同步说明当前正在修改哪条记忆；补 accessible-name 测试。
+
+**Files:** `index.html:295-301`；`app.js:410-430,6174-6192`；相关 frontend a11y tests。
+
+**northstar:** 弱-中——提升当前 Theme 3 核心资产的可操作性，但暂无辅助技术真实 signal；不提拔。
+
+---
+
+> 本次 run 新发现 3 条：E251（摘抄卡固定原图封面，owner 直接视觉 signal）、E252（账号抽屉 modal 键盘焦点缺口）、E253（长期记忆表单 accessible name 缺失）。OPT-157 已由本日 triage 指派，未重复；当前 `HEAD` 与 `origin/feature/agent` 同为 `7997e0e`，现有最大编号为 OPT-157，故仅将直接 signal 且边界明确的 E251 提拔为 OPT-158。

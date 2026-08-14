@@ -1317,7 +1317,7 @@ Format per item:
 - how: ① `app_server.py:2632`（all_books_summary dict，`"review": ...` 之后）：加 `"tags": b.get("tags", [])`；② `app_server.py:2661`（common_rules 规则 5 末尾）：追加约 1-2 句「每本书还带 tags（用户自定义标签列表，可为空）；回答「有哪些成长/悬疑/哲学类书」「读书会推荐」等按主题分类查询时，应检索 tags 字段，不要仅凭书名或简介推断」。Touch: `app_server.py:2632`（数据）、`app_server.py:2661`（指令）。
 
 ### OPT-142 — 关联弹窗 `filteredQuotes()` 不搜索摘抄 `tags`：按标签找目标摘抄失败 — 由 explore E232 提拔 [2026-07-28]
-- status: triaged
+- status: done (PR #120, merged 2026-08-13 — `filteredQuotes()` 已同时匹配 `item.tags` 与 `reflection`；`tests/frontend/quote-combobox-ocr-label.test.js` 覆盖按标签和“我的理解”检索)
 - area: frontend
 - priority: P3
 - size: S
@@ -1367,14 +1367,34 @@ Format per item:
 - how: parked；若后续 signal 仍指向卡面，再比较「默认精简 + 详情完整」与紧凑模式，不先删字段。
 
 ### OPT-147 — `renderBooks()` 最终渲染全部书卡，数百本规模下可能出现 DOM/监听器压力 [2026-08-03]
-- status: triaged — P3 parked (146 本当前“尚可”，没有真机卡顿时长、掉帧或放弃任务证据；达到可测性能门槛再提拔)
+- status: done (PR #121, merged 2026-08-13 — 首屏限 24 张书卡，按“加载更多”继续渲染；`tests/frontend/book-list-progressive-render.test.js` 覆盖首屏上限、顺序和总数)
 - area: frontend
 - priority: P3
 - size: M
 - northstar: 弱——性能恶化时会阻碍翻书单，但目前只是规模推演，不应挤占有直接 P1 signal 的标签筛选。
 - description: `renderBooks()`（`app.js:1715-1778`）虽以 `requestAnimationFrame` 每批 8 本插入，最终仍为全部筛选结果创建卡片及逐卡事件监听器；8/2 signal 推测数百至上千本会逐渐变慢。
 - why: 当前真实规模 146 本且 signal 明说“尚可”；先记录风险，不凭未来规模提前引入分页/虚拟列表复杂度。
-- how: parked；先补真机基线（首屏可交互时间、长列表滚动掉帧），达到明确阈值后再在「加载更多」与虚拟列表中选最小方案。
+- how: 已采用最小的“加载更多”方案；保留后续真机性能观察，不再作为未完成性能推演项指派。
+
+### OPT-157 — “我的”主页未前置长期记忆与快速导入入口，高价值功能必须先打开账号抽屉才可发现 [2026-08-14]
+- status: triaged
+- area: frontend / information architecture
+- priority: P1
+- size: M
+- northstar: 高——2026-08-13 owner 直接反馈；长期记忆是 Theme 3「积累可信」的用户可控资产，快速导入是既有采集能力。把两者从抽屉前置到“我的”主页，减少发现和重复使用的额外一步，直接支持“默认工具”的可达性。
+- description: `index.html:225-249` 的“我的”主页当前只有统计和阅读完成率；长期记忆表单与 Excel/豆瓣导入入口均在 `#meDrawer`（`index.html:295-351`），只能先点头像打开账号设置。`app.js:1385-1390` 的 `openMeDrawer()` 只打开抽屉，`app.js:6172-6176` 也只把记忆渲染绑在头像点击后；因此主页没有通往这些已上线能力的直接入口。
+- why: 这是最新高置信 owner signal，不是视觉猜测。相比 8/13 的摘抄封面视觉（需设计探索）和“取消记录页”（影响导航与数据模型，不能单 PR 草率移除），本项可限定为主页入口层重排，并复用既有抽屉/导入处理链。
+- how: 在“我的”主页新增紧凑的“继续使用”入口区：展示长期记忆数量与最近一条摘要，提供“管理记忆”按钮；提供“导入书籍”入口，明确分流 Excel/豆瓣（不复制解析逻辑）。按钮打开既有抽屉并聚焦相应区域，或复用现有 file input；保持账号安全、导出和注销留在抽屉。补前端测试，覆盖入口可见、未登录降级、管理记忆聚焦与两类导入触发。Touch: `index.html:225-249,295-351`、`app.js:411-430,1385-1395,6172-6176,6289-6299`、`styles.css`、`tests/frontend/`。
+
+### OPT-158 — 摘抄卡片将拍摄原图作为固定封面，回顾页首屏视觉与 owner 偏好冲突 [2026-08-14]
+- status: triaged
+- area: frontend / visual design
+- priority: P1
+- size: S-M
+- northstar: 高——2026-08-13 owner 直接反馈摘抄卡封面的拍摄照片“不好看”，摘抄页正是高频回顾与浏览入口；恢复克制、可辨识的卡片视觉直接改善回顾意愿。
+- description: `renderQuotes()` 对任一带 `imageUrl` 的摘抄无条件渲染 `<img>`（`app.js:2091-2095`）；`entry-card-cover` 固定为 3:1，图片以 `object-fit: cover` 铺满（`styles.css:1271-1273,1289-1294`）。现有回退只在图片加载失败时隐藏图片，正常拍摄图没有纯色或轻量视觉替代选项，因此 owner 在 `optimization/signals.md:60-66` 报告的封面观感会稳定出现。
+- why: 这不是猜测性的美化需求，而是明确 owner signal 与当前实现的一一对应。拍摄图更适合 OCR 溯源，却不必占据摘抄墙的第一视觉层；卡片应优先服务文字回顾与浏览节奏。
+- how: 默认改为与摘抄类型/书籍信息协调的纯色或轻量图形封面，保留图片作为详情中的原始凭据；若保留卡面图片，至少提供明确的全局或单卡显示策略。先以 iPhone 12 在“有图/无图/失效图”三类卡片真机验收，再补渲染与回退测试。Touch: `app.js:2081-2106,3099-3145`、`styles.css:1260-1323`、相关 frontend tests。
 
 ### OPT-148 — 面向用户的显式阅读长期记忆：可确认、查看、编辑、删除并按需召回 [2026-08-06]
 - status: done (PR #110, merged 2026-08-08 — 已确认记忆可查看/编辑/删除，memories 经 sanitize 持久化并按上下文注入 prompt)
