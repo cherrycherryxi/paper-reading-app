@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z
 > Files: 316 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
+> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -249,6 +251,7 @@
 ## .github/workflows/
 
 - `ci.yml` — CI: CI (~682 tok)
+- `ci.yml` — CI: CI (~664 tok)
 - `claude-code-review.yml` — CI: Claude Code Review (~360 tok)
 - `claude.yml` — CI: Claude Code (~539 tok)
 
@@ -314,6 +317,7 @@
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1316 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
 - `triage.md` — Triage (~2029 tok)
 
 ## output/pdf/
@@ -353,6 +357,18 @@
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
 - `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
+- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~408 tok)
+- `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1219 tok)
+- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~1654 tok)
+- `nightly-triage.sh` — 每日 01:00：在隔离 worktree 中执行夜间 Agent1（Triage）。 (~1406 tok)
+- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1792 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
+- `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1680 tok)
+- `README.md` — Project documentation (~927 tok)
+- `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
+- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~318 tok)
+- `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1453 tok)
 
 ## scripts/codex/launchd/
 
@@ -390,6 +406,8 @@
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5935 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
+- `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1587 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
 - `custom_quote_tags_sanitize_test.py` — OPT-078 后端覆盖：sanitize_state 持久化自定义摘抄标签 customQuoteTags。 (~554 tok)

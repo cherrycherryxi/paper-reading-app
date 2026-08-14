@@ -67,6 +67,13 @@ class CodexNightlyAutomationTests(unittest.TestCase):
             self.assertNotIn('date -u +%F', source)
             self.assertIn("当前上海日期", source)
 
+    def test_nightly_run_date_uses_local_shanghai_calendar_day(self):
+        for path in self.scripts.values():
+            source = path.read_text()
+            self.assertIn('$(date +%F)', source)
+            self.assertNotIn('date -u +%F', source)
+            self.assertIn("当前上海日期", source)
+
     def test_model_permissions_and_path_guards(self):
         triage = self.scripts["triage"].read_text()
         implement = self.scripts["implement"].read_text()
