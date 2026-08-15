@@ -43,6 +43,12 @@ const quoteKindMap = {
   question: "问题",
 };
 
+const quoteCoverMarkMap = {
+  quote: "“",
+  note: "✎",
+  question: "?",
+};
+
 const els = {
   bookForm: document.querySelector("#bookForm"),
   sessionForm: document.querySelector("#sessionForm"),
@@ -2119,10 +2125,8 @@ function renderQuotes() {
             <li><button type="button" data-quote-menu="share">生成分享图</button></li>
             <li class="menu-item-danger"><button type="button" data-quote-menu="delete">删除</button></li>
           </ul>
-          <div class="entry-card-cover">
-            ${quote.imageUrl
-              ? `<img src="${resolveImageUrl(quote.imageUrl)}" loading="lazy" decoding="async" alt="摘抄图片" onerror="this.classList.add('is-hidden')" />`
-              : '<div class="entry-cover-fallback"></div>'}
+          <div class="entry-card-cover quote-cover-art quote-cover-art--${quoteCoverMarkMap[quote.kind] ? quote.kind : "quote"}">
+            <span class="quote-cover-mark" aria-hidden="true">${quoteCoverMarkMap[quote.kind] || quoteCoverMarkMap.quote}</span>
             <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">

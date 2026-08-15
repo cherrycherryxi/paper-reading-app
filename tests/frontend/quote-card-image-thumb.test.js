@@ -1,5 +1,5 @@
-// OPT-052: quote card shows image thumbnail when quote.imageUrl is present,
-// and falls back to entry-cover-fallback when it is absent.
+// OPT-158: quote cards use a calm, type-specific art cover in the review grid.
+// The source image remains available in quote detail as OCR evidence.
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -87,7 +87,7 @@ const BASE_BOOK = {
 };
 const BASE_STATE = { books: [BASE_BOOK], sessions: [], chatHistories: {}, connections: [] };
 
-test("OPT-052: quote card shows <img> when quote.imageUrl is set", () => {
+test("OPT-158: photographed quote uses art cover instead of source image", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
   h.setState({
@@ -102,16 +102,16 @@ test("OPT-052: quote card shows <img> when quote.imageUrl is set", () => {
   h.renderQuotes();
   const html = h.getQuotesListMarkup();
   assert.ok(
-    html.includes('<img src="/media/u1/photo.jpg"'),
-    "有 imageUrl 的卡面应渲染 <img> 缩略图"
+    html.includes('quote-cover-art quote-cover-art--quote'),
+    "有原图的摘抄卡也应使用统一的轻量封面"
   );
   assert.ok(
-    !html.includes('entry-cover-fallback'),
-    "有 imageUrl 时不应渲染 entry-cover-fallback"
+    !html.includes('/media/u1/photo.jpg'),
+    "拍摄原图不应继续占据回顾页卡面"
   );
 });
 
-test("OPT-052: quote card shows fallback when quote.imageUrl is absent", () => {
+test("OPT-158: text quote uses the same stable art cover", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
   h.setState({
@@ -126,36 +126,33 @@ test("OPT-052: quote card shows fallback when quote.imageUrl is absent", () => {
   h.renderQuotes();
   const html = h.getQuotesListMarkup();
   assert.ok(
-    html.includes('entry-cover-fallback'),
-    "无 imageUrl 的卡面应渲染 entry-cover-fallback"
+    html.includes('quote-cover-art quote-cover-art--quote'),
+    "无图摘抄与有图摘抄应保持一致的回顾视觉"
   );
   assert.ok(
     !html.includes('<img src='),
-    "无 imageUrl 时不应渲染 <img>"
+    "轻量封面不应渲染图片"
   );
 });
 
-test("OPT-052: resolveImageUrl prefixes backendBaseUrl for relative paths", () => {
-  const h = createHarness("http://192.168.1.5:8787");
+test("OPT-158: note cover remains visually distinguishable from a quote", () => {
+  const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
   h.setState({
     ...BASE_STATE,
     quotes: [{
-      id: "q3", bookId: "b1", content: "摘抄", kind: "photo",
-      page: 2, tags: [], reflection: "",
-      imageUrl: "/media/u1/shot.jpg",
-      createdAt: "2026-01-01T00:00:00.000Z",
+      id: "q3", bookId: "b1", content: "笔记", kind: "note",
+      page: 2, tags: [], reflection: "", imageUrl: "",
+      createdAt: "2026-01-02T00:00:00.000Z",
     }],
   });
   h.renderQuotes();
   const html = h.getQuotesListMarkup();
-  assert.ok(
-    html.includes('src="http://192.168.1.5:8787/media/u1/shot.jpg"'),
-    "backendBaseUrl 应被正确拼接到图片 src"
-  );
+  assert.ok(html.includes('quote-cover-art--note'), "笔记卡应使用 note 视觉变体");
+  assert.ok(html.includes('aria-hidden="true">✎</span>'), "笔记符号应只作装饰");
 });
 
-test("OPT-052: mixed cards render correctly (one with image, one without)", () => {
+test("OPT-158: cards with and without source images share one cover language", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
   h.setState({
@@ -177,6 +174,6 @@ test("OPT-052: mixed cards render correctly (one with image, one without)", () =
   });
   h.renderQuotes();
   const html = h.getQuotesListMarkup();
-  assert.ok(html.includes('<img src="/media/u1/img.jpg"'), "有图卡片应有 <img>");
-  assert.ok(html.includes('entry-cover-fallback'), "无图卡片应有 fallback");
+  assert.equal((html.match(/quote-cover-art--quote/g) || []).length, 2, "两张卡都应使用摘抄封面");
+  assert.ok(!html.includes('/media/u1/img.jpg'), "列表中不应泄露原图 URL");
 });
