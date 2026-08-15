@@ -4913,3 +4913,16 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-08-15 nightly triage
+
+- Reconciled OPT-157 as done from merge commit `3bdf431`, follow-up `35f9e99`, current homepage markup, and `me-homepage-entry.test.js`.
+- Seven-day `auto/` implementation PR count was externally supplied as 6/8. No task was assigned because the only signal-backed unfinished P1, OPT-158, requires visual/product judgment and is M; all S items remain P3 parked without current North Star support.
+
+## [2026-08-15] Explore：主页长期记忆管理的三个新边界
+
+- 基线 `63d4e09` 已包含 OPT-157 的“我的”主页入口前置；OPT-158 仍是唯一由最新直接 signal 支撑的未完成项。
+- 新增 E254：Excel 入口有未登录守卫，但长期记忆表单 submit 没有，匿名用户会在写完后才遇到同步失败。
+- 新增 E255：表单类型显示中文，列表却直接展示 `preference/viewpoint/goal/todo` 内部枚举。
+- 新增 E256：长期记忆删除不走现有确认组件且无撤销；与 E243 的同步失败原子性是不同边界。
+- 三项均为 S，但没有直接 owner signal，因此只进入 Explore，不占用 OPT 编号。
