@@ -1481,3 +1481,23 @@ Format per item:
 - northstar: 中——用户对 Agent 写操作的确认/拒绝必须可信；拒绝失败却继续展示成功，会让服务端保留的待处理 action 与界面认知分叉。
 - description: `cancelBtn.onclick` 调用 `POST /api/agent-actions/{id}/reject`（`chat.js:1008-1016`），catch 只写 console（`chat.js:1017-1019`）；无论请求是否成功，随后都执行 `container.remove()`、追加“已忽略”并展示下一项（`chat.js:1020-1022`）。网络、鉴权或服务端失败时 action 仍处于原状态，但当前页面永久丢失该确认卡，形成与已修清空聊天 false-success（OPT-149）同类的数据控制语义错误。
 - how: reject 失败时保留卡片、恢复两个按钮与 `handled=false`，把忽略按钮改为“重试忽略”并 toast 错误；只有服务端确认成功后才移除卡片和推进队列。补成功/失败两条前端测试。Touch: `chat.js:1008-1022`、相关 frontend tests。
+
+### OPT-159 — 深度共读启动异常遗留永久 `CREATED` 任务 — 由 explore E257 提拔 [2026-08-16]
+- status: new
+- area: backend / error handling
+- priority: P2
+- size: S
+- northstar: 中——深度共读是“回顾有价值”的新入口；失败任务若永久伪装成“已创建”，研究历史无法被信任。把启动异常收口为明确 FAILED，能让用户理解失败并安全重试。
+- description: `/api/research-runs` 先持久化 CREATED run，再启动 Gateway 与 runner；启动步骤抛错时仅返回 500，已提交的 run 不会失败或删除，历史列表会永久展示不再推进的任务。
+- why: 这是当前新功能可确定触发的数据状态错误，而非未来推演。基础设施启动异常本就是最需要可靠失败语义的路径，且现有 UI 没有删除卡住任务的入口。
+- how: 保存 create 返回的 run id；`ensure_research_gateway()` / `research_runner().start()` 异常时调用 `research_store().fail(run_id, error)` 后再返回错误。补 create 成功、runner 启动抛错后 run=FAILED 且历史可读取的 API 回归测试。Touch: `app_server.py:4985-4993`, `deep_reading.py:298-313`, `tests/agent/deep_reading_api_test.py`。
+
+### OPT-160 — 取消深度共读后 runner 仍执行并可创建隐藏待确认 action — 由 explore E258 提拔 [2026-08-16]
+- status: new
+- area: backend / agent
+- priority: P1
+- size: M
+- northstar: 强——“取消”必须同时停止可见结果、模型成本和写入副作用；否则新回顾入口会破坏用户控制权，并把已取消任务的建议偷偷留在通用 action 状态机。
+- description: cancel 目前只把 SQLite run 标为 CANCELLED。后台 Harness 不检查取消，结束后先持久化 proposals/action，再调用会因 CANCELLED 而忽略结果的 `complete()`；因此任务仍消耗完整调用，且可能创建 UI 不再展示的 PENDING_APPROVAL action。
+- why: 这是明确的跨层 correctness 缺口，影响成本和数据状态。即使底层 Harness 暂时无法强制中断，也必须阻止取消后的 proposal/action 持久化；完整取消再补中断句柄。
+- how: 最小安全修复是在 `harness.run()` 返回后、`on_complete` 前查询 run 状态并在 CANCELLED 时退出；同时为取消竞态加测试，断言 on_complete 未调用、无 action/trace 产生。若 SDK 支持 abort，再把 active harness/run handle 注册到 runner 并由 cancel API 请求中断。Touch: `deep_reading.py:233-250,362-426`, `app_server.py:3510-3581`, `tests/agent/deep_reading_runtime_test.py`, `tests/agent/deep_reading_store_test.py`。

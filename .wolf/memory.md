@@ -4931,3 +4931,9 @@
 
 - Reconciled OPT-158 as done from PR #123 / `be2d512`, current `renderQuotes()` type-specific art covers, retained detail-view source image, and focused frontend regression coverage.
 - Seven-day `auto/` implementation PR count was externally supplied as 5/8. No task was assigned: every remaining unfinished item lacks current Theme and direct signal support, so all stay P3 parked or blocked despite available budget.
+
+## [2026-08-16] Explore：深度共读任务生命周期
+
+- 新合入的深度共读存在两个强状态边界：create 后 Gateway/runner 启动异常会遗留永久 CREATED；取消只更新 DB，Harness 返回后仍可能先创建 proposal/action，再被 complete 的 CANCELLED 守卫丢弃结果。
+- 提拔 OPT-159（启动异常收口为 FAILED，S）与 OPT-160（取消后阻止运行副作用并争取真正中断，M）。
+- E259 记录 capability 不可用状态会被通用错误处理重新启用按钮；E260 记录账号切换未清旧任务 poll timer。两项无直接 signal，暂不提拔。

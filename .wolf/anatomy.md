@@ -570,3 +570,11 @@
 - `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+
+## 深度共读（DeepSeek Harness）
+
+- `deep_reading.py` — 深度共读任务存储、后台 runner、取消/完成状态与研究 prompt。
+- `paper_reading_gateway.py` — 面向 Harness 的只读阅读数据 Gateway。
+- `app_server.py` — `/api/research-*` 接口、研究结果 proposal 到既有 Agent action 状态机的桥接。
+- `chat.js` / `index.html` / `styles.css` — 「探讨」内的深度共读工作台、任务历史与结果确认 UI。
+- `tests/agent/deep_reading_*` / `tests/frontend/deep-reading-workbench.test.js` — API、store、runtime、Gateway 与前端结构契约。
