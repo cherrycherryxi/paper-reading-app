@@ -28,6 +28,7 @@ from urllib.request import Request, urlopen
 
 from mcp_dispatcher import MCPToolDispatcher
 from tool_schema_provider import ToolSchema, ToolSchemaProvider
+from deep_reading import DeepReadingRunner, ResearchRunStore, harness_capability
 
 BASE_DIR = Path(__file__).resolve().parent
 # DB and uploads paths are env-configurable so production deploys can point
@@ -86,6 +87,53 @@ ADMIN_USERNAMES = os.getenv("ADMIN_USERNAMES", "Huangnanxi")
 # address. Leave unset for direct exposure — X-Forwarded-For is client-spoofable
 # and must only be trusted when a proxy is guaranteed to set it.
 TRUST_X_FORWARDED_FOR = os.getenv("TRUST_X_FORWARDED_FOR", "").strip().lower() in ("1", "true", "yes")
+PAPER_READING_GATEWAY_URL = os.getenv("PAPER_READING_GATEWAY_URL", "http://127.0.0.1:8789/mcp")
+DSH_CORDIS_PATH = BASE_DIR / "experiments" / "dsh-paper-reading" / "cordis.yml"
+_RESEARCH_GATEWAY_LOCK = threading.Lock()
+_RESEARCH_GATEWAY_STARTED = False
+
+
+def research_store() -> ResearchRunStore:
+    return ResearchRunStore(DB_PATH)
+
+
+def research_runner() -> DeepReadingRunner:
+    return DeepReadingRunner(
+        DB_PATH,
+        DSH_CORDIS_PATH,
+        PAPER_READING_GATEWAY_URL,
+        on_complete=persist_research_proposals,
+    )
+
+
+def ensure_research_gateway() -> None:
+    """Start the loopback-only read Gateway lazily for the first research run."""
+    global _RESEARCH_GATEWAY_STARTED
+    if _RESEARCH_GATEWAY_STARTED:
+        return
+    with _RESEARCH_GATEWAY_LOCK:
+        if _RESEARCH_GATEWAY_STARTED:
+            return
+        parsed = urlparse(PAPER_READING_GATEWAY_URL)
+        if parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+            # An operator supplied an external sidecar URL and owns its lifecycle.
+            _RESEARCH_GATEWAY_STARTED = True
+            return
+        import paper_reading_gateway
+        import uvicorn
+
+        paper_reading_gateway.DB_PATH = DB_PATH
+        paper_reading_gateway.store = ResearchRunStore(DB_PATH)
+        port = parsed.port or 8789
+        thread = threading.Thread(
+            target=uvicorn.run,
+            args=(paper_reading_gateway.mcp.streamable_http_app(),),
+            kwargs={"host": parsed.hostname or "127.0.0.1", "port": port, "log_level": "warning"},
+            daemon=True,
+            name="paper-reading-gateway",
+        )
+        thread.start()
+        _RESEARCH_GATEWAY_STARTED = True
 
 
 def is_admin_username(username: str) -> bool:
@@ -524,6 +572,40 @@ def init_db() -> None:
             created_at TEXT NOT NULL,
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS research_runs (
+            run_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            dsh_session_id TEXT NOT NULL DEFAULT '',
+            context_type TEXT NOT NULL,
+            book_id TEXT NOT NULL DEFAULT '',
+            quote_id TEXT NOT NULL DEFAULT '',
+            question TEXT NOT NULL,
+            status TEXT NOT NULL,
+            progress_stage TEXT NOT NULL DEFAULT '',
+            progress_message TEXT NOT NULL DEFAULT '',
+            result_json TEXT NOT NULL DEFAULT '{}',
+            error_message TEXT NOT NULL DEFAULT '',
+            gateway_token_hash TEXT NOT NULL,
+            cancel_requested INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_research_runs_user_created
+            ON research_runs (user_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS research_run_events (
+            event_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            metadata TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(run_id) REFERENCES research_runs(run_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_research_events_run_created
+            ON research_run_events (run_id, created_at);
 
         CREATE TABLE IF NOT EXISTS rate_limit_counters (
             user_id TEXT NOT NULL,
@@ -3425,6 +3507,115 @@ class ActionStateMachine:
         }
 
 
+def persist_research_proposals(run: dict, result: dict) -> dict:
+    """Turn dsh suggestions into the existing PENDING approval objects.
+
+    Validation and all eventual writes remain owned by the established action
+    state machine and MCP dispatcher. Invalid suggestions stay visible with a
+    rejection reason, but never become executable actions.
+    """
+    proposals = result.get("proposals") if isinstance(result.get("proposals"), list) else []
+    conn = get_conn()
+    try:
+        user_id = _research_run_user_id(conn, run["id"])
+        state = load_state(conn, user_id)
+        evidence_ids = {
+            str(item.get("id"))
+            for key in ("books", "quotes", "connections", "sessions", "memories")
+            for item in state.get(key, [])
+            if isinstance(item, dict) and item.get("id")
+        }
+        evidence_map = result.get("evidenceMap") if isinstance(result.get("evidenceMap"), list) else []
+        valid_evidence_map = []
+        invalid_evidence_count = 0
+        for item in evidence_map:
+            cited = item.get("evidenceIds", []) if isinstance(item, dict) else []
+            if cited and all(str(evidence_id) in evidence_ids for evidence_id in cited):
+                valid_evidence_map.append(item)
+            else:
+                invalid_evidence_count += 1
+        result["evidenceMap"] = valid_evidence_map
+        if invalid_evidence_count:
+            result["evidenceWarning"] = f"已移除 {invalid_evidence_count} 条无法定位到阅读记录的证据"
+        if not proposals:
+            return result
+
+        trace_id = new_id("trace")
+        trace_manager = TraceManager()
+        trace_manager.create_trace(
+            conn,
+            trace_id=trace_id,
+            user_id=user_id,
+            message=run.get("question", ""),
+            book_id=run.get("context", {}).get("bookId", ""),
+            request_type="deep_reading",
+        )
+        persisted = []
+        state_machine = ActionStateMachine()
+        for proposal in proposals[:3]:
+            cited = proposal.get("evidenceIds", []) if isinstance(proposal, dict) else []
+            if not cited or any(str(item) not in evidence_ids for item in cited):
+                persisted.append({
+                    **proposal,
+                    "status": "INVALID",
+                    "error": "proposal evidenceIds must reference existing reading records",
+                })
+                continue
+            candidate = {
+                "type": proposal.get("type") if isinstance(proposal, dict) else "",
+                "data": dict(proposal.get("data") or {}) if isinstance(proposal, dict) else {},
+            }
+            candidate = inject_context_into_actions([candidate], run.get("context", {}).get("bookId", ""))[0]
+            validation = ActionValidator().validate([candidate])
+            if not validation.valid_actions:
+                persisted.append({**proposal, "status": "INVALID", "error": "; ".join(validation.errors)})
+                continue
+            action = state_machine.create_action(conn, trace_id, user_id, validation.valid_actions[0])
+            persisted.append({**proposal, "action": action, "status": action["status"]})
+            trace_manager.log_event(
+                conn,
+                trace_id,
+                "RESEARCH_PROPOSAL_CREATED",
+                {"runId": run["id"], "actionId": action["id"], "evidenceIds": proposal.get("evidenceIds", [])},
+            )
+        result["proposals"] = persisted
+        return result
+    finally:
+        conn.close()
+
+
+def _research_run_user_id(conn: sqlite3.Connection, run_id: str) -> str:
+    row = conn.execute("SELECT user_id FROM research_runs WHERE run_id = ?", (run_id,)).fetchone()
+    if not row:
+        raise ValueError("research run not found")
+    return row["user_id"]
+
+
+def sync_research_action_result(conn: sqlite3.Connection, action: dict) -> None:
+    """Keep persisted research proposal cards aligned with action transitions."""
+    rows = conn.execute(
+        "SELECT run_id,result_json FROM research_runs WHERE user_id = ? AND result_json LIKE ?",
+        (action["userId"], f'%{action["id"]}%'),
+    ).fetchall()
+    for row in rows:
+        try:
+            result = json.loads(row["result_json"] or "{}")
+        except json.JSONDecodeError:
+            continue
+        changed = False
+        for proposal in result.get("proposals", []):
+            if isinstance(proposal, dict) and proposal.get("action", {}).get("id") == action["id"]:
+                proposal["action"] = action
+                proposal["status"] = action["status"]
+                changed = True
+        if changed:
+            conn.execute(
+                "UPDATE research_runs SET result_json=?,updated_at=? WHERE run_id=?",
+                (json.dumps(result, ensure_ascii=False), now_iso(), row["run_id"]),
+            )
+    conn.commit()
+
+
 class ActionExecutor:
     def execute_action(self, conn: sqlite3.Connection, user_id: str, action: dict) -> ExecutionResult:
         if action["status"] != ACTION_STATUS_APPROVED:
@@ -4173,6 +4364,59 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"user": user_dict, "state": state, "stateVersion": version})
             return
 
+        if parsed.path == "/api/research-runs":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            query = parse_qs(parsed.query)
+            context = {
+                "bookId": str(query.get("bookId", [""])[0]).strip(),
+                "quoteId": str(query.get("quoteId", [""])[0]).strip(),
+            }
+            conn.close()
+            self._active_conn = None
+            runs = research_store().list(user["id"], context, query.get("limit", [30])[0])
+            self._send_json({"runs": runs})
+            return
+
+        if parsed.path == "/api/research-capabilities":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            conn.close()
+            self._active_conn = None
+            self._send_json({"deepReading": harness_capability()})
+            return
+
+        research_match = re.fullmatch(r"/api/research-runs/([^/]+)(/stream)?", parsed.path)
+        if research_match:
+            conn, user = self._require_user()
+            if not conn:
+                return
+            run_id = unquote(research_match.group(1)).strip()
+            conn.close()
+            self._active_conn = None
+            run = research_store().get(run_id, user["id"], include_events=True)
+            if not run:
+                self._send_json({"error": "Research run not found"}, 404)
+                return
+            if research_match.group(2):
+                body = "".join(
+                    f"id: {event['id']}\nevent: {event['type']}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
+                    for event in run.get("events", [])
+                )
+                body += f"event: snapshot\ndata: {json.dumps(run, ensure_ascii=False)}\n\n"
+                encoded = body.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(encoded)))
+                self.end_headers()
+                self.wfile.write(encoded)
+                return
+            self._send_json({"run": run})
+            return
+
         if parsed.path == "/api/quotes/ocr-status":
             conn, user = self._require_user()
             if not conn:
@@ -4295,6 +4539,18 @@ class Handler(BaseHTTPRequestHandler):
                     (user["id"],),
                 ).fetchall()
             ]
+            research_runs = [
+                {
+                    **dict(r),
+                    "result_json": json.loads(r["result_json"] or "{}"),
+                }
+                for r in conn.execute(
+                    "SELECT run_id,context_type,book_id,quote_id,question,status,progress_stage,"
+                    " progress_message,result_json,error_message,created_at,updated_at,completed_at"
+                    " FROM research_runs WHERE user_id = ? ORDER BY created_at",
+                    (user["id"],),
+                ).fetchall()
+            ]
             uploads_dir = UPLOAD_DIR / user["id"]
             uploaded_files = []
             if uploads_dir.exists():
@@ -4319,6 +4575,7 @@ class Handler(BaseHTTPRequestHandler):
                 "modelLogs": logs,
                 "agentTraces": traces,
                 "agentActions": actions,
+                "researchRuns": research_runs,
                 "uploadedFiles": uploaded_files,
             }
             conn.close()
@@ -4708,6 +4965,49 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+
+        if parsed.path == "/api/research-runs":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            capability = harness_capability()
+            if not capability["available"]:
+                conn.close()
+                self._active_conn = None
+                self._send_json({"error": capability["reason"], "code": "research_runtime_unavailable"}, 503)
+                return
+            payload = self._read_json()
+            context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+            question = str(payload.get("question") or "").strip()
+            user_id = user["id"]
+            conn.close()
+            self._active_conn = None
+            try:
+                run, gateway_token = research_store().create(user_id, context, question)
+                ensure_research_gateway()
+                research_runner().start(run, gateway_token)
+                self._send_json({"run": run}, 202)
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+            except Exception as error:
+                self._send_json({"error": str(error)}, 500)
+            return
+
+        cancel_match = re.fullmatch(r"/api/research-runs/([^/]+)/cancel", parsed.path)
+        if cancel_match:
+            conn, user = self._require_user()
+            if not conn:
+                return
+            run_id = unquote(cancel_match.group(1)).strip()
+            user_id = user["id"]
+            conn.close()
+            self._active_conn = None
+            run = research_store().cancel(run_id, user_id)
+            if not run:
+                self._send_json({"error": "Research run not found"}, 404)
+                return
+            self._send_json({"run": run})
+            return
 
         if parsed.path == "/api/register":
             payload = self._read_json()
@@ -5976,6 +6276,7 @@ class Handler(BaseHTTPRequestHandler):
                 execution = dispatcher.dispatch(user["id"], action)
                 if execution.success:
                     final_action = state_machine.transition(conn, action_id, user["id"], ACTION_STATUS_EXECUTED)
+                    sync_research_action_result(conn, final_action)
                     trace_manager.log_event(
                         conn,
                         action["traceId"],
@@ -6004,6 +6305,7 @@ class Handler(BaseHTTPRequestHandler):
                     ACTION_STATUS_FAILED,
                     execution.error_message,
                 )
+                sync_research_action_result(conn, final_action)
                 trace_manager.log_event(
                     conn,
                     action["traceId"],
@@ -6041,6 +6343,7 @@ class Handler(BaseHTTPRequestHandler):
             metrics_collector = MetricsCollector()
             try:
                 action = state_machine.transition(conn, action_id, user["id"], ACTION_STATUS_REJECTED)
+                sync_research_action_result(conn, action)
                 trace_manager.log_event(conn, action["traceId"], "ACTION_REJECTED", {"actionId": action_id})
                 metrics_collector.record_action_metric(
                     conn,
@@ -6153,6 +6456,12 @@ class Handler(BaseHTTPRequestHandler):
                 conn.execute("DELETE FROM agent_actions WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM agent_traces WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM agent_metrics WHERE user_id = ?", (user_id,))
+                conn.execute(
+                    "DELETE FROM research_run_events WHERE run_id IN ("
+                    " SELECT run_id FROM research_runs WHERE user_id = ?)",
+                    (user_id,),
+                )
+                conn.execute("DELETE FROM research_runs WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM model_logs WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM rate_limit_counters WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM user_state WHERE user_id = ?", (user_id,))

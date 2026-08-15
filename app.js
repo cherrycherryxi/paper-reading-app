@@ -6188,6 +6188,15 @@ function bindEvents() {
     goToQuoteChat(quoteId);
   });
 
+  document.getElementById("quoteDetailResearchBtn")?.addEventListener("click", () => {
+    const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
+    const quote = state.quotes.find((item) => item.id === quoteId);
+    document.getElementById("quoteDetailDialog")?.close();
+    if (!quote || !requireAuth("使用深度共读")) return;
+    activateTab("chat");
+    window.paperReadingApp?.switchChatToDeepResearch?.({ bookId: quote.bookId, quoteId: quote.id });
+  });
+
   document.getElementById("quoteDetailShareBtn")?.addEventListener("click", () => {
     const quoteId = document.getElementById("quoteDetailDialog")?.dataset?.openQuoteId || "";
     document.getElementById("quoteDetailDialog").close();
@@ -6227,6 +6236,13 @@ function bindEvents() {
     if (!requireAuth("使用探讨功能")) return;
     activateTab("chat");
     window.paperReadingApp?.switchChatToBook?.(id);
+  });
+  document.getElementById("bookDetailResearchBtn")?.addEventListener("click", () => {
+    const id = _bookDetailCurrentId;
+    els.bookDetailDialog.close();
+    if (!requireAuth("使用深度共读")) return;
+    activateTab("chat");
+    window.paperReadingApp?.switchChatToDeepResearch?.({ bookId: id });
   });
   document.getElementById("bookDetailEditBtn")?.addEventListener("click", () => {
     const id = _bookDetailCurrentId;

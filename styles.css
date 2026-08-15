@@ -4612,3 +4612,168 @@ body.is-admin .admin-only { display: revert; }
   color: var(--color-ink-muted);
   text-align: right;
 }
+/* Deep reading stays inside 探讨 as a second workspace, not a seventh tab. */
+.chat-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 10px 0 12px;
+  border-radius: 12px;
+  background: var(--surface-muted, #f2efe8);
+}
+
+.chat-mode-switch button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary, #716b61);
+  font: inherit;
+  font-weight: 600;
+}
+
+.chat-mode-switch button.is-active {
+  background: var(--surface, #fff);
+  color: var(--text-primary, #24211d);
+  box-shadow: 0 1px 6px rgb(43 37 27 / 9%);
+}
+
+.research-workspace {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 16px 110px;
+}
+
+.research-context-card,
+.research-form,
+.research-status,
+.research-result > article,
+.research-history {
+  min-width: 0;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--border, #e5dfd4);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+}
+
+.research-context-card strong,
+.research-context-card span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.research-context-card span,
+.research-status,
+.research-evidence-reason,
+.research-history time {
+  color: var(--text-secondary, #716b61);
+  font-size: 13px;
+}
+
+.research-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 650;
+}
+
+.research-form textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  font: inherit;
+  font-size: 16px;
+}
+
+.research-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.research-form-actions .button {
+  min-height: 44px;
+}
+
+.research-status:empty,
+.research-result:empty {
+  display: none;
+}
+
+.research-status[data-state="RUNNING"],
+.research-status[data-state="CREATED"] {
+  border-color: #d3b36b;
+  background: #fffaf0;
+}
+
+.research-status[data-state="FAILED"] {
+  color: #8b3028;
+  border-color: #e5b6af;
+  background: #fff6f4;
+}
+
+.research-result h3,
+.research-history h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.research-result p {
+  margin: 0;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.research-evidence-list,
+.research-question-list,
+.research-proposal-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.research-evidence-item,
+.research-proposal-item,
+.research-history-item {
+  min-width: 0;
+  padding: 11px;
+  border-radius: 10px;
+  background: var(--surface-muted, #f7f4ee);
+  overflow-wrap: anywhere;
+}
+
+.research-relation {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e9e2d2;
+  font-size: 12px;
+}
+
+.research-history-item button {
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.research-proposal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.research-proposal-actions .button {
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .research-workspace * { scroll-behavior: auto !important; }
+}

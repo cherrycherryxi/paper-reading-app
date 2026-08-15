@@ -1095,3 +1095,241 @@
   restoreHistory();
   bindEvents();
 })();
+
+(function initDeepReadingWorkspace() {
+  const dailyBtn = document.querySelector("#chatDailyModeBtn");
+  const researchBtn = document.querySelector("#chatResearchModeBtn");
+  const dailyParts = [...document.querySelectorAll(".chat-daily-only")];
+  const researchWorkspace = document.querySelector("#chatResearchWorkspace");
+  const clearBtn = document.querySelector("#chatClearBtn");
+  const contextCard = document.querySelector("#researchContextCard");
+  const form = document.querySelector("#researchForm");
+  const questionInput = document.querySelector("#researchQuestion");
+  const startBtn = document.querySelector("#researchStartBtn");
+  const cancelBtn = document.querySelector("#researchCancelBtn");
+  const statusBox = document.querySelector("#researchStatus");
+  const resultBox = document.querySelector("#researchResult");
+  const historyList = document.querySelector("#researchHistoryList");
+  if (!dailyBtn || !researchBtn || !researchWorkspace) return;
+
+  let mode = "daily";
+  let activeRun = null;
+  let pollTimer = null;
+  let capabilityLoaded = false;
+  let runtimeAvailable = true;
+  const dailyHiddenState = new WeakMap();
+
+  const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const context = () => window.paperReadingApp?.getActiveChatContext?.() || { type: "global" };
+  const state = () => window.paperReadingApp?.getState?.() || {};
+  const findBook = (id) => (state().books || []).find((item) => item.id === id);
+  const findQuote = (id) => (state().quotes || []).find((item) => item.id === id);
+
+  function renderContext() {
+    const current = context();
+    const book = findBook(current.bookId);
+    const quote = findQuote(current.quoteId);
+    const title = quote ? "围绕这条摘抄" : book ? "围绕这本书" : "跨书架研究";
+    const detail = quote
+      ? String(quote.content || quote.ocrText || "当前摘抄")
+      : book ? `《${String(book.title || "未命名书籍").replace(/^《+|》+$/g, "")}》${book.author ? ` · ${book.author}` : ""}`
+        : "会从你的书籍、摘抄、关联和已确认记忆中取证。";
+    contextCard.innerHTML = `<strong>${esc(title)}</strong><span>${esc(detail)}</span>`;
+  }
+
+  function setMode(nextMode, focusInput = false) {
+    const normalizedMode = nextMode === "research" ? "research" : "daily";
+    if (normalizedMode === mode) {
+      if (mode === "research") renderContext();
+      return;
+    }
+    mode = normalizedMode;
+    const researching = mode === "research";
+    dailyBtn.classList.toggle("is-active", !researching);
+    researchBtn.classList.toggle("is-active", researching);
+    dailyBtn.setAttribute("aria-selected", String(!researching));
+    researchBtn.setAttribute("aria-selected", String(researching));
+    dailyParts.forEach((item) => {
+      if (researching) {
+        dailyHiddenState.set(item, item.hidden);
+        item.hidden = true;
+      } else {
+        item.hidden = dailyHiddenState.get(item) ?? false;
+      }
+    });
+    researchWorkspace.hidden = !researching;
+    if (clearBtn) clearBtn.hidden = researching;
+    if (researching) {
+      renderContext();
+      loadHistory();
+      loadCapability();
+      if (focusInput) questionInput?.focus({ preventScroll: true });
+    }
+  }
+
+  async function loadCapability() {
+    if (capabilityLoaded || !window.paperReadingApp?.getAuthToken?.()) return;
+    capabilityLoaded = true;
+    try {
+      const payload = await window.paperReadingApp.apiFetch("/api/research-capabilities", {}, true);
+      const capability = payload.deepReading || {};
+      runtimeAvailable = Boolean(capability.available);
+      if (!runtimeAvailable) {
+        startBtn.disabled = true;
+        statusBox.dataset.state = "FAILED";
+        statusBox.textContent = `当前环境暂不能启动新任务 · ${capability.reason || "dsh runtime 未就绪"}`;
+      }
+    } catch (_) {
+      capabilityLoaded = false;
+    }
+  }
+
+  function renderStatus(run) {
+    if (!statusBox) return;
+    statusBox.dataset.state = run?.status || "";
+    if (!run) {
+      statusBox.textContent = "";
+      return;
+    }
+    const labels = { CREATED: "已创建", RUNNING: "研究中", COMPLETED: "已完成", FAILED: "失败", CANCELLED: "已取消" };
+    const message = run.error || run.progress?.message || labels[run.status] || run.status;
+    statusBox.textContent = `${labels[run.status] || run.status} · ${message}`;
+    const running = run.status === "CREATED" || run.status === "RUNNING";
+    if (startBtn) startBtn.disabled = running;
+    if (cancelBtn) cancelBtn.hidden = !running;
+  }
+
+  function renderResult(run) {
+    if (!resultBox) return;
+    const result = run?.result || {};
+    if (run?.status !== "COMPLETED") {
+      resultBox.innerHTML = "";
+      return;
+    }
+    const relationLabel = { support: "支持", challenge: "反驳", extend: "延伸" };
+    const proposalLabel = { summary: "保存总结", question: "保存问题", tag: "添加标签", link_thought: "建立关联", add_note: "保存笔记" };
+    const evidence = Array.isArray(result.evidenceMap) ? result.evidenceMap : [];
+    const questions = Array.isArray(result.openQuestions) ? result.openQuestions : [];
+    const proposals = Array.isArray(result.proposals) ? result.proposals : [];
+    resultBox.innerHTML = `
+      <article><h3>研究结论</h3><p>${esc(result.summary || "暂无结论")}</p></article>
+      <article><h3>证据地图</h3><ul class="research-evidence-list">${evidence.map((item) => `<li class="research-evidence-item"><span class="research-relation">${esc(relationLabel[item.relation] || item.relation || "证据")}</span><strong>${esc(item.claim || "")}</strong><div class="research-evidence-reason">${esc(item.reason || "")} · ${esc((item.evidenceIds || []).join("、"))}</div></li>`).join("") || "<li>暂无可核验的证据。</li>"}</ul>${result.evidenceWarning ? `<p class="research-evidence-reason">${esc(result.evidenceWarning)}</p>` : ""}</article>
+      <article><h3>值得继续追问</h3><ul class="research-question-list">${questions.map((item) => `<li>${esc(item)}</li>`).join("") || "<li>暂无。</li>"}</ul></article>
+      ${proposals.length ? `<article><h3>待确认的沉淀建议</h3><ul class="research-proposal-list">${proposals.map((item) => `<li class="research-proposal-item"><strong>${esc(proposalLabel[item.type] || "阅读建议")}</strong><p>${esc(item.reason || "")}</p><span class="research-evidence-reason">依据 ${esc((item.evidenceIds || []).join("、") || "未标注")}</span>${item.action?.id && ["PENDING_APPROVAL", "FAILED"].includes(item.action.status) ? `<div class="research-proposal-actions" data-research-action="${esc(item.action.id)}"><button class="button button-primary button-small" type="button" data-research-approve>${item.action.status === "FAILED" ? "重试保存" : "确认保存"}</button><button class="button button-ghost button-small" type="button" data-research-reject>忽略</button></div>` : `<div class="research-evidence-reason">${esc(item.error || ({ EXECUTED: "已保存到阅读记录", REJECTED: "已忽略" }[item.action?.status] || "此建议不能执行"))}</div>`}</li>`).join("")}</ul></article>` : ""}`;
+  }
+
+  async function loadRun(runId) {
+    const payload = await window.paperReadingApp.apiFetch(`/api/research-runs/${encodeURIComponent(runId)}`, {}, true);
+    activeRun = payload.run;
+    renderStatus(activeRun);
+    renderResult(activeRun);
+    if (activeRun.status === "CREATED" || activeRun.status === "RUNNING") {
+      clearTimeout(pollTimer);
+      pollTimer = setTimeout(() => loadRun(runId).catch(handleError), 1500);
+    } else {
+      clearTimeout(pollTimer);
+      loadHistory();
+    }
+  }
+
+  function handleError(error) {
+    if (statusBox) {
+      statusBox.dataset.state = "FAILED";
+      statusBox.textContent = error?.message || "深度共读暂时不可用";
+    }
+    if (startBtn) startBtn.disabled = false;
+    if (cancelBtn) cancelBtn.hidden = true;
+  }
+
+  async function loadHistory() {
+    if (!historyList || !window.paperReadingApp?.getAuthToken?.()) return;
+    const current = context();
+    const query = new URLSearchParams();
+    if (current.bookId) query.set("bookId", current.bookId);
+    if (current.quoteId) query.set("quoteId", current.quoteId);
+    query.set("limit", "10");
+    try {
+      const payload = await window.paperReadingApp.apiFetch(`/api/research-runs?${query}`, {}, true);
+      const runs = payload.runs || [];
+      historyList.innerHTML = runs.length ? runs.map((run) => `<div class="research-history-item"><button type="button" data-research-run-id="${esc(run.id)}"><strong>${esc(run.question)}</strong><span>${esc(run.progress?.message || run.status)}</span><time>${esc(new Date(run.createdAt).toLocaleString("zh-CN"))}</time></button></div>`).join("") : "<p>还没有深度共读记录。</p>";
+    } catch (_) {
+      historyList.innerHTML = "<p>暂时无法读取历史任务。</p>";
+    }
+  }
+
+  dailyBtn.addEventListener("click", () => setMode("daily"));
+  researchBtn.addEventListener("click", () => setMode("research"));
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!window.paperReadingApp?.requireAuth?.("使用深度共读")) return;
+    const question = String(questionInput?.value || "").trim();
+    if (!question) {
+      questionInput?.focus();
+      return;
+    }
+    if (!runtimeAvailable) return;
+    try {
+      startBtn.disabled = true;
+      const payload = await window.paperReadingApp.apiFetch("/api/research-runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ context: context(), question }),
+      }, true);
+      activeRun = payload.run;
+      renderStatus(activeRun);
+      renderResult(activeRun);
+      loadRun(activeRun.id);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+  cancelBtn?.addEventListener("click", async () => {
+    if (!activeRun?.id) return;
+    try {
+      const payload = await window.paperReadingApp.apiFetch(`/api/research-runs/${encodeURIComponent(activeRun.id)}/cancel`, { method: "POST" }, true);
+      activeRun = payload.run;
+      renderStatus(activeRun);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+  historyList?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-research-run-id]");
+    if (button) loadRun(button.dataset.researchRunId).catch(handleError);
+  });
+  resultBox?.addEventListener("click", async (event) => {
+    const actions = event.target.closest("[data-research-action]");
+    if (!actions) return;
+    const actionId = actions.dataset.researchAction;
+    const approving = Boolean(event.target.closest("[data-research-approve]"));
+    const rejecting = Boolean(event.target.closest("[data-research-reject]"));
+    if (!approving && !rejecting) return;
+    actions.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+    try {
+      const payload = await window.paperReadingApp.apiFetch(`/api/agent-actions/${encodeURIComponent(actionId)}/${approving ? "approve" : "reject"}`, { method: "POST" }, true);
+      if (payload?.state) Object.assign(window.paperReadingApp.getState(), payload.state);
+      actions.textContent = approving ? "已保存到阅读记录" : "已忽略";
+      if (approving) window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
+    } catch (error) {
+      actions.querySelectorAll("button").forEach((button) => { button.disabled = false; });
+      handleError(error);
+    }
+  });
+  window.addEventListener("paper-reading-data-changed", () => { if (mode === "research") renderContext(); });
+  window.addEventListener("paper-reading-user-changed", () => {
+    activeRun = null;
+    capabilityLoaded = false;
+    runtimeAvailable = true;
+    if (startBtn) startBtn.disabled = false;
+    renderStatus(null);
+    renderResult(null);
+    if (mode === "research") { loadHistory(); loadCapability(); }
+  });
+
+  window.paperReadingApp.switchChatToDeepResearch = ({ bookId = "", quoteId = "", question = "" } = {}) => {
+    if (quoteId) window.paperReadingApp.switchChatToQuote?.(bookId, quoteId);
+    else if (bookId) window.paperReadingApp.switchChatToBook?.(bookId);
+    if (questionInput && question) questionInput.value = question;
+    setMode("research", true);
+  };
+})();
