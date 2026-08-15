@@ -4926,3 +4926,8 @@
 - 新增 E255：表单类型显示中文，列表却直接展示 `preference/viewpoint/goal/todo` 内部枚举。
 - 新增 E256：长期记忆删除不走现有确认组件且无撤销；与 E243 的同步失败原子性是不同边界。
 - 三项均为 S，但没有直接 owner signal，因此只进入 Explore，不占用 OPT 编号。
+
+## Session: 2026-08-16 nightly triage
+
+- Reconciled OPT-158 as done from PR #123 / `be2d512`, current `renderQuotes()` type-specific art covers, retained detail-view source image, and focused frontend regression coverage.
+- Seven-day `auto/` implementation PR count was externally supplied as 5/8. No task was assigned: every remaining unfinished item lacks current Theme and direct signal support, so all stay P3 parked or blocked despite available budget.

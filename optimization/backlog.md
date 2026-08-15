@@ -1387,14 +1387,14 @@ Format per item:
 - how: 已由 PR #122 与后续 `35f9e99` 落地并有前端回归守卫，不再指派。
 
 ### OPT-158 — 摘抄卡片将拍摄原图作为固定封面，回顾页首屏视觉与 owner 偏好冲突 [2026-08-14]
-- status: triaged
+- status: done (PR #123, merged 2026-08-15 — `be2d512`；回顾列表统一使用按摘抄/笔记/问题区分的轻量封面，拍摄原图保留在详情页，相关前端回归已更新)
 - area: frontend / visual design
 - priority: P1
 - size: M
 - northstar: 高——2026-08-13 owner 直接反馈摘抄卡封面的拍摄照片“不好看”，摘抄页正是高频回顾与浏览入口；恢复克制、可辨识的卡片视觉直接改善回顾意愿。
-- description: `renderQuotes()` 对任一带 `imageUrl` 的摘抄无条件渲染 `<img>`（`app.js:2091-2095`）；`entry-card-cover` 固定为 3:1，图片以 `object-fit: cover` 铺满（`styles.css:1271-1273,1289-1294`）。现有回退只在图片加载失败时隐藏图片，正常拍摄图没有纯色或轻量视觉替代选项，因此 owner 在 `optimization/signals.md:60-66` 报告的封面观感会稳定出现。
+- description: 已完成。`renderQuotes()` 当前使用 `quoteCoverMarkMap` 与 `.quote-cover-art--<kind>` 渲染稳定的轻量封面，不再把 `imageUrl` 原图放入摘抄回顾列表；`openQuoteDetail()` 仍按 `imageUrl` 展示原始图片，保留 OCR 溯源能力。
 - why: 这不是猜测性的美化需求，而是明确 owner signal 与当前实现的一一对应。拍摄图更适合 OCR 溯源，却不必占据摘抄墙的第一视觉层；卡片应优先服务文字回顾与浏览节奏。
-- how: 默认改为与摘抄类型/书籍信息协调的纯色或轻量图形封面，保留图片作为详情中的原始凭据；若保留卡面图片，至少提供明确的全局或单卡显示策略。先以 iPhone 12 在“有图/无图/失效图”三类卡片真机验收，再补渲染与回退测试。Touch: `app.js:2081-2106,3099-3145`、`styles.css:1260-1323`、相关 frontend tests。
+- how: 已由 PR #123 落地；`tests/frontend/quote-card-image-thumb.test.js` 覆盖有图/无图统一封面及类型差异，`tests/frontend/quote-image-onerror.test.js` 锁定列表不再渲染原图、详情仍保留图片行为，不再指派。
 
 ### OPT-148 — 面向用户的显式阅读长期记忆：可确认、查看、编辑、删除并按需召回 [2026-08-06]
 - status: done (PR #110, merged 2026-08-08 — 已确认记忆可查看/编辑/删除，memories 经 sanitize 持久化并按上下文注入 prompt)
