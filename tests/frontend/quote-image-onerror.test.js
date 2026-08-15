@@ -1,5 +1,6 @@
 // OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。
-// - 卡面 <img>（列表卡 / 搜索卡）带 onerror，失败时加 is-hidden 收起破图。
+// - 搜索卡 <img> 带 onerror，失败时加 is-hidden 收起破图。
+// - OPT-158 起回顾列表不再渲染原图，因此列表没有破图状态。
 // - 详情弹窗 img.onerror 失败时把整块图片区收起，弹窗退回纯文字。
 
 const test = require("node:test");
@@ -106,17 +107,14 @@ const IMG_QUOTE = {
 };
 const baseState = (quotes) => ({ books: [BASE_BOOK], sessions: [], quotes, chatHistories: {}, connections: [] });
 
-test("OPT-071: 列表卡 <img> 带 onerror 回退", () => {
+test("OPT-158: 回顾列表不渲染原图，因此没有破图状态", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
   h.setState(baseState([IMG_QUOTE]));
   h.renderQuotes();
   const html = h.getQuotesListMarkup();
-  assert.ok(html.includes("<img src="), "有图卡片应渲染 <img>");
-  assert.ok(
-    html.includes('onerror="this.classList.add(\'is-hidden\')"'),
-    "列表卡 <img> 应带 onerror，失败时加 is-hidden 收起破图"
-  );
+  assert.ok(!html.includes("<img src="), "有原图的摘抄也不应在回顾列表渲染 <img>");
+  assert.ok(html.includes("quote-cover-art"), "列表应改用稳定的轻量封面");
 });
 
 test("OPT-071: 搜索卡 <img> 带 onerror 回退", () => {

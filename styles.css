@@ -1286,6 +1286,44 @@ textarea {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+.quote-cover-art {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 78% 22%, var(--color-accent) 0 2px, transparent 3px),
+    linear-gradient(135deg, var(--color-surface-alt), var(--color-accent-soft));
+}
+
+.quote-cover-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.28;
+  background: repeating-linear-gradient(115deg, transparent 0 18px, var(--color-border) 19px 20px);
+}
+
+.quote-cover-mark {
+  position: absolute;
+  z-index: 1;
+  right: 14px;
+  top: 50%;
+  translate: 0 -44%;
+  color: var(--color-accent);
+  font-family: var(--font-serif);
+  font-size: clamp(38px, 8vw, 58px);
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.72;
+}
+
+.quote-cover-art--note .quote-cover-mark {
+  font-size: clamp(28px, 6vw, 42px);
+}
+
+.quote-cover-art--question .quote-cover-mark {
+  font-family: var(--font-sans);
+}
+
 .book-card-cover img,
 .entry-card-cover img {
   width: 100%;
