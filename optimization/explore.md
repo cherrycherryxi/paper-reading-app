@@ -4615,3 +4615,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 ---
 
 > 本次 run 新发现 3 条：E254（主页记忆入口缺未登录守卫，S，错误处理）、E255（内部 kind 英文码泄漏到中文列表，S，UX）、E256（长期记忆删除无确认或撤销，S，数据控制）。三项均核对当前代码并排除 backlog、最近合并历史和旧 Explore 重复；因缺少直接 owner signal，本轮不新增 OPT。
+
+## 2026-08-16
+
+> 扫描焦点：最新合入的“深度共读”工作台之任务生命周期与前端状态边界。基线为 `HEAD` / `origin/feature/agent` 的 `bccbbb2`；任务前提说明 GitHub open PR 数据不可用，因此不臆造 PR 状态。已核对 backlog、triage、roadmap、signals、旧 Explore 与最近提交：深度共读由 `55fb0c7` 首次合入，现有 OPT-001–158 和 E001–256 均未覆盖下列边界。
+
+### E257 — 深度共读启动异常会遗留永久 `CREATED` 任务，历史列表持续显示“任务已创建” (S)
+
+**What:** POST 端点先调用 `research_store().create()` 持久化任务，再启动 Gateway/runner；后两步任一抛错时只回 500，没有把已经创建的 run 标记失败或删除。历史查询没有排除这种任务，它会永久保留在列表中。
+
+**Evidence:** `app_server.py:4985-4993` 明确按 create → `ensure_research_gateway()` → `research_runner().start()` 执行，通用 `except Exception` 只发送错误响应；`deep_reading.py:179-191` 在 create 内写入 status=`CREATED` 并 commit；`deep_reading.py:212-229` 的 list 直接返回这些记录。当前测试 `tests/agent/deep_reading_api_test.py:66-85` 覆盖成功创建、读取、列表与取消，未覆盖 create 后启动异常的状态收口。
+
+**Why:** 这不是纯日志卫生。用户点击失败后会在“最近的深度共读”持续看到一个永不推进、也无法从 UI 删除的任务，无法区分仍在排队还是已经失败，削弱研究历史的可信度。
+
+**Size:** S
+
+**Files:** `app_server.py:4985-4993`; `deep_reading.py:149-193,298-313`; `tests/agent/deep_reading_api_test.py`
+
+**Northstar:** 中——深度共读是“回顾有价值”的新入口；任务历史必须准确反映结果。启动失败时立即 `fail(run_id, error)`，可把一次基础设施错误收口为可解释、可重试的失败。→ **promoted to OPT-159**
+
+### E258 — 取消只改数据库状态，运行中的 Harness 仍继续；结束时还能为已取消任务创建待确认 action (M)
+
+**What:** cancel API 仅把 run 标成 `CANCELLED`，没有中断 runner。后台线程在长耗时 `harness.run()` 返回后，先执行 `on_complete` 持久化 proposals/action，最后才调用会检查取消状态的 `store.complete()`；因此已取消任务仍可能消耗完整模型调用，并留下不可见的待确认 action。
+
+**Evidence:** `deep_reading.py:233-250` 的 `cancel()` 只更新 SQLite；`deep_reading.py:362-426` 启动 daemon thread，`harness.run()` 前后没有 cancel 检查，并在 line 424-425 先调用 `on_complete`；`deep_reading.py:281-296` 只有 `complete()` 在 status=`CANCELLED` 时 return。`app_server.py:3543-3581` 的 `persist_research_proposals()` 会创建 trace 与 `PENDING_APPROVAL` action，不检查 run 是否已取消。
+
+**Why:** “取消任务”当前只取消界面结果，不取消成本和副作用。长任务取消后继续占用 DeepSeek tokens 已违背按钮语义；更严重的是 action 已写入通用状态机，却不会出现在取消任务的结果卡中，形成隐藏待处理数据。
+
+**Size:** M
+
+**Files:** `deep_reading.py:233-250,362-426`; `app_server.py:3510-3581`; `tests/agent/deep_reading_runtime_test.py`; `tests/agent/deep_reading_store_test.py`
+
+**Northstar:** 强——直接保护深度回顾入口的用户控制权、成本与数据副作用边界。最低限度应在 `harness.run()` 后、`on_complete` 前再次检查取消；完整方案再向 Harness 传递可中断句柄。→ **promoted to OPT-160**
+
+### E259 — capability 失败与通用错误处理互相覆盖，按钮可显示可点击但提交静默无响应 (S)
+
+**What:** capability 判定不可用时会设置 `runtimeAvailable=false` 并禁用开始按钮；但任一后续请求错误进入通用 `handleError()` 后都会无条件重新启用按钮。此后 submit 因 `!runtimeAvailable` 直接 return，用户点击看不到任何新反馈。
+
+**Evidence:** `chat.js:1170-1181` 保存不可用状态并 disabled；`chat.js:1235-1242` 的通用错误处理无条件 `startBtn.disabled=false`；`chat.js:1262-1271` 对不可用 runtime 静默 return。历史读取、轮询、取消和 action 审批均可能调用同一个 `handleError()`（`chat.js:1282-1315`）。
+
+**Why:** 环境未部署是该功能的明确产品状态，不应被一次无关网络错误改成“看似能点、实际无动作”。这会把可解释的不可用降级为无反馈死按钮。
+
+**Size:** S
+
+**Files:** `chat.js:1170-1185,1235-1242,1262-1271`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 中——让新回顾入口在不可用时保持诚实、可理解；但属于 E257/E258 之后的前端收口，本轮不提拔。
+
+### E260 — 切换账号不清理旧任务轮询，旧 timer 会以新账号查询并覆盖新会话状态 (S)
+
+**What:** 用户变化事件会清空 `activeRun`，但没有 `clearTimeout(pollTimer)`。旧账号 RUNNING 任务已排定的轮询随后用新 token 请求旧 run，收到 404 后把新账号工作台写成失败状态，并重新启用开始按钮。
+
+**Evidence:** `chat.js:1221-1232` 为运行中任务每 1.5 秒设置 `pollTimer`；`chat.js:1319-1327` 的 `paper-reading-user-changed` 处理未清 timer；失败会进入 `handleError()` 改写 status/button（`chat.js:1235-1242`）。服务端按当前 user_id 查询 run，旧任务对新账号必然不可见（`app_server.py:4391-4402`）。
+
+**Why:** 多账号切换不是高频场景，但状态污染是确定性的：新账号会看到与自己无关的“Research run not found”，并可能与 capability 加载形成按钮竞态。
+
+**Size:** S
+
+**Files:** `chat.js:1221-1242,1319-1327`; `app_server.py:4391-4402`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 弱-中——改善账号切换后的错误隔离；没有真实 signal，保留探索池。
+
+> 本次 run 新发现 4 条：E257（启动异常遗留永久 CREATED，S，任务历史 correctness）、E258（取消不停止执行且可生成隐藏 action，M，用户控制/成本）、E259（capability 与错误处理冲突，S，错误反馈）、E260（账号切换遗留旧轮询，S，状态隔离）。提拔 OPT-159 与 OPT-160；其余留探索池。所有断言均基于当前文件逐行核实，并已排除 backlog、旧 Explore 与最近合并代码中的重复方向。

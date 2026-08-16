@@ -2,6 +2,16 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-15T07:22:06.700Z
 > Files: 348 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z
+> Files: 316 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
+> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
+
+## Current planning state (2026-08-16)
+
+- `optimization/backlog.md` — OPT-158 reconciled done from PR #123 / `be2d512`; all remaining unfinished items are P3 parked or blocked without current North Star support.
+- `optimization/triage.md` — Last triaged 2026-08-16; externally supplied seven-day auto PR count is 5/8, but no nightly-compatible S task is assigned.
+- `optimization/explore.md` — 2026-08-15 Explore added E254-E256 around the newly surfaced homepage memory manager; no promotion because all three lack direct owner signal.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -590,3 +600,11 @@
 - `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+
+## 深度共读（DeepSeek Harness）
+
+- `deep_reading.py` — 深度共读任务存储、后台 runner、取消/完成状态与研究 prompt。
+- `paper_reading_gateway.py` — 面向 Harness 的只读阅读数据 Gateway。
+- `app_server.py` — `/api/research-*` 接口、研究结果 proposal 到既有 Agent action 状态机的桥接。
+- `chat.js` / `index.html` / `styles.css` — 「探讨」内的深度共读工作台、任务历史与结果确认 UI。
+- `tests/agent/deep_reading_*` / `tests/frontend/deep-reading-workbench.test.js` — API、store、runtime、Gateway 与前端结构契约。
