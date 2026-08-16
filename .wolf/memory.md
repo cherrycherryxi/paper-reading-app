@@ -4926,3 +4926,156 @@
 - 新增 E255：表单类型显示中文，列表却直接展示 `preference/viewpoint/goal/todo` 内部枚举。
 - 新增 E256：长期记忆删除不走现有确认组件且无撤销；与 E243 的同步失败原子性是不同边界。
 - 三项均为 S，但没有直接 owner signal，因此只进入 Explore，不占用 OPT 编号。
+
+## Session: 2026-08-15 10:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:01 | Created ../../.claude/paper-loop/review-2026-08-15.md | — | ~9 |
+| 10:01 | Session end: 1 writes across 1 files (review-2026-08-15.md) | 0 reads | ~9 tok |
+
+## Session: 2026-08-15 10:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:03 | Created ../../.claude/paper-loop/cards-2026-08-15.md | — | ~40 |
+| 10:03 | Session end: 1 writes across 1 files (cards-2026-08-15.md) | 0 reads | ~42 tok |
+
+## Session: 2026-08-15 12:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:09 | Created app.js | — | ~74824 |
+| 12:09 | Created styles.css | — | ~27569 |
+| 12:09 | Created tests/frontend/quote-card-image-thumb.test.js | — | ~1736 |
+| 12:10 | Created tests/frontend/quote-card-image-thumb.test.js | — | ~1633 |
+| 12:10 | designqc: captured 2 screenshots (82KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 12:11 | designqc: captured 2 screenshots (79KB, ~5000 tok) | /app#quote | ready for eval | ~0 |
+| 12:14 | Created tests/frontend/quote-image-onerror.test.js | — | ~1516 |
+| 12:15 | Created styles.css | — | ~27562 |
+| 12:19 | Created ../../.claude/paper-loop/today-pick.md | — | ~55 |
+| 12:19 | Session end: 7 writes across 5 files (app.js, styles.css, quote-card-image-thumb.test.js, quote-image-onerror.test.js, today-pick.md) | 0 reads | ~134899 tok |
+| 13:01 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~3550 |
+| 13:01 | Session end: 8 writes across 6 files (app.js, styles.css, quote-card-image-thumb.test.js, quote-image-onerror.test.js, today-pick.md) | 0 reads | ~138702 tok |
+
+## Session: 2026-08-15 13:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:20 | Created app_server.py | — | ~77988 |
+| 13:21 | Created deep_reading.py | — | ~4084 |
+| 13:22 | Created paper_reading_gateway.py | — | ~1795 |
+| 13:22 | Created experiments/dsh-paper-reading/cordis.yml | — | ~446 |
+| 13:22 | Created experiments/dsh-paper-reading/README.md | — | ~89 |
+| 13:22 | Created app_server.py | — | ~78116 |
+| 13:23 | Created app_server.py | — | ~78669 |
+| 13:23 | Created app_server.py | — | ~79092 |
+| 13:23 | Created index.html | — | ~13731 |
+| 13:24 | Created styles.css | — | ~28376 |
+| 13:25 | Created chat.js | — | ~14181 |
+| 13:25 | Created index.html | — | ~13785 |
+| 13:25 | Created app.js | — | ~75050 |
+| 13:26 | Created deep_reading.py | — | ~3939 |
+| 13:27 | Created requirements.txt | — | ~222 |
+| 13:28 | Created requirements.txt | — | ~202 |
+| 13:28 | Created requirements-dsh.txt | — | ~31 |
+| 13:28 | Created experiments/dsh-paper-reading/README.md | — | ~154 |
+| 13:28 | Created tests/agent/deep_reading_store_test.py | — | ~1002 |
+| 13:29 | Created tests/agent/deep_reading_gateway_contract_test.py | — | ~302 |
+| 13:29 | Created tests/frontend/deep-reading-workbench.test.js | — | ~353 |
+| 13:29 | Created deep_reading.py | — | ~4014 |
+| 13:29 | Created app_server.py | — | ~79114 |
+| 13:29 | Created app_server.py | — | ~79114 |
+| 13:30 | Created app_server.py | — | ~79824 |
+| 13:30 | Created chat.js | — | ~14600 |
+| 13:30 | Created styles.css | — | ~28417 |
+| 13:30 | Created app_server.py | — | ~80090 |
+| 13:31 | Created app_server.py | — | ~80441 |
+| 13:31 | Created app_server.py | — | ~80453 |
+| 13:31 | Created tests/agent/deep_reading_api_test.py | — | ~971 |
+| 13:35 | designqc: captured 2 screenshots (14KB, ~5000 tok) | / | ready for eval | ~0 |
+| 13:35 | designqc: captured 2 screenshots (78KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 13:35 | Created chat.js | — | ~14658 |
+| 13:35 | Created chat.js | — | ~14699 |
+| 13:36 | Created app_server.py | — | ~80755 |
+| 13:36 | Created app_server.py | — | ~80810 |
+| 13:36 | Created chat.js | — | ~14750 |
+| 13:36 | Created tests/agent/deep_reading_api_test.py | — | ~1218 |
+| 13:37 | Created tests/agent/deep_reading_gateway_contract_test.py | — | ~1040 |
+| 13:37 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~3836 |
+| 13:38 | Created deep_reading.py | — | ~4183 |
+| 13:38 | Created app_server.py | — | ~80901 |
+| 13:38 | Created app_server.py | — | ~80984 |
+| 13:38 | Created tests/agent/deep_reading_api_test.py | — | ~1278 |
+| 13:38 | Created chat.js | — | ~14966 |
+| 13:38 | Created chat.js | — | ~15007 |
+| 13:40 | Created tests/agent/deep_reading_api_test.py | — | ~1340 |
+| 13:41 | Created paper_reading_gateway.py | — | ~1878 |
+| 13:41 | Created paper_reading_gateway.py | — | ~1878 |
+| 13:41 | Created app_server.py | — | ~81187 |
+| 13:42 | Created app_server.py | — | ~81360 |
+| 13:42 | Created chat.js | — | ~15037 |
+| 13:42 | Created tests/agent/deep_reading_api_test.py | — | ~1505 |
+| 13:44 | Session end: 52 writes across 16 files (app_server.py, deep_reading.py, paper_reading_gateway.py, cordis.yml, README.md) | 0 reads | ~1594203 tok |
+
+## Session: 2026-08-15 13:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:54 | Created deep_reading.py | — | ~4418 |
+| 13:54 | Created experiments/dsh-paper-reading/README.md | — | ~225 |
+| 13:54 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~3869 |
+| 13:54 | Created tests/agent/deep_reading_runtime_test.py | — | ~326 |
+| 13:56 | Created ../../../../private/tmp/deepseek-harness-official/python/sdk-runtime/package.json | — | ~1730 |
+| 13:58 | Created ../../../../private/tmp/deepseek-harness-official/scripts/build-exe-for-python-sdk.ts | — | ~6246 |
+| 14:02 | Created deep_reading.py | — | ~4489 |
+| 14:02 | Created experiments/dsh-paper-reading/cordis.yml | — | ~478 |
+| 14:02 | Created deep_reading.py | — | ~4601 |
+| 14:03 | Created deep_reading.py | — | ~4652 |
+| 14:05 | Created deep_reading.py | — | ~4670 |
+| 14:05 | Created experiments/dsh-paper-reading/cordis.yml | — | ~493 |
+| 14:06 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~3940 |
+| 14:06 | Created experiments/dsh-paper-reading/README.md | — | ~267 |
+| 14:07 | Session end: 14 writes across 7 files (deep_reading.py, README.md, deepseek-harness-deep-reading-workbench.md, deep_reading_runtime_test.py, package.json) | 0 reads | ~40997 tok |
+| 14:09 | Created experiments/dsh-paper-reading/cordis.yml | — | ~528 |
+| 14:10 | Created experiments/dsh-paper-reading/cordis.yml | — | ~596 |
+| 14:12 | Created experiments/dsh-paper-reading/cordis.yml | — | ~675 |
+| 14:12 | Created experiments/dsh-paper-reading/cordis.yml | — | ~682 |
+| 14:13 | Created deep_reading.py | — | ~4806 |
+| 14:14 | Created experiments/dsh-paper-reading/cordis.yml | — | ~738 |
+| 14:15 | Created deep_reading.py | — | ~4995 |
+| 14:15 | Created deep_reading.py | — | ~4998 |
+| 14:15 | Created experiments/dsh-paper-reading/cordis.yml | — | ~742 |
+| 14:17 | Created deep_reading.py | — | ~5173 |
+| 14:20 | Created deep_reading.py | — | ~5288 |
+| 14:20 | Created tests/agent/deep_reading_runtime_test.py | — | ~644 |
+| 14:20 | Created tests/agent/deep_reading_runtime_test.py | — | ~662 |
+| 14:22 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4005 |
+| 14:22 | Created experiments/dsh-paper-reading/README.md | — | ~282 |
+| 14:22 | Created deep_reading.py | — | ~5338 |
+| 14:22 | Created tests/agent/deep_reading_runtime_test.py | — | ~835 |
+| 14:22 | Created tests/agent/deep_reading_cordis_contract_test.py | — | ~409 |
+| 14:26 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~3979 |
+| 14:26 | Created chat.js | — | ~15076 |
+| 14:26 | Created tests/frontend/deep-reading-workbench.test.js | — | ~379 |
+| 14:27 | Created deep_reading.py | — | ~5382 |
+| 14:27 | Created experiments/dsh-paper-reading/README.md | — | ~313 |
+| 14:27 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4004 |
+| 14:27 | Created tests/agent/deep_reading_runtime_test.py | — | ~920 |
+| 14:28 | Session end: 39 writes across 10 files (deep_reading.py, README.md, deepseek-harness-deep-reading-workbench.md, deep_reading_runtime_test.py, package.json) | 0 reads | ~113345 tok |
+| 14:29 | Session end: 39 writes across 10 files (deep_reading.py, README.md, deepseek-harness-deep-reading-workbench.md, deep_reading_runtime_test.py, package.json) | 0 reads | ~113345 tok |
+
+## Session: 2026-08-15 14:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:52 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4064 |
+| 14:52 | Session end: 1 writes across 1 files (deepseek-harness-deep-reading-workbench.md) | 0 reads | ~4354 tok |
+| 15:22 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4063 |
+| 15:22 | Created tests/agent/deep_reading_store_test.py | — | ~1001 |
+| 15:23 | Session end: 3 writes across 2 files (deepseek-harness-deep-reading-workbench.md, deep_reading_store_test.py) | 0 reads | ~9708 tok |
+
+## Session: 2026-08-15 23:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

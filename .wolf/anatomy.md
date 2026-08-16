@@ -1,15 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z
-> Files: 316 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
-> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
-
-## Current planning state (2026-08-15)
-
-- `optimization/backlog.md` — OPT-157 reconciled done; OPT-158 remains the only signal-backed unfinished P1 and is sized M.
-- `optimization/triage.md` — Last triaged 2026-08-15; no nightly-compatible S task assigned.
-- `optimization/explore.md` — 2026-08-15 Explore added E254-E256 around the newly surfaced homepage memory manager; no promotion because all three lack direct owner signal.
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-15T07:22:06.700Z
+> Files: 348 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -64,6 +56,14 @@
 
 - `backlog.md` — Optimization Backlog (~41735 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2781 tok)
+
+## ../../../../private/tmp/deepseek-harness-official/python/sdk-runtime/
+
+- `package.json` — Node.js package manifest (~1730 tok)
+
+## ../../../../private/tmp/deepseek-harness-official/scripts/
+
+- `build-exe-for-python-sdk.ts` — Build the SDK runtime executables and Python node carrier. The fixed (~6246 tok)
 
 ## ../../../../private/tmp/paper-opt148/
 
@@ -179,6 +179,7 @@
 - `cards-2026-08-12.md` — 卡片① (~35 tok)
 - `cards-2026-08-13.md` — 卡片① (~50 tok)
 - `cards-2026-08-14.md` — 卡片① (~62 tok)
+- `cards-2026-08-15.md` — 卡片① (~37 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -187,7 +188,8 @@
 - `review-2026-08-07.md` — 2026-08-07 夜间 PR 审查 (~51 tok)
 - `review-2026-08-13.md` (~2 tok)
 - `review-2026-08-14.md` (~2 tok)
-- `today-pick.md` — 卡片① (~76 tok)
+- `review-2026-08-15.md` — 2026-08-15 夜间 PR 审查 (~8 tok)
+- `today-pick.md` — 卡片① (~52 tok)
 
 ## ../../.claude/scripts/configs/
 
@@ -200,24 +202,27 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, is_admin_username, build_sample_state, initialize_tool_schema_provider (~77573 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~74809 tok)
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~81360 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~75050 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
-- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~11677 tok)
+- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15076 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
+- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~5382 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~13269 tok)
+- `index.html` — 🐛 又买了一本书 (~13785 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
 - `mcp.log` — Declares ListToolsRequest (~240544 tok)
+- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~1878 tok)
 - `privacy.html` — 隐私政策 · 又买了一本书 (~934 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
+- `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~27316 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~28417 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -296,6 +301,9 @@
 - `requirements.md` — Requirements Document (~3686 tok)
 - `tasks.md` — Implementation Plan: UI Redesign — ChaTin App Aesthetic (~3323 tok)
 
+## Current planning state (2026-08-15)
+
+
 ## assets/
 
 - `.DS_Store` (~1640 tok)
@@ -309,12 +317,18 @@
 
 - `codex-cloud-scheduled-migration.md` — Codex Cloud Scheduled 夜间 Agent (~527 tok)
 - `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1991 tok)
+- `deepseek-harness-deep-reading-workbench.md` — DeepSeek Harness 深度共读工作台设计方案 (~3809 tok)
 - `product-agent-context-and-control-analysis.md` — 产品 Agent：动态上下文管理与可控性分析 (~978 tok)
 
 ## docs/releases/
 
 - `2026-08-08-f58b01bb.md` — 生产版本更新说明 (~473 tok)
 - `README.md` — Project documentation (~68 tok)
+
+## experiments/dsh-paper-reading/
+
+- `cordis.yml` — Sidecar-only dsh composition.  It intentionally omits filesystem, shell, (~742 tok)
+- `README.md` — Project documentation (~293 tok)
 
 ## optimization/
 
@@ -351,29 +365,29 @@
 
 - `cloud-setup.sh` — Codex Cloud environment setup for paper-reading-app. (~85 tok)
 - `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~754 tok)
+- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~408 tok)
 - `nightly-common.sh` — Shared isolation helpers for the local Codex nightly tasks. (~448 tok)
 - `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1169 tok)
-- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~2066 tok)
-- `nightly-triage.sh` — 每日 01:00：在隔离 clone 中执行夜间 Agent1（Triage）。 (~1481 tok)
-- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1835 tok)
-- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
-- `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1682 tok)
-- `README.md` — Project documentation (~953 tok)
-- `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
-- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
-- `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
-- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~408 tok)
 - `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1219 tok)
+- `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~2066 tok)
 - `nightly-implement.sh` — 每日 04:00：执行夜间 Agent2（Implement）。只开 feature/agent PR，绝不合并。 (~1654 tok)
+- `nightly-triage.sh` — 每日 01:00：在隔离 clone 中执行夜间 Agent1（Triage）。 (~1481 tok)
 - `nightly-triage.sh` — 每日 01:00：在隔离 worktree 中执行夜间 Agent1（Triage）。 (~1406 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
+- `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
+- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1835 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1792 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
+- `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
+- `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1682 tok)
 - `product-owner-monday.sh` — 每周一 09:00：在隔离 worktree 中运行 Codex 产品负责人仪式。 (~1680 tok)
+- `README.md` — Project documentation (~953 tok)
 - `README.md` — Project documentation (~927 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
+- `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
+- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
 - `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~318 tok)
+- `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1453 tok)
 
 ## scripts/codex/launchd/
@@ -411,8 +425,8 @@
 - `codex_cloud_scheduled_test.py` — Contracts for the remote Codex Cloud Scheduled nightly pipeline. (~962 tok)
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5935 tok)
-- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1587 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
@@ -421,6 +435,11 @@
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
 - `debug_overview_test.py` — P2 增长总览 /debug/overview 回归锁。 (~1669 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
+- `deep_reading_api_test.py` — _Runner: start, setUp, tearDown, request + 3 more (~1505 tok)
+- `deep_reading_cordis_contract_test.py` — DeepReadingCordisContractTests: test_gateway_tools_share_the_root_registry_and_are_strictly_ordered, (~409 tok)
+- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~1040 tok)
+- `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~920 tok)
+- `deep_reading_store_test.py` — DeepReadingStoreTests: setUp, tearDown, test_run_token_binds_gateway_to_server_side_user, test_conte (~1001 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_uses_model_from_environment_configuration, test_retri (~5517 tok)
 - `deployment_config_test.py` — Regression tests for production deployment configuration (P3 commercialization). (~1379 tok)
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
@@ -476,6 +495,7 @@
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1442 tok)
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
+- `deep-reading-workbench.test.js` — Declares test (~379 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~3156 tok)
 - `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1695 tok)
 - `entry-bundle-opt058-061-066-090-084-091.test.js` — OPT-058: quoteDialog focus after showModal (openNewQuoteForBook / editQuote) (~5644 tok)
@@ -488,10 +508,10 @@
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4036 tok)
 - `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~2877 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
-- `quote-card-image-thumb.test.js` — OPT-052: quote card shows image thumbnail when quote.imageUrl is present, (~1647 tok)
+- `quote-card-image-thumb.test.js` — OPT-158: quote cards use a calm, type-specific art cover in the review grid. (~1633 tok)
 - `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~1796 tok)
 - `quote-content-display.test.js` — Regression coverage for compact quote cards: (~1190 tok)
-- `quote-image-onerror.test.js` — OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。 (~1526 tok)
+- `quote-image-onerror.test.js` — OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。 (~1516 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~2594 tok)
 - `quote-page-prefill.test.js` — OPT-095: 新建摘抄对话框的页码字段应预填 book.currentPage（正在读的这一页）， (~1475 tok)
 - `quote-search-card-image.test.js` — OPT-070: buildQuoteSearchCard() must fill quote.imageUrl in the cover like the (~1294 tok)
