@@ -9,9 +9,9 @@
 
 ## Current planning state (2026-08-17)
 
-- `optimization/backlog.md` — OPT-159 is P2/S triaged; OPT-160 is P1/M triaged; older unfinished items remain P3 parked or blocked.
+- `optimization/backlog.md` — OPT-159 is P2/S triaged; OPT-160 is P1/M triaged; Explore promoted OPT-161 (P1/S) for restart-orphaned deep-reading runs.
 - `optimization/triage.md` — Last triaged 2026-08-17; externally supplied seven-day auto PR count is 4/8; OPT-159 is the single nightly assignment.
-- `optimization/explore.md` — 2026-08-16 Explore promoted OPT-159/160 from verified deep-reading lifecycle gaps.
+- `optimization/explore.md` — 2026-08-17 Explore added E261–265 and promoted E261 as OPT-161; remote baseline `229fa7b`, open PR #124 covers only OPT-159.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 

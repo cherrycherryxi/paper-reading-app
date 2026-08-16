@@ -4677,3 +4677,79 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱-中——改善账号切换后的错误隔离；没有真实 signal，保留探索池。
 
 > 本次 run 新发现 4 条：E257（启动异常遗留永久 CREATED，S，任务历史 correctness）、E258（取消不停止执行且可生成隐藏 action，M，用户控制/成本）、E259（capability 与错误处理冲突，S，错误反馈）、E260（账号切换遗留旧轮询，S，状态隔离）。提拔 OPT-159 与 OPT-160；其余留探索池。所有断言均基于当前文件逐行核实，并已排除 backlog、旧 Explore 与最近合并代码中的重复方向。
+
+## 2026-08-17
+
+> 扫描焦点：当前 Theme 3「积累可信」与新合入深度共读的跨请求可靠性。远端 `feature/agent` 与本地 HEAD 均为 `229fa7b`；GitHub open PR 仅 #124（OPT-159）。已核对 backlog、triage、roadmap、signals、E001–260、最近提交及当前代码，以下方向不重复 OPT-159/160、open PR 或旧 Explore。
+
+### E261 — 服务重启会把执行中的深度共读永久留在 `CREATED/RUNNING` (S)
+
+**What:** 深度共读只在请求内启动 daemon thread，任务进度写入 SQLite；进程退出会直接终止线程，但下次启动没有扫描或收口非终态任务。此前已进入 `CREATED` 或 `RUNNING` 的记录因此会永久显示仍在执行。
+
+**Evidence:** `deep_reading.py:362-364` 以 `daemon=True` 启动任务线程；`deep_reading.py:265-279` 把进度持久化为 `RUNNING`。`app_server.py:576-608` 持久化 run/events，但 `app_server.py:6520-6526` 启动流程仅初始化数据库、工具 schema 与 GC，没有恢复或失败化研究任务；全库搜索 `research_runs` 也没有其他启动恢复路径。
+
+**Why:** 部署、崩溃或人工重启都可能发生在长耗时研究期间。用户回来后会看到永不结束且无法判断是否应重试的历史任务，与 Theme 3 的可信积累直接冲突。
+
+**Size:** S
+
+**Files:** `deep_reading.py:265-279,362-364`; `app_server.py:576-608,6520-6526`; `tests/agent/deep_reading_store_test.py`
+
+**Northstar:** 强——深度共读属于回顾入口，持久化历史必须真实反映进程中断。启动时把遗留 `CREATED/RUNNING` 原子收口为 `FAILED`，并写明“服务重启，任务已中断”，即可让用户安全重试。→ **promoted to OPT-161**
+
+### E262 — 创建成功后的首次状态查询未接错误处理，失败一次便停止全部后续轮询 (S)
+
+**What:** POST 成功后直接调用 `loadRun(activeRun.id)`，既未 `await` 也未挂 `.catch(handleError)`；而下一次 timer 只有首次 GET 成功后才会注册。因此首次状态查询若遇到网络错误，Promise rejection 无人处理，界面会停在 POST 返回的 `CREATED` 状态且不再推进。
+
+**Evidence:** `chat.js:1221-1232` 显示 timer 在成功取得 run 后才创建；`chat.js:1271-1284` 的 submit `try` 在 line 1281 裸调用 `loadRun`，异步拒绝不会进入该同步调用所在的 catch。对比历史点击明确使用 `loadRun(...).catch(handleError)`（`chat.js:1296-1299`）。当前 `tests/frontend/deep-reading-workbench.test.js:11-33` 只有静态结构契约，没有首次 GET 失败测试。
+
+**Why:** POST 已成功意味着任务真实在后台运行；一次短暂 GET 失败却让页面永久停止跟踪，会让用户误以为任务卡死，并可能重复启动昂贵研究。
+
+**Size:** S
+
+**Files:** `chat.js:1221-1232,1271-1284`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 中-强——保护新回顾入口的可理解进度与重复成本；可用 `.catch(handleError)` 做最小收口，更完整方案应允许用户重试查询。
+
+### E263 — 切回日常探讨后深度共读仍每 1.5 秒轮询隐藏工作台 (S)
+
+**What:** 模式切换只隐藏 research workspace，没有清理 `pollTimer`；运行中任务会继续请求直到终态，即使用户已经回到日常探讨或离开该面板。
+
+**Evidence:** `chat.js:1140-1168` 的 `setMode("daily")` 仅切换 class/hidden；`chat.js:1221-1232` 每次 RUNNING 响应都无条件续排 1.5 秒 timer。除终态分支与账号变化相关旧缺口外，没有按 mode 暂停轮询的逻辑。
+
+**Why:** 隐藏面板持续轮询增加移动网络、服务端查询与电量消耗；长任务越久越明显。重新进入时按 run id 恢复一次查询即可，无需后台高频刷新不可见 DOM。
+
+**Size:** S
+
+**Files:** `chat.js:1140-1168,1221-1232`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 弱-中——属于性能与移动端资源卫生，没有真实 signal，暂不提拔。
+
+### E264 — 深度共读历史请求缺少上下文版本守卫，慢响应可覆盖新书的历史 (S)
+
+**What:** 每次进入工作台都会按当前 book/quote 发起历史请求，但响应回来时不验证上下文是否仍相同。快速从书 A 切到书 B 时，较慢的 A 响应可以最后写入 `historyList`，让 B 上下文展示 A 的任务。
+
+**Evidence:** `chat.js:1244-1257` 在请求前读取 context 并在返回后直接覆盖 `historyList.innerHTML`；`chat.js:1318-1334` 数据/书摘上下文切换会重新渲染或进入研究模式，但没有 request id、AbortController 或返回时 context 比对。服务端确实按请求 query 过滤（`app_server.py:4367-4379`），因此问题在前端响应时序而非后端越权。
+
+**Why:** 历史是用户判断研究属于哪本书的依据；跨书错位会造成错误选择与理解，尤其在连续从多张书卡进入深度共读时。
+
+**Size:** S
+
+**Files:** `chat.js:1244-1257,1318-1334`; `app_server.py:4367-4379`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 中——保证回顾上下文可信，但缺少真实复现 signal，先保留探索池。
+
+### E265 — 研究列表的 `limit` 非数字会抛未捕获异常，接口无法返回结构化 4xx (S)
+
+**What:** GET 端点把原始 query 字符串直接传入 store；store 立即执行 `int(limit)`，没有参数校验或异常转换。`?limit=abc` 会抛 `ValueError` 越出 handler，而不是返回可解释的 400。
+
+**Evidence:** `app_server.py:4367-4379` 直接传 `query.get("limit", [30])[0]`；`deep_reading.py:212-229` 在 line 222 执行 `int(limit)`，外层无 try/except。`tests/agent/deep_reading_api_test.py:66-85` 只覆盖默认 limit 的成功列表。
+
+**Why:** 当前前端固定传 10，正常路径不触发；但公开 API 的畸形参数不应变成断连和服务端 traceback。该项主要是错误处理与契约健康。
+
+**Size:** S
+
+**Files:** `app_server.py:4367-4379`; `deep_reading.py:212-229`; `tests/agent/deep_reading_api_test.py`
+
+**Northstar:** 弱——没有当前用户影响或 signal，保留为 API health，不提拔。
+
+> 本次 run 新发现 5 条：E261（重启遗留非终态任务，S，可靠性）、E262（首次查询失败后停止轮询，S，错误处理）、E263（隐藏工作台持续轮询，S，性能）、E264（历史响应跨上下文覆盖，S，correctness）、E265（非法 limit 未收口，S，API health）。仅 E261 与当前 Theme 3 的持久化可信直接一致，提拔为 OPT-161；其余证据明确但缺直接 signal，留探索池。

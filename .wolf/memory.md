@@ -5095,3 +5095,9 @@
 - 外层给定最近 7 天 `auto/` 实现 PR 为 4/8；未调用 GitHub。最近合入项与 backlog/triage 已对齐，没有新增可据此标 done 的条目。
 - OPT-159 评为 P2/S 并指派：create 后 Gateway/runner 启动异常只回 500，未调用已有 `ResearchRunStore.fail()`，是 Theme 3「积累可信」下边界清楚、无需产品判断的夜间正确性修复。
 - OPT-160 保持 P1/M，留给 10:00 晨间候选卡：取消后的后台执行、proposal/action 副作用与真实中断涉及跨层语义，不因优先级高而越过夜间 S 边界。
+
+## [2026-08-17] Explore：深度共读跨请求可靠性
+
+- 远端 `feature/agent` 与本地 HEAD 同为 `229fa7b`；open PR 仅 #124（OPT-159），本次没有重复该修复或 OPT-160。
+- 新增 E261–265：服务重启遗留非终态任务、首次状态查询失败后停止轮询、隐藏工作台持续轮询、历史响应跨上下文覆盖、非法 limit 未收口。
+- 仅提拔 OPT-161（P1/S）：启动时将服务重启遗留的 `CREATED/RUNNING` 任务收口为 FAILED，保证深度共读历史可信；其余因缺直接 signal 留在 Explore。
