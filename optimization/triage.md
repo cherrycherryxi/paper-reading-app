@@ -22,7 +22,7 @@ Last triaged: 2026-08-17
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **triaged** | **Next up**；Theme 3 正确性收口，夜间适配：是；启动失败写 FAILED + API 回归 |
+| OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **in-progress** | **Next up**；Codex nightly PR pending；Theme 3 正确性收口，夜间适配：是；启动失败写 FAILED + API 回归 |
 | OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | triaged | 留给 10:00 晨间候选卡；跨 runner、持久化副作用与中断语义，夜间适配：否 |
 | OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10] |
 | OPT-153 | 快速识别误删一行后无法撤销 | **P1** | S | **done** | ✅ PR #113 / `e7e108c`；撤销与全删恢复测试已在树中 |

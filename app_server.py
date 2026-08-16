@@ -4982,6 +4982,7 @@ class Handler(BaseHTTPRequestHandler):
             user_id = user["id"]
             conn.close()
             self._active_conn = None
+            run = None
             try:
                 run, gateway_token = research_store().create(user_id, context, question)
                 ensure_research_gateway()
@@ -4990,6 +4991,8 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as error:
                 self._send_json({"error": str(error)}, 400)
             except Exception as error:
+                if run:
+                    research_store().fail(run["id"], str(error))
                 self._send_json({"error": str(error)}, 500)
             return
 

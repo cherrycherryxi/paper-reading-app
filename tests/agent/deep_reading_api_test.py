@@ -15,6 +15,11 @@ class _Runner:
         self.started.append((run, token))
 
 
+class _FailingRunner:
+    def start(self, run, token):
+        raise RuntimeError("runner startup failed")
+
+
 class DeepReadingApiTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -83,6 +88,36 @@ class DeepReadingApiTests(unittest.TestCase):
         status, cancelled = self.request("POST", f"/api/research-runs/{run_id}/cancel")
         self.assertEqual(status, 200)
         self.assertEqual(cancelled["run"]["status"], "CANCELLED")
+
+    def test_gateway_startup_failure_marks_created_run_failed(self):
+        app_server.ensure_research_gateway = lambda: (_ for _ in ()).throw(RuntimeError("gateway startup failed"))
+
+        status, response = self.request("POST", "/api/research-runs", {
+            "context": {"type": "book", "bookId": "b1"},
+            "question": "启动失败后会怎样？",
+        })
+
+        self.assertEqual(status, 500)
+        self.assertEqual(response["error"], "gateway startup failed")
+        status, listed = self.request("GET", "/api/research-runs")
+        self.assertEqual(status, 200)
+        self.assertEqual(listed["runs"][0]["status"], "FAILED")
+        self.assertEqual(listed["runs"][0]["errorMessage"], "gateway startup failed")
+
+    def test_runner_startup_failure_marks_created_run_failed(self):
+        app_server.research_runner = lambda: _FailingRunner()
+
+        status, response = self.request("POST", "/api/research-runs", {
+            "context": {"type": "book", "bookId": "b1"},
+            "question": "启动失败后会怎样？",
+        })
+
+        self.assertEqual(status, 500)
+        self.assertEqual(response["error"], "runner startup failed")
+        status, listed = self.request("GET", "/api/research-runs")
+        self.assertEqual(status, 200)
+        self.assertEqual(listed["runs"][0]["status"], "FAILED")
+        self.assertEqual(listed["runs"][0]["errorMessage"], "runner startup failed")
 
     def test_research_proposal_enters_existing_approval_state_machine(self):
         run, _ = app_server.research_store().create(
