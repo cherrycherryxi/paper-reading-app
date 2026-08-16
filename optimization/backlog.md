@@ -1483,7 +1483,7 @@ Format per item:
 - how: reject 失败时保留卡片、恢复两个按钮与 `handled=false`，把忽略按钮改为“重试忽略”并 toast 错误；只有服务端确认成功后才移除卡片和推进队列。补成功/失败两条前端测试。Touch: `chat.js:1008-1022`、相关 frontend tests。
 
 ### OPT-159 — 深度共读启动异常遗留永久 `CREATED` 任务 — 由 explore E257 提拔 [2026-08-16]
-- status: new
+- status: triaged
 - area: backend / error handling
 - priority: P2
 - size: S
@@ -1493,7 +1493,7 @@ Format per item:
 - how: 保存 create 返回的 run id；`ensure_research_gateway()` / `research_runner().start()` 异常时调用 `research_store().fail(run_id, error)` 后再返回错误。补 create 成功、runner 启动抛错后 run=FAILED 且历史可读取的 API 回归测试。Touch: `app_server.py:4985-4993`, `deep_reading.py:298-313`, `tests/agent/deep_reading_api_test.py`。
 
 ### OPT-160 — 取消深度共读后 runner 仍执行并可创建隐藏待确认 action — 由 explore E258 提拔 [2026-08-16]
-- status: new
+- status: triaged
 - area: backend / agent
 - priority: P1
 - size: M

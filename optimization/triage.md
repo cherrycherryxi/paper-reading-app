@@ -2,24 +2,28 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-16
+Last triaged: 2026-08-17
 
 ## Next up
 
-**无符合夜间条件的任务。**
+**OPT-159 — 深度共读启动异常遗留永久 `CREATED` 任务。**
 
-理由：给定近 8 日提交与当前代码证实，昨日唯一有直接 owner signal 的未完成项 OPT-158 已由 PR #123 / `be2d512` 合入：`renderQuotes()` 当前以 `quoteCoverMarkMap` 和 `.quote-cover-art--<kind>` 生成轻量封面，不再展示拍摄原图；详情页仍保留 `imageUrl`，相关前端测试覆盖有图/无图、类型差异和详情图片。剩余未完成项全部缺少当前 Theme 与真实 signal 支撑，按北极星税均为 P3 parked 或 blocked。**夜间适配：否**：没有同时满足复杂度 S、验收边界清楚、无需 owner 产品/设计判断且具有合理北极星贡献的局部任务，因此不为消耗预算强行指派。
+理由：`app_server.py:4985-4993` 先由 `research_store().create()` 持久化 `CREATED`，随后才启动 Gateway 与 runner；两者异常时只返回 500，没有调用已存在的 `ResearchRunStore.fail()`。这是 `55fb0c7` 新增深度共读工作台后的确定性状态错误：失败任务会永久留在历史中，破坏当前 Theme 3「积累可信」及深度共读对 Theme 2「回顾有价值」的承接。关键文件：`app_server.py`、`deep_reading.py`、`tests/agent/deep_reading_api_test.py`。signal：无 owner 直接反馈，以新功能真实代码路径和可验证的错误状态为证，不扩大为体验设计。**夜间适配：是**：复杂度 S；仅需把启动异常收口为 FAILED，并用 API 回归锁定“返回错误且历史任务为 FAILED”，验收边界清楚、无需 owner 产品或设计判断。
 
-**预算状态（2026-08-16）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **5**，上限 **8**，剩余 **3**；预算未耗尽，但任务边界优先于预算。未调用 `gh` 或 GitHub API。
+**预算状态（2026-08-17）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 **4**；预算未耗尽。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- PR #123 合入提交 `be2d512` 明确对应 OPT-158；当前 `app.js:43-49,2125-2131` 和 `styles.css:1289-1325` 已实现类型化轻量封面，`tests/frontend/quote-card-image-thumb.test.js` 与 `quote-image-onerror.test.js` 覆盖列表封面及详情原图边界。backlog 与 triage 均标 done，不能再作为候选。
-- 未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们虽分别为 S/M/L，但均无合理当前北极星贡献，不指派。
+- 最近 8 日提交中，OPT-142、147、151–158 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
+- OPT-159 为 P2/S：`ResearchRunStore.fail()`（`deep_reading.py:298-313`）已有 FAILED 状态与事件语义，端点缺少的只是启动异常补偿，北极星贡献为“失败历史可信且可安全重试”，符合夜间局部正确性修复。
+- OPT-160 为 P1/M：`cancel()` 只写 CANCELLED（`deep_reading.py:233-250`），而 runner 在 `harness.run()` 后仍先调用 `on_complete`（`deep_reading.py:399-426`），跨后台执行、proposal/action 副作用与可能的 Harness 中断取舍。虽北极星贡献强，但复杂度 M，不进入夜间 Next up，留给 10:00 晨间候选卡。
+- 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们均无合理当前北极星贡献，不指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **triaged** | **Next up**；Theme 3 正确性收口，夜间适配：是；启动失败写 FAILED + API 回归 |
+| OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | triaged | 留给 10:00 晨间候选卡；跨 runner、持久化副作用与中断语义，夜间适配：否 |
 | OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10] |
 | OPT-153 | 快速识别误删一行后无法撤销 | **P1** | S | **done** | ✅ PR #113 / `e7e108c`；撤销与全删恢复测试已在树中 |
 | OPT-154 | 快速识别核对时双击页面放大 | P2 | S | **done** | ✅ PR #114 / `6ec326b`；局部 manipulation 约束与测试已在树中 |

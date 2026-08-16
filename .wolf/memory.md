@@ -5089,3 +5089,9 @@
 - 新合入的深度共读存在两个强状态边界：create 后 Gateway/runner 启动异常会遗留永久 CREATED；取消只更新 DB，Harness 返回后仍可能先创建 proposal/action，再被 complete 的 CANCELLED 守卫丢弃结果。
 - 提拔 OPT-159（启动异常收口为 FAILED，S）与 OPT-160（取消后阻止运行副作用并争取真正中断，M）。
 - E259 记录 capability 不可用状态会被通用错误处理重新启用按钮；E260 记录账号切换未清旧任务 poll timer。两项无直接 signal，暂不提拔。
+
+## Session: 2026-08-17 nightly triage
+
+- 外层给定最近 7 天 `auto/` 实现 PR 为 4/8；未调用 GitHub。最近合入项与 backlog/triage 已对齐，没有新增可据此标 done 的条目。
+- OPT-159 评为 P2/S 并指派：create 后 Gateway/runner 启动异常只回 500，未调用已有 `ResearchRunStore.fail()`，是 Theme 3「积累可信」下边界清楚、无需产品判断的夜间正确性修复。
+- OPT-160 保持 P1/M，留给 10:00 晨间候选卡：取消后的后台执行、proposal/action 副作用与真实中断涉及跨层语义，不因优先级高而越过夜间 S 边界。

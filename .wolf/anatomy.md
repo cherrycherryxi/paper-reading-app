@@ -7,11 +7,11 @@
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
 > Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
-## Current planning state (2026-08-16)
+## Current planning state (2026-08-17)
 
-- `optimization/backlog.md` — OPT-158 reconciled done from PR #123 / `be2d512`; all remaining unfinished items are P3 parked or blocked without current North Star support.
-- `optimization/triage.md` — Last triaged 2026-08-16; externally supplied seven-day auto PR count is 5/8, but no nightly-compatible S task is assigned.
-- `optimization/explore.md` — 2026-08-15 Explore added E254-E256 around the newly surfaced homepage memory manager; no promotion because all three lack direct owner signal.
+- `optimization/backlog.md` — OPT-159 is P2/S triaged; OPT-160 is P1/M triaged; older unfinished items remain P3 parked or blocked.
+- `optimization/triage.md` — Last triaged 2026-08-17; externally supplied seven-day auto PR count is 4/8; OPT-159 is the single nightly assignment.
+- `optimization/explore.md` — 2026-08-16 Explore promoted OPT-159/160 from verified deep-reading lifecycle gaps.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
