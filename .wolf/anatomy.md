@@ -1,17 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-15T07:22:06.700Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-17T13:05:27.842Z
 > Files: 348 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z
-> Files: 316 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
-> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
-
-## Current planning state (2026-08-17)
-
-- `optimization/backlog.md` — OPT-159 is P2/S triaged; OPT-160 is P1/M triaged; Explore promoted OPT-161 (P1/S) for restart-orphaned deep-reading runs.
-- `optimization/triage.md` — Last triaged 2026-08-17; externally supplied seven-day auto PR count is 4/8; OPT-159 is the single nightly assignment.
-- `optimization/explore.md` — 2026-08-17 Explore added E261–265 and promoted E261 as OPT-161; remote baseline `229fa7b`, open PR #124 covers only OPT-159.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -199,7 +189,7 @@
 - `review-2026-08-13.md` (~2 tok)
 - `review-2026-08-14.md` (~2 tok)
 - `review-2026-08-15.md` — 2026-08-15 夜间 PR 审查 (~8 tok)
-- `today-pick.md` — 卡片① (~52 tok)
+- `today-pick.md` — 卡片① (~48 tok)
 
 ## ../../.claude/scripts/configs/
 
@@ -212,13 +202,13 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~81360 tok)
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~82006 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~75050 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15076 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
-- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~5382 tok)
+- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~6095 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~13785 tok)
@@ -312,6 +302,9 @@
 - `tasks.md` — Implementation Plan: UI Redesign — ChaTin App Aesthetic (~3323 tok)
 
 ## Current planning state (2026-08-15)
+
+
+## Current planning state (2026-08-17)
 
 
 ## assets/
@@ -445,10 +438,10 @@
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
 - `debug_overview_test.py` — P2 增长总览 /debug/overview 回归锁。 (~1669 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
-- `deep_reading_api_test.py` — _Runner: start, setUp, tearDown, request + 3 more (~1505 tok)
+- `deep_reading_api_test.py` — _Runner: start, cancel, start, setUp + 13 more (~3314 tok)
 - `deep_reading_cordis_contract_test.py` — DeepReadingCordisContractTests: test_gateway_tools_share_the_root_registry_and_are_strictly_ordered, (~409 tok)
 - `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~1040 tok)
-- `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~920 tok)
+- `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~1609 tok)
 - `deep_reading_store_test.py` — DeepReadingStoreTests: setUp, tearDown, test_run_token_binds_gateway_to_server_side_user, test_conte (~1001 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_uses_model_from_environment_configuration, test_retri (~5517 tok)
 - `deployment_config_test.py` — Regression tests for production deployment configuration (P3 commercialization). (~1379 tok)
@@ -603,8 +596,6 @@
 
 ## 深度共读（DeepSeek Harness）
 
-- `deep_reading.py` — 深度共读任务存储、后台 runner、取消/完成状态与研究 prompt。
-- `paper_reading_gateway.py` — 面向 Harness 的只读阅读数据 Gateway。
-- `app_server.py` — `/api/research-*` 接口、研究结果 proposal 到既有 Agent action 状态机的桥接。
-- `chat.js` / `index.html` / `styles.css` — 「探讨」内的深度共读工作台、任务历史与结果确认 UI。
-- `tests/agent/deep_reading_*` / `tests/frontend/deep-reading-workbench.test.js` — API、store、runtime、Gateway 与前端结构契约。
+- `deep_reading.py` — runner 共享活动 Harness 登记；取消 SQL 只允许非终态任务转为 `CANCELLED`，避免等待写锁后覆盖已完成任务。
+- `app_server.py` — `persist_research_proposals()` 将取消检查、trace、action、结果与 `COMPLETED` 状态置于同一 SQLite 写事务。
+- `tests/agent/deep_reading_api_test.py` — 覆盖取消先获锁时零副作用，以及完成先获锁时结果/action/终态原子可见。

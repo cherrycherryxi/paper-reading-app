@@ -5101,3 +5101,27 @@
 - 远端 `feature/agent` 与本地 HEAD 同为 `229fa7b`；open PR 仅 #124（OPT-159），本次没有重复该修复或 OPT-160。
 - 新增 E261–265：服务重启遗留非终态任务、首次状态查询失败后停止轮询、隐藏工作台持续轮询、历史响应跨上下文覆盖、非法 limit 未收口。
 - 仅提拔 OPT-161（P1/S）：启动时将服务重启遗留的 `CREATED/RUNNING` 任务收口为 FAILED，保证深度共读历史可信；其余因缺直接 signal 留在 Explore。
+| 20:19 | Created ../../.claude/paper-loop/today-pick.md | — | ~52 |
+| 20:20 | Session end: 2 writes across 2 files (cards-2026-08-16.md, today-pick.md) | 0 reads | ~102 tok |
+| 20:49 | Created app_server.py | — | ~81746 |
+| 20:49 | Created tests/agent/deep_reading_runtime_test.py | — | ~1609 |
+| 20:49 | Created tests/agent/deep_reading_api_test.py | — | ~2470 |
+| 20:49 | Created tests/agent/deep_reading_api_test.py | — | ~2466 |
+
+## [2026-08-17] OPT-160 评论修复：取消与 proposal 必须串行化
+
+- runner 测试不得依赖开发机环境变量；使用 `patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=False)` 只为 fake Harness 测试注入密钥，CI 可保持无真实密钥。
+- 对 proposal/action 的副作用，单纯在回调前后查 `CANCELLED` 不足：取消可发生在检查与逐项 `commit()` 之间。`BEGIN IMMEDIATE` 后复查运行状态，并使 trace/action/event helpers 支持 `commit=False`，最后一次 `commit()`，从而保证取消先获得写锁时不会产生隐藏 action。
+- 写锁串行化还要定义“完成先于取消”的语义：proposal、`result_json` 与 `COMPLETED` 必须同事务提交；`cancel()` 的 UPDATE 必须携带非终态条件，避免它等待写锁前读到旧状态、获得锁后又把刚完成任务覆盖成 `CANCELLED`。取消先拿锁则零副作用，完成先拿锁则完整结果可见且后到取消返回 `COMPLETED`。
+| 20:55 | Session end: 6 writes across 5 files (cards-2026-08-16.md, today-pick.md, app_server.py, deep_reading_runtime_test.py, deep_reading_api_test.py) | 0 reads | ~88393 tok |
+| 21:05 | Created app_server.py | — | ~82006 |
+| 21:05 | Created deep_reading.py | — | ~6051 |
+| 21:05 | Created tests/agent/deep_reading_api_test.py | — | ~3314 |
+| 21:05 | Created deep_reading.py | — | ~6095 |
+| 21:09 | Session end: 10 writes across 6 files (cards-2026-08-16.md, today-pick.md, app_server.py, deep_reading_runtime_test.py, deep_reading_api_test.py) | 0 reads | ~185859 tok |
+| 21:24 | Session end: 10 writes across 6 files (cards-2026-08-16.md, today-pick.md, app_server.py, deep_reading_runtime_test.py, deep_reading_api_test.py) | 0 reads | ~185859 tok |
+
+## Session: 2026-08-17 21:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
