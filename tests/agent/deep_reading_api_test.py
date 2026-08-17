@@ -90,7 +90,7 @@ class DeepReadingApiTests(unittest.TestCase):
         self.assertEqual(cancelled["run"]["status"], "CANCELLED")
 
     def test_gateway_startup_failure_marks_created_run_failed(self):
-        app_server.ensure_research_gateway = lambda: (_ for _ in ()).throw(RuntimeError("gateway startup failed"))
+        app_server.ensure_research_gateway = lambda: (_ for _ in ()).throw(ValueError("gateway startup failed"))
 
         status, response = self.request("POST", "/api/research-runs", {
             "context": {"type": "book", "bookId": "b1"},
@@ -102,7 +102,7 @@ class DeepReadingApiTests(unittest.TestCase):
         status, listed = self.request("GET", "/api/research-runs")
         self.assertEqual(status, 200)
         self.assertEqual(listed["runs"][0]["status"], "FAILED")
-        self.assertEqual(listed["runs"][0]["errorMessage"], "gateway startup failed")
+        self.assertEqual(listed["runs"][0]["error"], "gateway startup failed")
 
     def test_runner_startup_failure_marks_created_run_failed(self):
         app_server.research_runner = lambda: _FailingRunner()
@@ -117,7 +117,7 @@ class DeepReadingApiTests(unittest.TestCase):
         status, listed = self.request("GET", "/api/research-runs")
         self.assertEqual(status, 200)
         self.assertEqual(listed["runs"][0]["status"], "FAILED")
-        self.assertEqual(listed["runs"][0]["errorMessage"], "runner startup failed")
+        self.assertEqual(listed["runs"][0]["error"], "runner startup failed")
 
     def test_research_proposal_enters_existing_approval_state_machine(self):
         run, _ = app_server.research_store().create(
