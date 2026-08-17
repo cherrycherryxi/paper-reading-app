@@ -1,4 +1,5 @@
 import json
+import threading
 import tempfile
 import unittest
 from io import BytesIO
@@ -157,6 +158,47 @@ class DeepReadingApiTests(unittest.TestCase):
         })
         self.assertEqual([item["claim"] for item in result["evidenceMap"]], ["可核验"])
         self.assertIn("已移除 1 条", result["evidenceWarning"])
+
+    def test_cancellation_winning_write_lock_creates_no_trace_or_action(self):
+        run, _ = app_server.research_store().create("u1", {"type": "book", "bookId": "b1"}, "取消竞态")
+        cancelling_conn = app_server.get_conn()
+        cancelling_conn.execute("BEGIN IMMEDIATE")
+        cancelling_conn.execute(
+            "UPDATE research_runs SET status='CANCELLED', cancel_requested=1 WHERE run_id=?", (run["id"],)
+        )
+        finished = threading.Event()
+        outcome = {}
+
+        def persist():
+            try:
+                outcome["result"] = app_server.persist_research_proposals(run, {
+                    "proposals": [{
+                        "type": "question",
+                        "data": {"content": "取消后不应保存"},
+                        "reason": "回归测试",
+                        "evidenceIds": ["q1"],
+                    }],
+                })
+            finally:
+                finished.set()
+
+        worker = threading.Thread(target=persist)
+        worker.start()
+        self.assertFalse(finished.wait(0.1), "proposal persistence should wait for cancellation's write lock")
+        cancelling_conn.commit()
+        cancelling_conn.close()
+        worker.join(timeout=2)
+        self.assertTrue(finished.is_set())
+        self.assertIn("result", outcome)
+
+        conn = app_server.get_conn()
+        action_count = conn.execute("SELECT COUNT(*) FROM agent_actions WHERE user_id='u1'").fetchone()[0]
+        trace_count = conn.execute(
+            "SELECT COUNT(*) FROM agent_traces WHERE user_id='u1' AND request_type='deep_reading'"
+        ).fetchone()[0]
+        conn.close()
+        self.assertEqual(action_count, 0)
+        self.assertEqual(trace_count, 0)
 
 
 if __name__ == "__main__":

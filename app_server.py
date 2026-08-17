@@ -3154,6 +3154,7 @@ class TraceManager:
         message: str,
         book_id: str,
         request_type: str = "chat",
+        commit: bool = True,
     ) -> None:
         now = now_iso()
         conn.execute(
@@ -3166,9 +3167,12 @@ class TraceManager:
             """,
             (trace_id, user_id, request_type, AGENT_STATUS_OK, "", "", message, book_id, now, now),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
 
-    def log_event(self, conn: sqlite3.Connection, trace_id: str, event_type: str, metadata: dict) -> None:
+    def log_event(
+        self, conn: sqlite3.Connection, trace_id: str, event_type: str, metadata: dict, commit: bool = True
+    ) -> None:
         conn.execute(
             """
             INSERT INTO agent_trace_events (event_id, trace_id, event_type, metadata, created_at)
@@ -3176,7 +3180,8 @@ class TraceManager:
             """,
             (new_id("evt"), trace_id, event_type, json.dumps(metadata, ensure_ascii=False), now_iso()),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
 
     def update_trace(self, conn: sqlite3.Connection, trace_id: str, **fields: object) -> None:
         if not fields:
@@ -3420,7 +3425,9 @@ class MetricsCollector:
 
 
 class ActionStateMachine:
-    def create_action(self, conn: sqlite3.Connection, trace_id: str, user_id: str, action: dict) -> dict:
+    def create_action(
+        self, conn: sqlite3.Connection, trace_id: str, user_id: str, action: dict, commit: bool = True
+    ) -> dict:
         action_id = new_id("action")
         now = now_iso()
         conn.execute(
@@ -3442,10 +3449,19 @@ class ActionStateMachine:
                 now,
             ),
         )
-        conn.commit()
-        return self.transition(conn, action_id, user_id, ACTION_STATUS_PENDING)
+        if commit:
+            conn.commit()
+        return self.transition(conn, action_id, user_id, ACTION_STATUS_PENDING, commit=commit)
 
-    def transition(self, conn: sqlite3.Connection, action_id: str, user_id: str, target_status: str, error_message: str = "") -> dict:
+    def transition(
+        self,
+        conn: sqlite3.Connection,
+        action_id: str,
+        user_id: str,
+        target_status: str,
+        error_message: str = "",
+        commit: bool = True,
+    ) -> dict:
         action = self.get_action(conn, action_id, user_id)
         if not action:
             raise ValueError("action not found")
@@ -3477,7 +3493,8 @@ class ActionStateMachine:
             """,
             (target_status, error_message, now, approved_at, executed_at, action_id, user_id),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
         return self.get_action(conn, action_id, user_id)
 
     def get_action(self, conn: sqlite3.Connection, action_id: str, user_id: str) -> dict | None:
@@ -3540,46 +3557,65 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
         if not proposals:
             return result
 
-        trace_id = new_id("trace")
-        trace_manager = TraceManager()
-        trace_manager.create_trace(
-            conn,
-            trace_id=trace_id,
-            user_id=user_id,
-            message=run.get("question", ""),
-            book_id=run.get("context", {}).get("bookId", ""),
-            request_type="deep_reading",
-        )
-        persisted = []
-        state_machine = ActionStateMachine()
-        for proposal in proposals[:3]:
-            cited = proposal.get("evidenceIds", []) if isinstance(proposal, dict) else []
-            if not cited or any(str(item) not in evidence_ids for item in cited):
-                persisted.append({
-                    **proposal,
-                    "status": "INVALID",
-                    "error": "proposal evidenceIds must reference existing reading records",
-                })
-                continue
-            candidate = {
-                "type": proposal.get("type") if isinstance(proposal, dict) else "",
-                "data": dict(proposal.get("data") or {}) if isinstance(proposal, dict) else {},
-            }
-            candidate = inject_context_into_actions([candidate], run.get("context", {}).get("bookId", ""))[0]
-            validation = ActionValidator().validate([candidate])
-            if not validation.valid_actions:
-                persisted.append({**proposal, "status": "INVALID", "error": "; ".join(validation.errors)})
-                continue
-            action = state_machine.create_action(conn, trace_id, user_id, validation.valid_actions[0])
-            persisted.append({**proposal, "action": action, "status": action["status"]})
-            trace_manager.log_event(
+        # Cancellation and proposal persistence must serialize. If cancel wins
+        # the write lock, do not leave an otherwise invisible PENDING action.
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            status_row = conn.execute(
+                "SELECT status, cancel_requested FROM research_runs WHERE run_id = ?", (run["id"],)
+            ).fetchone()
+            if not status_row or status_row["status"] == "CANCELLED" or status_row["cancel_requested"]:
+                conn.rollback()
+                return result
+
+            trace_id = new_id("trace")
+            trace_manager = TraceManager()
+            trace_manager.create_trace(
                 conn,
-                trace_id,
-                "RESEARCH_PROPOSAL_CREATED",
-                {"runId": run["id"], "actionId": action["id"], "evidenceIds": proposal.get("evidenceIds", [])},
+                trace_id=trace_id,
+                user_id=user_id,
+                message=run.get("question", ""),
+                book_id=run.get("context", {}).get("bookId", ""),
+                request_type="deep_reading",
+                commit=False,
             )
-        result["proposals"] = persisted
-        return result
+            persisted = []
+            state_machine = ActionStateMachine()
+            for proposal in proposals[:3]:
+                cited = proposal.get("evidenceIds", []) if isinstance(proposal, dict) else []
+                if not cited or any(str(item) not in evidence_ids for item in cited):
+                    persisted.append({
+                        **proposal,
+                        "status": "INVALID",
+                        "error": "proposal evidenceIds must reference existing reading records",
+                    })
+                    continue
+                candidate = {
+                    "type": proposal.get("type") if isinstance(proposal, dict) else "",
+                    "data": dict(proposal.get("data") or {}) if isinstance(proposal, dict) else {},
+                }
+                candidate = inject_context_into_actions([candidate], run.get("context", {}).get("bookId", ""))[0]
+                validation = ActionValidator().validate([candidate])
+                if not validation.valid_actions:
+                    persisted.append({**proposal, "status": "INVALID", "error": "; ".join(validation.errors)})
+                    continue
+                action = state_machine.create_action(
+                    conn, trace_id, user_id, validation.valid_actions[0], commit=False
+                )
+                persisted.append({**proposal, "action": action, "status": action["status"]})
+                trace_manager.log_event(
+                    conn,
+                    trace_id,
+                    "RESEARCH_PROPOSAL_CREATED",
+                    {"runId": run["id"], "actionId": action["id"], "evidenceIds": proposal.get("evidenceIds", [])},
+                    commit=False,
+                )
+            conn.commit()
+            result["proposals"] = persisted
+            return result
+        except Exception:
+            conn.rollback()
+            raise
     finally:
         conn.close()
 

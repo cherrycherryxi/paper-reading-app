@@ -114,6 +114,7 @@ class DeepReadingRuntimeTests(unittest.TestCase):
         run = {"id": "run-cancelled", "context": {"type": "global", "bookId": "", "quoteId": ""}, "question": "研究"}
 
         with patch.dict("sys.modules", {"deepseek_harness": types.SimpleNamespace(DeepSeekHarness=Harness)}), \
+             patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=False), \
              patch.object(deep_reading, "_mcp_discovery_grace_seconds", return_value=0):
             runner._run(run, "token")
 
