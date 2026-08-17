@@ -259,7 +259,7 @@ Format per item:
 - how: 将 `reading_mcp_server.py:50-51` 的 `_now_iso()` 改为返回 UTC+Z 格式（`datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`，或从 `app_server.py` import `utc_now_iso`）。在 `tests/agent/reading_mcp_server_tools_test.py` 中加一条断言：工具返回的 `createdAt` 以 `Z` 结尾。Touch: `reading_mcp_server.py:50-51`；`tests/agent/reading_mcp_server_tools_test.py`。
 
 ### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
-- status: done — PR #124 / `c0e9b2a` [2026-08-17]
+- status: triaged
 - priority: P3
 - size: S
 - northstar: 无直接贡献(磁盘卫生,仅间接长期可靠性)。按 roadmap §5 北极星税 → P3 parked,预算富余周再做。
@@ -1483,7 +1483,7 @@ Format per item:
 - how: reject 失败时保留卡片、恢复两个按钮与 `handled=false`，把忽略按钮改为“重试忽略”并 toast 错误；只有服务端确认成功后才移除卡片和推进队列。补成功/失败两条前端测试。Touch: `chat.js:1008-1022`、相关 frontend tests。
 
 ### OPT-159 — 深度共读启动异常遗留永久 `CREATED` 任务 — 由 explore E257 提拔 [2026-08-16]
-- status: triaged
+- status: done — PR #124 / `c0e9b2a` [2026-08-17]
 - area: backend / error handling
 - priority: P2
 - size: S
