@@ -10,9 +10,13 @@ import app_server
 class _Runner:
     def __init__(self):
         self.started = []
+        self.cancelled = []
 
     def start(self, run, token):
         self.started.append((run, token))
+
+    def cancel(self, run_id):
+        self.cancelled.append(run_id)
 
 
 class _FailingRunner:
@@ -88,6 +92,7 @@ class DeepReadingApiTests(unittest.TestCase):
         status, cancelled = self.request("POST", f"/api/research-runs/{run_id}/cancel")
         self.assertEqual(status, 200)
         self.assertEqual(cancelled["run"]["status"], "CANCELLED")
+        self.assertEqual(self.runner.cancelled, [run_id])
 
     def test_gateway_startup_failure_marks_created_run_failed(self):
         app_server.ensure_research_gateway = lambda: (_ for _ in ()).throw(ValueError("gateway startup failed"))

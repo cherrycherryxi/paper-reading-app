@@ -251,6 +251,17 @@ class ResearchRunStore:
         finally:
             conn.close()
 
+    def is_cancelled(self, run_id: str) -> bool:
+        """Return whether a background runner must stop before side effects."""
+        conn = _connect(self.db_path)
+        try:
+            row = conn.execute(
+                "SELECT status, cancel_requested FROM research_runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+            return bool(row and (row["status"] == "CANCELLED" or row["cancel_requested"]))
+        finally:
+            conn.close()
+
     def authenticate_gateway(self, token: str) -> sqlite3.Row | None:
         if not token:
             return None
@@ -347,6 +358,12 @@ quoteId：{context['quoteId']}
 
 
 class DeepReadingRunner:
+    # app_server creates a lightweight runner facade for each request. Keep the
+    # active harness registry on the class so a later cancel request can reach
+    # the thread that originally started the run.
+    _active_harnesses: dict[str, Any] = {}
+    _active_harnesses_lock = threading.Lock()
+
     def __init__(
         self,
         db_path: Path,
@@ -362,9 +379,35 @@ class DeepReadingRunner:
     def start(self, run: dict[str, Any], token: str) -> None:
         threading.Thread(target=self._run, args=(run, token), daemon=True, name=f"dsh-{run['id']}").start()
 
+    def cancel(self, run_id: str) -> None:
+        """Best-effort interrupt for an active harness; persistence is owned by the store."""
+        with self._active_harnesses_lock:
+            harness = self._active_harnesses.get(run_id)
+        if harness is None:
+            return
+        try:
+            harness.close()
+        except Exception:
+            # Closing is only an acceleration. The status checks in _run still
+            # guarantee that a cancelled job can never persist proposals.
+            pass
+
+    @classmethod
+    def _register_active_harness(cls, run_id: str, harness: Any) -> None:
+        with cls._active_harnesses_lock:
+            cls._active_harnesses[run_id] = harness
+
+    @classmethod
+    def _unregister_active_harness(cls, run_id: str, harness: Any) -> None:
+        with cls._active_harnesses_lock:
+            if cls._active_harnesses.get(run_id) is harness:
+                cls._active_harnesses.pop(run_id, None)
+
     def _run(self, run: dict[str, Any], token: str) -> None:
         run_id = run["id"]
         try:
+            if self.store.is_cancelled(run_id):
+                return
             self.store.progress(run_id, "starting", "正在启动高级推理环境", "HARNESS_STARTING")
             try:
                 from deepseek_harness import DeepSeekHarness
@@ -388,15 +431,24 @@ class DeepReadingRunner:
                             "PAPER_READING_GATEWAY_URL": self.gateway_url,
                         },
                     ) as harness:
-                    # dsh v0.1 exposes JSONRPC readiness before async MCP discovery
-                    # settles. A bounded grace window plus cordis.yml toolOrder's
-                    # unknown-tool guard prevents the first turn from silently
-                    # running with an empty registry.
-                    discovery_grace = _mcp_discovery_grace_seconds()
-                    if discovery_grace:
-                        time.sleep(discovery_grace)
-                    self.store.progress(run_id, "research", "正在比对支持、反驳与延伸证据", "RESEARCH_STARTED")
-                    run_result = harness.run(build_research_prompt(run), session_id=f"dsh-{run_id}")
+                    self._register_active_harness(run_id, harness)
+                    try:
+                        # dsh v0.1 exposes JSONRPC readiness before async MCP discovery
+                        # settles. A bounded grace window plus cordis.yml toolOrder's
+                        # unknown-tool guard prevents the first turn from silently
+                        # running with an empty registry.
+                        discovery_grace = _mcp_discovery_grace_seconds()
+                        if discovery_grace:
+                            time.sleep(discovery_grace)
+                        if self.store.is_cancelled(run_id):
+                            return
+                        self.store.progress(run_id, "research", "正在比对支持、反驳与延伸证据", "RESEARCH_STARTED")
+                        run_result = harness.run(build_research_prompt(run), session_id=f"dsh-{run_id}")
+                    finally:
+                        self._unregister_active_harness(run_id, harness)
+
+            if self.store.is_cancelled(run_id):
+                return
 
             if not str(run_result.final_response or "").strip():
                 event_types = [str(event.get("type") or "") for event in run_result.events[-8:]]
@@ -421,8 +473,12 @@ class DeepReadingRunner:
             result.setdefault("openQuestions", [])
             proposals = result.get("proposals") if isinstance(result.get("proposals"), list) else []
             result["proposals"] = proposals[:3]
+            if self.store.is_cancelled(run_id):
+                return
             if self.on_complete:
                 result = self.on_complete(run, result)
+            if self.store.is_cancelled(run_id):
+                return
             self.store.complete(run_id, result)
         except Exception as exc:
             self.store.fail(run_id, str(exc))

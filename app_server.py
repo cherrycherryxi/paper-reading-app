@@ -5009,6 +5009,7 @@ class Handler(BaseHTTPRequestHandler):
             if not run:
                 self._send_json({"error": "Research run not found"}, 404)
                 return
+            research_runner().cancel(run_id)
             self._send_json({"run": run})
             return
 
