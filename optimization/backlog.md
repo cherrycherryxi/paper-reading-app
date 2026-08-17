@@ -1494,7 +1494,7 @@ Format per item:
 - evidence: PR #124 已 squash 合入 `feature/agent`，提交 `c0e9b2a`；启动校验与启动异常已分离，Gateway/runner 异常写入 FAILED，两条 API 回归测试已落地。
 
 ### OPT-160 — 取消深度共读后 runner 仍执行并可创建隐藏待确认 action — 由 explore E258 提拔 [2026-08-16]
-- status: triaged
+- status: done (PR #125, merged 2026-08-17 — `a086b9e`；Harness 可被取消请求关闭，runner 在副作用前复查取消状态，proposal/action 与完成状态在同一写事务内提交；取消/完成竞态回归测试已落地)
 - area: backend / agent
 - priority: P1
 - size: M
@@ -1504,7 +1504,7 @@ Format per item:
 - how: 最小安全修复是在 `harness.run()` 返回后、`on_complete` 前查询 run 状态并在 CANCELLED 时退出；同时为取消竞态加测试，断言 on_complete 未调用、无 action/trace 产生。若 SDK 支持 abort，再把 active harness/run handle 注册到 runner 并由 cancel API 请求中断。Touch: `deep_reading.py:233-250,362-426`, `app_server.py:3510-3581`, `tests/agent/deep_reading_runtime_test.py`, `tests/agent/deep_reading_store_test.py`。
 
 ### OPT-161 — 服务重启后深度共读永久停在 `CREATED/RUNNING` — 由 explore E261 提拔 [2026-08-17]
-- status: new
+- status: triaged
 - area: backend / reliability
 - priority: P1
 - size: S

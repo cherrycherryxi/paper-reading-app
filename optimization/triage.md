@@ -2,20 +2,21 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-17
+Last triaged: 2026-08-18
 
 ## Next up
 
-**无待实现项。**
+**OPT-161 — 服务重启后深度共读永久停在 `CREATED/RUNNING`。**
 
-理由：本轮 Next up OPT-159 已由 PR #124 squash 合入 `feature/agent`（`c0e9b2a`），启动异常会写入 FAILED，相关 API 回归测试已落地。完成项不得继续以 `in-progress` 进入候选卡；其余条目维持本次 triage 结论。
+理由：当前 Theme 3「积累可信」要求持久化状态可恢复，深度共读又是 Theme 2「回顾有价值」的新入口；`DeepReadingRunner.start()` 仅创建 daemon thread（`deep_reading.py:383-384`），`ResearchRunStore` 只有 create/list/cancel/progress/complete/fail，仓库中没有服务启动时收口遗留 `CREATED/RUNNING` 的路径。服务重启会让历史永久显示执行中并诱发重复研究。任务只需在后端启动阶段把旧的非终态 run 原子标为 FAILED、写明重启中断并补 store 回归，验收边界明确，无产品/设计取舍。**夜间适配：是**，因为它是复杂度 S 的局部正确性修复，不涉及信息架构、视觉方案或 owner 判断。关键文件：`deep_reading.py`、`app_server.py`、`tests/agent/deep_reading_store_test.py`。
 
-**预算状态（2026-08-17）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 **4**；预算未耗尽。未调用 `gh` 或 GitHub API。
+**预算状态（2026-08-18）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **5**，上限 **8**，剩余 **3**；预算未耗尽。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 最近 8 日提交中，OPT-142、147、151–158 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
+- 最近 8 日提交中，OPT-142、147、151–159 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
 - OPT-159 已完成：PR #124 / `c0e9b2a` 已在 `feature/agent`；启动失败补偿与 API 回归测试均在树中。
-- OPT-160 为 P1/M：`cancel()` 只写 CANCELLED（`deep_reading.py:233-250`），而 runner 在 `harness.run()` 后仍先调用 `on_complete`（`deep_reading.py:399-426`），跨后台执行、proposal/action 副作用与可能的 Harness 中断取舍。虽北极星贡献强，但复杂度 M，不进入夜间 Next up，留给 10:00 晨间候选卡。
+- OPT-160 已完成：PR #125 / `a086b9e` 已合入；当前 `DeepReadingRunner.cancel()` 会关闭活动 Harness，`_run()` 在副作用前复查取消，`persist_research_proposals()` 以 `BEGIN IMMEDIATE` 串行化取消与 proposal/action/完成状态，竞态测试在树中。
+- OPT-161 仍未完成：当前 runner 使用 daemon thread，代码中未找到启动恢复路径；P1/S，北极星贡献强，且符合夜间局部正确性边界，故作为唯一 Next up。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们均无合理当前北极星贡献，不指派。
 
 ## Prioritized backlog
@@ -23,7 +24,8 @@ Last triaged: 2026-08-17
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **done** | ✅ PR #124 / `c0e9b2a` 已合入 [2026-08-17]；启动失败写 FAILED + API 回归 |
-| OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | triaged | 留给 10:00 晨间候选卡；跨 runner、持久化副作用与中断语义，夜间适配：否 |
+| OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | **done** | ✅ PR #125 / `a086b9e` 已合入 [2026-08-17]；取消中断、事务串行化与竞态测试已落地 |
+| OPT-161 | 服务重启后深度共读永久停在 CREATED/RUNNING | **P1** | S | triaged | **Next up**；Theme 3 状态可信 + Theme 2 回顾入口；夜间适配：是——局部正确性、失败化语义与测试边界明确 |
 | OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10] |
 | OPT-153 | 快速识别误删一行后无法撤销 | **P1** | S | **done** | ✅ PR #113 / `e7e108c`；撤销与全删恢复测试已在树中 |
 | OPT-154 | 快速识别核对时双击页面放大 | P2 | S | **done** | ✅ PR #114 / `6ec326b`；局部 manipulation 约束与测试已在树中 |
@@ -55,7 +57,7 @@ Last triaged: 2026-08-17
 
 ## Recently reconciled done
 
-OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 

@@ -7,11 +7,11 @@
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
 > Files: 278 tracked | Anatomy hits: 0 | Misses: 0
 
-## Current planning state (2026-08-17)
+## Current planning state (2026-08-18)
 
-- `optimization/backlog.md` — OPT-159 is P2/S triaged; OPT-160 is P1/M triaged; Explore promoted OPT-161 (P1/S) for restart-orphaned deep-reading runs.
-- `optimization/triage.md` — Last triaged 2026-08-17; externally supplied seven-day auto PR count is 4/8; OPT-159 is the single nightly assignment.
-- `optimization/explore.md` — 2026-08-17 Explore added E261–265 and promoted E261 as OPT-161; remote baseline `229fa7b`, open PR #124 covers only OPT-159.
+- `optimization/backlog.md` — OPT-159 is done via PR #124; OPT-160 is done via PR #125; OPT-161 is P1/S triaged for restart-orphaned deep-reading runs.
+- `optimization/triage.md` — Last triaged 2026-08-18; externally supplied seven-day auto PR count is 5/8; OPT-161 is the single nightly assignment.
+- Evidence — current code has cancellation interruption and atomic proposal finalization, but no startup recovery for persisted `CREATED/RUNNING` research runs.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
