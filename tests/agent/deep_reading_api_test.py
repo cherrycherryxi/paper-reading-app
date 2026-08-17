@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
 
 import app_server
 
@@ -199,6 +200,76 @@ class DeepReadingApiTests(unittest.TestCase):
         conn.close()
         self.assertEqual(action_count, 0)
         self.assertEqual(trace_count, 0)
+
+    def test_proposal_commit_atomically_completes_before_late_cancel(self):
+        run, _ = app_server.research_store().create("u1", {"type": "book", "bookId": "b1"}, "完成竞态")
+        validation_started = threading.Event()
+        release_validation = threading.Event()
+        persistence_finished = threading.Event()
+        cancellation_finished = threading.Event()
+        outcome = {}
+        original_validate = app_server.ActionValidator.validate
+
+        def blocking_validate(validator, actions):
+            validation_started.set()
+            if not release_validation.wait(2):
+                raise AssertionError("validation release timed out")
+            return original_validate(validator, actions)
+
+        def persist():
+            try:
+                outcome["result"] = app_server.persist_research_proposals(run, {
+                    "summary": "原子完成",
+                    "proposals": [{
+                        "type": "question",
+                        "data": {"content": "完成后应可见"},
+                        "reason": "回归测试",
+                        "evidenceIds": ["q1"],
+                    }],
+                })
+            finally:
+                persistence_finished.set()
+
+        def cancel():
+            try:
+                outcome["cancel"] = app_server.research_store().cancel(run["id"], "u1")
+            finally:
+                cancellation_finished.set()
+
+        with patch.object(app_server.ActionValidator, "validate", blocking_validate):
+            persistence_worker = threading.Thread(target=persist)
+            persistence_worker.start()
+            self.assertTrue(validation_started.wait(1))
+
+            cancellation_worker = threading.Thread(target=cancel)
+            cancellation_worker.start()
+            self.assertFalse(
+                cancellation_finished.wait(0.1),
+                "cancel should wait while the completion transaction owns the write lock",
+            )
+
+            release_validation.set()
+            persistence_worker.join(timeout=2)
+            cancellation_worker.join(timeout=2)
+
+        self.assertTrue(persistence_finished.is_set())
+        self.assertTrue(cancellation_finished.is_set())
+        self.assertEqual(outcome["cancel"]["status"], "COMPLETED")
+
+        current = app_server.research_store().get(run["id"], "u1")
+        self.assertEqual(current["status"], "COMPLETED")
+        self.assertEqual(current["result"]["summary"], "原子完成")
+        self.assertEqual(current["result"]["proposals"][0]["action"]["status"], app_server.ACTION_STATUS_PENDING)
+
+        conn = app_server.get_conn()
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM agent_actions WHERE user_id='u1'").fetchone()[0], 1)
+        self.assertEqual(
+            conn.execute(
+                "SELECT COUNT(*) FROM agent_traces WHERE user_id='u1' AND request_type='deep_reading'"
+            ).fetchone()[0],
+            1,
+        )
+        conn.close()
 
 
 if __name__ == "__main__":

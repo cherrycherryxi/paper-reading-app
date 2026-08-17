@@ -240,12 +240,14 @@ class ResearchRunStore:
                 return None
             if row["status"] not in TERMINAL_STATUSES:
                 now = _now_iso()
-                conn.execute(
+                cancelled = conn.execute(
                     "UPDATE research_runs SET cancel_requested=1,status='CANCELLED',progress_stage='cancelled',"
-                    " progress_message='任务已取消',updated_at=?,completed_at=? WHERE run_id=?",
-                    (now, now, run_id),
+                    " progress_message='任务已取消',updated_at=?,completed_at=?"
+                    " WHERE run_id=? AND user_id=? AND status NOT IN ('COMPLETED','FAILED','CANCELLED')",
+                    (now, now, run_id, user_id),
                 )
-                self._event_conn(conn, run_id, "RUN_CANCELLED", {})
+                if cancelled.rowcount:
+                    self._event_conn(conn, run_id, "RUN_CANCELLED", {})
                 conn.commit()
             return self.get(run_id, user_id)
         finally:
@@ -293,7 +295,7 @@ class ResearchRunStore:
         conn = _connect(self.db_path)
         try:
             row = conn.execute("SELECT status FROM research_runs WHERE run_id = ?", (run_id,)).fetchone()
-            if not row or row["status"] == "CANCELLED":
+            if not row or row["status"] in TERMINAL_STATUSES:
                 return
             now = _now_iso()
             conn.execute(

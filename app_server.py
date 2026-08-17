@@ -3564,7 +3564,11 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
             status_row = conn.execute(
                 "SELECT status, cancel_requested FROM research_runs WHERE run_id = ?", (run["id"],)
             ).fetchone()
-            if not status_row or status_row["status"] == "CANCELLED" or status_row["cancel_requested"]:
+            if (
+                not status_row
+                or status_row["status"] not in {"CREATED", "RUNNING"}
+                or status_row["cancel_requested"]
+            ):
                 conn.rollback()
                 return result
 
@@ -3610,8 +3614,23 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
                     {"runId": run["id"], "actionId": action["id"], "evidenceIds": proposal.get("evidenceIds", [])},
                     commit=False,
                 )
-            conn.commit()
             result["proposals"] = persisted
+            completed_at = now_iso()
+            completed = conn.execute(
+                "UPDATE research_runs SET status='COMPLETED',progress_stage='completed',"
+                " progress_message='深度共读已完成',result_json=?,updated_at=?,completed_at=?"
+                " WHERE run_id=? AND status IN ('CREATED','RUNNING') AND cancel_requested=0",
+                (json.dumps(result, ensure_ascii=False), completed_at, completed_at, run["id"]),
+            )
+            if completed.rowcount != 1:
+                conn.rollback()
+                return result
+            conn.execute(
+                "INSERT INTO research_run_events(event_id,run_id,event_type,metadata,created_at)"
+                " VALUES(?,?,?,?,?)",
+                (new_id("research-event"), run["id"], "RESULT_COMPLETED", "{}", completed_at),
+            )
+            conn.commit()
             return result
         except Exception:
             conn.rollback()
