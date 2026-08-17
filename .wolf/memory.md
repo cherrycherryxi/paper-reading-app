@@ -5106,3 +5106,9 @@
 - PR #125 / `a086b9e` 已完成 OPT-160：取消请求可关闭活动 Harness，runner 在副作用前复查取消，proposal/action 与完成状态使用同一写事务，并有取消竞态回归测试。
 - OPT-161 仍有代码证据：深度共读由 daemon thread 执行，服务启动没有把遗留 `CREATED/RUNNING` 收口为失败的恢复路径。其为 P1/S、边界清楚的局部正确性任务，2026-08-18 夜间唯一指派。
 - 外层提供最近 7 天 `auto/` PR 数 5/8；预算未耗尽。GitHub PR 清单为空，未据此臆断其他完成状态。
+
+## [2026-08-18] Explore：拍照摘抄裁剪与恢复边界
+
+- 远端 `feature/agent` 与本地 HEAD 同为 `0db3459`；已知 open PR #126 只覆盖 OPT-161。GitHub CLI 因网络不可达，未把无法刷新的 PR 清单当作完整证据。
+- 新增 E266–268：裁剪框只有指针操作、图片后台压缩失败被空 catch 吞掉、OCR 恢复 ID 的 localStorage 写异常可阻断当次识别。
+- 三项均有当前代码证据，但没有直接 owner signal；不新增 OPT，避免挤占 Theme 3 当前强证据项 OPT-161。

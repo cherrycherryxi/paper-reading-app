@@ -12,6 +12,7 @@
 - `optimization/backlog.md` — OPT-159 is done via PR #124; OPT-160 is done via PR #125; OPT-161 is P1/S triaged for restart-orphaned deep-reading runs.
 - `optimization/triage.md` — Last triaged 2026-08-18; externally supplied seven-day auto PR count is 5/8; OPT-161 is the single nightly assignment.
 - Evidence — current code has cancellation interruption and atomic proposal finalization, but no startup recovery for persisted `CREATED/RUNNING` research runs.
+- `optimization/explore.md` — 2026-08-18 appended E266–268: crop keyboard accessibility, swallowed image-compression failures, and unguarded OCR recovery-ID storage writes; none promoted because no direct signal supports displacing OPT-161.
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 

@@ -4753,3 +4753,51 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱——没有当前用户影响或 signal，保留为 API health，不提拔。
 
 > 本次 run 新发现 5 条：E261（重启遗留非终态任务，S，可靠性）、E262（首次查询失败后停止轮询，S，错误处理）、E263（隐藏工作台持续轮询，S，性能）、E264（历史响应跨上下文覆盖，S，correctness）、E265（非法 limit 未收口，S，API health）。仅 E261 与当前 Theme 3 的持久化可信直接一致，提拔为 OPT-161；其余证据明确但缺直接 signal，留探索池。
+
+## 2026-08-18
+
+> 扫描焦点：当前 Theme 3「积累可信」下的拍照摘抄裁剪、压缩与 OCR 恢复边界。远端 `feature/agent` 与本地 HEAD 均为 `0db3459`；用户明确提供的唯一 open PR 为 #126（OPT-161）。GitHub CLI 本次因网络不可达，未把无法刷新的 PR 清单伪装成完整证据。已核对 backlog、triage、roadmap、signals、E001–265、最近提交及当前代码；以下方向不重复 OPT-161、#126、已合并代码目标或旧 Explore。
+
+### E266 — 裁剪框只有指针拖拽实现，键盘用户无法移动或缩放裁剪区域 (S-M)
+
+**What:** 裁剪框和两个调整手柄使用普通 `div` / `span`，只有 `aria-label`，没有可聚焦语义；裁剪逻辑只监听指针坐标，没有键盘入口。因此键盘或开关控制用户能打开裁剪弹窗，却只能选择“恢复整张 / 取消 / 使用裁剪图片”，不能实际调整范围。
+
+**Evidence:** `index.html:659-664` 的 `#quoteCropFrame` 是 `div`，两个 `.quote-crop-handle` 是无 `tabindex`、无 `role` 的 `span`；`app.js:5246-5286` 仅通过 `event.clientX/clientY` 处理 move/resize。`styles.css:1939-1969` 只定义鼠标 cursor、`:active` 和视觉手柄，没有 `:focus-visible` 或键盘状态。
+
+**Why:** 裁剪是拍照摘抄进入 OCR 前的新关键步骤。界面已用 accessible name 暗示它可操作，但实际辅助技术无法进入控件，属于语义与行为不一致。可为裁剪框/手柄补可聚焦控件语义，用方向键小步移动、Shift+方向键调整尺寸，并通过 `aria-valuetext` 报告范围。
+
+**Size:** S-M
+
+**Files:** `index.html:656-670`; `app.js:5246-5290`; `styles.css:1939-1969`; `tests/frontend/quote-ocr-fast.test.js`
+
+**Northstar:** 中——直接改善高频“拍照→裁剪→OCR”采集链路的可达性，但当前无辅助技术真实 signal，不提拔。
+
+### E267 — 摘抄图片后台压缩失败被空 catch 吞掉，预览仍显示成功且无可恢复提示 (S)
+
+**What:** 选图后先用 object URL 立即展示预览并提示“图片已载入”，随后后台压缩；两张图片的压缩 rejection 都被空 `catch` 吞掉。失败时 `dataUrl/originalDataUrl` 始终为空，用户仍看到正常预览和裁剪/OCR入口，直到后续裁剪或 OCR `await compressionPromise` 才收到脱离根因的失败反馈。
+
+**Evidence:** `app.js:5359-5381` 与 `app.js:5384-5403` 在创建预览后保存 `compressionPromise`，末尾均为 `.catch(() => {})`；裁剪入口随后直接等待同一 promise（`app.js:5230-5231`），OCR 也直接等待它（`app.js:5438-5444`）。当前 `tests/frontend/quote-ocr-fast.test.js` 覆盖成功压缩/裁剪契约，但全库未找到压缩 rejection 的用户反馈测试。
+
+**Why:** iOS 图片解码、canvas 分配或格式支持失败并非等同于“仍在处理中”。静默吞错会把确定失败伪装成等待态，用户可能反复点击 OCR。最小修复是在 image 对象记录 `compressionError`、更新状态/禁用依赖压缩的动作，并允许重新选图；测试锁定第一张和第二张失败不影响另一张。
+
+**Size:** S
+
+**Files:** `app.js:5230-5231,5359-5403,5438-5444`; `tests/frontend/quote-ocr-fast.test.js`
+
+**Northstar:** 中——保护 Theme 3 的采集可信与错误可恢复性；没有真实压缩失败 signal，本轮不提拔。
+
+### E268 — OCR 恢复 ID 的 localStorage 写入未保护，存储异常可在请求发出前中断识别 (S)
+
+**What:** 读取 OCR request IDs 有 try/catch，但新增和删除 ID 直接调用 `localStorage.setItem()`。浏览器禁用存储、隐私模式或配额异常时，`rememberOcrRequest()` 会在网络请求前抛错，随后外层错误恢复又调用同样可能失败的存储路径；本应只是“无法跨刷新恢复”的降级，会升级成当次 OCR 无法提交或错误处理再次抛出。
+
+**Evidence:** `app.js:1236-1242` 的读取已容错；`app.js:1245-1256` 的 `rememberOcrRequest()` / `forgetOcrRequest()` 写入没有 try/catch。快速/AI OCR 在发请求前调用 `rememberOcrRequest()`（`app.js:5446-5448`），catch 路径调用 `recoverOcrRequest()`，终态或 not-found 又可能进入 `forgetOcrRequest()`（`app.js:1259-1275`）。
+
+**Why:** request ID 本地持久化是增强恢复能力，不应成为 OCR 的硬依赖。将写入封装为 best-effort 并返回是否持久化；当不可用时当次请求照常执行，只明确提示“离开页面后可能无法自动取回”，即可保持核心采集路径可用。
+
+**Size:** S
+
+**Files:** `app.js:1234-1275,5446-5448`; `tests/frontend/quote-ocr-fast.test.js` 或新增 OCR recovery test
+
+**Northstar:** 中——避免浏览器存储限制阻断拍照摘抄核心路径；属于代码核实出的确定异常边界，但无实际发生 signal，不提拔。
+
+> 本次 run 新发现 3 条：E266（裁剪框缺键盘操作，S-M，无障碍）、E267（图片压缩失败被吞，S，错误处理）、E268（OCR 恢复 ID 写入异常阻断识别，S，可靠性）。三项均有当前 `file:line` 证据且已排除 backlog、旧 Explore、最近合并目标与已知 open PR #126；因没有直接 owner signal，且 OPT-161 已是当前 Theme 3 的强证据任务，本轮不新增 OPT。
