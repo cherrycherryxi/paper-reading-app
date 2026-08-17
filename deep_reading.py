@@ -192,6 +192,35 @@ class ResearchRunStore:
         finally:
             conn.close()
 
+    def fail_interrupted_runs(self) -> int:
+        """Close non-terminal runs whose daemon workers died with the server."""
+        conn = _connect(self.db_path)
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            rows = conn.execute(
+                "SELECT run_id FROM research_runs WHERE status IN ('CREATED','RUNNING')"
+            ).fetchall()
+            if not rows:
+                conn.commit()
+                return 0
+            now = _now_iso()
+            error = "服务重启中断，深度共读任务未完成"
+            for row in rows:
+                conn.execute(
+                    "UPDATE research_runs SET status='FAILED',progress_stage='failed',"
+                    " progress_message='服务重启，任务已中断',error_message=?,updated_at=?,completed_at=?"
+                    " WHERE run_id=? AND status IN ('CREATED','RUNNING')",
+                    (error, now, now, row["run_id"]),
+                )
+                self._event_conn(conn, row["run_id"], "RUN_FAILED", {"error": error})
+            conn.commit()
+            return len(rows)
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
     def get(self, run_id: str, user_id: str, include_events: bool = True) -> dict[str, Any] | None:
         conn = _connect(self.db_path)
         try:
