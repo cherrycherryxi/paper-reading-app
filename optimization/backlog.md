@@ -259,7 +259,7 @@ Format per item:
 - how: 将 `reading_mcp_server.py:50-51` 的 `_now_iso()` 改为返回 UTC+Z 格式（`datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`，或从 `app_server.py` import `utc_now_iso`）。在 `tests/agent/reading_mcp_server_tools_test.py` 中加一条断言：工具返回的 `createdAt` 以 `Z` 结尾。Touch: `reading_mcp_server.py:50-51`；`tests/agent/reading_mcp_server_tools_test.py`。
 
 ### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
-- status: triaged
+- status: done — PR #124 / `c0e9b2a` [2026-08-17]
 - priority: P3
 - size: S
 - northstar: 无直接贡献(磁盘卫生,仅间接长期可靠性)。按 roadmap §5 北极星税 → P3 parked,预算富余周再做。
@@ -1491,6 +1491,7 @@ Format per item:
 - description: `/api/research-runs` 先持久化 CREATED run，再启动 Gateway 与 runner；启动步骤抛错时仅返回 500，已提交的 run 不会失败或删除，历史列表会永久展示不再推进的任务。
 - why: 这是当前新功能可确定触发的数据状态错误，而非未来推演。基础设施启动异常本就是最需要可靠失败语义的路径，且现有 UI 没有删除卡住任务的入口。
 - how: 保存 create 返回的 run id；`ensure_research_gateway()` / `research_runner().start()` 异常时调用 `research_store().fail(run_id, error)` 后再返回错误。补 create 成功、runner 启动抛错后 run=FAILED 且历史可读取的 API 回归测试。Touch: `app_server.py:4985-4993`, `deep_reading.py:298-313`, `tests/agent/deep_reading_api_test.py`。
+- evidence: PR #124 已 squash 合入 `feature/agent`，提交 `c0e9b2a`；启动校验与启动异常已分离，Gateway/runner 异常写入 FAILED，两条 API 回归测试已落地。
 
 ### OPT-160 — 取消深度共读后 runner 仍执行并可创建隐藏待确认 action — 由 explore E258 提拔 [2026-08-16]
 - status: triaged

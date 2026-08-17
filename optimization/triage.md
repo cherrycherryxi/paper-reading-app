@@ -6,15 +6,15 @@ Last triaged: 2026-08-17
 
 ## Next up
 
-**OPT-159 — 深度共读启动异常遗留永久 `CREATED` 任务。**
+**无待实现项。**
 
-理由：`app_server.py:4985-4993` 先由 `research_store().create()` 持久化 `CREATED`，随后才启动 Gateway 与 runner；两者异常时只返回 500，没有调用已存在的 `ResearchRunStore.fail()`。这是 `55fb0c7` 新增深度共读工作台后的确定性状态错误：失败任务会永久留在历史中，破坏当前 Theme 3「积累可信」及深度共读对 Theme 2「回顾有价值」的承接。关键文件：`app_server.py`、`deep_reading.py`、`tests/agent/deep_reading_api_test.py`。signal：无 owner 直接反馈，以新功能真实代码路径和可验证的错误状态为证，不扩大为体验设计。**夜间适配：是**：复杂度 S；仅需把启动异常收口为 FAILED，并用 API 回归锁定“返回错误且历史任务为 FAILED”，验收边界清楚、无需 owner 产品或设计判断。
+理由：本轮 Next up OPT-159 已由 PR #124 squash 合入 `feature/agent`（`c0e9b2a`），启动异常会写入 FAILED，相关 API 回归测试已落地。完成项不得继续以 `in-progress` 进入候选卡；其余条目维持本次 triage 结论。
 
 **预算状态（2026-08-17）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 **4**；预算未耗尽。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
 - 最近 8 日提交中，OPT-142、147、151–158 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
-- OPT-159 为 P2/S：`ResearchRunStore.fail()`（`deep_reading.py:298-313`）已有 FAILED 状态与事件语义，端点缺少的只是启动异常补偿，北极星贡献为“失败历史可信且可安全重试”，符合夜间局部正确性修复。
+- OPT-159 已完成：PR #124 / `c0e9b2a` 已在 `feature/agent`；启动失败补偿与 API 回归测试均在树中。
 - OPT-160 为 P1/M：`cancel()` 只写 CANCELLED（`deep_reading.py:233-250`），而 runner 在 `harness.run()` 后仍先调用 `on_complete`（`deep_reading.py:399-426`），跨后台执行、proposal/action 副作用与可能的 Harness 中断取舍。虽北极星贡献强，但复杂度 M，不进入夜间 Next up，留给 10:00 晨间候选卡。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们均无合理当前北极星贡献，不指派。
 
@@ -22,7 +22,7 @@ Last triaged: 2026-08-17
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **in-progress** | **Next up**；Codex nightly PR pending；Theme 3 正确性收口，夜间适配：是；启动失败写 FAILED + API 回归 |
+| OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **done** | ✅ PR #124 / `c0e9b2a` 已合入 [2026-08-17]；启动失败写 FAILED + API 回归 |
 | OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | triaged | 留给 10:00 晨间候选卡；跨 runner、持久化副作用与中断语义，夜间适配：否 |
 | OPT-151 | 数据备份恢复丢弃长期记忆与自定义摘抄标签 | **P1** | S | **done** | ✅ PR #112 / `2a67328` 已合入 [2026-08-10] |
 | OPT-153 | 快速识别误删一行后无法撤销 | **P1** | S | **done** | ✅ PR #113 / `e7e108c`；撤销与全删恢复测试已在树中 |
