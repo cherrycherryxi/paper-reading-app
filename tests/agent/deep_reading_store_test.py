@@ -75,6 +75,30 @@ class DeepReadingStoreTests(unittest.TestCase):
         run, _ = self.store.create("user-1", {"type": "global"}, "研究")
         self.assertIsNone(self.store.get(run["id"], "user-2"))
 
+    def test_startup_recovery_fails_only_interrupted_runs_once(self):
+        created, _ = self.store.create("user-1", {"type": "global"}, "尚未启动")
+        running, _ = self.store.create("user-1", {"type": "book", "bookId": "book-1"}, "研究中")
+        completed, _ = self.store.create("user-1", {"type": "global"}, "已完成")
+        self.store.progress(running["id"], "research", "研究中", "RESEARCH_STARTED")
+        self.store.complete(completed["id"], {"summary": "done"})
+
+        self.assertEqual(self.store.fail_interrupted_runs(), 2)
+        self.assertEqual(self.store.fail_interrupted_runs(), 0)
+
+        for run_id in (created["id"], running["id"]):
+            recovered = self.store.get(run_id, "user-1", include_events=True)
+            self.assertEqual(recovered["status"], "FAILED")
+            self.assertEqual(recovered["progress"]["message"], "服务重启，任务已中断")
+            self.assertIn("服务重启中断", recovered["error"])
+            self.assertTrue(recovered["completedAt"])
+            self.assertEqual(
+                [event["type"] for event in recovered["events"]].count("RUN_FAILED"), 1
+            )
+
+        untouched = self.store.get(completed["id"], "user-1")
+        self.assertEqual(untouched["status"], "COMPLETED")
+        self.assertEqual(untouched["result"], {"summary": "done"})
+
 
 if __name__ == "__main__":
     unittest.main()

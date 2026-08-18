@@ -6578,6 +6578,9 @@ def _run_gc() -> None:
 
 def main() -> None:
     init_db()
+    interrupted_research_runs = research_store().fail_interrupted_runs()
+    if interrupted_research_runs:
+        print(f"[startup] failed interrupted research runs: {interrupted_research_runs}")
     print("[startup] fetching tool schemas from MCP server ...")
     ToolSchemaProvider.initialize()
     print("[startup] tool schemas loaded:", ToolSchemaProvider.get().action_types())
