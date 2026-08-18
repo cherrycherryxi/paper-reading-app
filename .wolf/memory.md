@@ -1,5 +1,7 @@
 # Memory
 
+| 2026-08-19 | 夜间 Agent1 Triage：用外层给定提交、空 PR 清单与 4/8 auto PR 预算对账；OPT-161 已由 PR #126 / ad85cd5 完成，13 个未完成项均为 P3 parked/blocked，且无同时满足 S、当前 Theme/signal、无需 owner 判断的候选，故 Next up 明写“无符合夜间条件的任务”；未访问 GitHub、未提交 | optimization/triage.md, optimization/backlog.md, .wolf/anatomy.md, .wolf/memory.md | done | planning-only |
+
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-05-29 | 商业化路线图（12 项 P0–P3）建立；Task #1 完成：4 个 AI 端点（chat/chat-stream/ocr/quotes-ocr）加每用户每小时+每天限流，可由 RATE_LIMIT_HOUR/DAY 环境变量覆盖；429 含友好中文 message + Retry-After 头；apiFetch + chat.js 流式分支均识别 429 并区分错误 UI（amber .chat-rate-limited）；新表 rate_limit_counters；9 个新回归测试通过；E2E 验证 req3→429 | app_server.py, app.js, chat.js, styles.css, tests/agent/rate_limit_test.py, tests/frontend/regression-fixed-bugs.test.js, tests/frontend/chat-agent-approval.test.js | done | ~7500 |

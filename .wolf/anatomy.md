@@ -1,5 +1,11 @@
 # anatomy.md
 
+## Current planning state (2026-08-19)
+
+- `optimization/backlog.md` — 13 个未完成项维持原状态：11 个 P3/S parked、OPT-081 为 P3/M、OPT-117 为 P3/L blocked；无新增合并项需要改写。
+- `optimization/triage.md` — Last triaged 2026-08-19；外层提供七日 `auto/` PR 计数 4/8，预算未耗尽，但无符合夜间 S + 当前 Theme/signal + 无 owner 判断条件的任务，因此 Next up 为空。
+- Evidence — OPT-161 已由 PR #126 / `ad85cd5` 合入并在 backlog、triage 标 done；空的最近 50 个 PR 清单不作为额外状态证据，未调用 GitHub。
+
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-15T07:22:06.700Z
 > Files: 348 tracked | Anatomy hits: 0 | Misses: 0
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z

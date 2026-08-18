@@ -2,20 +2,20 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-18
+Last triaged: 2026-08-19
 
 ## Next up
 
-无。OPT-161 已由 PR #126 完成并合入，本次合并对账不另行指派候选卡。
+无符合夜间条件的任务。预算仍有余量，但全部未完成项都不同时满足「复杂度 S、验收边界清楚、无需 owner 产品/设计判断、且有当前 Theme / 真实 signal 支撑」；不为填满预算指派 P3 工程项。
 
-**预算状态（2026-08-18）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **5**，上限 **8**，剩余 **3**；预算未耗尽。未调用 `gh` 或 GitHub API。
+**预算状态（2026-08-19）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 **4**；预算未耗尽。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 最近 8 日提交中，OPT-142、147、151–159 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
+- 最近 8 日提交中，OPT-142、147、151–161 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
 - OPT-159 已完成：PR #124 / `c0e9b2a` 已在 `feature/agent`；启动失败补偿与 API 回归测试均在树中。
 - OPT-160 已完成：PR #125 / `a086b9e` 已合入；当前 `DeepReadingRunner.cancel()` 会关闭活动 Harness，`_run()` 在副作用前复查取消，`persist_research_proposals()` 以 `BEGIN IMMEDIATE` 串行化取消与 proposal/action/完成状态，竞态测试在树中。
 - OPT-161 已完成：PR #126 / `ad85cd5` 已合入 `feature/agent`；启动时原子收口遗留 `CREATED/RUNNING`、写入失败原因与事件，幂等及终态保护测试已落地。
-- 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们均无合理当前北极星贡献，不指派。
+- 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们均无合理当前北极星贡献，维持 parked/blocked。**夜间适配：否**——S 项虽局部且边界明确，但没有当前 Theme / signal 支撑，按北极星税不得指派；M/L 项同时越过夜间复杂度边界。
 
 ## Prioritized backlog
 
@@ -55,7 +55,7 @@ Last triaged: 2026-08-18
 
 ## Recently reconciled done
 
-OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 
