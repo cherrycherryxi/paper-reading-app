@@ -1513,3 +1513,23 @@ Format per item:
 - why: 这是长任务与服务生命周期之间的确定性 correctness 缺口，不依赖 UI 假设。部署重启是正常运维事件，历史状态不能因此永久撒谎。
 - how: 在 `init_db()` 后增加一次原子恢复：把遗留 `CREATED/RUNNING` 更新为 `FAILED`，写入明确的中断原因、`updated_at/completed_at`，并为每项追加 `RUN_FAILED` 事件；补 store 或 startup 回归测试，覆盖终态任务不受影响。Touch: `deep_reading.py:265-313,362-364`, `app_server.py:576-608,6520-6526`, `tests/agent/deep_reading_store_test.py`。
 - evidence: PR #126 已 squash 合入 `feature/agent`，提交 `ad85cd5`；本次实跑 Python 全量 `491 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
+
+### OPT-162 — 深度共读阅读时间线丢失起止页与已读页数 — 由 explore E269 提拔 [2026-08-19]
+- status: new
+- area: backend / agent correctness
+- priority: P1
+- size: S
+- northstar: 强——已有阅读记录保存了准确页码，但深度共读回顾入口稳定丢弃，直接破坏基于个人积累取证的可信度，并削弱 2026-08-13「降低手动记录负担、让现有足迹产生价值」signal 的回流价值。
+- description: `paper_reading_gateway.py:170-179` 的 `get_reading_timeline()` 只返回 `id/bookId/date/minutes/pages/note/createdAt`，其中 `pages` 不存在于当前 session 数据。真实写入结构是 `startPage/endPage/pagesRead`（`app.js:3003-3040,3058-3060`；`app_server.py:298-301`），所以模型能看到日期和分钟，却稳定看不到阅读区间与页数。
+- why: 这是当前生产数据结构与新 Gateway 映射之间的确定性错配，不依赖未来规模或推测。任何关于阅读进度、区间或速度的深度共读都将缺关键证据。
+- how: 把时间线白名单中的 `pages` 替换为 `startPage/endPage/pagesRead`；在 `tests/agent/deep_reading_gateway_contract_test.py` 构造真实 session，断言筛选 bookId 后三个字段原样返回，且不暴露无关用户数据。Touch: `paper_reading_gateway.py:170-179`、`tests/agent/deep_reading_gateway_contract_test.py`。
+
+### OPT-163 — 深度共读摘抄工具丢失「我的理解」并无法按其检索 — 由 explore E270 提拔 [2026-08-19]
+- status: new
+- area: backend / agent context
+- priority: P1
+- size: S
+- northstar: 强——`reflection` 是用户对摘抄的个人解释，属于 Theme 3 要保护的核心积累；研究模型看不到它，会把个性化回顾退化成只复述原文。
+- description: 摘抄真实字段为 `reflection`（`index.html:647`，当前搜索见 `app.js:2088-2094`、保存见 `app.js:4476-4498`），但 `_compact_quote()` 返回不存在的 `note`（`paper_reading_gateway.py:82-94`），`search_quotes()` 也只检索 `content/ocrText/note/tags`（`paper_reading_gateway.py:114-124`）。因此按个人理解关键词检索必然漏结果，其他字段命中时返回对象也不含该理解。
+- why: 这是确定性字段错配，影响聚焦摘抄与跨摘抄搜索两条深度共读路径。用户已经写下的“为什么值得记”不应在研究边界静默消失。
+- how: `_compact_quote()` 返回 `reflection`；`search_quotes()` haystack 用 `reflection` 替换 `note`（如需兼容历史异常数据可同时保留 note 回落）；补带 reflection 的聚焦摘抄与关键词检索测试。Touch: `paper_reading_gateway.py:82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。

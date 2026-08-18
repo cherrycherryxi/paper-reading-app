@@ -5114,3 +5114,8 @@
 - 远端 `feature/agent` 与本地 HEAD 同为 `0db3459`；已知 open PR #126 只覆盖 OPT-161。GitHub CLI 因网络不可达，未把无法刷新的 PR 清单当作完整证据。
 - 新增 E266–268：裁剪框只有指针操作、图片后台压缩失败被空 catch 吞掉、OCR 恢复 ID 的 localStorage 写异常可阻断当次识别。
 - 三项均有当前代码证据，但没有直接 owner signal；不新增 OPT，避免挤占 Theme 3 当前强证据项 OPT-161。
+
+## 2026-08-19 · 深度共读 Gateway 字段契约
+
+- `paper_reading_gateway.py` 必须按前端真实 state 字段传递积累：session 是 `startPage/endPage/pagesRead`，不是 `pages`；quote 的个人理解是 `reflection`，不是 `note`。
+- Gateway 只读/鉴权测试不足以证明字段正确；新增或修改工具时，应以真实 state fixture 覆盖每个工具的过滤条件和返回字段，防止“接口全绿但用户积累静默丢失”。

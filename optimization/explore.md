@@ -4801,3 +4801,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——避免浏览器存储限制阻断拍照摘抄核心路径；属于代码核实出的确定异常边界，但无实际发生 signal，不提拔。
 
 > 本次 run 新发现 3 条：E266（裁剪框缺键盘操作，S-M，无障碍）、E267（图片压缩失败被吞，S，错误处理）、E268（OCR 恢复 ID 写入异常阻断识别，S，可靠性）。三项均有当前 `file:line` 证据且已排除 backlog、旧 Explore、最近合并目标与已知 open PR #126；因没有直接 owner signal，且 OPT-161 已是当前 Theme 3 的强证据任务，本轮不新增 OPT。
+
+## 2026-08-19
+
+> 扫描焦点：当前 Theme 3「积累可信」下，深度共读只读 Gateway 是否忠实传递已有摘抄、记录和书籍字段。隔离 clone 中 `HEAD` 与现存 `origin/feature/agent` 引用均为 `61f2e0a`；`git fetch origin feature/agent` 因 `.git/FETCH_HEAD` 只读失败，因此不宣称实时远端已刷新。用户提供的 open PR 证据为空或不可用，本轮不据此推断状态。已核对 backlog、triage、roadmap、signals、E001–268、最近提交及当前代码；以下方向不重复 OPT-001–161、已合并代码目标或旧 Explore。
+
+### E269 — 深度共读阅读时间线导出不存在的 `pages` 字段，起止页与已读页数全部丢失 (S)
+
+**What:** Gateway 的 `get_reading_timeline()` 为每条 session 只挑选 `id/bookId/date/minutes/pages/note/createdAt`，其中 `pages` 并不是当前 session 字段。真实数据使用 `startPage`、`endPage`、`pagesRead`，因此模型调用时间线工具时能看到日期和分钟，却看不到从第几页读到第几页及阅读量。
+
+**Evidence:** `paper_reading_gateway.py:170-179` 的字段白名单包含 `pages`、不含 `startPage/endPage/pagesRead`；当前写入路径在 `app.js:3003-3040,3058-3060` 明确保存 `startPage`、`endPage`、`pagesRead`；后端示例 session 也使用同一结构（`app_server.py:298-301`）。现有 Gateway 测试只枚举工具并验证一个 `get_reading_context()` 鉴权成功例（`tests/agent/deep_reading_gateway_contract_test.py:13-63`），没有断言时间线字段。
+
+**Why:** 深度共读被要求基于用户阅读记录取证。稳定丢失页码会让“我在哪一段读得最慢”“这次读了多少页”等研究只能猜测或声称证据不足；这也削弱 2026-08-13「手动记录负担高、希望已有记录产生价值」signal 的回流价值。
+
+**Size:** S
+
+**Files:** `paper_reading_gateway.py:170-179`; `app.js:3003-3040,3058-3060`; `app_server.py:298-301`; `tests/agent/deep_reading_gateway_contract_test.py:13-63`
+
+**Northstar:** 强——现有阅读记录已保存正确字段，但新回顾入口稳定丢弃它们；修正白名单并加真实 session 契约测试即可恢复可信取证。→ **promoted to OPT-162**
+
+### E270 — 深度共读摘抄工具把「我的理解」错读为不存在的 `note`，个人思考无法检索或返回 (S)
+
+**What:** 摘抄的用户理解存储在 `reflection`，但 Gateway 的 `_compact_quote()` 返回 `note`，`search_quotes()` 的搜索文本也读取 `note`。结果是按个人理解中的关键词搜索无命中，即使因正文命中返回摘抄，返回对象仍不含该理解。
+
+**Evidence:** 摘抄表单字段为 `reflection`（`index.html:647`），当前摘抄搜索把它纳入 haystack（`app.js:2088-2094`），新增和编辑也都写入该字段（`app.js:4476-4498`）；Gateway 却在 `paper_reading_gateway.py:82-94` 返回 `note`，并在 `paper_reading_gateway.py:114-124` 以 `content/ocrText/note/tags` 建检索文本。全库现有 `deep_reading_gateway_contract_test.py:13-63` 没有构造带 reflection 的 quote 或调用 `search_quotes()`。
+
+**Why:** 「我的理解」是摘抄正文之外最直接的用户原声。深度共读若只看到原文、看不到用户为什么记录它，会把个人积累降级成通用摘抄库，且无法按用户自己的观点词汇回找证据。
+
+**Size:** S
+
+**Files:** `paper_reading_gateway.py:82-94,114-124`; `index.html:647`; `app.js:2088-2094,4476-4498`; `tests/agent/deep_reading_gateway_contract_test.py:13-63`
+
+**Northstar:** 强——直接恢复 Theme 3 已有摘抄资产的完整语义，让深度回顾能引用用户自己的理解；字段替换与检索补全均为局部改动。→ **promoted to OPT-163**
+
+### E271 — 深度共读 `list_books()` 只搜书名/作者，按标签、简介或读后感找书会漏结果 (S)
+
+**What:** Gateway 已把 tags、notes、review 放进 `_compact_book()` 返回值，但 `list_books(query)` 的过滤条件只拼接 title 与 author。模型若用主题、标签或用户评价关键词检索书架，会在书确实含该信息时得到空列表。
+
+**Evidence:** `paper_reading_gateway.py:70-79` 的返回白名单包含 `tags/notes/review`；`paper_reading_gateway.py:133-144` 的 haystack 仅为 title + author。前端书单检索已采用 title、author、tags、notes、review、doubanComment 的完整口径（`app.js:1491-1500`），说明这些字段当前真实存在且可检索。旧 E238 关注前端复用 combobox，本项是 8 月新增深度共读 Gateway 的独立后端工具路径。
+
+**Why:** 主题检索是“回顾有价值”的既有核心场景；深度共读明明能返回这些字段，却在定位候选书之前先把它们过滤掉，造成同一账号在书单能找到、研究工具找不到的口径分叉。
+
+**Size:** S
+
+**Files:** `paper_reading_gateway.py:70-79,133-144`; `app.js:1491-1500`; `tests/agent/deep_reading_gateway_contract_test.py:13-63`
+
+**Northstar:** 中——回顾入口的一致性缺口明确，但没有深度共读主题查询失败的直接 signal；保留探索池，不挤占两个确定丢字段项。
+
+### E272 — Gateway 契约测试只验证工具数量和单个鉴权例，五个数据工具的字段映射没有回归保护 (S)
+
+**What:** 当前测试确认暴露六个只读工具、签名不含身份参数，并只实际调用 `get_reading_context()`。`search_quotes()`、`list_books()`、`get_connections()`、`get_confirmed_memories()`、`get_reading_timeline()` 均没有输出字段与过滤行为测试；E269/E270 两个稳定字段错配因此可长期保持绿灯。
+
+**Evidence:** `tests/agent/deep_reading_gateway_contract_test.py:13-28` 只检查工具集合和函数签名；`tests/agent/deep_reading_gateway_contract_test.py:30-63` 唯一行为测试只调用 `get_reading_context()`。生产工具实现集中在 `paper_reading_gateway.py:97-179`，其中时间线与摘抄字段错配已由 E269/E270 逐行坐实。
+
+**Why:** Gateway 是用户状态到外部研究运行时之间的最窄数据边界。仅测试“工具存在、token 隔离”不能证明“返回的是正确用户字段”；补每个工具一个最小真实 state fixture，能在不启动 Harness 的情况下锁住数据口径。
+
+**Size:** S
+
+**Files:** `tests/agent/deep_reading_gateway_contract_test.py:13-63`; `paper_reading_gateway.py:97-179`
+
+**Northstar:** 中——通过防止积累字段再次静默丢失来保护可信回顾；更适合作为 OPT-162/163 的同 PR 验收要求，不单独提拔。
+
+> 本次 run 新发现 4 条：E269（时间线页码字段错配，S，correctness）、E270（摘抄 reflection 丢失，S，correctness）、E271（书籍工具检索口径过窄，S，回顾 UX）、E272（Gateway 五个数据工具缺字段契约测试，S，代码健康）。提拔 E269→OPT-162、E270→OPT-163；其余保留探索池。所有现有缺陷均基于当前文件逐行核实，并已排除 backlog、旧 Explore 与最近合并目标重复。

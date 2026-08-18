@@ -2,6 +2,9 @@
 
 ## Current planning state (2026-08-19)
 
+- `optimization/explore.md` — 夜间 Explore 新增 E269–272，聚焦深度共读 Gateway 的数据字段忠实度与契约测试；E269/E270 为当前代码可确定的数据丢失。
+- `optimization/backlog.md` — 新增 OPT-162（时间线补 `startPage/endPage/pagesRead`）与 OPT-163（摘抄补 `reflection` 检索/返回），均为 P1/S new；编号延续当前最大 OPT-161。
+- Baseline — 隔离 clone 的 `HEAD` 与现存 `origin/feature/agent` 引用同为 `61f2e0a`；fetch 因 `.git/FETCH_HEAD` 只读失败，未宣称实时远端刷新；用户提供的 open PR 证据为空或不可用，未据此推断状态。
 - `optimization/backlog.md` — 13 个未完成项维持原状态：11 个 P3/S parked、OPT-081 为 P3/M、OPT-117 为 P3/L blocked；无新增合并项需要改写。
 - `optimization/triage.md` — Last triaged 2026-08-19；外层提供七日 `auto/` PR 计数 4/8，预算未耗尽，但无符合夜间 S + 当前 Theme/signal + 无 owner 判断条件的任务，因此 Next up 为空。
 - Evidence — OPT-161 已由 PR #126 / `ad85cd5` 合入并在 backlog、triage 标 done；空的最近 50 个 PR 清单不作为额外状态证据，未调用 GitHub。
