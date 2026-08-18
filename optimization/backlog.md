@@ -259,7 +259,7 @@ Format per item:
 - how: 将 `reading_mcp_server.py:50-51` 的 `_now_iso()` 改为返回 UTC+Z 格式（`datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`，或从 `app_server.py` import `utc_now_iso`）。在 `tests/agent/reading_mcp_server_tools_test.py` 中加一条断言：工具返回的 `createdAt` 以 `Z` 结尾。Touch: `reading_mcp_server.py:50-51`；`tests/agent/reading_mcp_server_tools_test.py`。
 
 ### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
-- status: triaged
+- status: done (PR #126, merged 2026-08-18 — `ad85cd5`；启动时原子收口遗留 `CREATED/RUNNING`，记录重启中断原因与 `RUN_FAILED` 事件，幂等及终态保护测试已落地)
 - priority: P3
 - size: S
 - northstar: 无直接贡献(磁盘卫生,仅间接长期可靠性)。按 roadmap §5 北极星税 → P3 parked,预算富余周再做。
@@ -1512,3 +1512,4 @@ Format per item:
 - description: runner 以 daemon thread 执行，服务退出会直接终止线程；run 状态已写入 SQLite，但下次启动没有恢复或失败化 `CREATED/RUNNING` 的路径，因此这些任务会永久停留在非终态。
 - why: 这是长任务与服务生命周期之间的确定性 correctness 缺口，不依赖 UI 假设。部署重启是正常运维事件，历史状态不能因此永久撒谎。
 - how: 在 `init_db()` 后增加一次原子恢复：把遗留 `CREATED/RUNNING` 更新为 `FAILED`，写入明确的中断原因、`updated_at/completed_at`，并为每项追加 `RUN_FAILED` 事件；补 store 或 startup 回归测试，覆盖终态任务不受影响。Touch: `deep_reading.py:265-313,362-364`, `app_server.py:576-608,6520-6526`, `tests/agent/deep_reading_store_test.py`。
+- evidence: PR #126 已 squash 合入 `feature/agent`，提交 `ad85cd5`；本次实跑 Python 全量 `491 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
