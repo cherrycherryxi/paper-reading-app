@@ -259,7 +259,7 @@ Format per item:
 - how: 将 `reading_mcp_server.py:50-51` 的 `_now_iso()` 改为返回 UTC+Z 格式（`datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`，或从 `app_server.py` import `utc_now_iso`）。在 `tests/agent/reading_mcp_server_tools_test.py` 中加一条断言：工具返回的 `createdAt` 以 `Z` 结尾。Touch: `reading_mcp_server.py:50-51`；`tests/agent/reading_mcp_server_tools_test.py`。
 
 ### OPT-032 — `_run_gc()` 缺少 `PRAGMA wal_checkpoint(TRUNCATE)`，WAL 文件持续膨胀从不回收 — 由 explore E51 提拔
-- status: triaged
+- status: done (PR #126, merged 2026-08-18 — `ad85cd5`；启动时原子收口遗留 `CREATED/RUNNING`，记录重启中断原因与 `RUN_FAILED` 事件，幂等及终态保护测试已落地)
 - priority: P3
 - size: S
 - northstar: 无直接贡献(磁盘卫生,仅间接长期可靠性)。按 roadmap §5 北极星税 → P3 parked,预算富余周再做。
