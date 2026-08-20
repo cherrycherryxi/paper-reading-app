@@ -1,5 +1,12 @@
 # anatomy.md
 
+## Current planning state (2026-08-21 Explore)
+
+- `optimization/explore.md` — 新增 E273–276，聚焦深度共读 Gateway 的摘抄检索书籍元数据、关联实体摘要、记忆作用域与证据回溯 UX。
+- `optimization/backlog.md` — 当前远端 `feature/agent` 为 `11199cd`，最大编号 OPT-163；新增 OPT-164（摘抄按书名/作者检索）与 OPT-165（关联两端实体摘要），均为 P1/S new。
+- Duplication guard — 已知 open PR #127 分支 `b1da341` 只覆盖 OPT-163；本轮未重复 OPT-162/163、E001–272 或最近合并目标。
+- Scope — 仅维护 explore/backlog/OpenWolf；未修改应用代码，未 commit/push/开 PR。
+
 ## Current planning state (2026-08-21)
 
 - `optimization/triage.md` — Last triaged 2026-08-21；外层提供七日 `auto/` PR 计数 3/8，预算未耗尽；唯一 Next up 为 OPT-163（P1/S）。

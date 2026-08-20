@@ -4863,3 +4863,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——通过防止积累字段再次静默丢失来保护可信回顾；更适合作为 OPT-162/163 的同 PR 验收要求，不单独提拔。
 
 > 本次 run 新发现 4 条：E269（时间线页码字段错配，S，correctness）、E270（摘抄 reflection 丢失，S，correctness）、E271（书籍工具检索口径过窄，S，回顾 UX）、E272（Gateway 五个数据工具缺字段契约测试，S，代码健康）。提拔 E269→OPT-162、E270→OPT-163；其余保留探索池。所有现有缺陷均基于当前文件逐行核实，并已排除 backlog、旧 Explore 与最近合并目标重复。
+
+## 2026-08-21
+
+> 扫描焦点：继续核对当前 Theme 3「积累可信」下深度共读 Gateway 的检索与呈现契约。远端只读查询确认 `feature/agent` 为 `11199cd`，已知 open PR #127 分支为 `b1da341`，只覆盖 OPT-163；当前 backlog 最大编号为 OPT-163。已核对 backlog、triage、roadmap、signals、E001–272、最近提交和现行代码；以下方向不重复 OPT-162/163、#127、已合并目标或旧 Explore。
+
+### E273 — 深度共读摘抄检索不搜索所属书名与作者，跨书架按书找证据会漏结果 (S)
+
+**What:** `search_quotes(query)` 只在摘抄自身的 `content/ocrText/note/tags` 中匹配关键词。虽然返回对象会补 `bookTitle`，但过滤发生在补书名之前，作者也从未进入检索文本；因此用书名或作者要求“找出某本书/某位作者的摘抄”时，只要正文没有重复该词，就会返回空列表。
+
+**Evidence:** `paper_reading_gateway.py:82-94` 证明 `_compact_quote()` 能从 `bookId` 解析 `bookTitle`；实际过滤却仅拼接 quote 的四个字段（`paper_reading_gateway.py:114-124`）。当前设计文档明确要求 `search_quotes` 覆盖正文、OCR、标签、书名和作者（`docs/deepseek-harness-deep-reading-workbench.md:199-212`）。现有 Gateway 测试只检查工具存在与一次上下文鉴权（`tests/agent/deep_reading_gateway_contract_test.py:13-63`），没有按书名/作者检索摘抄的行为用例。
+
+**Why:** 深度共读的核心是跨书架取证。模型自然会先用书名或作者缩小证据范围；当前工具会把确实存在的个人摘抄误报为不存在，使研究结论缺证或退化为猜测。它与 E271 的 `list_books()` 主题检索不同，本项发生在必须调用的摘抄证据工具中。
+
+**Size:** S
+
+**Files:** `paper_reading_gateway.py:82-94,114-124`; `docs/deepseek-harness-deep-reading-workbench.md:199-212`; `tests/agent/deep_reading_gateway_contract_test.py:13-63`
+
+**Northstar:** 强——修复后深度共读才能按用户熟悉的书名/作者稳定召回已有摘抄，直接恢复跨书架回顾的证据命中率。→ **promoted to OPT-164**
+
+### E274 — 深度共读关联工具只返回裸 ID，不返回两端实体摘要 (S)
+
+**What:** `get_connections()` 直接返回 state 中的 connection 对象。真实 connection 只有两端类型/ID、关系、想法与标签，没有书名、作者或摘抄正文；模型得到“q1 → b2”之类的关联后，仍不知道两端具体内容，无法可靠解释既有思想连接或判断新建议是否重复。
+
+**Evidence:** Gateway 直接对 `state.connections` 做过滤并原样返回（`paper_reading_gateway.py:147-156`）。当前连接写入结构只有 `sourceType/sourceId/targetType/targetId/kind/thought/tags/createdAt`（`app.js:6000-6029`）。设计文档则明确要求返回连接类型、`thought` 和“两端实体摘要”（`docs/deepseek-harness-deep-reading-workbench.md:218-220`）；现有测试未调用该工具（`tests/agent/deep_reading_gateway_contract_test.py:13-63`）。
+
+**Why:** 关联是用户已经沉淀出的高价值阅读资产。只传数据库外键、不给实体内容，会让 Gateway 在技术上“返回了关联”、语义上却无法使用，直接削弱深度共读回答“我已经建立过哪些思想连接”的能力。
+
+**Size:** S
+
+**Files:** `paper_reading_gateway.py:147-156`; `app.js:6000-6029`; `docs/deepseek-harness-deep-reading-workbench.md:218-220`; `tests/agent/deep_reading_gateway_contract_test.py:13-63`
+
+**Northstar:** 强——让既有思想连接真正成为可解释、可去重的个人证据，直接服务 Theme 3 的可信回顾。→ **promoted to OPT-165**
+
+### E275 — 深度共读记忆工具忽略当前研究上下文，返回所有作用域的 confirmed 记忆 (S)
+
+**What:** `get_confirmed_memories()` 返回所有 confirmed 记忆的固定前 30 条，虽然对象中保留 `sourceContext`，但不按当前 run 的 global/book/quote 上下文过滤。一本书的研究因此可能混入另一书或另一摘抄的局部观点，只能依赖模型自行识别并忽略无关作用域。
+
+**Evidence:** Gateway 在 `paper_reading_gateway.py:159-167` 仅判断 `status == "confirmed"`，返回白名单确实包含 `sourceContext`，随后直接截取前 30 条；函数没有使用 run 的 `book_id/quote_id` 做筛选。状态 sanitizer 保留规范化后的 `sourceContext`（`app_server.py:840-854`），日常探讨已按 global、bookId、quoteId 做上下文匹配（`app_server.py:2754-2765`）；设计文档同样要求只返回当前作用域内已确认记忆（`docs/deepseek-harness-deep-reading-workbench.md:222-224`）。
+
+**Why:** 长期记忆被当作用户事实注入研究时，作用域是事实含义的一部分。忽略它会把局部判断泛化到无关书籍，属于个性化正确性风险。不过当前手工新增记忆固定为 global（`app.js:438-445`），真实触发面尚弱于 E273/E274，本轮不提拔。
+
+**Size:** S
+
+**Files:** `paper_reading_gateway.py:159-167`; `app_server.py:840-854,2754-2765`; `app.js:438-445`; `docs/deepseek-harness-deep-reading-workbench.md:222-224`
+
+**Northstar:** 中——保护个性化研究不把局部观点错误泛化；当前 UI 主要生成 global 记忆，先留探索池。
+
+### E276 — 深度共读结果只显示证据 ID，用户无法回到原摘抄核验 (S-M)
+
+**What:** 证据地图在每条判断后只渲染 `evidenceIds` 的字符串列表，没有显示对应摘抄正文、书名，也没有点击回到摘抄详情的入口。后端只验证 ID 是否存在；完成页虽声称“证据地图”，用户仍要手动记住内部 ID 并另行搜索，实际上无法从结果页核验来源。
+
+**Evidence:** `chat.js:1209-1218` 把证据渲染为 `reason · evidenceIds.join("、")`，未解析 state 中的实体，也没有 `data-*` 导航按钮。后端 `persist_research_proposals()` 只校验 ID 属于 books/quotes/connections/sessions/memories 并保留原 evidenceMap（`app_server.py:3539-3556`）。现有前端测试只确认结果区域存在，不覆盖证据可回溯性（`tests/frontend/deep-reading-workbench.test.js:18-27`）。
+
+**Why:** Theme 3 的“可信”不只要求模型引用真实 ID，还要求用户能看到并核验原记录。当前已有后端真实性守卫，但 UI 没把守卫转化成可理解的证据链；这是 UX 完整性方向，不是后端字段错配。
+
+**Size:** S-M
+
+**Files:** `chat.js:1209-1218`; `app_server.py:3539-3556`; `tests/frontend/deep-reading-workbench.test.js:18-27`
+
+**Northstar:** 中——可回溯证据能增强深度共读信任，但交互形态需要产品判断，且暂无直接 signal；不提拔。
+
+> 本次 run 新发现 4 条：E273（摘抄检索漏书名/作者，S，检索 correctness）、E274（关联工具缺两端实体摘要，S，个人积累语义）、E275（记忆作用域未进入工具过滤，S，个性化正确性）、E276（结果证据 ID 不可回溯，S-M，UX）。提拔 E273→OPT-164、E274→OPT-165；其余留探索池。所有现有缺口均基于当前文件逐行核实，并已排除 backlog、旧 Explore、远端 `feature/agent`、已知 open PR #127 与最近合并目标重复。

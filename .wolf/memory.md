@@ -5125,3 +5125,9 @@
 - 外层证据给出最近 7 天 `auto/` PR 为 3/8，最近 50 个 feature/agent PR 清单为空；未额外调用 GitHub。
 - OPT-163 在当前代码中坐实：`paper_reading_gateway.py` 的 `_compact_quote()` 与 `search_quotes()` 遗漏真实 `reflection`，错误依赖 `note`。该项为 P1/S，直接保护 Theme 3 用户原创积累，验收边界清楚，无 owner 产品或设计判断，故成为唯一夜间 Next up。
 - OPT-162 同样坐实为 P1/S，但受 WIP=1 限制，留作 10:00 晨间候选卡。其余未完成项均维持 P3 parked/blocked。
+
+## 2026-08-21 · 深度共读 Gateway 检索与关联语义
+
+- `search_quotes()` 的证据检索必须把所属书名与作者纳入 haystack；仅在返回阶段补 `bookTitle` 无法修复过滤前的漏召回。
+- `get_connections()` 不能只传 source/target 裸 ID；应按端点类型补受控的书籍或摘抄摘要，否则模型无法解释既有连接或可靠去重。
+- Gateway 行为测试应以真实 state fixture 覆盖检索字段、端点展开与上下文作用域，不能只验证工具存在和 token 隔离。

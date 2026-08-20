@@ -1533,3 +1533,23 @@ Format per item:
 - description: 摘抄真实字段为 `reflection`（`index.html:647`，当前搜索见 `app.js:2088-2094`、保存见 `app.js:4476-4498`），但 `_compact_quote()` 返回不存在的 `note`（`paper_reading_gateway.py:82-94`），`search_quotes()` 也只检索 `content/ocrText/note/tags`（`paper_reading_gateway.py:114-124`）。因此按个人理解关键词检索必然漏结果，其他字段命中时返回对象也不含该理解。
 - why: 这是确定性字段错配，影响聚焦摘抄与跨摘抄搜索两条深度共读路径。用户已经写下的“为什么值得记”不应在研究边界静默消失。
 - how: `_compact_quote()` 返回 `reflection`；`search_quotes()` haystack 用 `reflection` 替换 `note`（如需兼容历史异常数据可同时保留 note 回落）；补带 reflection 的聚焦摘抄与关键词检索测试。Touch: `paper_reading_gateway.py:82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。
+
+### OPT-164 — 深度共读摘抄检索支持所属书名与作者 — 由 explore E273 提拔 [2026-08-21]
+- status: new
+- area: backend / agent retrieval
+- priority: P1
+- size: S
+- northstar: 强——深度共读必须能按用户熟悉的书名或作者召回已有摘抄；否则跨书架取证会把真实个人积累误报为空。
+- description: `search_quotes()` 的检索文本仅含摘抄自身 `content/ocrText/note/tags`（`paper_reading_gateway.py:114-124`），不含所属书的 title/author；但设计契约明确要求覆盖书名和作者（`docs/deepseek-harness-deep-reading-workbench.md:199-212`）。因此正文未重复书名时，按书名/作者找摘抄必然漏结果。
+- why: 这是必须调用的证据工具与既定契约之间的确定性偏差，不依赖未来规模或 UI 推测。跨书回顾自然会以书名/作者缩小范围，空结果会直接削弱证据地图。
+- how: 在遍历 quote 时按 `bookId` 解析所属 book，把 title/author 加入 haystack；补按书名、作者命中以及无关用户状态不泄露的 Gateway 行为测试。Touch: `paper_reading_gateway.py:62-67,82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。
+
+### OPT-165 — 深度共读关联工具返回两端实体摘要 — 由 explore E274 提拔 [2026-08-21]
+- status: new
+- area: backend / agent context
+- priority: P1
+- size: S
+- northstar: 强——用户已建立的思想连接只有在模型能理解两端内容时才能成为可解释、可去重的个人证据。
+- description: `get_connections()` 直接原样返回 connection（`paper_reading_gateway.py:147-156`）；真实结构只有两端类型/ID、关系、想法和标签（`app.js:6000-6029`），没有书名、作者或摘抄摘要。设计契约要求返回 `thought` 及两端实体摘要（`docs/deepseek-harness-deep-reading-workbench.md:218-220`）。
+- why: 裸外键让工具形式上返回关联、语义上无法解释关联，也无法可靠判断新建议是否重复。该缺口直接损失用户已经沉淀的高价值连接资产。
+- how: 为每条命中 connection 生成字段白名单，并按 sourceType/targetType 解析 compact book 或 compact quote 摘要；保留稳定 ID、kind/thought/tags，跳过或明确标记已删除端点；补 book↔book、quote↔book 和无关 entity_id 过滤测试。Touch: `paper_reading_gateway.py:62-94,147-156`、`tests/agent/deep_reading_gateway_contract_test.py`。
