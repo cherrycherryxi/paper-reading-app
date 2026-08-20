@@ -1,5 +1,12 @@
 # anatomy.md
 
+## Current planning state (2026-08-21)
+
+- `optimization/triage.md` — Last triaged 2026-08-21；外层提供七日 `auto/` PR 计数 3/8，预算未耗尽；唯一 Next up 为 OPT-163（P1/S）。
+- `optimization/backlog.md` — OPT-162、OPT-163 均由 new 转 triaged；OPT-163 夜间执行，OPT-162 因 WIP=1 留作 10:00 晨间候选卡。
+- Evidence — Gateway 的摘抄映射与检索均遗漏真实 `reflection`，且错误使用 `note`；时间线返回不存在的 `pages`，遗漏真实 `startPage/endPage/pagesRead`。8/19 后无实现提交可将二者判 done。
+- Scope — 本次仅维护 triage/backlog/OpenWolf；未调用 GitHub，未修改应用代码，未 commit/push/开 PR。
+
 ## Current planning state (2026-08-19)
 
 - `optimization/explore.md` — 夜间 Explore 新增 E269–272，聚焦深度共读 Gateway 的数据字段忠实度与契约测试；E269/E270 为当前代码可确定的数据丢失。

@@ -1515,7 +1515,7 @@ Format per item:
 - evidence: PR #126 已 squash 合入 `feature/agent`，提交 `ad85cd5`；本次实跑 Python 全量 `491 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-162 — 深度共读阅读时间线丢失起止页与已读页数 — 由 explore E269 提拔 [2026-08-19]
-- status: new
+- status: triaged — P1/S，保留为 10:00 晨间候选卡；虽为确定性字段错配，但本轮夜间 WIP=1 优先处理更直接保护 Theme 3 用户原创积累的 OPT-163
 - area: backend / agent correctness
 - priority: P1
 - size: S
@@ -1525,7 +1525,7 @@ Format per item:
 - how: 把时间线白名单中的 `pages` 替换为 `startPage/endPage/pagesRead`；在 `tests/agent/deep_reading_gateway_contract_test.py` 构造真实 session，断言筛选 bookId 后三个字段原样返回，且不暴露无关用户数据。Touch: `paper_reading_gateway.py:170-179`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-163 — 深度共读摘抄工具丢失「我的理解」并无法按其检索 — 由 explore E270 提拔 [2026-08-19]
-- status: new
+- status: triaged — P1/S，2026-08-21 夜间 Next up
 - area: backend / agent context
 - priority: P1
 - size: S

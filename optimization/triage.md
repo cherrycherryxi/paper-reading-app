@@ -2,25 +2,33 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-19
+Last triaged: 2026-08-21
 
 ## Next up
 
-无符合夜间条件的任务。预算仍有余量，但全部未完成项都不同时满足「复杂度 S、验收边界清楚、无需 owner 产品/设计判断、且有当前 Theme / 真实 signal 支撑」；不为填满预算指派 P3 工程项。
+**OPT-163 · 深度共读摘抄工具补回“我的理解”并纳入检索（P1 / S / triaged）**
 
-**预算状态（2026-08-19）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 **4**；预算未耗尽。未调用 `gh` 或 GitHub API。
+**理由：** `paper_reading_gateway.py:82-94` 的 `_compact_quote()` 返回不存在的 `note` 而不返回真实 `reflection`，`paper_reading_gateway.py:114-124` 的检索字段也遗漏 `reflection`；这会让聚焦摘抄和跨摘抄搜索同时丢失用户写下的个人理解。真实字段及保存链路见 `index.html:647`、`app.js:2088-2094,4476-4498`，并由现有前端 reflection 测试证明该字段正在使用。它直接支撑当前 Theme 3「积累可信」，也保护 2026-08-16 北极星中 69 次探讨所依赖的个性化上下文。**夜间适配：是**——复杂度 S，仅修改 Gateway 字段映射与契约测试；验收可明确为“聚焦返回 reflection、reflection 关键词可命中、无关用户数据不暴露”，无需 owner 产品、信息架构、视觉或体验取舍。
+
+**关键文件：** `paper_reading_gateway.py:82-94,114-124`；`tests/agent/deep_reading_gateway_contract_test.py`。
+
+**signal / Theme：** Theme 3「积累可信」；`optimization/signals.md:83` 的最新北极星记录为使用 7 天 / 新增摘抄 53 / 回顾操作 69，深度共读必须忠实使用这些已有积累，不能静默丢掉个人理解。
+
+**预算状态（2026-08-21）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **3**，上限 **8**，剩余 **5**；预算未耗尽。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 最近 8 日提交中，OPT-142、147、151–161 均已有对应合入提交，backlog 与 triage 已标 done；空的“最近 50 个 feature/agent PR”清单不提供额外状态证据，因此未凭描述新增 done 判断。
-- OPT-159 已完成：PR #124 / `c0e9b2a` 已在 `feature/agent`；启动失败补偿与 API 回归测试均在树中。
-- OPT-160 已完成：PR #125 / `a086b9e` 已合入；当前 `DeepReadingRunner.cancel()` 会关闭活动 Harness，`_run()` 在副作用前复查取消，`persist_research_proposals()` 以 `BEGIN IMMEDIATE` 串行化取消与 proposal/action/完成状态，竞态测试在树中。
-- OPT-161 已完成：PR #126 / `ad85cd5` 已合入 `feature/agent`；启动时原子收口遗留 `CREATED/RUNNING`、写入失败原因与事件，幂等及终态保护测试已落地。
-- 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144，分别仅涉及磁盘/内部观测、冻结 billing、当前无 a11y signal、孤儿 state、休眠示例路径或缺少遗忘证据；P3/M 为 OPT-081，无真实采集 signal；P3/L blocked 为 OPT-117，服务端代抓方案已被仓库调研证据否决。它们均无合理当前北极星贡献，维持 parked/blocked。**夜间适配：否**——S 项虽局部且边界明确，但没有当前 Theme / signal 支撑，按北极星税不得指派；M/L 项同时越过夜间复杂度边界。
+- 最近 8 日提交中，OPT-142、147、151–161 均已有对应合入提交，backlog 与 triage 已标 done；本次给出的“最近 50 个 feature/agent PR”清单为空，不提供额外状态证据，因此未凭描述新增 done 判断。
+- OPT-159、160、161 的完成证据仍分别是 `c0e9b2a`、`a086b9e`、`ad85cd5`；当前树中保留对应启动失败收口、取消竞态和重启恢复代码及测试。8/19 之后仅有 triage/explore 规划提交，没有可据以把 OPT-162/163 判 done 的实现提交。
+- OPT-162 坐实为 P1/S：`paper_reading_gateway.py:170-179` 返回不存在的 `pages`，而真实 session 字段为 `startPage/endPage/pagesRead`。它有北极星贡献且无需 owner 判断，但本轮 WIP=1，留作 10:00 晨间候选卡，不进入 Next up。
+- OPT-163 坐实为 P1/S，并因更直接保护 Theme 3 的用户原创 `reflection` 而成为本轮唯一 Next up。
+- 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们仍缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不能因工程上容易而指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-163 | 深度共读摘抄丢失“我的理解”且无法按其检索 | **P1** | S | **triaged** | **Next up**；Theme 3 字段忠实度修复，夜间适配：是 |
+| OPT-162 | 深度共读时间线丢失起止页与已读页数 | **P1** | S | triaged | 坐实的字段错配；本轮 WIP=1，留作 10:00 晨间候选卡 |
 | OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **done** | ✅ PR #124 / `c0e9b2a` 已合入 [2026-08-17]；启动失败写 FAILED + API 回归 |
 | OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | **done** | ✅ PR #125 / `a086b9e` 已合入 [2026-08-17]；取消中断、事务串行化与竞态测试已落地 |
 | OPT-161 | 服务重启后深度共读永久停在 CREATED/RUNNING | **P1** | S | **done** | ✅ PR #126 / `ad85cd5` 已合入 [2026-08-18]；启动恢复、失败事件、幂等与终态保护测试已落地 |

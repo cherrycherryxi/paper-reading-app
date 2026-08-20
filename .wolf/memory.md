@@ -5119,3 +5119,9 @@
 
 - `paper_reading_gateway.py` 必须按前端真实 state 字段传递积累：session 是 `startPage/endPage/pagesRead`，不是 `pages`；quote 的个人理解是 `reflection`，不是 `note`。
 - Gateway 只读/鉴权测试不足以证明字段正确；新增或修改工具时，应以真实 state fixture 覆盖每个工具的过滤条件和返回字段，防止“接口全绿但用户积累静默丢失”。
+
+# 2026-08-21 夜间 Triage
+
+- 外层证据给出最近 7 天 `auto/` PR 为 3/8，最近 50 个 feature/agent PR 清单为空；未额外调用 GitHub。
+- OPT-163 在当前代码中坐实：`paper_reading_gateway.py` 的 `_compact_quote()` 与 `search_quotes()` 遗漏真实 `reflection`，错误依赖 `note`。该项为 P1/S，直接保护 Theme 3 用户原创积累，验收边界清楚，无 owner 产品或设计判断，故成为唯一夜间 Next up。
+- OPT-162 同样坐实为 P1/S，但受 WIP=1 限制，留作 10:00 晨间候选卡。其余未完成项均维持 P3 parked/blocked。
