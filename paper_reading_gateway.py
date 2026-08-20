@@ -87,7 +87,7 @@ def _compact_quote(item: dict[str, Any], state: dict[str, Any]) -> dict[str, Any
         "bookTitle": book.get("title", ""),
         "kind": item.get("kind", "quote"),
         "content": item.get("content") or item.get("ocrText") or "",
-        "note": item.get("note", ""),
+        "reflection": item.get("reflection", ""),
         "tags": item.get("tags", []),
         "page": item.get("page", ""),
         "createdAt": item.get("createdAt", ""),
@@ -118,7 +118,7 @@ def search_quotes(query: str = "", relation_scope: str = "all", limit: int = 20,
     needle = str(query or "").strip().lower()
     items = []
     for quote in state.get("quotes", []):
-        text = " ".join(str(quote.get(key) or "") for key in ("content", "ocrText", "note", "tags")).lower()
+        text = " ".join(str(quote.get(key) or "") for key in ("content", "ocrText", "reflection", "tags")).lower()
         same_book = not run["book_id"] or str(quote.get("bookId")) == run["book_id"]
         if (needle and needle in text) or (not needle and same_book):
             items.append(_compact_quote(quote, state))

@@ -62,6 +62,55 @@ class DeepReadingGatewayContractTests(unittest.TestCase):
             finally:
                 paper_reading_gateway.DB_PATH, paper_reading_gateway.store = original_path, original_store
 
+    def test_quote_reflection_is_returned_searchable_and_user_scoped(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "gateway.db"
+            conn = sqlite3.connect(db_path)
+            conn.executescript("""
+                CREATE TABLE user_state(user_id TEXT PRIMARY KEY,state_json TEXT NOT NULL,updated_at TEXT NOT NULL);
+                CREATE TABLE research_runs(run_id TEXT PRIMARY KEY,user_id TEXT NOT NULL,dsh_session_id TEXT NOT NULL,
+                  context_type TEXT NOT NULL,book_id TEXT NOT NULL,quote_id TEXT NOT NULL,question TEXT NOT NULL,
+                  status TEXT NOT NULL,progress_stage TEXT NOT NULL,progress_message TEXT NOT NULL,result_json TEXT NOT NULL,
+                  error_message TEXT NOT NULL,gateway_token_hash TEXT NOT NULL,cancel_requested INTEGER NOT NULL,
+                  created_at TEXT NOT NULL,updated_at TEXT NOT NULL,completed_at TEXT NOT NULL);
+                CREATE TABLE research_run_events(event_id TEXT PRIMARY KEY,run_id TEXT NOT NULL,event_type TEXT NOT NULL,
+                  metadata TEXT NOT NULL,created_at TEXT NOT NULL);
+            """)
+            owner_state = {
+                "books": [{"id": "b1", "title": "三体"}],
+                "quotes": [
+                    {"id": "q1", "bookId": "b1", "content": "宇宙很大", "reflection": "黑暗森林也是信任困境"},
+                    {"id": "q2", "bookId": "b1", "content": "另一条摘抄", "reflection": "无关理解"},
+                ],
+            }
+            other_state = {
+                "books": [{"id": "b2", "title": "别人的书"}],
+                "quotes": [{"id": "q3", "bookId": "b2", "content": "秘密", "reflection": "信任困境"}],
+            }
+            conn.executemany("INSERT INTO user_state VALUES(?,?,?)", (
+                ("u1", json.dumps(owner_state), "now"),
+                ("u2", json.dumps(other_state), "now"),
+            ))
+            conn.commit()
+            conn.close()
+            store = ResearchRunStore(db_path)
+            _, token = store.create("u1", {"type": "quote", "bookId": "b1", "quoteId": "q1"}, "研究")
+            original_path, original_store = paper_reading_gateway.DB_PATH, paper_reading_gateway.store
+            paper_reading_gateway.DB_PATH, paper_reading_gateway.store = db_path, store
+            try:
+                request = SimpleNamespace(headers={"authorization": f"Bearer {token}"})
+                ctx = SimpleNamespace(request_context=SimpleNamespace(request=request))
+
+                focused = paper_reading_gateway.get_reading_context(ctx)["quote"]
+                self.assertEqual(focused["reflection"], "黑暗森林也是信任困境")
+                self.assertNotIn("note", focused)
+
+                matches = paper_reading_gateway.search_quotes("信任困境", ctx=ctx)
+                self.assertEqual([item["id"] for item in matches], ["q1"])
+                self.assertEqual(matches[0]["reflection"], "黑暗森林也是信任困境")
+            finally:
+                paper_reading_gateway.DB_PATH, paper_reading_gateway.store = original_path, original_store
+
 
 if __name__ == "__main__":
     unittest.main()
