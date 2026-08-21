@@ -174,7 +174,12 @@ def get_reading_timeline(book_id: str = "", ctx: Context = None) -> list[dict[st
     state = _state(run)
     target = str(book_id or run["book_id"])
     return [
-        {key: item.get(key) for key in ("id", "bookId", "date", "minutes", "pages", "note", "createdAt")}
+        {
+            key: item.get(key)
+            for key in (
+                "id", "bookId", "date", "minutes", "startPage", "endPage", "pagesRead", "note", "createdAt",
+            )
+        }
         for item in state.get("sessions", []) if not target or str(item.get("bookId")) == target
     ][:100]
 
