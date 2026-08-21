@@ -6,9 +6,7 @@ Last triaged: 2026-08-21
 
 ## Next up
 
-**OPT-163 · 深度共读摘抄工具补回“我的理解”并纳入检索（P1 / S / in-progress）**
-
-**状态：** Codex nightly PR pending
+无。OPT-163 已由 PR #127 合入并完成状态对账，下一候选留待下一轮 triage 选择。
 
 **理由：** `paper_reading_gateway.py:82-94` 的 `_compact_quote()` 返回不存在的 `note` 而不返回真实 `reflection`，`paper_reading_gateway.py:114-124` 的检索字段也遗漏 `reflection`；这会让聚焦摘抄和跨摘抄搜索同时丢失用户写下的个人理解。真实字段及保存链路见 `index.html:647`、`app.js:2088-2094,4476-4498`，并由现有前端 reflection 测试证明该字段正在使用。它直接支撑当前 Theme 3「积累可信」，也保护 2026-08-16 北极星中 69 次探讨所依赖的个性化上下文。**夜间适配：是**——复杂度 S，仅修改 Gateway 字段映射与契约测试；验收可明确为“聚焦返回 reflection、reflection 关键词可命中、无关用户数据不暴露”，无需 owner 产品、信息架构、视觉或体验取舍。
 
@@ -22,14 +20,14 @@ Last triaged: 2026-08-21
 - 最近 8 日提交中，OPT-142、147、151–161 均已有对应合入提交，backlog 与 triage 已标 done；本次给出的“最近 50 个 feature/agent PR”清单为空，不提供额外状态证据，因此未凭描述新增 done 判断。
 - OPT-159、160、161 的完成证据仍分别是 `c0e9b2a`、`a086b9e`、`ad85cd5`；当前树中保留对应启动失败收口、取消竞态和重启恢复代码及测试。8/19 之后仅有 triage/explore 规划提交，没有可据以把 OPT-162/163 判 done 的实现提交。
 - OPT-162 坐实为 P1/S：`paper_reading_gateway.py:170-179` 返回不存在的 `pages`，而真实 session 字段为 `startPage/endPage/pagesRead`。它有北极星贡献且无需 owner 判断，但本轮 WIP=1，留作 10:00 晨间候选卡，不进入 Next up。
-- OPT-163 坐实为 P1/S，并因更直接保护 Theme 3 的用户原创 `reflection` 而成为本轮唯一 Next up。
+- OPT-163 已由 PR #127 squash 合入 `feature/agent`（`e13f25d`）；Gateway 已返回并检索真实 `reflection`，契约测试覆盖聚焦摘抄、关键词命中与用户隔离。本次实跑 Python 全量 `492 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们仍缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不能因工程上容易而指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-163 | 深度共读摘抄丢失“我的理解”且无法按其检索 | **P1** | S | **in-progress** | **Next up**；Codex nightly PR pending；Theme 3 字段忠实度修复，夜间适配：是 |
+| OPT-163 | 深度共读摘抄丢失“我的理解”且无法按其检索 | **P1** | S | **done** | ✅ PR #127 / `e13f25d` 已合入 [2026-08-21]；Gateway 返回并检索 `reflection`，用户隔离契约测试已落地 |
 | OPT-162 | 深度共读时间线丢失起止页与已读页数 | **P1** | S | triaged | 坐实的字段错配；本轮 WIP=1，留作 10:00 晨间候选卡 |
 | OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **done** | ✅ PR #124 / `c0e9b2a` 已合入 [2026-08-17]；启动失败写 FAILED + API 回归 |
 | OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | **done** | ✅ PR #125 / `a086b9e` 已合入 [2026-08-17]；取消中断、事务串行化与竞态测试已落地 |
@@ -65,7 +63,7 @@ Last triaged: 2026-08-21
 
 ## Recently reconciled done
 
-OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 

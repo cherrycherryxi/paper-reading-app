@@ -1525,7 +1525,7 @@ Format per item:
 - how: 把时间线白名单中的 `pages` 替换为 `startPage/endPage/pagesRead`；在 `tests/agent/deep_reading_gateway_contract_test.py` 构造真实 session，断言筛选 bookId 后三个字段原样返回，且不暴露无关用户数据。Touch: `paper_reading_gateway.py:170-179`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-163 — 深度共读摘抄工具丢失「我的理解」并无法按其检索 — 由 explore E270 提拔 [2026-08-19]
-- status: triaged — P1/S，2026-08-21 夜间 Next up
+- status: done (PR #127, merged 2026-08-21 — Gateway 返回并检索真实 `reflection`；squash commit `e13f25d`；本次实跑 Python 全量 492 passed + 26 subtests，Node 全量 508 passed / 0 failed)
 - area: backend / agent context
 - priority: P1
 - size: S
