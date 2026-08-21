@@ -111,6 +111,64 @@ class DeepReadingGatewayContractTests(unittest.TestCase):
             finally:
                 paper_reading_gateway.DB_PATH, paper_reading_gateway.store = original_path, original_store
 
+    def test_quote_search_matches_owning_book_title_and_author_only_for_token_owner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "gateway.db"
+            conn = sqlite3.connect(db_path)
+            conn.executescript("""
+                CREATE TABLE user_state(user_id TEXT PRIMARY KEY,state_json TEXT NOT NULL,updated_at TEXT NOT NULL);
+                CREATE TABLE research_runs(run_id TEXT PRIMARY KEY,user_id TEXT NOT NULL,dsh_session_id TEXT NOT NULL,
+                  context_type TEXT NOT NULL,book_id TEXT NOT NULL,quote_id TEXT NOT NULL,question TEXT NOT NULL,
+                  status TEXT NOT NULL,progress_stage TEXT NOT NULL,progress_message TEXT NOT NULL,result_json TEXT NOT NULL,
+                  error_message TEXT NOT NULL,gateway_token_hash TEXT NOT NULL,cancel_requested INTEGER NOT NULL,
+                  created_at TEXT NOT NULL,updated_at TEXT NOT NULL,completed_at TEXT NOT NULL);
+                CREATE TABLE research_run_events(event_id TEXT PRIMARY KEY,run_id TEXT NOT NULL,event_type TEXT NOT NULL,
+                  metadata TEXT NOT NULL,created_at TEXT NOT NULL);
+            """)
+            owner_state = {
+                "books": [
+                    {"id": "b1", "title": "冬牧场", "author": "李娟"},
+                    {"id": "b2", "title": "万物有灵且美", "author": "吉米·哈利"},
+                ],
+                "quotes": [
+                    {"id": "q1", "bookId": "b1", "content": "雪落在寂静的荒野"},
+                    {"id": "q2", "bookId": "b2", "content": "动物诊所的一天"},
+                ],
+            }
+            other_state = {
+                "books": [{"id": "b3", "title": "秘密冬牧场", "author": "李娟"}],
+                "quotes": [{"id": "secret", "bookId": "b3", "content": "别人的摘抄"}],
+            }
+            conn.executemany("INSERT INTO user_state VALUES(?,?,?)", (
+                ("u1", json.dumps(owner_state), "now"),
+                ("u2", json.dumps(other_state), "now"),
+            ))
+            conn.commit()
+            conn.close()
+            store = ResearchRunStore(db_path)
+            _, token = store.create("u1", {"type": "book", "bookId": "b1"}, "研究")
+            original_path, original_store = paper_reading_gateway.DB_PATH, paper_reading_gateway.store
+            paper_reading_gateway.DB_PATH, paper_reading_gateway.store = db_path, store
+            try:
+                request = SimpleNamespace(headers={"authorization": f"Bearer {token}"})
+                ctx = SimpleNamespace(request_context=SimpleNamespace(request=request))
+
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes("冬牧场", ctx=ctx)],
+                    ["q1"],
+                )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes("吉米·哈利", ctx=ctx)],
+                    ["q2"],
+                )
+                self.assertEqual(paper_reading_gateway.search_quotes("完全无关", ctx=ctx), [])
+                self.assertNotIn(
+                    "secret",
+                    [item["id"] for item in paper_reading_gateway.search_quotes("李娟", ctx=ctx)],
+                )
+            finally:
+                paper_reading_gateway.DB_PATH, paper_reading_gateway.store = original_path, original_store
+
     def test_reading_timeline_returns_real_page_fields_and_is_user_scoped(self):
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "gateway.db"
