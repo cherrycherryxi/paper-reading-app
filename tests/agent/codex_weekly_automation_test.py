@@ -44,9 +44,18 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
 
     def test_weekly_production_release_runs_both_project_test_suites(self):
         source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
-        self.assertIn(".venv/bin/python -m pytest tests/ -v", source)
+        self.assertIn('"$TEST_PYTHON" -m pytest tests/ -v', source)
         self.assertIn("node --test tests/frontend/*.test.js", source)
         self.assertLess(source.index("node --test tests/frontend/*.test.js"), source.index("deploy-prod.sh --yes"))
+
+    def test_weekly_production_release_uses_a_clean_isolated_clone(self):
+        source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
+        self.assertIn("git clone --quiet --branch feature/agent --single-branch --no-local", source)
+        self.assertIn('RELEASE_REPO="$TMP_ROOT/repo"', source)
+        self.assertIn('TEST_PYTHON="${PAPER_RELEASE_PYTHON:-$REPO/.venv/bin/python}"', source)
+        self.assertIn('cd "$RELEASE_REPO"', source)
+        self.assertIn("PAPER_RELEASE_DRY_RUN", source)
+        self.assertNotIn('cd "$REPO"\n[ "$(date +%w)"', source)
 
     def test_codex_autofix_checks_the_secret_at_step_scope(self):
         source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
