@@ -6,7 +6,9 @@ Last triaged: 2026-08-21
 
 ## Next up
 
-**OPT-163 · 深度共读摘抄工具补回“我的理解”并纳入检索（P1 / S / triaged）**
+**OPT-163 · 深度共读摘抄工具补回“我的理解”并纳入检索（P1 / S / in-progress）**
+
+**状态：** Codex nightly PR pending
 
 **理由：** `paper_reading_gateway.py:82-94` 的 `_compact_quote()` 返回不存在的 `note` 而不返回真实 `reflection`，`paper_reading_gateway.py:114-124` 的检索字段也遗漏 `reflection`；这会让聚焦摘抄和跨摘抄搜索同时丢失用户写下的个人理解。真实字段及保存链路见 `index.html:647`、`app.js:2088-2094,4476-4498`，并由现有前端 reflection 测试证明该字段正在使用。它直接支撑当前 Theme 3「积累可信」，也保护 2026-08-16 北极星中 69 次探讨所依赖的个性化上下文。**夜间适配：是**——复杂度 S，仅修改 Gateway 字段映射与契约测试；验收可明确为“聚焦返回 reflection、reflection 关键词可命中、无关用户数据不暴露”，无需 owner 产品、信息架构、视觉或体验取舍。
 
@@ -27,7 +29,7 @@ Last triaged: 2026-08-21
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-163 | 深度共读摘抄丢失“我的理解”且无法按其检索 | **P1** | S | **triaged** | **Next up**；Theme 3 字段忠实度修复，夜间适配：是 |
+| OPT-163 | 深度共读摘抄丢失“我的理解”且无法按其检索 | **P1** | S | **in-progress** | **Next up**；Codex nightly PR pending；Theme 3 字段忠实度修复，夜间适配：是 |
 | OPT-162 | 深度共读时间线丢失起止页与已读页数 | **P1** | S | triaged | 坐实的字段错配；本轮 WIP=1，留作 10:00 晨间候选卡 |
 | OPT-159 | 深度共读启动异常遗留永久 CREATED 任务 | P2 | S | **done** | ✅ PR #124 / `c0e9b2a` 已合入 [2026-08-17]；启动失败写 FAILED + API 回归 |
 | OPT-160 | 取消深度共读后 runner 仍执行并可创建隐藏 action | **P1** | M | **done** | ✅ PR #125 / `a086b9e` 已合入 [2026-08-17]；取消中断、事务串行化与竞态测试已落地 |
