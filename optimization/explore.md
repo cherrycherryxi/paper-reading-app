@@ -4925,3 +4925,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——可回溯证据能增强深度共读信任，但交互形态需要产品判断，且暂无直接 signal；不提拔。
 
 > 本次 run 新发现 4 条：E273（摘抄检索漏书名/作者，S，检索 correctness）、E274（关联工具缺两端实体摘要，S，个人积累语义）、E275（记忆作用域未进入工具过滤，S，个性化正确性）、E276（结果证据 ID 不可回溯，S-M，UX）。提拔 E273→OPT-164、E274→OPT-165；其余留探索池。所有现有缺口均基于当前文件逐行核实，并已排除 backlog、旧 Explore、远端 `feature/agent`、已知 open PR #127 与最近合并目标重复。
+
+## 2026-08-22
+
+> 扫描焦点：当前 Theme 3「积累可信」下，继续核对深度共读从取证、结果落库到历史回看的一致性与可达性。隔离 clone 中 `HEAD` 与现存 `origin/feature/agent` 引用均为 `08e676c`；`git fetch origin feature/agent` 因 `.git/FETCH_HEAD` 只读失败，未把本地引用伪装成实时刷新结果。用户提供的唯一 open PR 为 #129（OPT-164），只覆盖按书名/作者检索摘抄。已核对 backlog、triage、roadmap、signals、E001–276、最近提交及当前代码；以下方向不重复 OPT-001–165、#129、已合并目标或旧 Explore。
+
+### E277 — 无效证据被剔除后，失去支撑的研究结论仍原样展示 (S)
+
+**What:** 后端会删除引用不存在 ID 的 `evidenceMap` 项，却不联动处理顶层 `summary`。若模型返回一段实质性结论并附虚构证据 ID，持久化结果会变成“研究结论仍在、证据地图为空、附一条证据被移除警告”；前端仍把原结论放在结果首屏，提示词要求的“无证据不得下结论”没有形成服务端不变量。
+
+**Evidence:** prompt 明确要求没有工具证据时只能说明证据不足（`deep_reading.py:374-381`）；`persist_research_proposals()` 只过滤 `evidenceMap` 并写 `evidenceWarning`，随后直接返回或继续持久化原 result（`app_server.py:3534-3558`）；完成页无条件渲染 `result.summary`，即使 evidence 为空也只在下一张卡显示“暂无可核验的证据”（`chat.js:1202-1218`）。现有回归仅断言虚构 evidenceMap 项被移除和 warning 存在，没有断言 summary 同步降级（`tests/agent/deep_reading_api_test.py:151-161`）。
+
+**Why:** 这是 Theme 3 的直接可信性缺口。系统当前能识别证据不可定位，却仍把依赖该证据的结论当成正式研究结果保存和展示，用户最先看到的恰是未经支撑的 summary。最小修复是在最终有效 evidence 为空且原结果声称有证据时，将 summary 降级为统一的证据不足说明；补“全无效、部分有效、原本无证据”三类契约测试。
+
+**Size:** S
+
+**Files:** `deep_reading.py:374-381`; `app_server.py:3534-3558`; `chat.js:1202-1218`; `tests/agent/deep_reading_api_test.py:151-161`
+
+**Northstar:** 强——阻止深度共读在已确认证据无效时继续展示实质性结论，直接保护个人积累回顾的可信度。→ **promoted to OPT-166**
+
+### E278 — 深度共读不保存取证快照，运行期间编辑或删除记录会改变同一次研究的证据边界 (M)
+
+**What:** 创建任务时只校验当前 `user_state` 中 book/quote 是否存在，`research_runs` 不保存状态版本或证据快照；Gateway 每次工具调用都重新读取最新 `state_json`。长任务运行期间若用户编辑、删除或导入阅读数据，同一 run 的前后两次工具调用可能看到不同内容；完成校验又以当时最新 state 的 ID 集合为准，刚被删除的已用证据会被剔除。
+
+**Evidence:** `ResearchRunStore.create()` 读取 state 只用于存在性校验，插入列没有 state version/snapshot（`deep_reading.py:149-190`）；Gateway `_state()` 每次调用都按 run 的 user_id 重新查询当前 `user_state.state_json`（`paper_reading_gateway.py:44-50`）；完成校验再次调用 `load_state()` 建现时 ID 集合（`app_server.py:3534-3554`）；表结构也只有 context ID、question、结果和状态字段（`app_server.py:576-608`）。
+
+**Why:** 长耗时研究与日常摘抄编辑可以并行。缺少固定证据边界会让同一问题不可复现，甚至让模型已经读过的真实摘抄在落库时变成“无法定位”。可在创建时记录 state version，并选择“小型只读快照”或在完成时明确报告期间发生的数据版本变化；具体策略涉及存储与隐私权衡，先不提拔。
+
+**Size:** M
+
+**Files:** `deep_reading.py:149-190`; `paper_reading_gateway.py:44-50`; `app_server.py:576-608,3534-3554`; `tests/agent/deep_reading_store_test.py`; `tests/agent/deep_reading_api_test.py`
+
+**Northstar:** 中——可复现的证据边界能提升研究可信度，但当前没有“研究期间编辑”真实 signal，且快照策略需产品与存储取舍，不提拔。
+
+### E279 — 深度共读完成后只播报状态，读屏焦点不会进入新生成的研究结果 (S)
+
+**What:** 状态区域有 `aria-live="polite"`，因此能播报“已完成”；真正新增的结果 section 没有 live-region、`tabindex` 或聚焦逻辑。轮询进入终态后只是写入 innerHTML，键盘/读屏用户仍停留在启动按钮或状态附近，无法得知下方已出现“研究结论、证据地图、继续追问”等完整内容。
+
+**Evidence:** HTML 仅 `#researchStatus` 带 `aria-live`，`#researchResult` 只有 `aria-label`（`index.html:229-243`）；`renderResult()` 只赋 `innerHTML`（`chat.js:1202-1218`），`loadRun()` 完成时只调用 render 并停止 timer（`chat.js:1221-1232`），没有 `focus()`、`tabindex` 或结果更新公告。现有前端测试只做源码/结构正则检查（`tests/frontend/deep-reading-workbench.test.js:18-33`）。
+
+**Why:** 深度共读是异步长任务，完成时主动告知“结果已就绪”比普通同步表单更重要。可给结果标题可编程聚焦，完成时将焦点移动到标题，或在 live status 中增加“结果已显示在下方”并提供跳转按钮；应避免把整段长结果作为 live-region 一次性朗读。
+
+**Size:** S
+
+**Files:** `index.html:229-243`; `chat.js:1202-1232`; `tests/frontend/deep-reading-workbench.test.js:18-33`
+
+**Northstar:** 中——让异步研究结果对读屏和键盘用户可达，但暂无真实辅助技术 signal，不提拔。
+
+### E280 — 深度共读 run 与 event 无保留策略，完整导出会随历史无限增长 (S-M)
+
+**What:** 每次研究至少写一条 run 和多条 event；账户完整导出会读取该用户全部 research run 及完整 `result_json`，但后台 GC 不处理 `research_runs/research_run_events`，界面也没有删除单条历史的入口。长期使用后数据库与合规导出包会单向增长。
+
+**Evidence:** 两表只建索引、没有过期字段或清理约束（`app_server.py:576-608`）；完整导出对 `research_runs` 使用无 LIMIT 的 `ORDER BY created_at` 查询并包含完整 result（`app_server.py:4597-4607`）；`_run_gc()` 只清理 session、重置 token、server error 和 rate-limit 行（`app_server.py:6558-6576`）。当前历史 UI 只提供打开 run 的按钮（`chat.js:1244-1257`），没有删除路径。
+
+**Why:** 这不是当前用户故障，但深度共读结果体和事件元数据明显大于普通状态字段。先定义保留口径，例如永久保留用户可见结果、只保留短期诊断 events，或提供显式删除；在没有体积 signal 前不应贸然自动删用户资产。
+
+**Size:** S-M
+
+**Files:** `app_server.py:576-608,4597-4607,6558-6576`; `chat.js:1244-1257`; `tests/agent/account_export_delete_test.py`
+
+**Northstar:** 弱——当前只是可验证的长期容量与数据治理风险，没有磁盘或导出变慢 signal，不提拔。
+
+> 本次 run 新发现 4 条：E277（无效证据被剔除但 summary 仍保留，S，correctness）、E278（研究无状态快照，M，可复现性）、E279（完成结果缺读屏聚焦/公告，S，无障碍）、E280（run/events 无保留策略，S-M，代码健康）。仅 E277 与当前 Theme 3 形成直接、确定且可局部修复的可信性缺口，提拔为 OPT-166；其余因缺真实 signal、需策略取舍或北极星较弱而留探索池。所有断言均基于当前 `file:line` 核实，并已排除 backlog、旧 Explore、最近合并代码与 open PR #129 重复。

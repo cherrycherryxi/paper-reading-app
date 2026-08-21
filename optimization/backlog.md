@@ -1553,3 +1553,13 @@ Format per item:
 - description: `get_connections()` 直接原样返回 connection（`paper_reading_gateway.py:147-156`）；真实结构只有两端类型/ID、关系、想法和标签（`app.js:6000-6029`），没有书名、作者或摘抄摘要。设计契约要求返回 `thought` 及两端实体摘要（`docs/deepseek-harness-deep-reading-workbench.md:218-220`）。
 - why: 裸外键让工具形式上返回关联、语义上无法解释关联，也无法可靠判断新建议是否重复。该缺口直接损失用户已经沉淀的高价值连接资产。
 - how: 为每条命中 connection 生成字段白名单，并按 sourceType/targetType 解析 compact book 或 compact quote 摘要；保留稳定 ID、kind/thought/tags，跳过或明确标记已删除端点；补 book↔book、quote↔book 和无关 entity_id 过滤测试。Touch: `paper_reading_gateway.py:62-94,147-156`、`tests/agent/deep_reading_gateway_contract_test.py`。
+
+### OPT-166 — 深度共读无效证据被剔除后仍保留失去支撑的研究结论 — 由 explore E277 提拔 [2026-08-22]
+- status: new
+- area: backend / agent correctness
+- priority: P1
+- size: S
+- northstar: 强——证据校验已经确认引用无效时，继续展示实质性结论会直接破坏 Theme 3「积累可信」；将无依据结果降级为证据不足，能阻止模型输出绕过现有真实性守卫。
+- description: `persist_research_proposals()` 会删除引用不存在 ID 的 `evidenceMap` 项并写 `evidenceWarning`（`app_server.py:3534-3558`），但不处理原 `summary`；前端仍无条件把该 summary 显示为“研究结论”（`chat.js:1202-1218`）。因此模型返回虚构证据时，用户会先看到未经支撑的结论，下一卡才看到“暂无可核验的证据”。
+- why: prompt 已要求无工具证据不得给实质性结论（`deep_reading.py:374-381`），但模型约束不能替代服务端不变量。现有后端已经具备真实 ID 集合与过滤结果，补齐 summary 降级无需新增外部依赖或产品交互选择。
+- how: 在证据过滤后判断最终有效 evidence；当原结果声称有证据但全部失效时，将 summary 统一改为证据不足说明并保留 warning。补全无效、部分有效及原本无证据三类回归，确保部分有效结果不被过度清空。Touch: `app_server.py:3534-3558`、`tests/agent/deep_reading_api_test.py:151-161`；前端可沿用现有渲染。
