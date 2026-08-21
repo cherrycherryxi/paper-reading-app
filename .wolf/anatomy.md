@@ -1,41 +1,7 @@
 # anatomy.md
 
-## Current planning state (2026-08-21 Explore)
-
-- `optimization/explore.md` — 新增 E273–276，聚焦深度共读 Gateway 的摘抄检索书籍元数据、关联实体摘要、记忆作用域与证据回溯 UX。
-- `optimization/backlog.md` — 当前远端 `feature/agent` 为 `11199cd`，最大编号 OPT-163；新增 OPT-164（摘抄按书名/作者检索）与 OPT-165（关联两端实体摘要），均为 P1/S new。
-- Duplication guard — 已知 open PR #127 分支 `b1da341` 只覆盖 OPT-163；本轮未重复 OPT-162/163、E001–272 或最近合并目标。
-- Scope — 仅维护 explore/backlog/OpenWolf；未修改应用代码，未 commit/push/开 PR。
-
-## Current planning state (2026-08-21)
-
-- `optimization/triage.md` — Last triaged 2026-08-21；外层提供七日 `auto/` PR 计数 3/8，预算未耗尽；唯一 Next up 为 OPT-163（P1/S）。
-- `optimization/backlog.md` — OPT-162、OPT-163 均由 new 转 triaged；OPT-163 夜间执行，OPT-162 因 WIP=1 留作 10:00 晨间候选卡。
-- Evidence — Gateway 的摘抄映射与检索均遗漏真实 `reflection`，且错误使用 `note`；时间线返回不存在的 `pages`，遗漏真实 `startPage/endPage/pagesRead`。8/19 后无实现提交可将二者判 done。
-- Scope — 本次仅维护 triage/backlog/OpenWolf；未调用 GitHub，未修改应用代码，未 commit/push/开 PR。
-
-## Current planning state (2026-08-19)
-
-- `optimization/explore.md` — 夜间 Explore 新增 E269–272，聚焦深度共读 Gateway 的数据字段忠实度与契约测试；E269/E270 为当前代码可确定的数据丢失。
-- `optimization/backlog.md` — 新增 OPT-162（时间线补 `startPage/endPage/pagesRead`）与 OPT-163（摘抄补 `reflection` 检索/返回），均为 P1/S new；编号延续当前最大 OPT-161。
-- Baseline — 隔离 clone 的 `HEAD` 与现存 `origin/feature/agent` 引用同为 `61f2e0a`；fetch 因 `.git/FETCH_HEAD` 只读失败，未宣称实时远端刷新；用户提供的 open PR 证据为空或不可用，未据此推断状态。
-- `optimization/backlog.md` — 13 个未完成项维持原状态：11 个 P3/S parked、OPT-081 为 P3/M、OPT-117 为 P3/L blocked；无新增合并项需要改写。
-- `optimization/triage.md` — Last triaged 2026-08-19；外层提供七日 `auto/` PR 计数 4/8，预算未耗尽，但无符合夜间 S + 当前 Theme/signal + 无 owner 判断条件的任务，因此 Next up 为空。
-- Evidence — OPT-161 已由 PR #126 / `ad85cd5` 合入并在 backlog、triage 标 done；空的最近 50 个 PR 清单不作为额外状态证据，未调用 GitHub。
-
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-15T07:22:06.700Z
-> Files: 348 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-14T13:10:55.365Z
-> Files: 316 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-10T14:18:49.610Z
-> Files: 278 tracked | Anatomy hits: 0 | Misses: 0
-
-## Current planning state (2026-08-18)
-
-- `optimization/backlog.md` — OPT-159 is done via PR #124; OPT-160 is done via PR #125; OPT-161 is P1/S triaged for restart-orphaned deep-reading runs.
-- `optimization/triage.md` — Last triaged 2026-08-18; externally supplied seven-day auto PR count is 5/8; OPT-161 is the single nightly assignment.
-- Evidence — current code has cancellation interruption and atomic proposal finalization, but no startup recovery for persisted `CREATED/RUNNING` research runs.
-- `optimization/explore.md` — 2026-08-18 appended E266–268: crop keyboard accessibility, swallowed image-compression failures, and unguarded OCR recovery-ID storage writes; none promoted because no direct signal supports displacing OPT-161.
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-21T07:13:45.179Z
+> Files: 350 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -214,6 +180,7 @@
 - `cards-2026-08-13.md` — 卡片① (~50 tok)
 - `cards-2026-08-14.md` — 卡片① (~62 tok)
 - `cards-2026-08-15.md` — 卡片① (~37 tok)
+- `cards-2026-08-21.md` — 卡片① (~32 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -223,6 +190,7 @@
 - `review-2026-08-13.md` (~2 tok)
 - `review-2026-08-14.md` (~2 tok)
 - `review-2026-08-15.md` — 2026-08-15 夜间 PR 审查 (~8 tok)
+- `review-2026-08-21.md` — 夜间 PR 审查汇总（2026-08-21） (~177 tok)
 - `today-pick.md` — 卡片① (~52 tok)
 
 ## ../../.claude/scripts/configs/
@@ -338,6 +306,18 @@
 ## Current planning state (2026-08-15)
 
 
+## Current planning state (2026-08-18)
+
+
+## Current planning state (2026-08-19)
+
+
+## Current planning state (2026-08-21 Explore)
+
+
+## Current planning state (2026-08-21)
+
+
 ## assets/
 
 - `.DS_Store` (~1640 tok)
@@ -366,13 +346,13 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~39190 tok)
+- `backlog.md` — Optimization Backlog (~43914 tok)
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1316 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
-- `triage.md` — Triage (~2029 tok)
+- `triage.md` — Triage (~1517 tok)
 
 ## output/pdf/
 
@@ -419,7 +399,7 @@
 - `README.md` — Project documentation (~927 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
-- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~382 tok)
+- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~647 tok)
 - `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~318 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1453 tok)
@@ -460,7 +440,7 @@
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5935 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
-- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1913 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~2076 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1587 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
@@ -624,11 +604,3 @@
 - `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-
-## 深度共读（DeepSeek Harness）
-
-- `deep_reading.py` — 深度共读任务存储、后台 runner、取消/完成状态与研究 prompt。
-- `paper_reading_gateway.py` — 面向 Harness 的只读阅读数据 Gateway。
-- `app_server.py` — `/api/research-*` 接口、研究结果 proposal 到既有 Agent action 状态机的桥接。
-- `chat.js` / `index.html` / `styles.css` — 「探讨」内的深度共读工作台、任务历史与结果确认 UI。
-- `tests/agent/deep_reading_*` / `tests/frontend/deep-reading-workbench.test.js` — API、store、runtime、Gateway 与前端结构契约。

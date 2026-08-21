@@ -5131,3 +5131,32 @@
 - `search_quotes()` 的证据检索必须把所属书名与作者纳入 haystack；仅在返回阶段补 `bookTitle` 无法修复过滤前的漏召回。
 - `get_connections()` 不能只传 source/target 裸 ID；应按端点类型补受控的书籍或摘抄摘要，否则模型无法解释既有连接或可靠去重。
 - Gateway 行为测试应以真实 state fixture 覆盖检索字段、端点展开与上下文作用域，不能只验证工具存在和 token 隔离。
+| 10:04 | Created optimization/triage.md | — | ~1618 |
+| 10:04 | Created optimization/backlog.md | — | ~46841 |
+| 10:07 | Created ../../.claude/paper-loop/review-2026-08-21.md | — | ~189 |
+| 10:08 | Session end: 3 writes across 3 files (triage.md, backlog.md, review-2026-08-21.md) | 0 reads | ~52122 tok |
+
+## Session: 2026-08-21 10:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:10 | Created ../../.claude/paper-loop/cards-2026-08-21.md | — | ~34 |
+| 10:10 | Session end: 1 writes across 1 files (cards-2026-08-21.md) | 0 reads | ~36 tok |
+
+## Session: 2026-08-21 15:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:12 | Created scripts/codex/weekly-prod-release.sh | — | ~644 |
+| 15:12 | Created tests/agent/codex_weekly_automation_test.py | — | ~2071 |
+| 15:13 | Created scripts/codex/weekly-prod-release.sh | — | ~647 |
+| 15:13 | Created tests/agent/codex_weekly_automation_test.py | — | ~2076 |
+
+## 2026-08-21 · 周日自动生产发布隔离
+
+- 周日发布不能要求日常 `feature/agent` 工作目录完全干净：OpenWolf 会持续更新 `.wolf/anatomy.md` 与 `.wolf/memory.md`，使发布稳定误拒绝。
+- 发布前应从远端最新 `feature/agent` 创建独立 clone，在 clone 内校验分支、运行全量测试并调用统一 `deploy-prod.sh`；日常工作树只提供现有 `.venv` 的 Python 路径，不把 `.venv` 符号链接放进 clone，以免链接本身成为未跟踪文件。
+- `PAPER_RELEASE_DRY_RUN=1` 只验证隔离 clone 和远端 `feature/agent/main`，必须在测试、推送、Prod 更新与服务重启前退出。
+| 15:15 | Session end: 4 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~5530 tok |
+| 19:21 | Session end: 4 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~5530 tok |
+| 19:22 | Session end: 4 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~5530 tok |
