@@ -1515,7 +1515,7 @@ Format per item:
 - evidence: PR #126 已 squash 合入 `feature/agent`，提交 `ad85cd5`；本次实跑 Python 全量 `491 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-162 — 深度共读阅读时间线丢失起止页与已读页数 — 由 explore E269 提拔 [2026-08-19]
-- status: triaged — P1/S，保留为 10:00 晨间候选卡；虽为确定性字段错配，但本轮夜间 WIP=1 优先处理更直接保护 Theme 3 用户原创积累的 OPT-163
+- status: done (PR #128, merged 2026-08-21 — `644b5dc`；Gateway 已返回真实 `startPage/endPage/pagesRead`，契约测试覆盖字段映射、书籍筛选与用户隔离)
 - area: backend / agent correctness
 - priority: P1
 - size: S
@@ -1535,7 +1535,7 @@ Format per item:
 - how: `_compact_quote()` 返回 `reflection`；`search_quotes()` haystack 用 `reflection` 替换 `note`（如需兼容历史异常数据可同时保留 note 回落）；补带 reflection 的聚焦摘抄与关键词检索测试。Touch: `paper_reading_gateway.py:82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-164 — 深度共读摘抄检索支持所属书名与作者 — 由 explore E273 提拔 [2026-08-21]
-- status: new
+- status: triaged — P1/S，2026-08-22 夜间候选；既定检索契约与当前实现的确定性偏差，边界清楚且无需 owner 体验取舍
 - area: backend / agent retrieval
 - priority: P1
 - size: S
@@ -1545,7 +1545,7 @@ Format per item:
 - how: 在遍历 quote 时按 `bookId` 解析所属 book，把 title/author 加入 haystack；补按书名、作者命中以及无关用户状态不泄露的 Gateway 行为测试。Touch: `paper_reading_gateway.py:62-67,82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-165 — 深度共读关联工具返回两端实体摘要 — 由 explore E274 提拔 [2026-08-21]
-- status: new
+- status: triaged — P1/S，留作 10:00 晨间候选卡；北极星贡献明确，但删除端点处理与摘要字段白名单仍有产品语义选择，不进入夜间 Next up
 - area: backend / agent context
 - priority: P1
 - size: S

@@ -5160,3 +5160,10 @@
 | 15:15 | Session end: 4 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~5530 tok |
 | 19:21 | Session end: 4 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~5530 tok |
 | 19:22 | Session end: 4 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~5530 tok |
+
+# 2026-08-22 夜间 Triage
+
+- 外层证据给出最近 7 天 `auto/` PR 为 4/8，最近 50 个 feature/agent PR 清单为空；未调用 `gh` 或 GitHub API。
+- PR #128 / `644b5dc` 已完成 OPT-162：Gateway 返回真实 `startPage/endPage/pagesRead`，并有字段映射、书籍筛选与用户隔离契约测试；backlog 与 triage 已同步标 done。
+- OPT-164 为唯一夜间 Next up（P1/S）：`search_quotes()` 尚未按所属书名或作者检索，与既定深度共读契约不符；只读 Gateway 局部修复、验收边界清楚，无需 owner 产品或设计判断。
+- OPT-165 北极星贡献明确，但删除端点与摘要字段白名单仍有产品语义选择，留给 10:00 晨间候选卡。其余未完成项维持 P3 parked/blocked。
