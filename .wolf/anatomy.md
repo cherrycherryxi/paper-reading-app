@@ -317,6 +317,12 @@
 
 ## Current planning state (2026-08-21)
 
+## Current planning state (2026-08-22)
+
+- OPT-162 已由 PR #128 / `644b5dc` 完成，Gateway 阅读时间线返回真实 `startPage/endPage/pagesRead`，backlog 与 triage 已对账为 done。
+- 夜间 Triage 唯一 Next up 为 OPT-164（P1/S）：让深度共读摘抄检索按所属书名与作者命中；关键实现位于 `paper_reading_gateway.py:62-67,82-94,114-124`，契约测试位于 `tests/agent/deep_reading_gateway_contract_test.py`。
+- OPT-165 保持 P1/S 但留给 10:00 晨间候选卡；删除端点处理与实体摘要字段白名单仍需产品语义选择。
+
 
 ## assets/
 
@@ -580,6 +586,10 @@
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
 - `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
+
+## Current planning state (2026-08-22 Explore)
+
+- 新增 E277–E280；仅将 E277 提拔为 OPT-166，目标是在证据 ID 全部无效并被剔除后同步降级失去支撑的研究结论。E278–E280 分别涉及研究快照、异步结果无障碍和历史保留策略，因缺 signal 或需产品取舍未提拔。
 
 ## 小红书物料/第4篇-两本书接上头/
 

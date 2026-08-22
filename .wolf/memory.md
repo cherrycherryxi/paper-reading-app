@@ -5176,3 +5176,15 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+# 2026-08-22 夜间 Triage
+
+- 外层证据给出最近 7 天 `auto/` PR 为 4/8，最近 50 个 feature/agent PR 清单为空；未调用 `gh` 或 GitHub API。
+- PR #128 / `644b5dc` 已完成 OPT-162：Gateway 返回真实 `startPage/endPage/pagesRead`，并有字段映射、书籍筛选与用户隔离契约测试；backlog 与 triage 已同步标 done。
+- OPT-164 为唯一夜间 Next up（P1/S）：`search_quotes()` 尚未按所属书名或作者检索，与既定深度共读契约不符；只读 Gateway 局部修复、验收边界清楚，无需 owner 产品或设计判断。
+- OPT-165 北极星贡献明确，但删除端点与摘要字段白名单仍有产品语义选择，留给 10:00 晨间候选卡。其余未完成项维持 P3 parked/blocked。
+
+# 2026-08-22 夜间 Explore
+
+- 深度共读的证据真实性守卫目前只过滤 `evidenceMap`，不能只依赖 prompt 约束 summary。若全部引用 ID 无效，必须把仍在展示的实质性结论同步降级为“证据不足”，否则 UI 会保留一条已失去支撑的研究结论。该方向已登记 E277 并提拔 OPT-166。
+- 深度共读 Gateway 每次工具调用读取实时 `user_state`，run 未保存状态版本或证据快照；研究期间修改数据会改变同一 run 的证据边界。当前无真实 signal，先保留 E278，不直接决定快照存储策略。
