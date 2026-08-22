@@ -1563,3 +1563,13 @@ Format per item:
 - description: `persist_research_proposals()` 会删除引用不存在 ID 的 `evidenceMap` 项并写 `evidenceWarning`（`app_server.py:3534-3558`），但不处理原 `summary`；前端仍无条件把该 summary 显示为“研究结论”（`chat.js:1202-1218`）。因此模型返回虚构证据时，用户会先看到未经支撑的结论，下一卡才看到“暂无可核验的证据”。
 - why: prompt 已要求无工具证据不得给实质性结论（`deep_reading.py:374-381`），但模型约束不能替代服务端不变量。现有后端已经具备真实 ID 集合与过滤结果，补齐 summary 降级无需新增外部依赖或产品交互选择。
 - how: 在证据过滤后判断最终有效 evidence；当原结果声称有证据但全部失效时，将 summary 统一改为证据不足说明并保留 warning。补全无效、部分有效及原本无证据三类回归，确保部分有效结果不被过度清空。Touch: `app_server.py:3534-3558`、`tests/agent/deep_reading_api_test.py:151-161`；前端可沿用现有渲染。
+
+### OPT-167 — 深度共读结果内部结构未校验，畸形建议会令整次任务失败 — 由 explore E281 提拔 [2026-08-23]
+- status: untriaged
+- area: backend / agent correctness
+- priority: P1
+- size: S
+- northstar: 强——模型局部格式漂移不应抹掉已经生成的可用研究结论；把坏建议降级并保留其余结果，直接保护深度回顾的可靠性。
+- description: Harness 最终文本只要是 JSON 对象即可通过 `_json_object()`（`deep_reading.py:99-111`）；runner 对 proposals 只检查外层为 list（`deep_reading.py:501-510`）。若成员为 `null`、字符串或数组，`persist_research_proposals()` 的无效建议分支会执行 `{**proposal, ...}`（`app_server.py:3588-3595`）并抛 `TypeError`，外层随后把整个 run 标为 FAILED（`deep_reading.py:513-515`）。
+- why: 模型输出不具备可信 schema；单个可丢弃的坏建议不应连带丢弃 summary、证据地图和追问。当前缺口可由确定输入稳定触发，且修复无需产品或交互决策。
+- how: 在 runner 或落库边界规范化 `summary/evidenceMap/openQuestions/proposals`，逐项过滤不符合类型的成员并附 warning；确保无效 proposal 不进入 action 状态机、其余合法结果仍完成落库。补 `proposals:[null]`、混合合法/非法 proposal、畸形 evidence/openQuestions 的回归测试。Touch: `deep_reading.py:99-111,501-515`、`app_server.py:3527-3558,3588-3595`、`tests/agent/deep_reading_api_test.py`、`tests/agent/deep_reading_runtime_test.py`。
