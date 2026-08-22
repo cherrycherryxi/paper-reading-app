@@ -6,7 +6,7 @@ Last triaged: 2026-08-22
 
 ## Next up
 
-OPT-164 — 深度共读摘抄检索支持所属书名与作者（P1 / S）。
+暂无。OPT-164 已由 PR #129 合并完成，本次对账不顺延指派新条目。
 
 **理由：** `paper_reading_gateway.py:114-124` 的 `search_quotes()` 目前只检索摘抄自身 `content/ocrText/reflection/tags`，虽由 `_compact_quote()` 返回所属书名，却从未把书名或作者放进检索 haystack；`docs/deepseek-harness-deep-reading-workbench.md:199-212` 已明确第一版检索契约应覆盖正文、OCR、标签、书名和作者。按用户最熟悉的书名/作者找个人摘抄会稳定漏结果，直接削弱 Theme 3「积累可信」与 2026-08-16 北极星 69 次回顾操作所代表的回流价值。**夜间适配：是**——复杂度 S，只需在 Gateway 的只读检索映射中解析所属书籍并补契约测试；验收明确为“书名命中、作者命中、无关词不命中、只读取 token 所属用户状态”，无需 owner 产品、信息架构、视觉或体验取舍。
 
@@ -20,7 +20,7 @@ OPT-164 — 深度共读摘抄检索支持所属书名与作者（P1 / S）。
 - 最近 8 日提交中，`644b5dc` 明确为 PR #128 的 OPT-162 合入提交；当前 `paper_reading_gateway.py:170-184` 已返回 `startPage/endPage/pagesRead`，`tests/agent/deep_reading_gateway_contract_test.py:114-174` 覆盖真实字段、书籍筛选和用户隔离，故 backlog 与 triage 同步标 done。本次给出的“最近 50 个 feature/agent PR”清单为空，不提供其他状态证据，未凭描述新增 done 判断。
 - OPT-159、160、161 的完成证据仍分别是 `c0e9b2a`、`a086b9e`、`ad85cd5`；当前树中保留对应启动失败收口、取消竞态和重启恢复代码及测试。
 - OPT-163 已由 PR #127 squash 合入 `feature/agent`（`e13f25d`）；Gateway 已返回并检索真实 `reflection`，契约测试覆盖聚焦摘抄、关键词命中与用户隔离。本次实跑 Python 全量 `492 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
-- OPT-164 为 P1/S：既定深度共读检索契约与代码存在确定性偏差，Theme 3 与真实回顾活跃度支撑北极星贡献，且验收边界封闭，指派为本轮唯一 Next up。
+- OPT-164 已由 PR #129 squash 合并至 `feature/agent`（`b33d3af`）；Gateway 已支持按所属书名和作者检索摘抄，契约测试覆盖书名命中、作者命中、无关词不命中和用户隔离。审查闸门实跑 Python 全量 `495 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 - OPT-165 为 P1/S：让已有思想连接成为可解释个人证据，北极星贡献强；但“已删除端点跳过还是标记”及实体摘要字段白名单仍需产品语义选择，留给 10:00 晨间候选卡，不进入夜间路径。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们仍缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不能因工程上容易而指派。
 
@@ -28,7 +28,7 @@ OPT-164 — 深度共读摘抄检索支持所属书名与作者（P1 / S）。
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-164 | 深度共读摘抄检索支持所属书名与作者 | **P1** | S | **in-progress** | Codex nightly PR pending；夜间适配：是；既定契约与只读检索实现的局部偏差，验收边界清楚 |
+| OPT-164 | 深度共读摘抄检索支持所属书名与作者 | **P1** | S | **done** | ✅ PR #129 / `b33d3af` 已合入 [2026-08-22]；书名、作者检索与用户隔离契约测试已落地 |
 | OPT-165 | 深度共读关联工具返回两端实体摘要 | **P1** | S | triaged | 留作 10:00 晨间候选卡；删除端点与摘要白名单仍需产品语义选择 |
 | OPT-162 | 深度共读时间线丢失起止页与已读页数 | **P1** | S | **done** | ✅ PR #128 / `644b5dc` 已合入 [2026-08-21]；真实页码字段与用户隔离契约测试已落地 |
 | OPT-163 | 深度共读摘抄丢失“我的理解”且无法按其检索 | **P1** | S | **done** | ✅ PR #127 / `e13f25d` 已合入 [2026-08-21]；Gateway 返回并检索 `reflection`，用户隔离契约测试已落地 |
@@ -66,7 +66,7 @@ OPT-164 — 深度共读摘抄检索支持所属书名与作者（P1 / S）。
 
 ## Recently reconciled done
 
-OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 

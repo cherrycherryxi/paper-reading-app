@@ -1535,7 +1535,7 @@ Format per item:
 - how: `_compact_quote()` 返回 `reflection`；`search_quotes()` haystack 用 `reflection` 替换 `note`（如需兼容历史异常数据可同时保留 note 回落）；补带 reflection 的聚焦摘抄与关键词检索测试。Touch: `paper_reading_gateway.py:82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-164 — 深度共读摘抄检索支持所属书名与作者 — 由 explore E273 提拔 [2026-08-21]
-- status: triaged — P1/S，2026-08-22 夜间候选；既定检索契约与当前实现的确定性偏差，边界清楚且无需 owner 体验取舍
+- status: done — ✅ PR #129 / `b33d3af` 已合入 `feature/agent` [2026-08-22]；Gateway 书名、作者检索及用户隔离契约测试已落地
 - area: backend / agent retrieval
 - priority: P1
 - size: S
