@@ -1555,7 +1555,7 @@ Format per item:
 - how: 为每条命中 connection 生成字段白名单，并按 sourceType/targetType 解析 compact book 或 compact quote 摘要；保留稳定 ID、kind/thought/tags，跳过或明确标记已删除端点；补 book↔book、quote↔book 和无关 entity_id 过滤测试。Touch: `paper_reading_gateway.py:62-94,147-156`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-166 — 深度共读无效证据被剔除后仍保留失去支撑的研究结论 — 由 explore E277 提拔 [2026-08-22]
-- status: new
+- status: triaged — P1/S，2026-08-23 夜间 Next up；服务端正确性缺口，验收边界明确且无需产品/设计判断
 - area: backend / agent correctness
 - priority: P1
 - size: S

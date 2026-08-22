@@ -323,6 +323,12 @@
 - 夜间 Triage 唯一 Next up 为 OPT-164（P1/S）：让深度共读摘抄检索按所属书名与作者命中；关键实现位于 `paper_reading_gateway.py:62-67,82-94,114-124`，契约测试位于 `tests/agent/deep_reading_gateway_contract_test.py`。
 - OPT-165 保持 P1/S 但留给 10:00 晨间候选卡；删除端点处理与实体摘要字段白名单仍需产品语义选择。
 
+## Current planning state (2026-08-23)
+
+- OPT-164 已由 PR #129 / `b33d3af` 完成，backlog 与 triage 保持 done。
+- 夜间 Triage 唯一 Next up 为 OPT-166（P1/S）：全部证据引用均被服务端校验剔除时，将失去支撑的研究结论降级为证据不足；关键实现位于 `app_server.py:3527-3558`，回归位于 `tests/agent/deep_reading_api_test.py`。
+- 最近 7 天 `auto/` 实现 PR 为 5/8；OPT-165 仍因产品语义选择留给 10:00 晨间候选卡，其余未完成项维持 P3 parked/blocked。
+
 
 ## assets/
 
