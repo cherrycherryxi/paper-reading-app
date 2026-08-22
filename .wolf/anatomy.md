@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-21T07:13:45.179Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-21T11:55:43.680Z
 > Files: 350 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -191,7 +191,7 @@
 - `review-2026-08-14.md` (~2 tok)
 - `review-2026-08-15.md` — 2026-08-15 夜间 PR 审查 (~8 tok)
 - `review-2026-08-21.md` — 夜间 PR 审查汇总（2026-08-21） (~177 tok)
-- `today-pick.md` — 卡片① (~52 tok)
+- `today-pick.md` — 卡片① (~46 tok)
 
 ## ../../.claude/scripts/configs/
 
@@ -218,7 +218,7 @@
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
 - `mcp.log` — Declares ListToolsRequest (~240544 tok)
-- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~1878 tok)
+- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~1910 tok)
 - `privacy.html` — 隐私政策 · 又买了一本书 (~934 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
@@ -451,7 +451,7 @@
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
 - `deep_reading_api_test.py` — _Runner: start, setUp, tearDown, request + 3 more (~1505 tok)
 - `deep_reading_cordis_contract_test.py` — DeepReadingCordisContractTests: test_gateway_tools_share_the_root_registry_and_are_strictly_ordered, (~409 tok)
-- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~1040 tok)
+- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~2924 tok)
 - `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~920 tok)
 - `deep_reading_store_test.py` — DeepReadingStoreTests: setUp, tearDown, test_run_token_binds_gateway_to_server_side_user, test_conte (~1001 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_uses_model_from_environment_configuration, test_retri (~5517 tok)
@@ -556,20 +556,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -577,30 +577,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
