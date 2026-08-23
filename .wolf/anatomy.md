@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-23T02:04:08.579Z
-> Files: 354 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-23T12:32:33.894Z
+> Files: 356 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -187,6 +187,7 @@
 - `cards-2026-08-15.md` — 卡片① (~37 tok)
 - `cards-2026-08-21.md` — 卡片① (~32 tok)
 - `cards-2026-08-22.md` — 卡片① (~33 tok)
+- `cards-2026-08-23.md` — 卡片① (~32 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -198,6 +199,7 @@
 - `review-2026-08-15.md` — 2026-08-15 夜间 PR 审查 (~8 tok)
 - `review-2026-08-21.md` — 夜间 PR 审查汇总（2026-08-21） (~177 tok)
 - `review-2026-08-22.md` — 2026-08-22 夜间 PR 审查 (~95 tok)
+- `review-2026-08-23.md` — 2026-08-23 夜间 PR 审查 (~172 tok)
 - `today-pick.md` — 卡片① (~46 tok)
 
 ## ../../.claude/scripts/configs/
@@ -418,7 +420,7 @@
 - `README.md` — Project documentation (~927 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
 - `release-hook.sh` — 生产发布 hook：根据本次 Prod 版本与上一版本的提交记录生成更新说明。 (~922 tok)
-- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~647 tok)
+- `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~888 tok)
 - `weekly-prod-release.sh` — 每周日 17:00：仅经统一发布脚本将 feature/agent 发布到 Prod。 (~318 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1622 tok)
 - `weekly-report.sh` — 每周日 18:00：计算北极星三数、生成周报并发邮件。 (~1453 tok)
@@ -459,7 +461,7 @@
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~501 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~5935 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
-- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~2076 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~2238 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1587 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
@@ -575,20 +577,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -596,30 +598,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)

@@ -5228,3 +5228,28 @@
 |------|--------|---------|---------|--------|
 | 10:04 | Created ../../../../tmp/paper-reconcile-20260823.q12Isg/optimization/triage.md | — | ~1798 |
 | 10:04 | Created ../../../../tmp/paper-reconcile-20260823.q12Isg/optimization/backlog.md | — | ~47428 |
+| 10:07 | Created ../../.claude/paper-loop/review-2026-08-23.md | — | ~184 |
+| 10:07 | Session end: 3 writes across 3 files (triage.md, backlog.md, review-2026-08-23.md) | 0 reads | ~52939 tok |
+
+## Session: 2026-08-23 10:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:08 | Created ../../.claude/paper-loop/cards-2026-08-23.md | — | ~34 |
+| 10:09 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
+
+## 2026-08-23 · 晨间候选邮件文案必须匹配实际卡片数
+
+- 晨间候选是“最多 2 张”，不能在只有卡片①时仍固定写“今日 2 张”并提示 `1 / 2 / both`。
+- 邮件正文和主题应从 `today-pick.md` 的 `## 卡片` 数量派生：一张只提示回复 `1`，两张才提示 `1 / 2 / both`；候选质量门槛本身不变。
+
+## 2026-08-23 · 周日自动生产发布终态邮件
+
+- 周日发布必须对“成功、无待发布提交、失败”三个终态发送邮件；失败通知由 EXIT 清理路径兜底，覆盖测试失败、部署脚本失败等提前退出。
+- 通知邮件失败只写入发布日志，不能反向把已经成功的 Prod 发布判成失败；`PAPER_RELEASE_DRY_RUN=1` 必须跳过所有邮件。
+- 成功邮件记录 Prod 实际工作树 SHA，并明确本地与公网 HTTP 健康检查已由统一发布脚本通过。
+| 20:27 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
+| 20:28 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
+| 20:32 | Created scripts/codex/weekly-prod-release.sh | — | ~888 |
+| 20:32 | Created tests/agent/codex_weekly_automation_test.py | — | ~2238 |
+| 20:33 | Session end: 3 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~3226 tok |
