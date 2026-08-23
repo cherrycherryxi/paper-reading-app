@@ -4987,3 +4987,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱——当前只是可验证的长期容量与数据治理风险，没有磁盘或导出变慢 signal，不提拔。
 
 > 本次 run 新发现 4 条：E277（无效证据被剔除但 summary 仍保留，S，correctness）、E278（研究无状态快照，M，可复现性）、E279（完成结果缺读屏聚焦/公告，S，无障碍）、E280（run/events 无保留策略，S-M，代码健康）。仅 E277 与当前 Theme 3 形成直接、确定且可局部修复的可信性缺口，提拔为 OPT-166；其余因缺真实 signal、需策略取舍或北极星较弱而留探索池。所有断言均基于当前 `file:line` 核实，并已排除 backlog、旧 Explore、最近合并代码与 open PR #129 重复。
+
+## 2026-08-23
+
+> 扫描焦点：当前 Theme 3「积累可信」下，继续核对深度共读结果从 Harness 返回、服务端落库到前端恢复与沉淀的失败边界。只读 `git ls-remote` 确认远端 `feature/agent` 与隔离 clone `HEAD` 同为 `67f5a28`；用户提供的唯一 open PR #130 只覆盖 OPT-166。已核对 backlog、triage、roadmap、signals、E001–280、最近提交及当前代码；以下方向不重复 OPT-001–166、#130、已合并目标或旧 Explore。
+
+### E281 — 深度共读只验证顶层 JSON 对象，不校验结果内部结构，单个畸形建议可令整次任务失败 (S)
+
+**What:** Harness 最终文本只要能解析成 JSON 对象就会进入落库流程；`summary/evidenceMap/openQuestions/proposals` 的成员类型没有统一校验。模型若返回 `proposals: [null]` 或非对象成员，服务端处理无效建议时会对该成员做字典展开并抛异常，使已经生成了 summary 的整次研究最终被标记为 FAILED。
+
+**Evidence:** `_json_object()` 只检查解析结果是 dict（`deep_reading.py:99-111`）；runner 仅 `setdefault` 三个字段并确认 proposals 是 list，随后把成员原样交给回调（`deep_reading.py:501-510`）。`persist_research_proposals()` 虽对读取 `evidenceIds` 做了 `isinstance(proposal, dict)` 防守，但无证据分支立即执行 `{**proposal, ...}`（`app_server.py:3588-3595`），因此 `null`、字符串或数组成员都会触发 `TypeError`；外层捕获会把 run 标成 FAILED（`deep_reading.py:513-515`）。现有 API 回归只覆盖结构正确的 proposal（`tests/agent/deep_reading_api_test.py:129-161`）。
+
+**Why:** 模型输出不是可信 schema。当前实现会因一个可丢弃的坏建议连带丢掉其余可展示结论，与 Theme 3「积累可信」相冲突。最小修复是在 runner 或落库边界规范化四个字段，逐项过滤非对象 evidence/proposal、非字符串问题，并保留明确 warning；补畸形成员不使 run 失败的契约测试。
+
+**Size:** S
+
+**Files:** `deep_reading.py:99-111,501-515`; `app_server.py:3527-3558,3588-3595`; `tests/agent/deep_reading_api_test.py:129-161`; `tests/agent/deep_reading_runtime_test.py`
+
+**Northstar:** 强——让深度共读在模型局部格式漂移时保住可用结论，不把可降级的建议错误升级为整次研究失败，直接保护回顾结果的可靠性。→ **promoted to OPT-167**
+
+### E282 — 页面刷新后不恢复正在执行的深度共读，用户可重复启动同一研究 (S)
+
+**What:** `activeRun` 只存在当前页面内存中。刷新后进入深度共读只加载历史列表和能力状态，不会识别最近的 CREATED/RUNNING run、恢复状态轮询或禁用开始按钮；历史中的运行项也必须用户主动点击才会继续跟踪。因此同一后台任务仍在执行时，界面看起来可以再次启动。
+
+**Evidence:** 初始化状态把 `activeRun` 设为 null、开始按钮默认可用（`chat.js:1115-1119`）；进入研究模式只调用 `loadHistory()`/`loadCapability()`（`chat.js:1160-1166`）。`loadHistory()` 只写按钮列表，不选择或恢复非终态 run（`chat.js:1244-1257`）；只有新建成功或点击某条历史才调用 `loadRun()`（`chat.js:1271-1281,1296-1299`）。后端创建端点也未拒绝同用户已有非终态任务（`app_server.py:5024-5048`）。
+
+**Why:** 长任务天然跨越刷新、切后台和 Safari 回收页面。失去恢复入口会把真实运行中的任务伪装成可再次开始，增加重复模型成本并产生两份相近结果。进入工作台后可从历史中自动恢复最近非终态 run；是否限制跨上下文并发仍需产品取舍。
+
+**Size:** S
+
+**Files:** `chat.js:1115-1119,1160-1166,1244-1257,1271-1299`; `app_server.py:5024-5048`; `tests/frontend/deep-reading-workbench.test.js:18-33`
+
+**Northstar:** 中——恢复长任务能减少重复研究并保持进度连续，但没有刷新后重复启动的直接 signal，且跨上下文并发语义尚未定义；不提拔。
+
+### E283 — 深度共读创建端点没有并发或额度护栏，可为同一用户无限启动昂贵 runner (S-M)
+
+**What:** `/api/research-runs` 通过鉴权和 capability 检查后直接创建 daemon runner；没有调用现有 AI rate-limit，也没有查询该用户当前 CREATED/RUNNING 数。客户端按钮禁用只能约束单页面，多个标签页或直接请求可以同时启动任意数量研究任务。
+
+**Evidence:** 创建路径 `app_server.py:5024-5048` 没有 `_enforce_rate_limit()` 或非终态计数；对照聊天流端点会在调用模型前执行 `_enforce_rate_limit(..., "chat")`（`app_server.py:5861-5865`）。runner 每次 start 都新建 daemon thread（`deep_reading.py:362-364`），而 `ResearchRunStore.create()` 只校验上下文并无并发查询（`deep_reading.py:149-190`）。
+
+**Why:** 深度共读比一次普通探讨耗时更长、工具调用更多。缺少服务端护栏既可能放大误触/刷新产生的重复成本，也允许单个账号耗尽线程和上游额度。应先决定“每用户最多一个全局 run”还是“每上下文一个”，并设置独立额度，不能仅复用前端 disabled。
+
+**Size:** S-M
+
+**Files:** `app_server.py:5024-5048,5861-5865`; `deep_reading.py:149-190,362-364`; `tests/agent/deep_reading_api_test.py:77-127`
+
+**Northstar:** 中——保护服务可用性和模型成本，但当前无并发事故 signal，且额度与跨上下文策略需要产品选择；不提拔。
+
+### E284 — 沉淀建议保存失败会把已完成研究的状态栏改成“失败” (S)
+
+**What:** 用户在已完成结果中确认或忽略沉淀建议时，接口错误复用研究任务级 `handleError()`。该函数会把顶部 `researchStatus` 写成 FAILED；于是 run 实际仍为 COMPLETED、结论仍可见，界面却宣称整次深度共读失败，错误层级混淆。
+
+**Evidence:** `renderStatus()` 依据 run 状态显示“已完成”（`chat.js:1187-1200`）；通用 `handleError()` 无条件把 statusBox 的 data-state 改为 FAILED（`chat.js:1235-1242`）。proposal approve/reject catch 直接调用它（`chat.js:1300-1316`），而成功/失败只涉及 `/api/agent-actions/...`，不会改变 research run 的终态。现有前端测试没有驱动 proposal 操作失败（`tests/frontend/deep-reading-workbench.test.js:18-33`）。
+
+**Why:** 研究生成与后续沉淀是两层状态。保存建议失败应留在该建议卡片内、恢复按钮并允许重试，不能推翻已完成研究的状态；否则用户会误判结论丢失或任务需重跑。
+
+**Size:** S
+
+**Files:** `chat.js:1187-1242,1300-1316`; `tests/frontend/deep-reading-workbench.test.js:18-33`
+
+**Northstar:** 中——避免把局部保存错误误报成研究失败，提升结果可信感；无直接 signal，且可与未来 proposal 交互测试一并处理，不提拔。
+
+> 本次 run 新发现 4 条：E281（结果内部 schema 未校验，S，correctness/error handling）、E282（刷新后不恢复运行任务，S，UX）、E283（创建端点无并发/额度护栏，S-M，performance/reliability）、E284（建议保存失败污染研究终态，S，错误呈现）。仅 E281 是无需产品取舍、会把可降级模型格式错误升级为整次失败的强证据缺口，提拔为 OPT-167；其余留探索池。所有断言均基于当前文件逐行核实，并已排除 backlog、旧 Explore、远端 `feature/agent`、最近合并代码与 open PR #130 重复。

@@ -5209,3 +5209,15 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+# 2026-08-23 夜间 Triage
+
+- 外层证据给出最近 7 天 `auto/` PR 为 5/8，最近 50 个 feature/agent PR 清单为空；未调用 `gh` 或 GitHub API。
+- OPT-164 由 PR #129 / `b33d3af` 完成，当前代码与契约测试支持按所属书名和作者检索摘抄，backlog 与 triage 保持 done。
+- OPT-166 是唯一夜间 Next up（P1/S）：服务端已能过滤无效 evidenceMap，但全部引用失效后仍保留 summary；补齐真实性不变量与全无效、部分有效、原本无证据三类回归，边界明确且无需 owner 产品或设计判断。
+- OPT-165 仍需决定删除端点语义与摘要白名单，留给 10:00 晨间候选卡；其余未完成项维持 P3 parked/blocked。
+
+# 2026-08-23 夜间 Explore
+
+- 深度共读目前只验证 Harness 最终文本是 JSON 对象，未验证 proposals 等内部成员；`proposals: [null]` 会在 `persist_research_proposals()` 的字典展开处抛错并把整次研究标为 FAILED。已登记 E281 并提拔 OPT-167，后续应在落库边界过滤坏成员、保留其余结论并补结构漂移回归。
+- 刷新后不恢复运行任务、创建端点无并发额度护栏、建议保存失败污染研究状态分别登记 E282–E284；均暂不提拔，避免在无 signal 时擅自决定跨上下文并发或交互语义。
