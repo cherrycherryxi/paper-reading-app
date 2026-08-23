@@ -103,6 +103,14 @@ fi
 # token 以 pick 文件为单一真源（幂等跳过 Phase2 时仍与 reader 一致）
 EMAIL_TOKEN=$(grep -m1 '^TOKEN:' "$PICK" 2>/dev/null | awk '{print $2}')
 [ -n "$EMAIL_TOKEN" ] || EMAIL_TOKEN="$TOKEN"
+CARD_COUNT=$(grep -c '^## 卡片' "$PICK" 2>/dev/null || true)
+if [ "$CARD_COUNT" -ge 2 ]; then
+    CARD_LABEL="今日 2 张候选选题卡"
+    REPLY_HINT="1 / 2 / both"
+else
+    CARD_LABEL="今日 1 张候选选题卡"
+    REPLY_HINT="1"
+fi
 FOCUS=$(bash "$HOME/.claude/scripts/paper-owner-focus.sh" "$REPO" 2>/dev/null)
 BODY="$STATE_DIR/morning-mail-$TODAY.md"
 {
@@ -113,7 +121,7 @@ BODY="$STATE_DIR/morning-mail-$TODAY.md"
         echo "----------------------------------------"
     fi
     if [ -s "$PICK" ]; then
-        echo "【今日 2 张候选选题卡】回复本邮件，正文首行写 1 / 2 / both 即可让它自动实现："
+        echo "【${CARD_LABEL}】回复本邮件，正文首行写 ${REPLY_HINT} 即可让它自动实现："
         echo
         sed '1,5d' "$PICK"   # 去掉机器表头，只发卡片正文
         echo
@@ -126,7 +134,7 @@ BODY="$STATE_DIR/morning-mail-$TODAY.md"
 # 发信（send-email.py 内部已重试 4 次应对 SMTP 偶发断连）。若仍失败（如代理出口封 SMTP），
 # 改走 Bark 推送兜底——至少让 owner 第一时间看到今日选题卡，不至于两眼一抹黑。
 if /usr/bin/python3 "$HOME/.claude/scripts/send-email.py" \
-    --subject "今日选题 · ${TODAY} · paper-reading-app｜回复 1 / 2 / both （token:${EMAIL_TOKEN}）" \
+    --subject "今日选题 · ${TODAY} · paper-reading-app｜回复 ${REPLY_HINT} （token:${EMAIL_TOKEN}）" \
     --body-file "$BODY" >> "$LOG" 2>&1; then
     echo "[$(date)] 晨间邮件已发" >> "$LOG"
 else

@@ -36,6 +36,16 @@ class CodexMorningAutomationTests(unittest.TestCase):
         self.assertIn(r"\`done\`、\`in-progress\`、已有 open PR、已合并 PR", prompt)
         self.assertIn("当前代码已经实现", prompt)
 
+    def test_email_copy_matches_the_actual_candidate_count(self):
+        source = MORNING.read_text()
+        self.assertIn("CARD_COUNT=$(grep -c '^## 卡片'", source)
+        self.assertIn('CARD_LABEL="今日 1 张候选选题卡"', source)
+        self.assertIn('REPLY_HINT="1"', source)
+        self.assertIn('CARD_LABEL="今日 2 张候选选题卡"', source)
+        self.assertIn('REPLY_HINT="1 / 2 / both"', source)
+        self.assertIn("【${CARD_LABEL}】", source)
+        self.assertIn("回复 ${REPLY_HINT}", source)
+
 
 if __name__ == "__main__":
     unittest.main()

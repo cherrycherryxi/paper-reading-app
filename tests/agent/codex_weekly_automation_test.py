@@ -57,6 +57,16 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn("PAPER_RELEASE_DRY_RUN", source)
         self.assertNotIn('cd "$REPO"\n[ "$(date +%w)"', source)
 
+    def test_weekly_production_release_emails_each_terminal_outcome(self):
+        source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
+        self.assertIn('EMAIL_SCRIPT="${PAPER_RELEASE_EMAIL:-', source)
+        self.assertIn("✅ Prod 自动发布成功", source)
+        self.assertIn("ℹ️ Prod 本周无需发布", source)
+        self.assertIn("❌ Prod 自动发布失败", source)
+        self.assertIn('[ "$DRY_RUN" = 1 ] && return 0', source)
+        self.assertIn('NOTIFICATION_SENT=1', source)
+        self.assertLess(source.index("deploy-prod.sh --yes"), source.index("✅ Prod 自动发布成功"))
+
     def test_codex_autofix_checks_the_secret_at_step_scope(self):
         source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
         job = source.split("  codex-autofix:", 1)[1]
