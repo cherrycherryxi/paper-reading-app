@@ -5221,3 +5221,10 @@
 
 - 深度共读目前只验证 Harness 最终文本是 JSON 对象，未验证 proposals 等内部成员；`proposals: [null]` 会在 `persist_research_proposals()` 的字典展开处抛错并把整次研究标为 FAILED。已登记 E281 并提拔 OPT-167，后续应在落库边界过滤坏成员、保留其余结论并补结构漂移回归。
 - 刷新后不恢复运行任务、创建端点无并发额度护栏、建议保存失败污染研究状态分别登记 E282–E284；均暂不提拔，避免在无 signal 时擅自决定跨上下文并发或交互语义。
+
+## Session: 2026-08-23 10:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:04 | Created ../../../../tmp/paper-reconcile-20260823.q12Isg/optimization/triage.md | — | ~1798 |
+| 10:04 | Created ../../../../tmp/paper-reconcile-20260823.q12Isg/optimization/backlog.md | — | ~47428 |

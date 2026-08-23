@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-22T02:07:59.000Z
-> Files: 352 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-23T02:04:08.579Z
+> Files: 354 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -162,6 +162,11 @@
 ## ../../../../tmp/paper-opt149/tests/frontend/
 
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20740 tok)
+
+## ../../../../tmp/paper-reconcile-20260823.q12Isg/optimization/
+
+- `backlog.md` — Optimization Backlog (~44464 tok)
+- `triage.md` — Triage (~1685 tok)
 
 ## ../../.claude/
 
@@ -325,16 +330,11 @@
 
 ## Current planning state (2026-08-22)
 
-## Current planning state (2026-08-23)
-
-- OPT-164 已由 PR #129 / `b33d3af` 完成，backlog 与 triage 保持 done。
-- 夜间 Triage 唯一 Next up 为 OPT-166（P1/S）：全部证据引用均被服务端校验剔除时，将失去支撑的研究结论降级为证据不足；关键实现位于 `app_server.py:3527-3558`，回归位于 `tests/agent/deep_reading_api_test.py`。
-- 最近 7 天 `auto/` 实现 PR 为 5/8；OPT-165 仍因产品语义选择留给 10:00 晨间候选卡，其余未完成项维持 P3 parked/blocked。
 
 ## Current planning state (2026-08-23 Explore)
 
-- 新增 E281–E284；仅将 E281 提拔为 OPT-167，目标是在深度共读模型返回局部畸形结构时过滤坏成员并保留其余可用结果。
-- E282–E284 分别涉及刷新恢复、研究并发护栏与沉淀建议错误层级；因缺直接 signal 或仍需产品语义选择，暂留探索池。
+
+## Current planning state (2026-08-23)
 
 
 ## assets/
