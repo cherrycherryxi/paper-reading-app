@@ -8,7 +8,7 @@ Last triaged: 2026-08-23
 
 **OPT-166 · 深度共读无效证据被剔除后仍保留失去支撑的研究结论（P1 / S）**
 
-**状态：in-progress · Codex nightly PR pending**
+**状态：done · PR #130 / `cf1f9b6` 已合入 [2026-08-23]**
 
 **理由：** `app_server.py:3527-3558` 的 `persist_research_proposals()` 会移除引用不存在 ID 的 `evidenceMap` 项并写入警告，却不处理原 `summary`；`chat.js:1202-1218` 又无条件把该 summary 显示为“研究结论”。这允许模型在全部证据均被真实性校验否决后，仍把失去支撑的实质性结论交给用户，直接违背 `deep_reading.py:374-381` 的既定证据契约。**夜间适配：是**——复杂度 S，只需补齐现有服务端校验不变量和聚焦回归；验收明确为“全部无效时结论降级、部分有效时保留结论、原本无证据时不误伤”，无需 owner 产品、信息架构、视觉或体验取舍。
 
@@ -24,14 +24,14 @@ Last triaged: 2026-08-23
 - OPT-163 已由 PR #127 squash 合入 `feature/agent`（`e13f25d`）；Gateway 已返回并检索真实 `reflection`，契约测试覆盖聚焦摘抄、关键词命中与用户隔离。本次实跑 Python 全量 `492 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 - OPT-164 已由 PR #129 squash 合并至 `feature/agent`（`b33d3af`）；Gateway 已支持按所属书名和作者检索摘抄，契约测试覆盖书名命中、作者命中、无关词不命中和用户隔离。审查闸门实跑 Python 全量 `495 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 - OPT-165 为 P1/S：让已有思想连接成为可解释个人证据，北极星贡献强；但“已删除端点跳过还是标记”及实体摘要字段白名单仍需产品语义选择，留给 10:00 晨间候选卡，不进入夜间路径。
-- OPT-166 为 P1/S：现有代码已坐实“过滤无效证据但保留原结论”的正确性缺口；服务端不变量与三类验收边界清楚，符合夜间条件，本次唯一指派。
+- OPT-166 已由 PR #130 squash 合入 `feature/agent`（`cf1f9b6`）；全部无效证据时降级结论、部分有效与原本无证据时保留原结论的回归已落地。审查闸门实跑 Python 全量 `497 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们仍缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不能因工程上容易而指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-166 | 深度共读无效证据被剔除后仍保留失去支撑的研究结论 | **P1** | S | **in-progress** | Codex nightly PR pending；夜间适配：是；服务端真实性不变量，三类回归边界明确，无需产品取舍 |
+| OPT-166 | 深度共读无效证据被剔除后仍保留失去支撑的研究结论 | **P1** | S | **done** | ✅ PR #130 / `cf1f9b6` 已合入 [2026-08-23]；全部无效时降级，部分有效与原本无证据边界测试已落地 |
 | OPT-164 | 深度共读摘抄检索支持所属书名与作者 | **P1** | S | **done** | ✅ PR #129 / `b33d3af` 已合入 [2026-08-22]；书名、作者检索与用户隔离契约测试已落地 |
 | OPT-165 | 深度共读关联工具返回两端实体摘要 | **P1** | S | triaged | 留作 10:00 晨间候选卡；删除端点与摘要白名单仍需产品语义选择 |
 | OPT-162 | 深度共读时间线丢失起止页与已读页数 | **P1** | S | **done** | ✅ PR #128 / `644b5dc` 已合入 [2026-08-21]；真实页码字段与用户隔离契约测试已落地 |
