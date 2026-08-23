@@ -5248,8 +5248,18 @@
 - 周日发布必须对“成功、无待发布提交、失败”三个终态发送邮件；失败通知由 EXIT 清理路径兜底，覆盖测试失败、部署脚本失败等提前退出。
 - 通知邮件失败只写入发布日志，不能反向把已经成功的 Prod 发布判成失败；`PAPER_RELEASE_DRY_RUN=1` 必须跳过所有邮件。
 - 成功邮件记录 Prod 实际工作树 SHA，并明确本地与公网 HTTP 健康检查已由统一发布脚本通过。
+- 成功邮件不能只报告 SHA/HTTP；应按发布前目标 SHA 定位自动生成的 `docs/releases/YYYY-MM-DD-<target>.md`，用真实换行把 release note 原文完整放入邮件，不做摘要或章节裁剪。
 | 20:27 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
 | 20:28 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
 | 20:32 | Created scripts/codex/weekly-prod-release.sh | — | ~888 |
 | 20:32 | Created tests/agent/codex_weekly_automation_test.py | — | ~2238 |
 | 20:33 | Session end: 3 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~3226 tok |
+| 20:42 | Session end: 3 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~3226 tok |
+| 20:50 | Session end: 3 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~3226 tok |
+| 20:51 | Session end: 3 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~3226 tok |
+| 20:54 | Created scripts/codex/weekly-prod-release.sh | — | ~1007 |
+| 20:54 | Created tests/agent/codex_weekly_automation_test.py | — | ~2299 |
+| 20:54 | Session end: 5 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~6603 tok |
+| 20:58 | Created scripts/codex/weekly-prod-release.sh | — | ~976 |
+| 20:58 | Created tests/agent/codex_weekly_automation_test.py | — | ~2325 |
+| 20:58 | Session end: 7 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~9974 tok |
