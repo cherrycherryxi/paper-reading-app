@@ -151,6 +151,7 @@ class DeepReadingApiTests(unittest.TestCase):
     def test_unverifiable_evidence_is_removed_before_result_persistence(self):
         run, _ = app_server.research_store().create("u1", {"type": "global"}, "核验证据")
         result = app_server.persist_research_proposals(run, {
+            "summary": "仍有真实证据支撑的结论",
             "evidenceMap": [
                 {"claim": "可核验", "evidenceIds": ["q1"]},
                 {"claim": "模型虚构", "evidenceIds": ["missing"]},
@@ -158,7 +159,32 @@ class DeepReadingApiTests(unittest.TestCase):
             "proposals": [],
         })
         self.assertEqual([item["claim"] for item in result["evidenceMap"]], ["可核验"])
+        self.assertEqual(result["summary"], "仍有真实证据支撑的结论")
         self.assertIn("已移除 1 条", result["evidenceWarning"])
+
+    def test_summary_is_downgraded_when_all_claimed_evidence_is_unverifiable(self):
+        run, _ = app_server.research_store().create("u1", {"type": "global"}, "核验全部证据")
+        result = app_server.persist_research_proposals(run, {
+            "summary": "这是一个失去证据支撑的实质性结论",
+            "evidenceMap": [{"claim": "模型虚构", "evidenceIds": ["missing"]}],
+            "proposals": [],
+        })
+
+        self.assertEqual(result["evidenceMap"], [])
+        self.assertEqual(result["summary"], "证据不足，无法形成可靠的研究结论。")
+        self.assertIn("已移除 1 条", result["evidenceWarning"])
+
+    def test_summary_is_unchanged_when_model_claimed_no_evidence(self):
+        run, _ = app_server.research_store().create("u1", {"type": "global"}, "本来就没有证据")
+        result = app_server.persist_research_proposals(run, {
+            "summary": "当前没有足够的阅读记录可供分析",
+            "evidenceMap": [],
+            "proposals": [],
+        })
+
+        self.assertEqual(result["evidenceMap"], [])
+        self.assertEqual(result["summary"], "当前没有足够的阅读记录可供分析")
+        self.assertNotIn("evidenceWarning", result)
 
     def test_cancellation_winning_write_lock_creates_no_trace_or_action(self):
         run, _ = app_server.research_store().create("u1", {"type": "book", "bookId": "b1"}, "取消竞态")

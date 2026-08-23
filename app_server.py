@@ -3554,6 +3554,8 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
         result["evidenceMap"] = valid_evidence_map
         if invalid_evidence_count:
             result["evidenceWarning"] = f"已移除 {invalid_evidence_count} 条无法定位到阅读记录的证据"
+            if not valid_evidence_map:
+                result["summary"] = "证据不足，无法形成可靠的研究结论。"
         if not proposals:
             return result
 
