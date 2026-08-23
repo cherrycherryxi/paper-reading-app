@@ -5249,6 +5249,7 @@
 - 通知邮件失败只写入发布日志，不能反向把已经成功的 Prod 发布判成失败；`PAPER_RELEASE_DRY_RUN=1` 必须跳过所有邮件。
 - 成功邮件记录 Prod 实际工作树 SHA，并明确本地与公网 HTTP 健康检查已由统一发布脚本通过。
 - 成功邮件不能只报告 SHA/HTTP；应按发布前目标 SHA 定位自动生成的 `docs/releases/YYYY-MM-DD-<target>.md`，用真实换行把 release note 原文完整放入邮件，不做摘要或章节裁剪。
+
 | 20:27 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
 | 20:28 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
 | 20:32 | Created scripts/codex/weekly-prod-release.sh | — | ~888 |
@@ -5263,3 +5264,10 @@
 | 20:58 | Created scripts/codex/weekly-prod-release.sh | — | ~976 |
 | 20:58 | Created tests/agent/codex_weekly_automation_test.py | — | ~2325 |
 | 20:58 | Session end: 7 writes across 3 files (cards-2026-08-23.md, weekly-prod-release.sh, codex_weekly_automation_test.py) | 0 reads | ~9974 tok |
+
+# 2026-08-24 夜间 Triage
+
+- 外层证据给出最近 7 天 `auto/` PR 为 6/8，最近 50 个 feature/agent PR 清单为空；未调用 `gh` 或 GitHub API。
+- OPT-166 由 PR #130 / `cf1f9b6` 完成，当前代码与三类边界测试均在树中，backlog 与 triage 保持 done。
+- OPT-167 是唯一夜间 Next up（P1/S）：Harness 只校验结果外层对象，`proposals:[null]` 会在无效建议字典展开处抛错并令整次研究失败；结构过滤、warning、合法建议保留与其余结果完成落库的验收明确，无需 owner 产品或设计判断。
+- OPT-165 仍需决定删除端点语义与摘要白名单，留给 10:00 晨间候选卡；其余未完成项维持 P3 parked/blocked。

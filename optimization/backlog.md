@@ -1566,7 +1566,7 @@ Format per item:
 - evidence: PR #130 已 squash 合入 `feature/agent`，提交 `cf1f9b6`；审查闸门实跑 Python 全量 `497 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-167 — 深度共读结果内部结构未校验，畸形建议会令整次任务失败 — 由 explore E281 提拔 [2026-08-23]
-- status: untriaged
+- status: triaged — P1/S，2026-08-24 夜间 Next up；确定性正确性缺口，结构过滤与“保留其余可用结果”的验收边界明确，无需 owner 产品或设计判断
 - area: backend / agent correctness
 - priority: P1
 - size: S
