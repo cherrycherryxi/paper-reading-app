@@ -66,6 +66,11 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn('[ "$DRY_RUN" = 1 ] && return 0', source)
         self.assertIn('NOTIFICATION_SENT=1', source)
         self.assertLess(source.index("deploy-prod.sh --yes"), source.index("✅ Prod 自动发布成功"))
+        self.assertIn('RELEASE_NOTES="docs/releases/', source)
+        self.assertIn('RELEASE_CONTENT=$(cat "$RELEASE_NOTES")', source)
+        self.assertIn("以下为本次完整 release note", source)
+        self.assertNotIn("RELEASE_SUMMARY=$(awk", source)
+        self.assertIn("SUCCESS_BODY=$(printf", source)
 
     def test_codex_autofix_checks_the_secret_at_step_scope(self):
         source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()

@@ -86,7 +86,15 @@ if ! node --test tests/frontend/*.test.js >> "$LOG" 2>&1; then
   exit 1
 fi
 
+PRE_DEPLOY_TARGET=$(git rev-parse HEAD)
+RELEASE_NOTES="docs/releases/$(date +%F)-${PRE_DEPLOY_TARGET:0:8}.md"
 bash scripts/codex/deploy-prod.sh --yes >> "$LOG" 2>&1
 PROD_SHA=$(git -C "$PROD_REPO" rev-parse HEAD)
-notify "✅ Prod 自动发布成功 · $(date +%F)" \
-  "周日自动生产发布已完成。\n\nProd SHA: ${PROD_SHA}\n本地入口与公网入口均已通过发布脚本 HTTP 健康检查。"
+if [ -f "$RELEASE_NOTES" ]; then
+  RELEASE_CONTENT=$(cat "$RELEASE_NOTES")
+else
+  RELEASE_CONTENT="更新说明文件未找到，请查看发布日志：$LOG"
+fi
+SUCCESS_BODY=$(printf '周日自动生产发布已完成。\n\nProd SHA: %s\n本地入口与公网入口均已通过发布脚本 HTTP 健康检查。\n\n以下为本次完整 release note：\n\n%s' \
+  "$PROD_SHA" "$RELEASE_CONTENT")
+notify "✅ Prod 自动发布成功 · $(date +%F)" "$SUCCESS_BODY"
