@@ -5188,3 +5188,24 @@
 
 - 深度共读的证据真实性守卫目前只过滤 `evidenceMap`，不能只依赖 prompt 约束 summary。若全部引用 ID 无效，必须把仍在展示的实质性结论同步降级为“证据不足”，否则 UI 会保留一条已失去支撑的研究结论。该方向已登记 E277 并提拔 OPT-166。
 - 深度共读 Gateway 每次工具调用读取实时 `user_state`，run 未保存状态版本或证据快照；研究期间修改数据会改变同一 run 的证据边界。当前无真实 signal，先保留 E278，不直接决定快照存储策略。
+| 10:03 | Created optimization/triage.md | — | ~1743 |
+| 10:03 | Created optimization/backlog.md | — | ~47103 |
+
+## Session: 2026-08-22 10:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:06 | Created ../../.claude/paper-loop/review-2026-08-22.md | — | ~102 |
+| 10:06 | Session end: 3 writes across 3 files (triage.md, backlog.md, review-2026-08-22.md) | 0 reads | ~52444 tok |
+
+## Session: 2026-08-22 10:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:07 | Created ../../.claude/paper-loop/cards-2026-08-22.md | — | ~36 |
+| 10:08 | Session end: 1 writes across 1 files (cards-2026-08-22.md) | 0 reads | ~38 tok |
+
+## Session: 2026-08-22 23:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

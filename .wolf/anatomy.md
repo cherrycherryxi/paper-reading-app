@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-21T11:55:43.680Z
-> Files: 350 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-22T02:07:59.000Z
+> Files: 352 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -181,6 +181,7 @@
 - `cards-2026-08-14.md` — 卡片① (~62 tok)
 - `cards-2026-08-15.md` — 卡片① (~37 tok)
 - `cards-2026-08-21.md` — 卡片① (~32 tok)
+- `cards-2026-08-22.md` — 卡片① (~33 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -191,6 +192,7 @@
 - `review-2026-08-14.md` (~2 tok)
 - `review-2026-08-15.md` — 2026-08-15 夜间 PR 审查 (~8 tok)
 - `review-2026-08-21.md` — 夜间 PR 审查汇总（2026-08-21） (~177 tok)
+- `review-2026-08-22.md` — 2026-08-22 夜间 PR 审查 (~95 tok)
 - `today-pick.md` — 卡片① (~46 tok)
 
 ## ../../.claude/scripts/configs/
@@ -317,11 +319,11 @@
 
 ## Current planning state (2026-08-21)
 
-## Current planning state (2026-08-22)
 
-- OPT-162 已由 PR #128 / `644b5dc` 完成，Gateway 阅读时间线返回真实 `startPage/endPage/pagesRead`，backlog 与 triage 已对账为 done。
-- 夜间 Triage 唯一 Next up 为 OPT-164（P1/S）：让深度共读摘抄检索按所属书名与作者命中；关键实现位于 `paper_reading_gateway.py:62-67,82-94,114-124`，契约测试位于 `tests/agent/deep_reading_gateway_contract_test.py`。
-- OPT-165 保持 P1/S 但留给 10:00 晨间候选卡；删除端点处理与实体摘要字段白名单仍需产品语义选择。
+## Current planning state (2026-08-22 Explore)
+
+
+## Current planning state (2026-08-22)
 
 
 ## assets/
@@ -352,13 +354,13 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~43914 tok)
+- `backlog.md` — Optimization Backlog (~44159 tok)
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1316 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
-- `triage.md` — Triage (~1517 tok)
+- `triage.md` — Triage (~1634 tok)
 
 ## output/pdf/
 
@@ -586,10 +588,6 @@
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
 - `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
-
-## Current planning state (2026-08-22 Explore)
-
-- 新增 E277–E280；仅将 E277 提拔为 OPT-166，目标是在证据 ID 全部无效并被剔除后同步降级失去支撑的研究结论。E278–E280 分别涉及研究快照、异步结果无障碍和历史保留策略，因缺 signal 或需产品取舍未提拔。
 
 ## 小红书物料/第4篇-两本书接上头/
 
