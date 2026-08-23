@@ -148,6 +148,33 @@ class DeepReadingApiTests(unittest.TestCase):
         conn.close()
         self.assertEqual(state["quotes"][0]["id"], "q1")
 
+    def test_malformed_proposals_are_filtered_without_losing_valid_result(self):
+        run, _ = app_server.research_store().create(
+            "u1", {"type": "book", "bookId": "b1"}, "过滤畸形建议"
+        )
+        result = app_server.persist_research_proposals(run, {
+            "summary": "仍可保留的结论",
+            "openQuestions": ["还需要什么证据？"],
+            "proposals": [
+                None,
+                "not-an-object",
+                {
+                    "type": "question",
+                    "data": {"content": "文明延续的代价是什么？"},
+                    "evidenceIds": ["q1"],
+                },
+            ],
+        })
+
+        self.assertEqual(result["summary"], "仍可保留的结论")
+        self.assertEqual(result["openQuestions"], ["还需要什么证据？"])
+        self.assertEqual(result["proposalWarning"], "已移除 2 条格式无效的研究建议")
+        self.assertEqual(len(result["proposals"]), 1)
+        self.assertEqual(result["proposals"][0]["action"]["status"], app_server.ACTION_STATUS_PENDING)
+        current = app_server.research_store().get("u1", run["id"])
+        self.assertEqual(current["status"], "COMPLETED")
+        self.assertEqual(current["result"]["summary"], "仍可保留的结论")
+
     def test_unverifiable_evidence_is_removed_before_result_persistence(self):
         run, _ = app_server.research_store().create("u1", {"type": "global"}, "核验证据")
         result = app_server.persist_research_proposals(run, {
