@@ -5377,3 +5377,9 @@
 - `31dee7b` / PR #132 已真实完成 OPT-165：`get_connections()` 返回两端 compact entity 摘要，字段白名单和孤儿关联过滤均有契约测试；backlog 与 triage 已对账为 done。
 - 近 7 天外层统计 `auto/` PR 为 7/8。OPT-168 是 W35 唯一焦点内的 P1/S 确定性上下文正确性缺口，验收边界清楚且无需产品取舍，作为 2026-08-25 唯一夜间 Next up。
 - 2026-08-24 owner 的关联选择、关键词搜索与误选后删除摩擦是高置信 signal，但横跨多个入口且尚需产品拆解，不由夜间 triage 自行诠释成实现项。
+
+## 2026-08-25 Explore
+
+- 最新关联 signal 拆为四条经当前代码核实的新方向：409 冲突后的保存/删除 false-success（E288）、字面子串检索无法召回同主题摘抄（E289）、目标候选未排除来源本身（E290）、关联删除按钮 accessible name 不可区分（E291）。
+- 仅 E288 提拔为 OPT-169（P1/S）：`syncState()` 遇到 `state_conflict` 会采用服务器 state 后正常返回，而 `addConnection()` / `deleteConnection()` 仍继续关闭、切页并显示成功；应让调用方识别冲突并停止成功收尾。
+- E289 有 owner signal 但语义召回方案与验收仍需真实失败关键词；E290 只覆盖 self-link 子场景；E291 无辅助技术直接 signal，三项留探索池。

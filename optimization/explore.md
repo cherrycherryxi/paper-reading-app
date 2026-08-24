@@ -5097,3 +5097,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——让深度回顾入口对键盘/读屏用户行为一致；无直接 signal，不提拔。
 
 > 本次 run 新发现 3 条：E285（跨书切换保留旧结果/历史，S，correctness/UX）、E286（坏 JSON 拖垮整段研究历史，S，错误隔离）、E287（二级 Tab 缺标准键盘行为，S，无障碍）。仅 E285 会把一书的研究结论稳定错配到另一书上下文，且无需产品取舍，提拔为 OPT-168；其余因无真实 signal 或北极星较弱留在探索池。
+
+## 2026-08-25
+
+> 扫描焦点：以 2026-08-24 owner「建立关联时无法有效选中当前/目标摘抄、关键词找不到、误选后难删除」的真实 signal 为主，核对关联创建、检索、删除及并发保存边界。隔离 clone 的 `HEAD` 与现存 `origin/feature/agent` 引用均为 `a1b7334`；实时 `git ls-remote` 因当前环境无法解析 github.com 未能刷新，因此编号依据该基线最大 OPT-168 分配。用户给出的唯一 open PR #133 只覆盖 OPT-168。已核对 backlog、triage、roadmap、signals、E001–287、最近提交、现行代码与关联测试；以下方向不重复已完成 OPT-088/111/140/142、旧 E187/E200/E239 或 #133。
+
+### E288 — 关联新增/编辑/删除遇到 409 冲突时仍播报成功，实际变更已被服务器状态覆盖 (S)
+
+**What:** 关联写操作先改本地 `state.connections` 再调用 `syncState()`。当其他标签页或设备抢先保存导致 409 时，`syncState()` 会采用服务器状态并正常返回；关联调用方随后仍关闭弹窗、切换页面并提示“关联已保存/已更新”，或提示“关联已删除”。实际新增/编辑已消失，删除项则重新出现，形成确定性的 false-success。
+
+**Evidence:** `syncState()` 在 `state_conflict` 分支用服务器 state 覆盖本地并 `return`，不向调用方表达冲突（`app.js:1138-1167`）。`addConnection()` 在本地插入/改写后 await 它，随后无条件关闭弹窗并提示成功（`app.js:6018-6039`）；`deleteConnection()` 同样先过滤本地数组，随后无条件提示删除成功（`app.js:6043-6055`）。现有乐观锁测试只验证服务器状态被采用（`tests/frontend/state-optimistic-lock.test.js:102-127`），关联 CRUD 测试仅覆盖成功请求（`tests/frontend/connection-crud.test.js:107-173`）。
+
+**Why:** 最新 owner signal 已坐实关联创建与误删都处于真实使用路径。并发冲突并非要保留本地数据覆盖服务器，而是调用方必须知道“本次变更未保存”：保留/恢复表单，或返回结构化 `{saved:false, reason:"conflict"}`，禁止后续成功 toast。删除也必须明确说明未删除，而不能一边恢复记录一边声称成功。
+
+**Size:** S
+
+**Files:** `app.js:1138-1167,6018-6055`; `tests/frontend/state-optimistic-lock.test.js:102-127`; `tests/frontend/connection-crud.test.js:107-173`
+
+**Northstar:** 强——直接保护用户刚建立或删除的思想关联不被“成功”假象误导，服务 Theme 3「积累可信」，且由当前 owner 关联 signal 支撑。→ **promoted to OPT-169**
+
+### E289 — 关联摘抄选择器只有字面子串检索，同主题但不共享词面的摘抄无法互相发现 (M)
+
+**What:** 摘抄选择器把输入词与摘抄正文、所属书名、标签和“我的理解”逐字段做 `includes`；它不做分词、同义扩展或语义召回。用户知道两条摘抄谈的是同一主题，但目标原文恰好不用输入的关键词时，结果必为空，这与 2026-08-24“同主题摘抄关键词找不到”的 signal 一致。
+
+**Evidence:** `filteredQuotes()` 将查询转小写后，只以 `String.includes()` 检查 `content/ocrText`、书名、tags、reflection（`app.js:5854-5863`）；通用 `fuzzyMatch()` 实际也只是 `includes`（`app.js:1559-1561`）。候选最多返回 30 条（`app.js:5855-5863`），没有相关度或语义排序。已完成 OPT-111/142 只补齐 OCR 与 tags/reflection 字段，没有改变字面匹配口径。
+
+**Why:** 关联的价值恰在发现“文字不同、思想相通”。可先做低风险的本地 token/多词 AND-OR 与命中字段排序，也可评估复用深度共读只读检索生成候选；后者涉及成本、延迟与隐私边界，需先用 owner 这次失败查询复现并定义召回验收，不能直接当 S 级字符串修补。
+
+**Size:** M
+
+**Files:** `app.js:1559-1561,5842-5863,5870-5891`; `tests/frontend/quote-combobox-ocr-label.test.js:80-128`; `tests/frontend/search-field-bundle.test.js`
+
+**Northstar:** 强但不确定——直接对应最新 owner “同主题摘抄找不到”并可能提升关联这一回顾操作；方案与验收仍需真实失败关键词，暂不提拔。
+
+### E290 — 目标摘抄候选不排除已选来源，允许选择同一摘抄后到提交阶段才报错 (S)
+
+**What:** 从当前摘抄发起关联时，来源已预填且目标默认也是摘抄，但目标候选仍包含来源本身。用户可以点中同一条摘抄、填写想法并提交，直到最后才收到“来源和目标不能相同”；选择器没有提前隐藏或禁用这条无效候选。
+
+**Evidence:** `openConnectionDialog()` 会预填来源摘抄并让目标类型跟随为 quote（`app.js:5954-5975`）；四个 quote combobox 共用 `filteredQuotes()`，过滤条件只看查询文本，不接收或排除另一侧 hidden ID（`app.js:5831-5863`）。同源同目标只在 `addConnection()` 提交校验时拒绝（`app.js:6002-6016`），现有测试也只断言最终未写入（`tests/frontend/connection-crud.test.js:131-137`）。
+
+**Why:** 最新 signal 明确出现“无法有效选中当前摘抄和目标摘抄、误选其他摘抄”。在候选层消除必然无效的 self-link，可减少两侧文本相似时的误选；实现时需在来源变更后动态刷新目标列表，并保留编辑既有连接的正确回显。
+
+**Size:** S
+
+**Files:** `app.js:5831-5863,5954-6016`; `tests/frontend/connection-target-default.test.js:87-112`; `tests/frontend/connection-crud.test.js:131-137`
+
+**Northstar:** 中——减少建立关联时的无效选择，真实 signal 相关但只覆盖 self-link 一个子场景；不单独提拔，适合并入后续关联选择器改造。
+
+### E291 — 每张关联卡的删除按钮都叫“删除关联”，读屏用户无法区分将删除哪一条 (S)
+
+**What:** 关联列表每张卡都有删除按钮，但 accessible name 完全相同。读屏用户按按钮浏览时只能听到多个“删除关联”，无法知道按钮对应哪两个实体；而删除确认又只给通用问题，误选后缺少第二层可辨识信息。
+
+**Evidence:** `buildConnectionCard()` 已解析两端 `src/tgt` 标签，却给每个删除按钮固定 `aria-label="删除关联"`（`app.js:1037-1053`）；点击后 `deleteConnection()` 的确认文案固定为“确定删除这条关联记录吗？”（`app.js:6043-6047`）。关联 CRUD 测试只检查确认框出现和数组删除，没有验证按钮名称或确认对象预览（`tests/frontend/connection-crud.test.js:153-173`）。旧 E187/E200 关注通用确认框不展示 `thought`，本项仅登记列表按钮 accessible name 的独立缺口，不重复提拔旧方向。
+
+**Why:** 可将按钮名改为“删除关联：A 与 B”，复用已经解析出的两端短标签；这样在触发破坏性操作前即可识别目标。由于没有辅助技术 signal，确认框内容改造仍应回到旧 E187/E200，不在本项扩 scope。
+
+**Size:** S
+
+**Files:** `app.js:1037-1053,6043-6047`; `tests/frontend/connection-crud.test.js:153-173`
+
+**Northstar:** 弱中——降低关联误删风险并改善无障碍，但缺直接读屏 signal，留探索池。
+
+> 本次 run 新发现 4 条：E288（409 冲突后关联写入 false-success，S，correctness/error handling）、E289（字面检索无法发现同主题摘抄，M，UX/retrieval）、E290（目标候选不排除来源摘抄，S，UX）、E291（删除按钮 accessible name 不可区分，S，accessibility）。仅 E288 是确定性数据可信缺口、无需产品方案选择且有最新关联 signal 支撑，提拔为 OPT-169；E289 需真实失败查询定义召回口径，E290 适合并入选择器改造，E291 无直接辅助技术 signal，均暂留探索池。
