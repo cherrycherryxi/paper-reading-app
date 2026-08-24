@@ -1115,6 +1115,7 @@
   let mode = "daily";
   let activeRun = null;
   let pollTimer = null;
+  let researchContextRevision = 0;
   let capabilityLoaded = false;
   let runtimeAvailable = true;
   const dailyHiddenState = new WeakMap();
@@ -1124,6 +1125,22 @@
   const state = () => window.paperReadingApp?.getState?.() || {};
   const findBook = (id) => (state().books || []).find((item) => item.id === id);
   const findQuote = (id) => (state().quotes || []).find((item) => item.id === id);
+  const contextKey = (current = context()) => [current.type || "global", current.bookId || "", current.quoteId || ""].join(":");
+  let activeContextKey = contextKey();
+
+  function resetResearchContext() {
+    const nextContextKey = contextKey();
+    if (nextContextKey === activeContextKey) return false;
+    activeContextKey = nextContextKey;
+    researchContextRevision += 1;
+    clearTimeout(pollTimer);
+    pollTimer = null;
+    activeRun = null;
+    renderStatus(null);
+    renderResult(null);
+    if (historyList) historyList.innerHTML = "";
+    return true;
+  }
 
   function renderContext() {
     const current = context();
@@ -1140,7 +1157,12 @@
   function setMode(nextMode, focusInput = false) {
     const normalizedMode = nextMode === "research" ? "research" : "daily";
     if (normalizedMode === mode) {
-      if (mode === "research") renderContext();
+      if (mode === "research") {
+        const contextChanged = resetResearchContext();
+        renderContext();
+        if (contextChanged) loadHistory();
+        if (focusInput) questionInput?.focus({ preventScroll: true });
+      }
       return;
     }
     mode = normalizedMode;
@@ -1160,6 +1182,7 @@
     researchWorkspace.hidden = !researching;
     if (clearBtn) clearBtn.hidden = researching;
     if (researching) {
+      resetResearchContext();
       renderContext();
       loadHistory();
       loadCapability();
@@ -1218,21 +1241,23 @@
       ${proposals.length ? `<article><h3>待确认的沉淀建议</h3><ul class="research-proposal-list">${proposals.map((item) => `<li class="research-proposal-item"><strong>${esc(proposalLabel[item.type] || "阅读建议")}</strong><p>${esc(item.reason || "")}</p><span class="research-evidence-reason">依据 ${esc((item.evidenceIds || []).join("、") || "未标注")}</span>${item.action?.id && ["PENDING_APPROVAL", "FAILED"].includes(item.action.status) ? `<div class="research-proposal-actions" data-research-action="${esc(item.action.id)}"><button class="button button-primary button-small" type="button" data-research-approve>${item.action.status === "FAILED" ? "重试保存" : "确认保存"}</button><button class="button button-ghost button-small" type="button" data-research-reject>忽略</button></div>` : `<div class="research-evidence-reason">${esc(item.error || ({ EXECUTED: "已保存到阅读记录", REJECTED: "已忽略" }[item.action?.status] || "此建议不能执行"))}</div>`}</li>`).join("")}</ul></article>` : ""}`;
   }
 
-  async function loadRun(runId) {
+  async function loadRun(runId, revision = researchContextRevision) {
     const payload = await window.paperReadingApp.apiFetch(`/api/research-runs/${encodeURIComponent(runId)}`, {}, true);
+    if (revision !== researchContextRevision) return;
     activeRun = payload.run;
     renderStatus(activeRun);
     renderResult(activeRun);
     if (activeRun.status === "CREATED" || activeRun.status === "RUNNING") {
       clearTimeout(pollTimer);
-      pollTimer = setTimeout(() => loadRun(runId).catch(handleError), 1500);
+      pollTimer = setTimeout(() => loadRun(runId, revision).catch((error) => handleError(error, revision)), 1500);
     } else {
       clearTimeout(pollTimer);
       loadHistory();
     }
   }
 
-  function handleError(error) {
+  function handleError(error, revision = researchContextRevision) {
+    if (revision !== researchContextRevision) return;
     if (statusBox) {
       statusBox.dataset.state = "FAILED";
       statusBox.textContent = error?.message || "深度共读暂时不可用";
@@ -1241,7 +1266,7 @@
     if (cancelBtn) cancelBtn.hidden = true;
   }
 
-  async function loadHistory() {
+  async function loadHistory(revision = researchContextRevision) {
     if (!historyList || !window.paperReadingApp?.getAuthToken?.()) return;
     const current = context();
     const query = new URLSearchParams();
@@ -1250,9 +1275,11 @@
     query.set("limit", "10");
     try {
       const payload = await window.paperReadingApp.apiFetch(`/api/research-runs?${query}`, {}, true);
+      if (revision !== researchContextRevision) return;
       const runs = payload.runs || [];
       historyList.innerHTML = runs.length ? runs.map((run) => `<div class="research-history-item"><button type="button" data-research-run-id="${esc(run.id)}"><strong>${esc(run.question)}</strong><span>${esc(run.progress?.message || run.status)}</span><time>${esc(new Date(run.createdAt).toLocaleString("zh-CN"))}</time></button></div>`).join("") : "<p>还没有深度共读记录。</p>";
     } catch (_) {
+      if (revision !== researchContextRevision) return;
       historyList.innerHTML = "<p>暂时无法读取历史任务。</p>";
     }
   }
@@ -1268,6 +1295,7 @@
       return;
     }
     if (!runtimeAvailable) return;
+    const revision = researchContextRevision;
     try {
       startBtn.disabled = true;
       const payload = await window.paperReadingApp.apiFetch("/api/research-runs", {
@@ -1275,6 +1303,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ context: context(), question }),
       }, true);
+      if (revision !== researchContextRevision) return;
       activeRun = payload.run;
       renderStatus(activeRun);
       renderResult(activeRun);
@@ -1285,8 +1314,10 @@
   });
   cancelBtn?.addEventListener("click", async () => {
     if (!activeRun?.id) return;
+    const revision = researchContextRevision;
     try {
       const payload = await window.paperReadingApp.apiFetch(`/api/research-runs/${encodeURIComponent(activeRun.id)}/cancel`, { method: "POST" }, true);
+      if (revision !== researchContextRevision) return;
       activeRun = payload.run;
       renderStatus(activeRun);
     } catch (error) {
@@ -1295,7 +1326,10 @@
   });
   historyList?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-research-run-id]");
-    if (button) loadRun(button.dataset.researchRunId).catch(handleError);
+    if (button) {
+      const revision = researchContextRevision;
+      loadRun(button.dataset.researchRunId, revision).catch((error) => handleError(error, revision));
+    }
   });
   resultBox?.addEventListener("click", async (event) => {
     const actions = event.target.closest("[data-research-action]");
@@ -1317,6 +1351,10 @@
   });
   window.addEventListener("paper-reading-data-changed", () => { if (mode === "research") renderContext(); });
   window.addEventListener("paper-reading-user-changed", () => {
+    researchContextRevision += 1;
+    activeContextKey = contextKey();
+    clearTimeout(pollTimer);
+    pollTimer = null;
     activeRun = null;
     capabilityLoaded = false;
     runtimeAvailable = true;
