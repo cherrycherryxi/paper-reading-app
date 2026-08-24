@@ -5371,3 +5371,9 @@
 |------|--------|---------|---------|--------|
 | 23:06 | Created optimization/signals.md | — | ~1477 |
 | 23:06 | Session end: 1 writes across 1 files (signals.md) | 0 reads | ~1582 tok |
+
+## 2026-08-25 Triage
+
+- `31dee7b` / PR #132 已真实完成 OPT-165：`get_connections()` 返回两端 compact entity 摘要，字段白名单和孤儿关联过滤均有契约测试；backlog 与 triage 已对账为 done。
+- 近 7 天外层统计 `auto/` PR 为 7/8。OPT-168 是 W35 唯一焦点内的 P1/S 确定性上下文正确性缺口，验收边界清楚且无需产品取舍，作为 2026-08-25 唯一夜间 Next up。
+- 2026-08-24 owner 的关联选择、关键词搜索与误选后删除摩擦是高置信 signal，但横跨多个入口且尚需产品拆解，不由夜间 triage 自行诠释成实现项。

@@ -1545,14 +1545,14 @@ Format per item:
 - how: 在遍历 quote 时按 `bookId` 解析所属 book，把 title/author 加入 haystack；补按书名、作者命中以及无关用户状态不泄露的 Gateway 行为测试。Touch: `paper_reading_gateway.py:62-67,82-94,114-124`、`tests/agent/deep_reading_gateway_contract_test.py`。
 
 ### OPT-165 — 深度共读关联工具返回两端实体摘要 — 由 explore E274 提拔 [2026-08-21]
-- status: triaged — P1/S，留作 10:00 晨间候选卡；北极星贡献明确，但删除端点处理与摘要字段白名单仍有产品语义选择，不进入夜间 Next up
+- status: done — ✅ PR #132 / `31dee7b` 已合入 `feature/agent` [2026-08-24]；关联两端实体摘要、字段白名单、孤儿关联跳过与过滤回归已落地
 - area: backend / agent context
 - priority: P1
 - size: S
 - northstar: 强——用户已建立的思想连接只有在模型能理解两端内容时才能成为可解释、可去重的个人证据。
-- description: `get_connections()` 直接原样返回 connection（`paper_reading_gateway.py:147-156`）；真实结构只有两端类型/ID、关系、想法和标签（`app.js:6000-6029`），没有书名、作者或摘抄摘要。设计契约要求返回 `thought` 及两端实体摘要（`docs/deepseek-harness-deep-reading-workbench.md:218-220`）。
+- description: 已完成。`get_connections()` 现在通过 `_compact_connection()` 解析 source/target 两端，并仅返回 compact book / compact quote 摘要与关联白名单字段；任一端实体已删除时跳过该孤儿关联。
 - why: 裸外键让工具形式上返回关联、语义上无法解释关联，也无法可靠判断新建议是否重复。该缺口直接损失用户已经沉淀的高价值连接资产。
-- how: 为每条命中 connection 生成字段白名单，并按 sourceType/targetType 解析 compact book 或 compact quote 摘要；保留稳定 ID、kind/thought/tags，跳过或明确标记已删除端点；补 book↔book、quote↔book 和无关 entity_id 过滤测试。Touch: `paper_reading_gateway.py:62-94,147-156`、`tests/agent/deep_reading_gateway_contract_test.py`。
+- how: 已由 PR #132 落地。`paper_reading_gateway.py:97-129,188-202` 实现实体解析、字段白名单和孤儿过滤；`tests/agent/deep_reading_gateway_contract_test.py:234-293` 覆盖 book↔book、quote↔book、隐私字段不泄露及无关/孤儿实体过滤，不再指派。
 
 ### OPT-166 — 深度共读无效证据被剔除后仍保留失去支撑的研究结论 — 由 explore E277 提拔 [2026-08-22]
 - status: done — ✅ PR #130 / `cf1f9b6` 已合入 `feature/agent` [2026-08-23]；全部无效证据时降级结论，部分有效与原本无证据边界测试已落地
@@ -1577,7 +1577,7 @@ Format per item:
 - evidence: PR #131 已 squash 合入 `feature/agent`，提交 `fa76724`；审查闸门实跑 Python 全量 `500 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-168 — 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 — 由 explore E285 提拔 [2026-08-24]
-- status: triaged — P1/S，2026-W35 事项 2；待 OPT-167 收口后按 WIP=1 夜间执行
+- status: triaged — P1/S，2026-W35 事项 2；OPT-167 已收口，2026-08-25 夜间 Next up
 - area: frontend / ux / agent correctness
 - priority: P1
 - size: S
