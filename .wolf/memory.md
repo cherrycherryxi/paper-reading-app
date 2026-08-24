@@ -5305,3 +5305,35 @@
 | 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/triage.md | — | ~1879 |
 | 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/memory.md | — | ~105153 |
 | 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/memory.md | — | ~105190 |
+| 10:08 | Session end: 7 writes across 5 files (config, deep_reading_api_test.py, triage.md, backlog.md, review-2026-08-24.md) | 0 reads | ~60382 tok |
+
+## Session: 2026-08-24 10:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:09 | Created ../../.claude/paper-loop/cards-2026-08-24.md | — | ~37 |
+| 10:09 | Session end: 1 writes across 1 files (cards-2026-08-24.md) | 0 reads | ~40 tok |
+
+## Session: 2026-08-24 11:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:18 | Created paper_reading_gateway.py | — | ~2351 |
+| 11:18 | Created tests/agent/deep_reading_gateway_contract_test.py | — | ~4757 |
+| 11:23 | Created ../../.claude/paper-loop/today-pick.md | — | ~52 |
+| 11:23 | Session end: 3 writes across 3 files (paper_reading_gateway.py, deep_reading_gateway_contract_test.py, today-pick.md) | 0 reads | ~7164 tok |
+
+## Codex Review 自动修复触发（2026-08-24）
+
+- Codex GitHub Review 的汇总正文会明确提示使用 `@codex address that feedback` 更新原 PR；应在 `pull_request_review: submitted` 时按 review ID 汇总行级建议，而不是按每条 `pull_request_review_comment` 分别触发，否则第一条修复推送后，同批其余建议会因 SHA 过期而遗漏。
+- 自动触发只接受 `chatgpt-codex-connector[bot]`、当前 PR HEAD、同仓库且 base 为 `feature/agent` 的 Review，并要求存在 P0-P3 badge；同一 Review 用隐藏 marker 去重，每个 PR 最多两轮，之后标记 `NEED-HUMAN`。
+
+## Session: 2026-08-24 14:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:32 | Created .github/workflows/codex-address-review.yml | — | ~1085 |
+| 15:32 | Created tests/agent/codex_review_workflow_contract_test.py | — | ~489 |
+| 15:33 | Created .github/workflows/codex-address-review.yml | — | ~1085 |
+| 15:33 | Created tests/agent/codex_review_workflow_contract_test.py | — | ~489 |
+| 15:33 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |

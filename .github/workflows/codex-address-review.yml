@@ -1,0 +1,98 @@
+name: Ask Codex to address review feedback
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: codex-address-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  request-fix:
+    name: Request a Codex follow-up
+    if: >-
+      github.event.review.user.login == 'chatgpt-codex-connector[bot]' &&
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.base.ref == 'feature/agent' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.review.commit_id == github.event.pull_request.head.sha &&
+      contains(github.event.review.body, 'Codex Review')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Ask Codex to address actionable findings
+        uses: actions/github-script@v7
+        env:
+          REVIEW_ID: ${{ github.event.review.id }}
+          REVIEW_COMMIT: ${{ github.event.review.commit_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          # A fine-grained PAT stored as CODEX_TRIGGER_TOKEN makes the command
+          # come from the owner account. github.token remains a zero-config
+          # fallback for installations that accept trusted bot comments.
+          github-token: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = Number(process.env.PR_NUMBER);
+            const review_id = Number(process.env.REVIEW_ID);
+            const commit = process.env.REVIEW_COMMIT;
+            const markerPrefix = '<!-- codex-address-review:';
+            const marker = `${markerPrefix}${review_id}:${commit} -->`;
+
+            const reviewComments = await github.paginate(
+              github.rest.pulls.listCommentsForReview,
+              { owner, repo, pull_number: issue_number, review_id, per_page: 100 },
+            );
+            const actionable = reviewComments.filter((comment) =>
+              comment.user?.login === 'chatgpt-codex-connector[bot]' &&
+              comment.commit_id === commit &&
+              /img\.shields\.io\/badge\/P[0-3]-/i.test(comment.body || '')
+            );
+            if (actionable.length === 0) {
+              core.notice('Codex review contains no actionable P0-P3 findings.');
+              return;
+            }
+
+            const issueComments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 },
+            );
+            if (issueComments.some((comment) => (comment.body || '').includes(marker))) {
+              core.notice(`Review ${review_id} was already handed back to Codex.`);
+              return;
+            }
+
+            const priorAttempts = issueComments.filter((comment) =>
+              (comment.body || '').includes(markerPrefix)
+            ).length;
+            if (priorAttempts >= 2) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: [
+                  'NEED-HUMAN: Codex 已自动处理过两轮 Review，本轮仍有建议，停止继续自动修复以避免循环。',
+                  '',
+                  marker,
+                ].join('\n'),
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: [
+                '@codex address that feedback',
+                '',
+                `自动修复请求：Review ${review_id}，${actionable.length} 条 P0-P3 建议，commit ${commit.slice(0, 10)}。`,
+                marker,
+              ].join('\n'),
+            });
