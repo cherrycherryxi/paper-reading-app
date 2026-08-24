@@ -5337,3 +5337,35 @@
 | 15:33 | Created .github/workflows/codex-address-review.yml | — | ~1085 |
 | 15:33 | Created tests/agent/codex_review_workflow_contract_test.py | — | ~489 |
 | 15:33 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |
+| 15:35 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |
+| 15:37 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |
+| 21:18 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |
+| 21:19 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |
+| 21:32 | Session end: 4 writes across 2 files (codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~3148 tok |
+
+## Session: 2026-08-24 21:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:40 | Created ../../../../private/tmp/deepseek-harness-runtime-build/python/sdk-runtime/package.json | — | ~1730 |
+
+## Session: 2026-08-24 21:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:49 | Created ../../../../private/tmp/dsh-runtime-smoke-cordis.yml | — | ~182 |
+
+## Runtime note: 2026-08-24
+
+- Intel macOS 13 development uses the official DeepSeek Harness `0.1.0-rc.6` source at commit `15148dbd9a1d1f1ef1a26e5749b32af0cd663935`, built for `node24-macos-x64`.
+- Stable developer runtime: `/Users/huangnanqi/.local/share/paper-reading-app/dsh-runtime/0.1.0rc6-macos-x64/dsh-jsonrpc-agent-pkg-macos-x64`; keep its sibling `-spawn-helper` in the same directory.
+- Development `.env` enables `DEEP_READING_ENABLED=1` and points `DSH_RUNTIME_BIN` at that binary. Production was intentionally left unchanged because the official rc6 runtime does not support Intel macOS 13.
+- Runtime SDK initialize/shutdown smoke passed; focused runtime and Cordis contract verification passed (`10 passed, 3 subtests passed`).
+| 21:51 | Session end: 1 writes across 1 files (dsh-runtime-smoke-cordis.yml) | 0 reads | ~182 tok |
+| 21:54 | Session end: 1 writes across 1 files (dsh-runtime-smoke-cordis.yml) | 0 reads | ~182 tok |
+| 21:58 | Session end: 1 writes across 1 files (dsh-runtime-smoke-cordis.yml) | 0 reads | ~182 tok |
+
+## Session: 2026-08-24 22:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-24T07:33:15.052Z
-> Files: 368 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-24T13:49:12.112Z
+> Files: 370 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -67,6 +67,10 @@
 - `backlog.md` — Optimization Backlog (~41735 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2781 tok)
 
+## ../../../../private/tmp/
+
+- `dsh-runtime-smoke-cordis.yml` (~182 tok)
+
 ## ../../../../private/tmp/deepseek-harness-official/python/sdk-runtime/
 
 - `package.json` — Node.js package manifest (~1730 tok)
@@ -74,6 +78,10 @@
 ## ../../../../private/tmp/deepseek-harness-official/scripts/
 
 - `build-exe-for-python-sdk.ts` — Build the SDK runtime executables and Python node carrier. The fixed (~6246 tok)
+
+## ../../../../private/tmp/deepseek-harness-runtime-build/python/sdk-runtime/
+
+- `package.json` — Node.js package manifest (~1730 tok)
 
 ## ../../../../private/tmp/paper-opt148/
 
