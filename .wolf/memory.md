@@ -5271,3 +5271,24 @@
 - OPT-166 由 PR #130 / `cf1f9b6` 完成，当前代码与三类边界测试均在树中，backlog 与 triage 保持 done。
 - OPT-167 是唯一夜间 Next up（P1/S）：Harness 只校验结果外层对象，`proposals:[null]` 会在无效建议字典展开处抛错并令整次研究失败；结构过滤、warning、合法建议保留与其余结果完成落库的验收明确，无需 owner 产品或设计判断。
 - OPT-165 仍需决定删除端点语义与摘要白名单，留给 10:00 晨间候选卡；其余未完成项维持 P3 parked/blocked。
+
+## 2026-08-24 · Nightly Explore
+
+- 深度共读在已经处于 research 模式时从书 A 切到书 B，`setMode()` 的同模式早退只更新上下文卡，不清理旧 `activeRun`/结果，也不刷新历史；该可信性缺口已登记 E285 并提拔为 OPT-168。
+- 另记录两项未提拔方向：`serialize_run()` 对坏 `result_json`/event metadata 缺局部容错（E286），二级 ARIA Tab 缺方向键与 roving tabindex（E287）。
+
+## 2026-08-24 · 2026-W35 周一产品仪式
+
+- roadmap 最后一次明确焦点（W33）三项均有合入与代码/测试证据，结算 3/3；W34 未另立周焦点，实际被 OPT-159/160/161/162/163/164/166 等深度共读可靠性工作占据，不能把计划外产出改写成周焦点达成。
+- 最新北极星由 7/53/69 降至 2/5/6，只能说明使用与回顾活跃度回落，不能证明深度共读带来增长。W35 唯一焦点收紧为深度共读上下文与结果可信：先收口 OPT-167，再修 OPT-168，最后由 owner 用两本真实书完成 A→B→A 验收并写 signal。
+- OPT-165 仍有强北极星价值，但删除端点与摘要白名单需产品语义选择，本周不与两个确定性正确性缺口并行；无贡献项继续 P3 parked。
+
+## Session: 2026-08-24 09:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/roadmap.md | — | ~3024 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/backlog.md | — | ~47684 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/triage.md | — | ~1879 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/memory.md | — | ~105153 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/memory.md | — | ~105190 |
