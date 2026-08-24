@@ -3531,7 +3531,12 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
     state machine and MCP dispatcher. Invalid suggestions stay visible with a
     rejection reason, but never become executable actions.
     """
-    proposals = result.get("proposals") if isinstance(result.get("proposals"), list) else []
+    raw_proposals = result.get("proposals") if isinstance(result.get("proposals"), list) else []
+    proposals = [proposal for proposal in raw_proposals[:3] if isinstance(proposal, dict)]
+    invalid_proposal_count = min(len(raw_proposals), 3) - len(proposals)
+    result["proposals"] = proposals
+    if invalid_proposal_count:
+        result["proposalWarning"] = f"已移除 {invalid_proposal_count} 条格式无效的研究建议"
     conn = get_conn()
     try:
         user_id = _research_run_user_id(conn, run["id"])
@@ -3587,8 +3592,8 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
             )
             persisted = []
             state_machine = ActionStateMachine()
-            for proposal in proposals[:3]:
-                cited = proposal.get("evidenceIds", []) if isinstance(proposal, dict) else []
+            for proposal in proposals:
+                cited = proposal.get("evidenceIds", [])
                 if not cited or any(str(item) not in evidence_ids for item in cited):
                     persisted.append({
                         **proposal,
@@ -3597,8 +3602,8 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
                     })
                     continue
                 candidate = {
-                    "type": proposal.get("type") if isinstance(proposal, dict) else "",
-                    "data": dict(proposal.get("data") or {}) if isinstance(proposal, dict) else {},
+                    "type": proposal.get("type"),
+                    "data": dict(proposal.get("data") or {}),
                 }
                 candidate = inject_context_into_actions([candidate], run.get("context", {}).get("bookId", ""))[0]
                 validation = ActionValidator().validate([candidate])
