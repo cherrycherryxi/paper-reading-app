@@ -1566,7 +1566,7 @@ Format per item:
 - evidence: PR #130 已 squash 合入 `feature/agent`，提交 `cf1f9b6`；审查闸门实跑 Python 全量 `497 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-167 — 深度共读结果内部结构未校验，畸形建议会令整次任务失败 — 由 explore E281 提拔 [2026-08-23]
-- status: in-progress — P1/S，PR #131 待审查与合入核验；2026-W35 事项 1，不能以 PR 已创建替代完成状态
+- status: done — ✅ PR #131 / `fa76724` 已合入 `feature/agent` [2026-08-24]；畸形建议过滤、warning 与合法建议审批状态回归已落地
 - area: backend / agent correctness
 - priority: P1
 - size: S
@@ -1574,6 +1574,7 @@ Format per item:
 - description: Harness 最终文本只要是 JSON 对象即可通过 `_json_object()`（`deep_reading.py:99-111`）；runner 对 proposals 只检查外层为 list（`deep_reading.py:501-510`）。若成员为 `null`、字符串或数组，`persist_research_proposals()` 的无效建议分支会执行 `{**proposal, ...}`（`app_server.py:3588-3595`）并抛 `TypeError`，外层随后把整个 run 标为 FAILED（`deep_reading.py:513-515`）。
 - why: 模型输出不具备可信 schema；单个可丢弃的坏建议不应连带丢弃 summary、证据地图和追问。当前缺口可由确定输入稳定触发，且修复无需产品或交互决策。
 - how: 在 runner 或落库边界规范化 `summary/evidenceMap/openQuestions/proposals`，逐项过滤不符合类型的成员并附 warning；确保无效 proposal 不进入 action 状态机、其余合法结果仍完成落库。补 `proposals:[null]`、混合合法/非法 proposal、畸形 evidence/openQuestions 的回归测试。Touch: `deep_reading.py:99-111,501-515`、`app_server.py:3527-3558,3588-3595`、`tests/agent/deep_reading_api_test.py`、`tests/agent/deep_reading_runtime_test.py`。
+- evidence: PR #131 已 squash 合入 `feature/agent`，提交 `fa76724`；审查闸门实跑 Python 全量 `500 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-168 — 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 — 由 explore E285 提拔 [2026-08-24]
 - status: triaged — P1/S，2026-W35 事项 2；待 OPT-167 收口后按 WIP=1 夜间执行
