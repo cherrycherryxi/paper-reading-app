@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-08-24T02:07:10.225Z
 > Files: 361 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-24T01:02:38.022Z
+> Files: 360 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -26,6 +28,16 @@
 
 - `backlog.md` — Optimization Backlog (~39818 tok)
 - `triage.md` — Triage (~2209 tok)
+
+## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/
+
+- `memory.md` — Memory (~98616 tok)
+
+## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/
+
+- `backlog.md` — Optimization Backlog (~44704 tok)
+- `roadmap.md` — 项目推进方案(roadmap) (~2835 tok)
+- `triage.md` — Triage (~1761 tok)
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.qb1wv7VY/wt/
 

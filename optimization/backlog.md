@@ -1566,7 +1566,7 @@ Format per item:
 - evidence: PR #130 已 squash 合入 `feature/agent`，提交 `cf1f9b6`；审查闸门实跑 Python 全量 `497 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-167 — 深度共读结果内部结构未校验，畸形建议会令整次任务失败 — 由 explore E281 提拔 [2026-08-23]
-- status: untriaged
+- status: done — ✅ PR #131 / `fa76724` 已合入 `feature/agent` [2026-08-24]；畸形建议过滤、warning 与合法建议审批状态回归已落地
 - area: backend / agent correctness
 - priority: P1
 - size: S
@@ -1574,3 +1574,14 @@ Format per item:
 - description: Harness 最终文本只要是 JSON 对象即可通过 `_json_object()`（`deep_reading.py:99-111`）；runner 对 proposals 只检查外层为 list（`deep_reading.py:501-510`）。若成员为 `null`、字符串或数组，`persist_research_proposals()` 的无效建议分支会执行 `{**proposal, ...}`（`app_server.py:3588-3595`）并抛 `TypeError`，外层随后把整个 run 标为 FAILED（`deep_reading.py:513-515`）。
 - why: 模型输出不具备可信 schema；单个可丢弃的坏建议不应连带丢弃 summary、证据地图和追问。当前缺口可由确定输入稳定触发，且修复无需产品或交互决策。
 - how: 在 runner 或落库边界规范化 `summary/evidenceMap/openQuestions/proposals`，逐项过滤不符合类型的成员并附 warning；确保无效 proposal 不进入 action 状态机、其余合法结果仍完成落库。补 `proposals:[null]`、混合合法/非法 proposal、畸形 evidence/openQuestions 的回归测试。Touch: `deep_reading.py:99-111,501-515`、`app_server.py:3527-3558,3588-3595`、`tests/agent/deep_reading_api_test.py`、`tests/agent/deep_reading_runtime_test.py`。
+- evidence: PR #131 已 squash 合入 `feature/agent`，提交 `fa76724`；审查闸门实跑 Python 全量 `500 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
+
+### OPT-168 — 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 — 由 explore E285 提拔 [2026-08-24]
+- status: triaged — P1/S，2026-W35 事项 2；待 OPT-167 收口后按 WIP=1 夜间执行
+- area: frontend / ux / agent correctness
+- priority: P1
+- size: S
+- northstar: 强——阻止旧书研究结论冒充当前书证据，直接保护 Theme 3 深度回顾的上下文可信度。
+- description: 书籍/摘抄详情会调用 `switchChatToDeepResearch()` 切换上下文（`app.js:6191-6197,6240-6245`；`chat.js:1329-1334`），但若页面本来已在 research 模式，`setMode()` 只重绘上下文卡后提前返回（`chat.js:1140-1145`），不会清空旧 `activeRun`、状态/结果，也不会重新加载新上下文历史（`chat.js:1162-1166,1202-1232`）。因此从书 A 转到书 B 后，页面可同时显示书 B 标题与书 A 结论。
+- why: 这是可由现有入口稳定触发的跨上下文错配。深度共读强调基于个人证据取证，标题和结论归属不一致会让用户把旧证据误认为当前书结果，比单纯的加载陈旧更直接损害可信度。
+- how: 记录当前 research context key；同为 research 模式但 key 变化时，清理旧轮询与 `activeRun`，重置 status/result，并按新 bookId/quoteId 重新加载历史。补行为测试：书 A 已完成并显示结果后，从书 B 详情进入深度共读，不得保留 A 的状态、结论或历史。Touch: `chat.js:1140-1166,1202-1257,1329-1334`、`tests/frontend/deep-reading-workbench.test.js`。

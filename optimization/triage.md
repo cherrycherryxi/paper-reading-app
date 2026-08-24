@@ -2,35 +2,38 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-23
+Last triaged: 2026-08-24
 
 ## Next up
 
-**OPT-166 · 深度共读无效证据被剔除后仍保留失去支撑的研究结论（P1 / S）**
+**OPT-167 · 深度共读结果内部结构未校验，畸形建议会令整次任务失败（P1 / S）**
 
-**状态：done · PR #130 / `cf1f9b6` 已合入 [2026-08-23]**
+**状态：done · PR #131 / `fa76724` 已合入 [2026-08-24]**
 
-**理由：** `app_server.py:3527-3558` 的 `persist_research_proposals()` 会移除引用不存在 ID 的 `evidenceMap` 项并写入警告，却不处理原 `summary`；`chat.js:1202-1218` 又无条件把该 summary 显示为“研究结论”。这允许模型在全部证据均被真实性校验否决后，仍把失去支撑的实质性结论交给用户，直接违背 `deep_reading.py:374-381` 的既定证据契约。**夜间适配：是**——复杂度 S，只需补齐现有服务端校验不变量和聚焦回归；验收明确为“全部无效时结论降级、部分有效时保留结论、原本无证据时不误伤”，无需 owner 产品、信息架构、视觉或体验取舍。
+**理由：** `deep_reading.py:501-506` 只保证最终值是 JSON 对象并将 `proposals` 截到 3 条，不校验成员类型；`app_server.py:3590-3597` 对 `null`、字符串或数组建议走无效分支时仍执行 `{**proposal}`，会抛 `TypeError`，再由 `deep_reading.py:514-515` 把整次 run 标为 FAILED，连同可用 summary、证据地图和追问一起丢失。**夜间适配：是**——复杂度 S，属于确定性正确性与容错缺口；验收明确为“坏成员被过滤并留 warning、合法成员继续进入既有审批状态机、其余可用研究结果仍完成落库”，无需 owner 产品、信息架构、视觉或体验取舍。
 
-**关键文件：** `app_server.py:3527-3558`；`tests/agent/deep_reading_api_test.py:151-161`；前端沿用 `chat.js:1202-1218` 的现有渲染。
+**关键文件：** `deep_reading.py:99-111,501-515`；`app_server.py:3527-3619`；`tests/agent/deep_reading_api_test.py`；`tests/agent/deep_reading_runtime_test.py`。
 
-**signal / Theme：** Theme 3「积累可信」；`optimization/signals.md:83` 的最新北极星记录为使用 7 天 / 新增摘抄 53 / 回顾操作 69。该项没有独立 owner 摩擦记录，但保护的是深度共读向用户展示结论时的证据可信度，并由既定产品契约直接支撑，不是纯工程卫生。
+**signal / Theme：** Theme 3「积累可信」；`optimization/signals.md` 最新北极星为 2026-08-23 的使用 2 天 / 新增摘抄 5 / 回顾操作 6。该项没有独立 owner 摩擦记录，但直接保护深度回顾结果不因一个坏建议整体丢失，符合“已有积累必须可信、可恢复”的当前 Theme，并由 `deep_reading.py:374-381` 的既定结果契约支撑，不是纯工程卫生。
 
-**预算状态（2026-08-23）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **5**，上限 **8**，剩余 **3**；预算未耗尽。未调用 `gh` 或 GitHub API。
+**预算状态（2026-08-24）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **6**，上限 **8**，剩余 **2**；预算未耗尽。未调用 `gh` 或 GitHub API。
 
 **本次证据核对：**
-- 最近 8 日提交中，`b33d3af` 明确为 PR #129 的 OPT-164 合入提交；当前 `paper_reading_gateway.py` 已将所属书名和作者纳入摘抄检索，并有书名、作者、无关词及用户隔离契约测试，故 backlog 与 triage 保持 done。本次给出的“最近 50 个 feature/agent PR”清单为空，不提供其他状态证据，未凭描述新增 done 判断。
+- 最近 8 日提交中，`cf1f9b6` 明确为 PR #130 的 OPT-166 合入提交；当前 `app_server.py:3545-3558` 已实现全部无效证据时降级结论，`tests/agent/deep_reading_api_test.py:151-187` 覆盖部分有效、全部无效与原本无证据三类边界，故 backlog 与 triage 均标 done。本次给出的“最近 50 个 feature/agent PR”清单为空，不提供其他状态证据，未凭描述新增 done 判断。
 - OPT-159、160、161 的完成证据仍分别是 `c0e9b2a`、`a086b9e`、`ad85cd5`；当前树中保留对应启动失败收口、取消竞态和重启恢复代码及测试。
 - OPT-163 已由 PR #127 squash 合入 `feature/agent`（`e13f25d`）；Gateway 已返回并检索真实 `reflection`，契约测试覆盖聚焦摘抄、关键词命中与用户隔离。本次实跑 Python 全量 `492 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
-- OPT-164 已由 PR #129 squash 合并至 `feature/agent`（`b33d3af`）；Gateway 已支持按所属书名和作者检索摘抄，契约测试覆盖书名命中、作者命中、无关词不命中和用户隔离。审查闸门实跑 Python 全量 `495 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
+- OPT-164 已由 PR #129 squash 合并至 `feature/agent`（`b33d3af`）；Gateway 已支持按所属书名和作者检索摘抄，契约测试仍在树中。
 - OPT-165 为 P1/S：让已有思想连接成为可解释个人证据，北极星贡献强；但“已删除端点跳过还是标记”及实体摘要字段白名单仍需产品语义选择，留给 10:00 晨间候选卡，不进入夜间路径。
-- OPT-166 已由 PR #130 squash 合入 `feature/agent`（`cf1f9b6`）；全部无效证据时降级结论、部分有效与原本无证据时保留原结论的回归已落地。审查闸门实跑 Python 全量 `497 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
+- OPT-166 已由 PR #130 squash 合入 `feature/agent`（`cf1f9b6`）；全部无效证据时降级结论、部分有效与原本无证据边界回归已落地。
+- OPT-167 已由 PR #131 squash 合入 `feature/agent`（`fa76724`）；非对象建议会在持久化前被过滤并留下 warning，合法建议继续进入既有审批状态机。审查闸门实跑 Python 全量 `500 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们仍缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不能因工程上容易而指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-167 | 深度共读结果内部结构未校验，畸形建议会令整次任务失败 | **P1** | S | **done** | ✅ PR #131 / `fa76724` 已合入 [2026-08-24]；畸形建议过滤、warning 与合法建议审批状态回归已落地 |
+| OPT-168 | 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 | **P1** | S | **triaged** | 2026-W35 事项 2；OPT-167 收口后按 WIP=1 执行，验收 A→B 不残留 A 的结果与历史 |
 | OPT-166 | 深度共读无效证据被剔除后仍保留失去支撑的研究结论 | **P1** | S | **done** | ✅ PR #130 / `cf1f9b6` 已合入 [2026-08-23]；全部无效时降级，部分有效与原本无证据边界测试已落地 |
 | OPT-164 | 深度共读摘抄检索支持所属书名与作者 | **P1** | S | **done** | ✅ PR #129 / `b33d3af` 已合入 [2026-08-22]；书名、作者检索与用户隔离契约测试已落地 |
 | OPT-165 | 深度共读关联工具返回两端实体摘要 | **P1** | S | triaged | 留作 10:00 晨间候选卡；删除端点与摘要白名单仍需产品语义选择 |
@@ -70,7 +73,7 @@ Last triaged: 2026-08-23
 
 ## Recently reconciled done
 
-OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 

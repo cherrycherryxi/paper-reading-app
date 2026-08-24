@@ -5049,3 +5049,51 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——避免把局部保存错误误报成研究失败，提升结果可信感；无直接 signal，且可与未来 proposal 交互测试一并处理，不提拔。
 
 > 本次 run 新发现 4 条：E281（结果内部 schema 未校验，S，correctness/error handling）、E282（刷新后不恢复运行任务，S，UX）、E283（创建端点无并发/额度护栏，S-M，performance/reliability）、E284（建议保存失败污染研究终态，S，错误呈现）。仅 E281 是无需产品取舍、会把可降级模型格式错误升级为整次失败的强证据缺口，提拔为 OPT-167；其余留探索池。所有断言均基于当前文件逐行核实，并已排除 backlog、旧 Explore、远端 `feature/agent`、最近合并代码与 open PR #130 重复。
+
+## 2026-08-24
+
+> 扫描焦点：当前 Theme 3「积累可信」下，核对深度共读工作台在跨书切换、历史反序列化与键盘操作上的可信边界。只读 `git ls-remote` 确认远端 `feature/agent` 与隔离 clone `HEAD` 同为 `b3b71e6`；用户提供的唯一 open PR #131 只覆盖 OPT-167。已核对 backlog、triage、roadmap、signals、E001–284、最近提交及当前代码；以下方向不重复 OPT-001–167、#131、已合并目标或旧 Explore。
+
+### E285 — 已在深度共读模式时切换书/摘抄，只更新上下文标题，旧结果与旧历史仍留在新上下文 (S)
+
+**What:** 用户先查看书 A 的深度共读，再从书 B 详情点击「深度共读」时，内部模式仍是 `research`。`setMode("research")` 因模式未变化而提前返回，只重绘书 B 的上下文卡；它不会清空书 A 的 `activeRun`、状态与结果，也不会按书 B 重新加载历史。页面因此会同时显示“围绕书 B”和书 A 的研究结论/历史。
+
+**Evidence:** 书籍与摘抄详情入口分别调用 `switchChatToDeepResearch()`（`app.js:6191-6197,6240-6245`）；该函数先切换 chat 上下文，再调用 `setMode("research", true)`（`chat.js:1329-1334`）。但 `setMode()` 在 `normalizedMode === mode` 时只执行 `renderContext()` 后返回（`chat.js:1140-1145`），清空/替换结果只发生于 `loadRun()` 的 `renderResult()`（`chat.js:1202-1232`），历史刷新也只在真正进入模式时调用（`chat.js:1162-1166`）。当前前端测试仅检查入口符号存在，没有驱动 A→B 切换（`tests/frontend/deep-reading-workbench.test.js:18-27`）。
+
+**Why:** 上下文标题是用户判断研究证据属于哪本书的首要线索；标题与结果跨书错配会让旧结论被误认为新书结论，直接破坏 Theme 3 的可信性。最小修复是在同模式但 context key 变化时停止旧轮询、清空 active run/status/result，并重新加载对应历史；补书 A 已完成→书 B 入口的行为回归。
+
+**Size:** S
+
+**Files:** `app.js:6191-6197,6240-6245`; `chat.js:1140-1166,1202-1232,1329-1334`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 强——阻止旧书研究结果冒充当前书证据，直接保护深度回顾的上下文可信度，且修复边界局部明确。→ **promoted to OPT-168**
+
+### E286 — 单条研究结果或事件 JSON 损坏会让整个历史列表/详情请求失败 (S)
+
+**What:** `serialize_run()` 无保护地解析 `result_json`，详情路径还会无保护地解析每条 event 的 `metadata`。列表会序列化最多 100 条 run；其中任一旧行 JSON 截断或迁移异常，整次 `/api/research-runs` 都会抛错，其他完好历史也无法显示。详情中一条坏 event 同样会遮蔽完好的最终结果。
+
+**Evidence:** `serialize_run()` 直接执行 `json.loads(row["result_json"] or "{}")`，并在事件列表推导式内直接 `json.loads(event["metadata"] or "{}")`（`deep_reading.py:114-140`）；`ResearchRunStore.list()` 对每行调用该函数且没有逐行隔离（`deep_reading.py:241-259`），GET 列表与详情端点也未捕获反序列化异常（`app_server.py:4424-4436,4448-4475`）。现有 store 测试只覆盖正常 JSON（`tests/agent/deep_reading_store_test.py:49-100`）。
+
+**Why:** 当前写路径会生成合法 JSON，故这主要防御历史迁移、磁盘/手工修复后的坏行，不是已发生 signal。可让坏 `result_json` 降级为空结果并附解析警告、坏 event 跳过或标记损坏，同时保证其他 run 仍可列出；避免一条历史污染整个回顾入口。
+
+**Size:** S
+
+**Files:** `deep_reading.py:114-140,241-259`; `app_server.py:4424-4475`; `tests/agent/deep_reading_store_test.py`
+
+**Northstar:** 中——保护研究历史的局部故障隔离，但当前没有坏行真实信号，不提拔。
+
+### E287 — 「日常探讨 / 深度共读」声明为 ARIA Tab，却不支持方向键与 roving tabindex (S)
+
+**What:** 二级模式切换已使用 `role="tablist"` / `role="tab"`，但两个 Tab 都留在顺序 Tab 键流中，且只绑定 click；没有 ArrowLeft/ArrowRight、Home/End 键盘切换，也不维护选中项 `tabindex=0`、未选中项 `tabindex=-1`。辅助技术获得的是 Tab 语义，实际键盘行为却仍是普通按钮组。
+
+**Evidence:** 两个按钮具有完整 Tab 角色和 `aria-selected`（`index.html:182-185`），`setMode()` 只更新 class、`aria-selected` 与面板 hidden（`chat.js:1140-1166`）；事件绑定仅有两个 click listener（`chat.js:1260-1261`），该工作台代码中没有键盘监听。现有测试只断言 tablist 文案和移动点击尺寸（`tests/frontend/deep-reading-workbench.test.js:11-32`）。
+
+**Why:** 项目主导航的 OPT-046 已建立 Tab 可访问性基线；新加入的二级 Tab 应遵守同一交互契约。实现可局限为两按钮键盘 helper 与焦点管理，但没有真实辅助技术 signal，优先级低于上下文错配。
+
+**Size:** S
+
+**Files:** `index.html:182-185`; `chat.js:1140-1166,1260-1261`; `tests/frontend/deep-reading-workbench.test.js`
+
+**Northstar:** 弱中——让深度回顾入口对键盘/读屏用户行为一致；无直接 signal，不提拔。
+
+> 本次 run 新发现 3 条：E285（跨书切换保留旧结果/历史，S，correctness/UX）、E286（坏 JSON 拖垮整段研究历史，S，错误隔离）、E287（二级 Tab 缺标准键盘行为，S，无障碍）。仅 E285 会把一书的研究结论稳定错配到另一书上下文，且无需产品取舍，提拔为 OPT-168；其余因无真实 signal 或北极星较弱留在探索池。

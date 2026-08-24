@@ -5249,6 +5249,7 @@
 - 通知邮件失败只写入发布日志，不能反向把已经成功的 Prod 发布判成失败；`PAPER_RELEASE_DRY_RUN=1` 必须跳过所有邮件。
 - 成功邮件记录 Prod 实际工作树 SHA，并明确本地与公网 HTTP 健康检查已由统一发布脚本通过。
 - 成功邮件不能只报告 SHA/HTTP；应按发布前目标 SHA 定位自动生成的 `docs/releases/YYYY-MM-DD-<target>.md`，用真实换行把 release note 原文完整放入邮件，不做摘要或章节裁剪。
+
 | 20:27 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
 | 20:28 | Session end: 1 writes across 1 files (cards-2026-08-23.md) | 0 reads | ~36 tok |
 | 20:32 | Created scripts/codex/weekly-prod-release.sh | — | ~888 |
@@ -5276,3 +5277,31 @@
 | 10:05 | Created ../../../../tmp/paper-reconcile-20260824.slZXGC/optimization/backlog.md | — | ~47729 |
 | 10:06 | Created .git/config | — | ~976 |
 | 10:07 | Created ../../.claude/paper-loop/review-2026-08-24.md | — | ~144 |
+
+# 2026-08-24 夜间 Triage
+
+- 外层证据给出最近 7 天 `auto/` PR 为 6/8，最近 50 个 feature/agent PR 清单为空；未调用 `gh` 或 GitHub API。
+- OPT-166 由 PR #130 / `cf1f9b6` 完成，当前代码与三类边界测试均在树中，backlog 与 triage 保持 done。
+- OPT-167 是唯一夜间 Next up（P1/S）：Harness 只校验结果外层对象，`proposals:[null]` 会在无效建议字典展开处抛错并令整次研究失败；结构过滤、warning、合法建议保留与其余结果完成落库的验收明确，无需 owner 产品或设计判断。
+- OPT-165 仍需决定删除端点语义与摘要白名单，留给 10:00 晨间候选卡；其余未完成项维持 P3 parked/blocked。
+
+## 2026-08-24 · Nightly Explore
+
+- 深度共读在已经处于 research 模式时从书 A 切到书 B，`setMode()` 的同模式早退只更新上下文卡，不清理旧 `activeRun`/结果，也不刷新历史；该可信性缺口已登记 E285 并提拔为 OPT-168。
+- 另记录两项未提拔方向：`serialize_run()` 对坏 `result_json`/event metadata 缺局部容错（E286），二级 ARIA Tab 缺方向键与 roving tabindex（E287）。
+
+## 2026-08-24 · 2026-W35 周一产品仪式
+
+- roadmap 最后一次明确焦点（W33）三项均有合入与代码/测试证据，结算 3/3；W34 未另立周焦点，实际被 OPT-159/160/161/162/163/164/166 等深度共读可靠性工作占据，不能把计划外产出改写成周焦点达成。
+- 最新北极星由 7/53/69 降至 2/5/6，只能说明使用与回顾活跃度回落，不能证明深度共读带来增长。W35 唯一焦点收紧为深度共读上下文与结果可信：先收口 OPT-167，再修 OPT-168，最后由 owner 用两本真实书完成 A→B→A 验收并写 signal。
+- OPT-165 仍有强北极星价值，但删除端点与摘要白名单需产品语义选择，本周不与两个确定性正确性缺口并行；无贡献项继续 P3 parked。
+
+## Session: 2026-08-24 09:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/roadmap.md | — | ~3024 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/backlog.md | — | ~47684 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/optimization/triage.md | — | ~1879 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/memory.md | — | ~105153 |
+| 09:02 | Created ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.mfNLXcPE/wt/.wolf/memory.md | — | ~105190 |
