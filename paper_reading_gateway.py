@@ -94,6 +94,41 @@ def _compact_quote(item: dict[str, Any], state: dict[str, Any]) -> dict[str, Any
     }
 
 
+def _connection_entity(state: dict[str, Any], entity_type: str, entity_id: str) -> dict[str, Any] | None:
+    if entity_type == "book":
+        book = _book(state, entity_id)
+        if not book:
+            return None
+        return {
+            "type": "book",
+            **{
+                key: book.get(key)
+                for key in ("id", "title", "author", "status", "tags", "summary")
+            },
+        }
+    if entity_type == "quote":
+        quote = _quote(state, entity_id)
+        if not quote:
+            return None
+        return {"type": "quote", **_compact_quote(quote, state)}
+    return None
+
+
+def _compact_connection(item: dict[str, Any], state: dict[str, Any]) -> dict[str, Any] | None:
+    source = _connection_entity(
+        state, str(item.get("sourceType") or ""), str(item.get("sourceId") or ""),
+    )
+    target = _connection_entity(
+        state, str(item.get("targetType") or ""), str(item.get("targetId") or ""),
+    )
+    if not source or not target:
+        return None
+    return {
+        key: item.get(key)
+        for key in ("id", "kind", "thought", "tags", "createdAt")
+    } | {"source": source, "target": target}
+
+
 @mcp.tool()
 def get_reading_context(ctx: Context) -> dict[str, Any]:
     """读取当前研究任务绑定的书籍、摘抄和用户问题。无需传入用户或任务 ID。"""
@@ -155,10 +190,16 @@ def get_connections(entity_id: str = "", ctx: Context = None) -> list[dict[str, 
     run = _bound_run(ctx)
     state = _state(run)
     target = str(entity_id or run["quote_id"] or run["book_id"])
-    return [
-        item for item in state.get("connections", [])
-        if not target or str(item.get("sourceId")) == target or str(item.get("targetId")) == target
-    ][:50]
+    connections = []
+    for item in state.get("connections", []):
+        if target and str(item.get("sourceId")) != target and str(item.get("targetId")) != target:
+            continue
+        compact = _compact_connection(item, state)
+        if compact:
+            connections.append(compact)
+        if len(connections) == 50:
+            break
+    return connections
 
 
 @mcp.tool()

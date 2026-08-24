@@ -231,6 +231,67 @@ class DeepReadingGatewayContractTests(unittest.TestCase):
             finally:
                 paper_reading_gateway.DB_PATH, paper_reading_gateway.store = original_path, original_store
 
+    def test_connections_return_both_entity_summaries_and_skip_orphans(self):
+        state = {
+            "books": [
+                {
+                    "id": "b1", "title": "冬牧场", "author": "李娟", "status": "finished",
+                    "tags": ["自然"], "summary": "冬季牧场生活", "notes": "不应泄露的私密笔记",
+                },
+                {"id": "b2", "title": "万物有灵且美", "author": "吉米·哈利"},
+            ],
+            "quotes": [
+                {
+                    "id": "q1", "bookId": "b1", "kind": "quote", "content": "荒野并不寂静",
+                    "reflection": "人与动物共享环境", "tags": ["生命"], "page": "42",
+                    "internalDraft": "不应泄露",
+                },
+            ],
+            "connections": [
+                {
+                    "id": "c1", "sourceType": "book", "sourceId": "b1",
+                    "targetType": "book", "targetId": "b2", "kind": "异曲同工",
+                    "thought": "两种牧场生命经验", "tags": ["自然"], "createdAt": "2026-08-24",
+                    "privateField": "不应泄露",
+                },
+                {
+                    "id": "c2", "sourceType": "quote", "sourceId": "q1",
+                    "targetType": "book", "targetId": "b2", "kind": "延伸",
+                    "thought": "从摘抄延伸到另一种生命经验", "tags": [],
+                },
+                {
+                    "id": "orphan", "sourceType": "book", "sourceId": "deleted-book",
+                    "targetType": "book", "targetId": "b2", "kind": "对比", "thought": "失效关联",
+                },
+            ],
+        }
+        original_state = paper_reading_gateway._state
+        original_bound_run = paper_reading_gateway._bound_run
+        paper_reading_gateway._state = lambda run: state
+        paper_reading_gateway._bound_run = lambda ctx: {"book_id": "b1", "quote_id": ""}
+        try:
+            book_connections = paper_reading_gateway.get_connections(ctx=object())
+            self.assertEqual([item["id"] for item in book_connections], ["c1"])
+            connection = book_connections[0]
+            self.assertEqual(connection["source"]["title"], "冬牧场")
+            self.assertEqual(connection["target"]["author"], "吉米·哈利")
+            self.assertEqual(connection["thought"], "两种牧场生命经验")
+            self.assertNotIn("sourceId", connection)
+            self.assertNotIn("privateField", connection)
+            self.assertNotIn("notes", connection["source"])
+
+            quote_connections = paper_reading_gateway.get_connections("q1", ctx=object())
+            self.assertEqual([item["id"] for item in quote_connections], ["c2"])
+            self.assertEqual(quote_connections[0]["source"]["type"], "quote")
+            self.assertEqual(quote_connections[0]["source"]["bookTitle"], "冬牧场")
+            self.assertEqual(quote_connections[0]["source"]["reflection"], "人与动物共享环境")
+            self.assertNotIn("internalDraft", quote_connections[0]["source"])
+
+            self.assertEqual(paper_reading_gateway.get_connections("missing", ctx=object()), [])
+        finally:
+            paper_reading_gateway._state = original_state
+            paper_reading_gateway._bound_run = original_bound_run
+
 
 if __name__ == "__main__":
     unittest.main()
