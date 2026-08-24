@@ -1566,7 +1566,7 @@ Format per item:
 - evidence: PR #130 已 squash 合入 `feature/agent`，提交 `cf1f9b6`；审查闸门实跑 Python 全量 `497 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-167 — 深度共读结果内部结构未校验，畸形建议会令整次任务失败 — 由 explore E281 提拔 [2026-08-23]
-- status: triaged — P1/S，2026-08-24 夜间 Next up；确定性正确性缺口，结构过滤与“保留其余可用结果”的验收边界明确，无需 owner 产品或设计判断
+- status: in-progress — P1/S，PR #131 待审查与合入核验；2026-W35 事项 1，不能以 PR 已创建替代完成状态
 - area: backend / agent correctness
 - priority: P1
 - size: S
@@ -1576,7 +1576,7 @@ Format per item:
 - how: 在 runner 或落库边界规范化 `summary/evidenceMap/openQuestions/proposals`，逐项过滤不符合类型的成员并附 warning；确保无效 proposal 不进入 action 状态机、其余合法结果仍完成落库。补 `proposals:[null]`、混合合法/非法 proposal、畸形 evidence/openQuestions 的回归测试。Touch: `deep_reading.py:99-111,501-515`、`app_server.py:3527-3558,3588-3595`、`tests/agent/deep_reading_api_test.py`、`tests/agent/deep_reading_runtime_test.py`。
 
 ### OPT-168 — 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 — 由 explore E285 提拔 [2026-08-24]
-- status: new
+- status: triaged — P1/S，2026-W35 事项 2；待 OPT-167 收口后按 WIP=1 夜间执行
 - area: frontend / ux / agent correctness
 - priority: P1
 - size: S
