@@ -5426,3 +5426,9 @@
 - 夜间 Triage 以外层一次性 GitHub 证据为准：最近 7 天 `auto/` 实现 PR 已达 8/8，`optimization/triage.md` 不指派 Next up，且未再次调用 `gh` 或 GitHub API。
 - OPT-169 已由 PR #134 / `7504173` 合入；当前代码用结构化 `syncState()` 结果阻止关联新增、编辑、删除在 409 冲突后误报成功；结构化返回测试在 `tests/frontend/state-optimistic-lock.test.js`，三条关联 UI 回归在 `tests/frontend/connection-crud.test.js`。
 - 其余未完成项仍为 11 个 P3/S、OPT-081 P3/M、OPT-117 P3/L blocked；均无当前 Theme 与真实 signal 支撑的可指派北极星贡献。2026-08-24 关联摩擦留待 10:00 晨间产品拆解。
+
+## 2026-08-26 夜间 Explore
+
+- 关联写操作的 409 false-success 已由 OPT-169 修复，但普通网络/5xx 仍会在修改全局 `state.connections` 后抛错且不回滚；失败变更可能被后续全量 state PUT 意外落库，登记为 E292 / OPT-170。
+- `sanitize_state()` 与前端 `normalizeStateShape()` 都只校验 connections 外层数组；畸形 `tags` 可在 `buildConnectionCard()` 调用 `.map()` 时拖垮整个关联页，登记为 E293 / OPT-171。
+- 本轮隔离 clone 的 `.git/FETCH_HEAD` 只读，不能实时 fetch；编号以当前 HEAD `56b414d`、现存 `origin/feature/agent` 引用和 backlog 最大 OPT-169 为基线，未臆造 open PR 状态。

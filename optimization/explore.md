@@ -5159,3 +5159,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——降低关联误删风险并改善无障碍，但缺直接读屏 signal，留探索池。
 
 > 本次 run 新发现 4 条：E288（409 冲突后关联写入 false-success，S，correctness/error handling）、E289（字面检索无法发现同主题摘抄，M，UX/retrieval）、E290（目标候选不排除来源摘抄，S，UX）、E291（删除按钮 accessible name 不可区分，S，accessibility）。仅 E288 是确定性数据可信缺口、无需产品方案选择且有最新关联 signal 支撑，提拔为 OPT-169；E289 需真实失败查询定义召回口径，E290 适合并入选择器改造，E291 无直接辅助技术 signal，均暂留探索池。
+
+## 2026-08-26
+
+> 扫描焦点：沿 2026-08-24 owner 的关联创建/误选/删除 signal，复核 OPT-169 合入后的普通网络失败、持久化边界与交互可达性。隔离 clone 当前 `HEAD` 与现存 `origin/feature/agent` 引用均为 `56b414d`；`git fetch origin feature/agent` 因 `.git/FETCH_HEAD` 只读失败，故不宣称实时远端已刷新。用户提供的 open PR 数据为空或不可用，本轮不据此臆造状态。已核对 backlog、旧 E001–291、最近合并历史及当前代码；以下方向不重复已完成 OPT-169 或旧 E187/E200/E239/E245。
+
+### E292 — 关联保存遇到普通网络错误后，未落库的本地变更仍留在 state，可能被后续保存意外带上 (S)
+
+**What:** 新增、编辑、删除关联都先直接修改全局 `state.connections`，再调用 `syncState()`。409 冲突会以服务器 state 覆盖本地，但断网、超时或 5xx 会重新抛错；关联 catch 只提示错误，不恢复修改前快照。因此新增失败后未落库关联仍在内存，编辑失败的值也继续存在，删除失败的项则继续从内存消失；任一后续成功的全量 state 保存都可能把这次“失败”变更意外落库。
+
+**Evidence:** `syncState()` 仅在 `state_conflict` 分支替换 state，其他错误直接 `throw`（`app.js:1138-1168`）。`addConnection()` 在请求前改写或插入 `state.connections`，catch 仅 toast（`app.js:6019-6045`）；`deleteConnection()` 同样先 filter，catch 不回滚（`app.js:6048-6064`）。现有关联测试只覆盖成功与 409，未构造普通 reject/500（`tests/frontend/connection-crud.test.js:107-240`）。旧 E245 是长期记忆 CRUD 的同类线索，本项发生在最新真实 signal 指向的关联链路，且 OPT-169 只修 409，没有覆盖此分支。
+
+**Why:** 错误提示应意味着变更没有保存；当前实现却可能在用户下一次编辑书籍或摘抄时静默补写，造成“刚才明明失败，后来又出现/消失”的不可解释数据状态。可在每个关联操作前保存 connections 快照，普通错误时恢复并重绘；409 继续采用服务器权威状态。
+
+**Size:** S
+
+**Files:** `app.js:1138-1168,6019-6064`; `tests/frontend/connection-crud.test.js:107-240`
+
+**Northstar:** 强——直接保护最新真实使用路径中的手写思想关联不被失败状态延迟篡改，服务 Theme 3「积累可信」。→ **promoted to OPT-170**
+
+### E293 — `connections` 仅校验为数组，畸形 `tags` 可让关联页渲染整体抛错 (S)
+
+**What:** 服务端与前端都只确认 `connections` 是数组，不校验数组成员或字段类型。若导入/旧客户端写入 `{tags:"哲学"}`，关联卡渲染会对字符串调用 `.map()` 并抛 `TypeError`；单条坏记录即可阻断整个关联列表，而不是局部降级。
+
+**Evidence:** `sanitize_state()` 原样透传任意 list 的 connections（`app_server.py:794-865`，具体返回在 `:862`）；`normalizeStateShape()` 也只做 `Array.isArray`（`app.js:414-427`）。`buildConnectionCard()` 无条件执行 `(conn.tags || []).map(...)`（`app.js:1037-1042`），`renderConnections()` 再对所有项整体 `filtered.map(buildConnectionCard).join("")`（`app.js:1076-1116`）。当前 sanitizer 测试还明确锁定“不深度清洗数组条目”的现状（`tests/agent/sample_state_test.py:35-41`），没有畸形 connection 的隔离测试。
+
+**Why:** Theme 3 不只要求正常写入不丢数据，也要求历史/导入数据局部异常时仍可回顾其余积累。最小修复可在 connection 专用 sanitizer 中保留合法 ID/type/thought/kind，统一 tags 为字符串数组，并过滤非对象；前端仍可做防御性回落。
+
+**Size:** S
+
+**Files:** `app_server.py:794-865`; `app.js:414-427,1037-1042,1076-1116`; `tests/agent/sample_state_test.py:35-41`; 相关 state/frontend tests
+
+**Northstar:** 强——防止一条坏关联让整个思想连接资产不可回顾，直接服务 Theme 3「积累可信」。→ **promoted to OPT-171**
+
+### E294 — 关联卡两端可点击跳转，但使用不可聚焦的 `div`，键盘无法打开对应书籍/摘抄 (S)
+
+**What:** 每张关联卡的来源与目标区域都可点击导航到实体详情，但 DOM 仍是普通 `div`，没有 button/link 语义、`tabindex` 或键盘事件。鼠标/触摸用户能沿关联回到原文，键盘用户完全到不了这两个入口。
+
+**Evidence:** 两端由 `.conn-nav-side` div 输出（`app.js:1037-1066`）；列表委托只监听 click 后调用 `navigateToConnectionSide()`（`app.js:6175-6184`）。样式只提供 `cursor:pointer` 和 hover（`styles.css:3376-3385`），没有 focus-visible。旧 E239 登记的是创建弹窗 combobox，本项是回顾列表实体导航，不重复。
+
+**Why:** 关联的回顾价值依赖从“思想碰撞”回到原书/原摘抄核验。可改用语义 button，或补 role/tabindex 与 Enter/Space 委托，同时提供包含实体标签的 accessible name。
+
+**Size:** S
+
+**Files:** `app.js:1037-1066,6175-6184`; `styles.css:3376-3385`; `tests/frontend/connection-crud.test.js`
+
+**Northstar:** 中——补齐关联回溯的键盘可达性，但没有辅助技术 signal，暂不提拔。
+
+### E295 — 切换关联一侧的“书籍/摘抄”类型不会清空旧选择，切回后会静默恢复过期目标 (S)
+
+**What:** 类型切换只隐藏一套 combobox、显示另一套，不清空任何 hidden ID 或输入文本。用户选中摘抄 A，切到书籍探索后再切回摘抄，A 会直接恢复为提交目标；界面没有提示这是旧选择，容易把试选残留当成当前确认。
+
+**Evidence:** `toggleConnComboboxes()` 仅切换 `is-hidden` class（`app.js:5985-5996`）；source/target type 的 change listener 也只调用该函数（`app.js:6154-6159`）。四套 hidden input 同时存在（`index.html:823-831,853-861`），提交时按当前 type 读取对应旧值（`app.js:6001-6008`）。现有 connection 测试未覆盖类型往返后的选择状态。
+
+**Why:** 最新 signal 已出现“误选其他摘抄”。类型试探本身应可逆，但恢复旧值需明确可见；更稳妥的默认是类型变化时清空新激活侧，要求重新确认，编辑已有连接则在首次打开时显式回填。
+
+**Size:** S
+
+**Files:** `index.html:823-831,853-861`; `app.js:5985-6008,6154-6159`; `tests/frontend/connection-crud.test.js`
+
+**Northstar:** 中——降低关联对象误选，但只覆盖类型往返子场景，适合与 E290 的选择器收口一起评估，不单独提拔。
+
+> 本次 run 新发现 4 条：E292（普通网络失败遗留未落库关联，S，correctness/error handling）、E293（畸形关联字段拖垮整页，S，数据兼容/错误隔离）、E294（关联两端不可键盘回溯，S，无障碍）、E295（类型往返恢复旧选择，S，UX）。提拔 E292→OPT-170、E293→OPT-171；其余因无直接辅助技术 signal 或只覆盖误选子场景留探索池。所有现有缺口均由当前文件逐行核实，并已排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。

@@ -1597,3 +1597,23 @@ Format per item:
 - why: 并发保护本身正确，错误在于调用方无法区分“保存成功”和“冲突后加载服务器版本”。最新 owner signal 已明确关联创建、检索与误删正在真实使用；对这类高价值手写关系播报假成功，会让用户误以为积累已保存或已删除。
 - how: 让 `syncState()` 对冲突返回结构化结果或抛专用冲突，由关联新增/编辑/删除分支停止成功收尾；新增/编辑应保留可恢复输入并明确提示未保存，删除应明确提示未删除。补三条关联 409 回归，断言不出现成功 toast、不误关新增/编辑弹窗、服务器 state 与可见 UI 一致。Touch: `app.js:1138-1167,6018-6055`、`tests/frontend/state-optimistic-lock.test.js`、`tests/frontend/connection-crud.test.js`。
 - evidence: PR #134 已 squash 合入 `feature/agent`，提交 `7504173`；`syncState()` 现以 `{saved:false, reason:"state_conflict"}` 区分冲突，关联新增/编辑/删除均停止成功收尾并提示重试；`tests/frontend/state-optimistic-lock.test.js` 锁定结构化返回，`tests/frontend/connection-crud.test.js` 覆盖三条 409 回归。
+
+### OPT-170 — 关联普通保存失败后未回滚本地变更 — 由 explore E292 提拔 [2026-08-26]
+- status: open
+- area: frontend / data correctness / error handling
+- priority: P1
+- size: S
+- northstar: 强——最新 owner signal 已确认关联创建与误删是真实使用路径；失败变更若在后续全量保存时被意外落库，会直接破坏 Theme 3「积累可信」。
+- description: 关联新增/编辑/删除会在请求前直接修改 `state.connections`（`app.js:6019-6031,6052-6054`）。`syncState()` 对普通网络/5xx 错误重新抛出（`app.js:1155-1168`），但调用方 catch 只 toast、不恢复快照（`app.js:6043-6045,6062-6064`）。因此“保存失败”的关联仍可能被下一次成功的全量 state PUT 静默带上；OPT-169 只覆盖 409 冲突。
+- why: 这不是单纯的临时显示不一致，而是失败操作可能延迟生效。用户无法把错误提示与最终数据状态对应，且关联包含手写 thought，错误新增、覆盖或删除都会损害积累可信度。
+- how: 在关联新增/编辑/删除修改前保存 connections 快照；普通异常时恢复快照并重绘，保留表单和明确失败提示；409 继续采用服务器权威 state，不用本地快照覆盖。补新增、编辑、删除三条普通 reject/500 回归，并断言后续 sync 不携带失败变更。Touch: `app.js:6019-6064`、`tests/frontend/connection-crud.test.js`。
+
+### OPT-171 — 畸形关联字段可穿过 state 归一化并拖垮整个关联页 — 由 explore E293 提拔 [2026-08-26]
+- status: open
+- area: backend / frontend / data integrity
+- priority: P1
+- size: S
+- northstar: 强——一条旧版、导入或异常记录不应让其余思想关联全部不可回顾；局部故障隔离直接服务 Theme 3「积累可信」。
+- description: 服务端 `sanitize_state()` 原样透传 list 类型的 connections（`app_server.py:794-865`），前端 `normalizeStateShape()` 也只校验外层数组（`app.js:414-427`）。若单项 `tags` 为字符串，`buildConnectionCard()` 的 `(conn.tags || []).map(...)` 会抛错（`app.js:1037-1042`），而 `renderConnections()` 整体 map 所有记录（`app.js:1076-1116`），导致整个关联页无法渲染。
+- why: 全量 state 支持备份导入与旧客户端回写，不能假设每个嵌套字段永久符合最新 schema。当前错误边界把一条局部脏数据放大为全部关联不可达，且没有测试守卫。
+- how: 增加 connection 专用清洗：过滤非对象/空 ID，约束 sourceType/targetType，字符串化 ID/kind/thought，tags 仅保留去空字符串数组，同时保留 `isSample` 等明确兼容字段；前端渲染再以 `Array.isArray(conn.tags)` 防御性回落。补 sanitizer 与页面渲染的畸形成员、畸形 tags、合法示例字段回归。Touch: `app_server.py:794-865`、`app.js:414-427,1037-1042`、相关 agent/frontend tests。
