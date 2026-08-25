@@ -91,12 +91,13 @@ test("syncState sends X-State-Version and stores the new version on success", as
   hooks.setStateVersion("v-old");
   hooks.setState({ books: [], sessions: [], quotes: [], chatHistories: {} });
 
-  await hooks.syncState();
+  const result = await hooks.syncState();
 
   const put = calls.find((c) => c.opts && c.opts.method === "PUT");
   assert.ok(put, "a PUT was issued");
   assert.equal(put.opts.headers["X-State-Version"], "v-old", "echoes the loaded version");
   assert.equal(hooks.getStateVersion(), "v-new", "stores the version from the response");
+  assert.deepEqual({ ...result }, { saved: true });
 });
 
 test("syncState on 409 adopts server state and surfaces a toast (no silent clobber)", async () => {
@@ -117,13 +118,14 @@ test("syncState on 409 adopts server state and surfaces a toast (no silent clobb
   // Local edit that would have clobbered the server if last-write-wins.
   hooks.setState({ books: [{ id: "local-book", title: "Local" }], sessions: [], quotes: [], chatHistories: {} });
 
-  await hooks.syncState();
+  const result = await hooks.syncState();
 
   const books = hooks.getState().books;
   assert.equal(books.length, 1);
   assert.equal(books[0].id, "server-book", "server state adopted, local clobber prevented");
   assert.equal(hooks.getStateVersion(), "v-server", "version updated to server's");
   assert.ok(hooks.toasts.some((t) => t.includes("其他设备")), "conflict surfaced to user");
+  assert.deepEqual({ ...result }, { saved: false, reason: "state_conflict" });
 });
 
 test("syncState rethrows non-conflict errors", async () => {

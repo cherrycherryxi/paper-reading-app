@@ -33,7 +33,7 @@ function createElementStub(tagName = "div") {
   };
 }
 
-function createHarness() {
+function createHarness(fetchImpl) {
   const elements = new Map();
   const getElement = (s) => { if (!elements.has(s)) elements.set(s, createElementStub()); return elements.get(s); };
   const document = {
@@ -49,11 +49,13 @@ function createHarness() {
     clearTimeout() {}, setTimeout(fn) { return fn(); }, confirm() { return true; },
   };
   const fetchCalls = [];
+  const toasts = [];
   const context = {
     console, document, window,
     localStorage: { getItem() { return ""; }, setItem() {}, removeItem() {} },
     fetch: async (url, options = {}) => {
       fetchCalls.push({ url, options });
+      if (fetchImpl) return fetchImpl(url, options);
       let body = {};
       try { body = JSON.parse(options.body); } catch (_) {}
       return {
@@ -71,6 +73,7 @@ function createHarness() {
 
   const sourceWithoutBoot = appSource.replace(/\nbindEvents\(\);\nrender\(\);[\s\S]*$/, "\n");
   const instrumented = `${sourceWithoutBoot}
+showToast = function (message) { __captureToast(message); };
 render = function () {};
 activateTab = function () {};
 globalThis.__hooks = {
@@ -80,8 +83,11 @@ globalThis.__hooks = {
   setAuth(v) { authToken = v; },
   setKindFilter(v) { selectedConnectionKindFilter = v; },
   getState() { return state; },
+  toasts: __toasts,
 };
 `;
+  context.__captureToast = (message) => toasts.push(message);
+  context.__toasts = toasts;
   vm.runInNewContext(instrumented, context, { filename: "app.js" });
   const hooks = context.__hooks;
   hooks.fetchCalls = fetchCalls;
@@ -150,6 +156,49 @@ test("OPT-045: addConnection with an id edits the existing link in place", async
   assert.equal(conns[0].kind, "对比");
 });
 
+test("OPT-169: addConnection conflict keeps dialog open and does not report success", async () => {
+  const serverState = { ...emptyState(), books: twoBooks() };
+  const h = createHarness(async () => ({
+    ok: false, status: 409,
+    headers: { get: () => "application/json" },
+    json: async () => ({ error: "state_conflict", state: structuredClone(serverState), stateVersion: "v-server" }),
+  }));
+  loggedIn(h, structuredClone(serverState));
+  h.els.connectionDialog.open = true;
+
+  await h.addConnection(form({
+    sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2",
+    kind: "对比", thought: "并发时不能假成功", tags: "",
+  }));
+
+  assert.equal(h.els.connectionDialog.open, true, "conflict must keep the form open for retry");
+  assert.equal(h.getState().connections.length, 0, "server state remains authoritative");
+  assert.ok(h.toasts.some((message) => message.includes("关联未保存")));
+  assert.ok(!h.toasts.some((message) => message === "关联已保存"));
+});
+
+test("OPT-169: edit conflict keeps dialog open and does not report success", async () => {
+  const original = { id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2", kind: "延伸", thought: "服务器版本", tags: [] };
+  const serverState = { ...emptyState(), books: twoBooks(), connections: [original] };
+  const h = createHarness(async () => ({
+    ok: false, status: 409,
+    headers: { get: () => "application/json" },
+    json: async () => ({ error: "state_conflict", state: structuredClone(serverState), stateVersion: "v-server" }),
+  }));
+  loggedIn(h, structuredClone(serverState));
+  h.els.connectionDialog.open = true;
+
+  await h.addConnection(form({
+    id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2",
+    kind: "对比", thought: "本地修改", tags: "",
+  }));
+
+  assert.equal(h.els.connectionDialog.open, true, "conflict must keep edited form open for retry");
+  assert.equal(h.getState().connections[0].thought, "服务器版本");
+  assert.ok(h.toasts.some((message) => message.includes("关联未更新")));
+  assert.ok(!h.toasts.some((message) => message === "关联已更新"));
+});
+
 // --- deleteConnection ---
 
 test("OPT-045: deleteConnection removes the link only after confirm", async () => {
@@ -170,6 +219,25 @@ test("OPT-045: deleteConnection removes the link only after confirm", async () =
   const conns = h.getState().connections;
   assert.equal(conns.length, 1);
   assert.equal(conns[0].id, "c2", "the other link survives");
+});
+
+test("OPT-169: deleteConnection conflict restores server state and does not report success", async () => {
+  const connection = { id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2", kind: "对比", thought: "保留", tags: [] };
+  const serverState = { ...emptyState(), books: twoBooks(), connections: [connection] };
+  const h = createHarness(async () => ({
+    ok: false, status: 409,
+    headers: { get: () => "application/json" },
+    json: async () => ({ error: "state_conflict", state: structuredClone(serverState), stateVersion: "v-server" }),
+  }));
+  loggedIn(h, structuredClone(serverState));
+
+  await h.deleteConnection("c1");
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+
+  assert.equal(h.getState().connections.length, 1, "server copy must remain visible after conflict");
+  assert.ok(h.toasts.some((message) => message.includes("关联未删除")));
+  assert.ok(!h.toasts.some((message) => message === "关联已删除"));
 });
 
 // --- renderConnections ---
