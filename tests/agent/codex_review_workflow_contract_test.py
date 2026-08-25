@@ -30,8 +30,10 @@ class CodexReviewWorkflowContractTests(unittest.TestCase):
         self.assertIn("NEED-HUMAN", self.source)
         self.assertIn("cancel-in-progress: false", self.source)
 
-    def test_owner_token_has_a_zero_config_fallback(self):
-        self.assertIn("secrets.CODEX_TRIGGER_TOKEN || github.token", self.source)
+    def test_owner_connected_token_is_required_without_bot_fallback(self):
+        self.assertIn("CODEX_TRIGGER_TOKEN is required", self.source)
+        self.assertIn("github-token: ${{ secrets.CODEX_TRIGGER_TOKEN }}", self.source)
+        self.assertNotIn("secrets.CODEX_TRIGGER_TOKEN || github.token", self.source)
         self.assertIn("issues: write", self.source)
         self.assertIn("pull-requests: write", self.source)
 

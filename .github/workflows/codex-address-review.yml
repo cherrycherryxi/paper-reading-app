@@ -25,6 +25,15 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Require an owner-connected Codex trigger token
+        env:
+          CODEX_TRIGGER_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN }}
+        run: |
+          if [ -z "$CODEX_TRIGGER_TOKEN" ]; then
+            echo "::error::CODEX_TRIGGER_TOKEN is required; github.token comments cannot be attributed to a Codex-connected user."
+            exit 1
+          fi
+
       - name: Ask Codex to address actionable findings
         uses: actions/github-script@v7
         env:
@@ -32,10 +41,10 @@ jobs:
           REVIEW_COMMIT: ${{ github.event.review.commit_id }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
-          # A fine-grained PAT stored as CODEX_TRIGGER_TOKEN makes the command
-          # come from the owner account. github.token remains a zero-config
-          # fallback for installations that accept trusted bot comments.
-          github-token: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
+          # The command must come from a GitHub user connected to Codex.
+          # github.token comments are authored by github-actions[bot], which
+          # Codex cannot attribute to that connected user.
+          github-token: ${{ secrets.CODEX_TRIGGER_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
