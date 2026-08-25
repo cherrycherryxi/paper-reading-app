@@ -372,6 +372,11 @@
 
 ## Current planning state (2026-08-23)
 
+## Current planning state (2026-08-25 Explore)
+
+- `optimization/explore.md` 新增 E288–E291，聚焦 2026-08-24 owner 的关联选取、检索与误删 signal。
+- `optimization/backlog.md` 当前最大编号为 OPT-169；新项是关联写入遇到 409 状态冲突后仍播报保存/删除成功的确定性数据可信缺口。
+
 
 ## assets/
 

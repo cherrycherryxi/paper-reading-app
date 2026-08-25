@@ -5371,6 +5371,12 @@
 |------|--------|---------|---------|--------|
 | 23:06 | Created optimization/signals.md | — | ~1477 |
 | 23:06 | Session end: 1 writes across 1 files (signals.md) | 0 reads | ~1582 tok |
+| 23:11 | Session end: 1 writes across 1 files (signals.md) | 0 reads | ~1582 tok |
+
+## Session: 2026-08-24 23:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
 
 ## 2026-08-25 Triage
 
@@ -5382,3 +5388,8 @@
 
 - 深度共读用 `type/bookId/quoteId` 组成上下文 key；上下文变化时递增 revision、停止旧轮询并清空旧 run/status/result/history，再加载新上下文历史。
 - run、history、启动与取消请求回写前核对 revision，避免书 A 的迟到响应污染已经切换到书 B 的工作台；前端行为测试覆盖 A→B 清空与迟到结果隔离。
+## 2026-08-25 Explore
+
+- 最新关联 signal 拆为四条经当前代码核实的新方向：409 冲突后的保存/删除 false-success（E288）、字面子串检索无法召回同主题摘抄（E289）、目标候选未排除来源本身（E290）、关联删除按钮 accessible name 不可区分（E291）。
+- 仅 E288 提拔为 OPT-169（P1/S）：`syncState()` 遇到 `state_conflict` 会采用服务器 state 后正常返回，而 `addConnection()` / `deleteConnection()` 仍继续关闭、切页并显示成功；应让调用方识别冲突并停止成功收尾。
+- E289 有 owner signal 但语义召回方案与验收仍需真实失败关键词；E290 只覆盖 self-link 子场景；E291 无辅助技术直接 signal，三项留探索池。
