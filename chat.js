@@ -1212,6 +1212,8 @@
     statusBox.dataset.state = run?.status || "";
     if (!run) {
       statusBox.textContent = "";
+      if (startBtn) startBtn.disabled = !runtimeAvailable;
+      if (cancelBtn) cancelBtn.hidden = true;
       return;
     }
     const labels = { CREATED: "已创建", RUNNING: "研究中", COMPLETED: "已完成", FAILED: "失败", CANCELLED: "已取消" };
@@ -1309,7 +1311,7 @@
       renderResult(activeRun);
       loadRun(activeRun.id);
     } catch (error) {
-      handleError(error);
+      handleError(error, revision);
     }
   });
   cancelBtn?.addEventListener("click", async () => {
@@ -1321,7 +1323,7 @@
       activeRun = payload.run;
       renderStatus(activeRun);
     } catch (error) {
-      handleError(error);
+      handleError(error, revision);
     }
   });
   historyList?.addEventListener("click", (event) => {

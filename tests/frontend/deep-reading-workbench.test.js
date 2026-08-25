@@ -86,6 +86,8 @@ test("切换深度共读上下文会清空旧结果，并忽略旧上下文的�
   vm.runInNewContext(chat.slice(start), sandbox);
 
   sandbox.window.paperReadingApp.switchChatToDeepResearch({ bookId: "book-a" });
+  elements.researchStartBtn.disabled = true;
+  elements.researchCancelBtn.hidden = false;
   listeners.get("researchHistoryList:click")({
     target: { closest: () => ({ dataset: { researchRunId: "run-a" } }) },
   });
@@ -93,8 +95,15 @@ test("切换深度共读上下文会清空旧结果，并忽略旧上下文的�
 
   assert.equal(elements.researchStatus.textContent, "");
   assert.equal(elements.researchResult.innerHTML, "");
+  assert.equal(elements.researchStartBtn.disabled, false);
+  assert.equal(elements.researchCancelBtn.hidden, true);
   resolveOldRun({ run: { id: "run-a", status: "COMPLETED", result: { summary: "A 的旧结论" } } });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(elements.researchResult.innerHTML, "");
   assert.match(elements.researchContextCard.innerHTML, /《B》/);
+});
+
+test("旧上下文的启动和取消异常不会污染新上下文", () => {
+  assert.match(chat, /catch \(error\) \{\s*handleError\(error, revision\);\s*\}\s*\}\);\s*cancelBtn/s);
+  assert.match(chat, /cancel[^]*?catch \(error\) \{\s*handleError\(error, revision\);\s*\}/);
 });
