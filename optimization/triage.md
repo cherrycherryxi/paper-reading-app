@@ -8,7 +8,7 @@ Last triaged: 2026-08-25
 
 **OPT-168 · 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文（P1 / S）**
 
-**状态：in-progress · 2026-08-25 夜间指派 · Codex nightly PR pending**
+**状态：done · PR #133 / `46ce38b` 已合入 [2026-08-25]**
 
 **理由：** `chat.js:1140-1145` 在已经处于 research 模式时只重绘标题并提前返回；旧 `activeRun`、轮询、状态和结果只在用户切换或新 run 加载时改变（`chat.js:1202-1232,1319-1326`），而 `switchChatToDeepResearch()` 在书/摘抄上下文变化后仍走这条提前返回路径（`chat.js:1329-1334`）。因此 A→B 可稳定形成“B 标题 + A 结论/历史”的错误归属。**夜间适配：是**——复杂度 S，属于局部、确定性的上下文正确性回归；验收边界明确为“context key 变化即停止旧轮询、清空旧 run/status/result、重新加载 B 历史，A 的结果与历史不得残留”，无需 owner 产品、信息架构、视觉或体验取舍。
 
@@ -26,7 +26,7 @@ Last triaged: 2026-08-25
 - OPT-165 已由 PR #132 合入（`31dee7b`）；两端实体摘要、字段白名单与孤儿关联跳过均有当前代码和测试证据。
 - OPT-166 已由 PR #130 squash 合入 `feature/agent`（`cf1f9b6`）；全部无效证据时降级结论、部分有效与原本无证据边界回归已落地。
 - OPT-167 已由 PR #131 squash 合入 `feature/agent`（`fa76724`）；非对象建议会在持久化前被过滤并留下 warning，合法建议继续进入既有审批状态机。审查闸门实跑 Python 全量 `500 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
-- OPT-168 为 P1/S：直接命中 W35 唯一焦点与 Theme 3，且代码坐实跨上下文错误归属；验收清楚、无产品取舍，本次唯一夜间指派。
+- OPT-168 已由 PR #133 squash 合入 `feature/agent`（`46ce38b`）；上下文 revision 隔离旧查询、启动、取消及异常响应，切换时复位任务、状态、结果、历史与运行控件。审查闸门实跑 Python 全量 `505 passed, 26 subtests passed`，Node 全量 `510 passed, 0 failed`。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。它们仍缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不能因工程上容易而指派。2026-08-24 新关联摩擦是高置信 owner signal，但尚未形成验收边界清楚的 backlog 项，不在夜间路径自行诠释。
 
 ## Prioritized backlog
@@ -34,7 +34,7 @@ Last triaged: 2026-08-25
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
 | OPT-167 | 深度共读结果内部结构未校验，畸形建议会令整次任务失败 | **P1** | S | **done** | ✅ PR #131 / `fa76724` 已合入 [2026-08-24]；畸形建议过滤、warning 与合法建议审批状态回归已落地 |
-| OPT-168 | 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 | **P1** | S | **in-progress** | Codex nightly PR pending；验收 A→B 不残留 A 的结果与历史 |
+| OPT-168 | 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 | **P1** | S | **done** | ✅ PR #133 / `46ce38b` 已合入 [2026-08-25]；跨上下文清理、revision 隔离与控件复位回归已落地 |
 | OPT-166 | 深度共读无效证据被剔除后仍保留失去支撑的研究结论 | **P1** | S | **done** | ✅ PR #130 / `cf1f9b6` 已合入 [2026-08-23]；全部无效时降级，部分有效与原本无证据边界测试已落地 |
 | OPT-164 | 深度共读摘抄检索支持所属书名与作者 | **P1** | S | **done** | ✅ PR #129 / `b33d3af` 已合入 [2026-08-22]；书名、作者检索与用户隔离契约测试已落地 |
 | OPT-165 | 深度共读关联工具返回两端实体摘要 | **P1** | S | **done** | ✅ PR #132 / `31dee7b` 已合入 [2026-08-24]；两端实体摘要、字段白名单、孤儿关联过滤测试已落地 |
@@ -74,7 +74,7 @@ Last triaged: 2026-08-25
 
 ## Recently reconciled done
 
-OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-168、OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 

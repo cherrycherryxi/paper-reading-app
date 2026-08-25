@@ -1577,7 +1577,7 @@ Format per item:
 - evidence: PR #131 已 squash 合入 `feature/agent`，提交 `fa76724`；审查闸门实跑 Python 全量 `500 passed, 26 subtests passed`，Node 全量 `508 passed, 0 failed`。
 
 ### OPT-168 — 深度共读跨书切换只更新标题，旧书结果与历史残留在新上下文 — 由 explore E285 提拔 [2026-08-24]
-- status: triaged — P1/S，2026-W35 事项 2；OPT-167 已收口，2026-08-25 夜间 Next up
+- status: done — PR #133 / `46ce38b` 已合入 [2026-08-25]
 - area: frontend / ux / agent correctness
 - priority: P1
 - size: S
@@ -1585,6 +1585,7 @@ Format per item:
 - description: 书籍/摘抄详情会调用 `switchChatToDeepResearch()` 切换上下文（`app.js:6191-6197,6240-6245`；`chat.js:1329-1334`），但若页面本来已在 research 模式，`setMode()` 只重绘上下文卡后提前返回（`chat.js:1140-1145`），不会清空旧 `activeRun`、状态/结果，也不会重新加载新上下文历史（`chat.js:1162-1166,1202-1232`）。因此从书 A 转到书 B 后，页面可同时显示书 B 标题与书 A 结论。
 - why: 这是可由现有入口稳定触发的跨上下文错配。深度共读强调基于个人证据取证，标题和结论归属不一致会让用户把旧证据误认为当前书结果，比单纯的加载陈旧更直接损害可信度。
 - how: 记录当前 research context key；同为 research 模式但 key 变化时，清理旧轮询与 `activeRun`，重置 status/result，并按新 bookId/quoteId 重新加载历史。补行为测试：书 A 已完成并显示结果后，从书 B 详情进入深度共读，不得保留 A 的状态、结论或历史。Touch: `chat.js:1140-1166,1202-1257,1329-1334`、`tests/frontend/deep-reading-workbench.test.js`。
+- evidence: PR #133 已 squash 合入 `feature/agent`，提交 `46ce38b`；上下文 revision 隔离旧查询、启动、取消及异常响应，切换时复位任务、状态、结果、历史与运行控件。审查闸门实跑 Python 全量 `505 passed, 26 subtests passed`，Node 全量 `510 passed, 0 failed`。
 
 ### OPT-169 — 关联写入遇到状态冲突仍播报保存/删除成功 — 由 explore E288 提拔 [2026-08-25]
 - status: new
