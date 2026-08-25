@@ -5416,3 +5416,8 @@
 | 10:52 | Created .github/workflows/codex-address-review.yml | — | ~1180 |
 | 10:52 | Created tests/agent/codex_review_workflow_contract_test.py | — | ~539 |
 | 10:53 | Session end: 3 writes across 3 files (cards-2026-08-25.md, codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~1758 tok |
+| 10:56 | Session end: 3 writes across 3 files (cards-2026-08-25.md, codex-address-review.yml, codex_review_workflow_contract_test.py) | 0 reads | ~1758 tok |
+| 10:58 | Created chat.js | — | ~15683 |
+| 10:58 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1337 |
+
+- PR #133 合并后迟到的 Codex Review 指出：普通“去聊”路径直接切换 book/quote context，不经过深度共读 `setMode()`。修复时应由底层 `switchChatToBook` / `switchChatToQuote` 广播统一上下文变更事件，研究工作台在 research 模式集中清理旧 run、结果、历史、轮询和控件，再加载新上下文历史；不能只修某几个导航调用点。

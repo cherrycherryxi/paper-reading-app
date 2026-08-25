@@ -1082,6 +1082,7 @@
     currentQuoteId = "";
     populateChatBookSelect(bookId);
     restoreHistory();
+    window.dispatchEvent(new CustomEvent("paper-reading-chat-context-changed"));
   };
   window.paperReadingApp.switchChatToQuote = (bookId, quoteId) => {
     currentBookId = bookId || "";
@@ -1089,6 +1090,7 @@
     populateChatBookSelect(currentBookId);
     syncPickerDisplay();
     restoreHistory();
+    window.dispatchEvent(new CustomEvent("paper-reading-chat-context-changed"));
   };
 
   populateChatBookSelect();
@@ -1352,6 +1354,12 @@
     }
   });
   window.addEventListener("paper-reading-data-changed", () => { if (mode === "research") renderContext(); });
+  window.addEventListener("paper-reading-chat-context-changed", () => {
+    if (mode !== "research") return;
+    const contextChanged = resetResearchContext();
+    renderContext();
+    if (contextChanged) loadHistory();
+  });
   window.addEventListener("paper-reading-user-changed", () => {
     researchContextRevision += 1;
     activeContextKey = contextKey();

@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-25T02:52:51.615Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-25T02:58:52.938Z
 > Files: 374 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -248,7 +248,7 @@
 - `app.js` — Declares AUTH_TOKEN_KEY (~75050 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
-- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15076 tok)
+- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15683 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15572 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
 - `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~5382 tok)
@@ -571,7 +571,7 @@
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1442 tok)
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
-- `deep-reading-workbench.test.js` — Declares test (~379 tok)
+- `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1337 tok)
 - `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1305 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~3156 tok)
 - `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1695 tok)

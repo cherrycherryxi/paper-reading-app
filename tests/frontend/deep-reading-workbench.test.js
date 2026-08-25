@@ -25,6 +25,7 @@ test("研究工作台提供上下文、后台进度、结果和历史入口", ()
   assert.match(chat, /switchChatToDeepResearch/);
   assert.match(chat, /link_thought:\s*"建立关联"/);
   assert.match(chat, /add_note:\s*"保存笔记"/);
+  assert.equal((chat.match(/new CustomEvent\("paper-reading-chat-context-changed"\)/g) || []).length, 2);
 });
 
 test("研究交互满足移动点击和减弱动画边界", () => {
@@ -91,7 +92,8 @@ test("切换深度共读上下文会清空旧结果，并忽略旧上下文的�
   listeners.get("researchHistoryList:click")({
     target: { closest: () => ({ dataset: { researchRunId: "run-a" } }) },
   });
-  sandbox.window.paperReadingApp.switchChatToDeepResearch({ bookId: "book-b" });
+  currentBookId = "book-b";
+  windowListeners["paper-reading-chat-context-changed"]();
 
   assert.equal(elements.researchStatus.textContent, "");
   assert.equal(elements.researchResult.innerHTML, "");
