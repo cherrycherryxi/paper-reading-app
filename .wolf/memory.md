@@ -5397,3 +5397,7 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+- 深度共读用 `type/bookId/quoteId` 组成上下文 key；上下文变化时递增 revision、停止旧轮询并清空旧 run/status/result/history，再加载新上下文历史。
+- run、history、启动与取消请求回写前核对 revision，避免书 A 的迟到响应污染已经切换到书 B 的工作台；前端行为测试覆盖 A→B 清空与迟到结果隔离。
+| 10:02 | Created chat.js | — | ~15572 |
+| 10:02 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1305 |
