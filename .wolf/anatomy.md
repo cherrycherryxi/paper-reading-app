@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-24T15:06:30.634Z
-> Files: 370 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-25T02:07:00.572Z
+> Files: 371 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -229,6 +229,7 @@
 - `review-2026-08-22.md` — 2026-08-22 夜间 PR 审查 (~95 tok)
 - `review-2026-08-23.md` — 2026-08-23 夜间 PR 审查 (~172 tok)
 - `review-2026-08-24.md` — 2026-08-24 夜间 PR 审查 (~135 tok)
+- `review-2026-08-25.md` — 2026-08-25 夜间 PR 审查 (~117 tok)
 - `today-pick.md` — 卡片① (~49 tok)
 
 ## ../../.claude/scripts/configs/
@@ -372,10 +373,8 @@
 
 ## Current planning state (2026-08-23)
 
-## Current planning state (2026-08-25 Explore)
 
-- `optimization/explore.md` 新增 E288–E291，聚焦 2026-08-24 owner 的关联选取、检索与误删 signal。
-- `optimization/backlog.md` 当前最大编号为 OPT-169；新项是关联写入遇到 409 状态冲突后仍播报保存/删除成功的确定性数据可信缺口。
+## Current planning state (2026-08-25 Explore)
 
 
 ## assets/
@@ -406,13 +405,13 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~44159 tok)
+- `backlog.md` — Optimization Backlog (~45006 tok)
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1384 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
-- `triage.md` — Triage (~1634 tok)
+- `triage.md` — Triage (~1870 tok)
 
 ## output/pdf/
 
@@ -617,20 +616,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -638,30 +637,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
