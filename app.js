@@ -1151,6 +1151,7 @@ async function syncState() {
       true
     );
     state = normalizeStateShape(data.state);
+    return { saved: true };
   } catch (error) {
     if (error.code === "state_conflict") {
       // Another tab/device saved a newer version. Adopt the server's current
@@ -1161,7 +1162,7 @@ async function syncState() {
       render();
       window.dispatchEvent(new CustomEvent("paper-reading-data-changed"));
       showToast("数据已在其他设备更新，已为你加载最新版本");
-      return;
+      return { saved: false, reason: "state_conflict" };
     }
     throw error;
   }
@@ -6030,7 +6031,11 @@ async function addConnection(formData) {
   }
 
   try {
-    await syncState();
+    const result = await syncState();
+    if (!result?.saved) {
+      showToast(connId ? "关联未更新，请根据最新数据重试" : "关联未保存，请根据最新数据重试");
+      return;
+    }
     closeDialog(els.connectionDialog);
     render();
     if (!connId) activateTab("connections");
@@ -6047,7 +6052,11 @@ async function deleteConnection(connId) {
     onConfirm: async () => {
       state.connections = (state.connections || []).filter((c) => c.id !== connId);
       try {
-        await syncState();
+        const result = await syncState();
+        if (!result?.saved) {
+          showToast("关联未删除，请根据最新数据重试");
+          return;
+        }
         renderConnections();
         showToast("关联已删除");
       } catch (error) {
