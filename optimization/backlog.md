@@ -1588,7 +1588,7 @@ Format per item:
 - evidence: PR #133 已 squash 合入 `feature/agent`，提交 `46ce38b`；上下文 revision 隔离旧查询、启动、取消及异常响应，切换时复位任务、状态、结果、历史与运行控件。审查闸门实跑 Python 全量 `505 passed, 26 subtests passed`，Node 全量 `510 passed, 0 failed`。
 
 ### OPT-169 — 关联写入遇到状态冲突仍播报保存/删除成功 — 由 explore E288 提拔 [2026-08-25]
-- status: new
+- status: done — PR #134 / `7504173` 已合入 [2026-08-25]
 - area: frontend / data correctness / error handling
 - priority: P1
 - size: S
@@ -1596,3 +1596,4 @@ Format per item:
 - description: `syncState()` 遇到 409 会采用服务器 state 后正常返回（`app.js:1138-1167`）。`addConnection()` 因而继续关闭弹窗并提示“关联已保存/已更新”（`app.js:6018-6039`），`deleteConnection()` 也继续提示“关联已删除”（`app.js:6043-6055`）；但服务器 state 已分别丢弃本地新增/编辑或恢复被删项。现有乐观锁测试只验证采用服务器 state，关联 CRUD 只覆盖成功请求（`tests/frontend/state-optimistic-lock.test.js:102-127`; `tests/frontend/connection-crud.test.js:107-173`）。
 - why: 并发保护本身正确，错误在于调用方无法区分“保存成功”和“冲突后加载服务器版本”。最新 owner signal 已明确关联创建、检索与误删正在真实使用；对这类高价值手写关系播报假成功，会让用户误以为积累已保存或已删除。
 - how: 让 `syncState()` 对冲突返回结构化结果或抛专用冲突，由关联新增/编辑/删除分支停止成功收尾；新增/编辑应保留可恢复输入并明确提示未保存，删除应明确提示未删除。补三条关联 409 回归，断言不出现成功 toast、不误关新增/编辑弹窗、服务器 state 与可见 UI 一致。Touch: `app.js:1138-1167,6018-6055`、`tests/frontend/state-optimistic-lock.test.js`、`tests/frontend/connection-crud.test.js`。
+- evidence: PR #134 已 squash 合入 `feature/agent`，提交 `7504173`；`syncState()` 现以 `{saved:false, reason:"state_conflict"}` 区分冲突，关联新增/编辑/删除均停止成功收尾并提示重试；`tests/frontend/state-optimistic-lock.test.js` 锁定结构化返回，`tests/frontend/connection-crud.test.js` 覆盖三条 409 回归。

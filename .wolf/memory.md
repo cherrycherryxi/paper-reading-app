@@ -5421,3 +5421,8 @@
 | 10:58 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1337 |
 
 - PR #133 合并后迟到的 Codex Review 指出：普通“去聊”路径直接切换 book/quote context，不经过深度共读 `setMode()`。修复时应由底层 `switchChatToBook` / `switchChatToQuote` 广播统一上下文变更事件，研究工作台在 research 模式集中清理旧 run、结果、历史、轮询和控件，再加载新上下文历史；不能只修某几个导航调用点。
+# Current planning state (2026-08-26)
+
+- 夜间 Triage 以外层一次性 GitHub 证据为准：最近 7 天 `auto/` 实现 PR 已达 8/8，`optimization/triage.md` 不指派 Next up，且未再次调用 `gh` 或 GitHub API。
+- OPT-169 已由 PR #134 / `7504173` 合入；当前代码用结构化 `syncState()` 结果阻止关联新增、编辑、删除在 409 冲突后误报成功；结构化返回测试在 `tests/frontend/state-optimistic-lock.test.js`，三条关联 UI 回归在 `tests/frontend/connection-crud.test.js`。
+- 其余未完成项仍为 11 个 P3/S、OPT-081 P3/M、OPT-117 P3/L blocked；均无当前 Theme 与真实 signal 支撑的可指派北极星贡献。2026-08-24 关联摩擦留待 10:00 晨间产品拆解。
