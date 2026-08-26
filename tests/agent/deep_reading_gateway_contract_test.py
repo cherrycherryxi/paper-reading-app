@@ -161,6 +161,24 @@ class DeepReadingGatewayContractTests(unittest.TestCase):
                     [item["id"] for item in paper_reading_gateway.search_quotes("吉米·哈利", ctx=ctx)],
                     ["q2"],
                 )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes("荒野 动物", ctx=ctx)],
+                    ["q2", "q1"],
+                )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes("", relation_scope="all", ctx=ctx)],
+                    ["q2", "q1"],
+                )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes("", relation_scope="book", ctx=ctx)],
+                    ["q1"],
+                )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes(
+                        "荒野 动物", relation_scope="book", ctx=ctx,
+                    )],
+                    ["q1"],
+                )
                 self.assertEqual(paper_reading_gateway.search_quotes("完全无关", ctx=ctx), [])
                 self.assertNotIn(
                     "secret",

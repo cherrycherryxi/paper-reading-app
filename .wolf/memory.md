@@ -5432,3 +5432,49 @@
 - 关联写操作的 409 false-success 已由 OPT-169 修复，但普通网络/5xx 仍会在修改全局 `state.connections` 后抛错且不回滚；失败变更可能被后续全量 state PUT 意外落库，登记为 E292 / OPT-170。
 - `sanitize_state()` 与前端 `normalizeStateShape()` 都只校验 connections 外层数组；畸形 `tags` 可在 `buildConnectionCard()` 调用 `.map()` 时拖垮整个关联页，登记为 E293 / OPT-171。
 - 本轮隔离 clone 的 `.git/FETCH_HEAD` 只读，不能实时 fetch；编号以当前 HEAD `56b414d`、现存 `origin/feature/agent` 引用和 backlog 最大 OPT-169 为基线，未臆造 open PR 状态。
+| 11:01 | Session end: 5 writes across 5 files (cards-2026-08-25.md, codex-address-review.yml, codex_review_workflow_contract_test.py, chat.js, deep-reading-workbench.test.js) | 0 reads | ~18778 tok |
+| 11:11 | Session end: 5 writes across 5 files (cards-2026-08-25.md, codex-address-review.yml, codex_review_workflow_contract_test.py, chat.js, deep-reading-workbench.test.js) | 0 reads | ~18778 tok |
+
+## Session: 2026-08-25 12:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:28 | Created app.js | — | ~75152 |
+| 12:28 | Created tests/frontend/connection-crud.test.js | — | ~3704 |
+| 12:28 | Created tests/frontend/state-optimistic-lock.test.js | — | ~1665 |
+| 12:28 | Created tests/frontend/connection-crud.test.js | — | ~3733 |
+| 12:28 | Created app.js | — | ~75139 |
+| 12:31 | Created ../../../../tmp/opt169-pr-body.md | — | ~171 |
+| 12:32 | Created ../../.claude/paper-loop/today-pick.md | — | ~52 |
+| 12:33 | Session end: 7 writes across 5 files (app.js, connection-crud.test.js, state-optimistic-lock.test.js, opt169-pr-body.md, today-pick.md) | 0 reads | ~159632 tok |
+| 12:53 | Created optimization/signals.md | — | ~1498 |
+| 12:53 | Session end: 8 writes across 6 files (app.js, connection-crud.test.js, state-optimistic-lock.test.js, opt169-pr-body.md, today-pick.md) | 0 reads | ~161237 tok |
+
+## Session: 2026-08-25 13:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:58 | Created paper_reading_gateway.py | — | ~2517 |
+| 14:58 | Created tests/agent/deep_reading_gateway_contract_test.py | — | ~4996 |
+
+- 深度共读的 `search_quotes()` 中，`relation_scope` 必须真正控制候选范围：`book` 只查当前书，`all` 覆盖当前用户全部书。多关键词不能作为一个完整子串匹配；应拆词、按命中数排序，并在跨书模式同分时优先外书候选，避免空查询或 50 条上限使结果退化为当前书。
+| 14:59 | Session end: 2 writes across 2 files (paper_reading_gateway.py, deep_reading_gateway_contract_test.py) | 0 reads | ~7513 tok |
+
+## Session: 2026-08-25 23:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-26 10:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:01 | Created ../../.claude/paper-loop/review-2026-08-26.md | — | ~3 |
+| 10:02 | Session end: 1 writes across 1 files (review-2026-08-26.md) | 0 reads | ~3 tok |
+
+## Session: 2026-08-26 10:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:04 | Created ../../.claude/paper-loop/cards-2026-08-26.md | — | ~1 |
+| 10:04 | Session end: 1 writes across 1 files (cards-2026-08-26.md) | 0 reads | ~1 tok |

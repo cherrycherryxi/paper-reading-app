@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-25T02:58:52.938Z
-> Files: 374 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-26T02:04:04.802Z
+> Files: 377 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -133,6 +133,7 @@
 - `opt067-pr-body.md` — 动机 (~228 tok)
 - `opt143-pr-body.md` — 动机 (~189 tok)
 - `opt156-pr.md` — 动机 (~208 tok)
+- `opt169-pr-body.md` — 动机 (~160 tok)
 
 ## ../../../../tmp/paper-opt-142/
 
@@ -217,6 +218,7 @@
 - `cards-2026-08-23.md` — 卡片① (~32 tok)
 - `cards-2026-08-24.md` — 卡片① (~35 tok)
 - `cards-2026-08-25.md` — 卡片① (~34 tok)
+- `cards-2026-08-26.md` (~1 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -231,6 +233,7 @@
 - `review-2026-08-23.md` — 2026-08-23 夜间 PR 审查 (~172 tok)
 - `review-2026-08-24.md` — 2026-08-24 夜间 PR 审查 (~135 tok)
 - `review-2026-08-25.md` — 2026-08-25 夜间 PR 审查 (~117 tok)
+- `review-2026-08-26.md` (~2 tok)
 - `today-pick.md` — 卡片① (~49 tok)
 
 ## ../../.claude/scripts/configs/
@@ -245,7 +248,7 @@
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~81360 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~75050 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~75139 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15683 tok)
@@ -259,7 +262,7 @@
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
 - `mcp.log` — Declares ListToolsRequest (~240544 tok)
-- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~2351 tok)
+- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~2517 tok)
 - `privacy.html` — 隐私政策 · 又买了一本书 (~934 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
@@ -411,7 +414,7 @@
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~1384 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~1404 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
 - `triage.md` — Triage (~1870 tok)
 
@@ -513,7 +516,7 @@
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
 - `deep_reading_api_test.py` — _Runner: start, setUp, tearDown, request + 3 more (~1505 tok)
 - `deep_reading_cordis_contract_test.py` — DeepReadingCordisContractTests: test_gateway_tools_share_the_root_registry_and_are_strictly_ordered, (~409 tok)
-- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~4757 tok)
+- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~4996 tok)
 - `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~920 tok)
 - `deep_reading_store_test.py` — DeepReadingStoreTests: setUp, tearDown, test_run_token_binds_gateway_to_server_side_user, test_conte (~1001 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_uses_model_from_environment_configuration, test_retri (~5517 tok)
@@ -567,7 +570,7 @@
 - `clear-filters.test.js` — 「一键清除全部筛选」从书单页扩展到 记录 / 摘抄 / 关联 三页（呼应 07-11 signal）。 (~1551 tok)
 - `combobox-position-and-label.test.js` — bug-415: 关联对话框书籍 combobox 两个问题 (~1472 tok)
 - `combobox-single-open.test.js` — bug-406: 关联对话框「在目标摘抄框输入，却弹出并显示来源那一侧的下拉」。 (~1391 tok)
-- `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~2791 tok)
+- `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~3733 tok)
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1442 tok)
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
@@ -603,7 +606,7 @@
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
 - `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
 - `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~4803 tok)
-- `state-optimistic-lock.test.js` — OPT-029 Layer B / E35: syncState() must echo the loaded state version on PUT (~1619 tok)
+- `state-optimistic-lock.test.js` — OPT-029 Layer B / E35: syncState() must echo the loaded state version on PUT (~1665 tok)
 - `timeline-date-search.test.js` — OPT-112: renderTimeline search haystack includes the session date (~1948 tok)
 - `timeline-milestone.test.js` — OPT-077: renderTimeline() book milestone events (startedAt / finishedAt) (~4323 tok)
 - `ui-redesign.test.js` — test: getRuleBlock (~3211 tok)
@@ -619,20 +622,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -640,30 +643,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
