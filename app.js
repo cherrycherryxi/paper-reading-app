@@ -5829,10 +5829,11 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
   };
 }
 
-function initQuoteCombobox(wrapperEl, hiddenInput) {
+function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
   if (!wrapperEl || !hiddenInput) return;
   const textInput = wrapperEl.querySelector(".book-combobox-input");
   const list = wrapperEl.querySelector(".book-combobox-list");
+  const clearButton = wrapperEl.querySelector(".quote-combobox-clear");
   if (!textInput || !list) return;
 
   let allQuotes = [];
@@ -5852,16 +5853,46 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
     return `${bookName} · ${content}`;
   }
 
+  function searchTerms(query) {
+    const terms = String(query || "").toLowerCase().split(/[\s,，。；;、|/]+/).filter(Boolean);
+    return [...new Set(terms.flatMap((term) => {
+      if (!/[\u3400-\u9fff]/.test(term) || term.length <= 2) return [term];
+      return [term, ...Array.from({ length: term.length - 1 }, (_, index) => term.slice(index, index + 2))];
+    }))];
+  }
+
+  function activeScope() {
+    return options.scopeSelect?.value || "all";
+  }
+
+  function sourceQuote() {
+    const sourceId = String(options.sourceQuoteId?.() || "");
+    return allQuotes.find((quote) => String(quote.id) === sourceId);
+  }
+
   function filteredQuotes(q) {
-    if (!q) return allQuotes.slice(0, 30);
-    const lower = q.toLowerCase();
-    return allQuotes.filter((item) => {
+    const lower = String(q || "").trim().toLowerCase();
+    const terms = searchTerms(lower);
+    const source = sourceQuote();
+    const sourceId = String(source?.id || "");
+    const sourceBookId = String(source?.bookId || "");
+    const scope = activeScope();
+    return allQuotes.map((item, index) => {
       const book = state.books.find((b) => b.id === item.bookId);
-      return quoteText(item).toLowerCase().includes(lower) ||
-        (book?.title || "").toLowerCase().includes(lower) ||
-        (item.tags || []).some((tag) => String(tag).toLowerCase().includes(lower)) ||
-        String(item.reflection || "").toLowerCase().includes(lower);
-    }).slice(0, 30);
+      const haystack = [quoteText(item), book?.title || "", ...(item.tags || []), item.reflection || ""]
+        .map((value) => String(value).toLowerCase()).join(" ");
+      const matchedTerms = terms.filter((term) => haystack.includes(term)).length;
+      return { item, index, matchedTerms, exact: Boolean(lower && haystack.includes(lower)) };
+    }).filter(({ item, matchedTerms }) => {
+      if (sourceId && String(item.id) === sourceId) return false;
+      if (scope === "other" && sourceBookId && String(item.bookId) === sourceBookId) return false;
+      if (scope.startsWith("book:") && String(item.bookId) !== scope.slice(5)) return false;
+      return !terms.length || matchedTerms > 0;
+    }).sort((a, b) =>
+      b.matchedTerms - a.matchedTerms || Number(b.exact) - Number(a.exact) ||
+      Number(sourceBookId && String(b.item.bookId) !== sourceBookId) - Number(sourceBookId && String(a.item.bookId) !== sourceBookId) ||
+      a.index - b.index
+    ).slice(0, 30).map(({ item }) => item);
   }
 
   function positionList() {
@@ -5909,6 +5940,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   function pick(quote) {
     hiddenInput.value = quote.id;
     textInput.value = quoteLabel(quote);
+    clearButton?.classList.remove("is-hidden");
     closeList();
   }
 
@@ -5938,19 +5970,51 @@ function initQuoteCombobox(wrapperEl, hiddenInput) {
   wrapperEl._comboboxReset = () => {
     textInput.value = "";
     hiddenInput.value = "";
+    clearButton?.classList.add("is-hidden");
     closeList();
   };
   wrapperEl._comboboxSetValue = (quoteId) => {
     const quote = allQuotes.find((q) => q.id === quoteId);
     hiddenInput.value = quoteId || "";
     textInput.value = quote ? quoteLabel(quote) : "";
+    clearButton?.classList.toggle("is-hidden", !quote);
   };
+  wrapperEl._comboboxRefresh = () => buildList(textInput.value);
+  clearButton?.addEventListener("click", () => {
+    textInput.value = "";
+    hiddenInput.value = "";
+    clearButton.classList.add("is-hidden");
+    buildList();
+    if (!isOpen) openList();
+    textInput.focus();
+  });
+  options.scopeSelect?.addEventListener("change", () => {
+    hiddenInput.value = "";
+    textInput.value = "";
+    clearButton?.classList.add("is-hidden");
+    buildList();
+    if (!isOpen) openList();
+  });
 }
 
 let connSourceBookComboWrap = null;
 let connSourceQuoteComboWrap = null;
 let connTargetBookComboWrap = null;
 let connTargetQuoteComboWrap = null;
+
+function resetTargetQuoteScope(targetBookId = "") {
+  const select = document.getElementById("connTargetQuoteScope");
+  if (!select) return;
+  select.querySelectorAll('option[data-book-scope="true"]').forEach((option) => option.remove());
+  state.books.forEach((book) => {
+    const option = document.createElement("option");
+    option.value = `book:${book.id}`;
+    option.textContent = book.title || "未命名书籍";
+    option.dataset.bookScope = "true";
+    select.appendChild(option);
+  });
+  select.value = targetBookId ? `book:${targetBookId}` : "other";
+}
 
 function openConnectionDialog({ sourceType, sourceId, targetType, targetId } = {}) {
   if (!requireAuth("记录思想碰撞")) return;
@@ -5965,6 +6029,10 @@ function openConnectionDialog({ sourceType, sourceId, targetType, targetId } = {
   connSourceQuoteComboWrap?._comboboxReset?.();
   connTargetBookComboWrap?._comboboxReset?.();
   connTargetQuoteComboWrap?._comboboxReset?.();
+  const presetTargetQuote = targetType === "quote" && targetId
+    ? state.quotes.find((quote) => quote.id === targetId)
+    : null;
+  resetTargetQuoteScope(presetTargetQuote?.bookId || "");
   els.connectionForm.querySelector('[name="thought"]').value = "";
   els.connectionForm.querySelector('[name="tags"]').value = "";
   toggleConnComboboxes("source", sourceType || "book");
@@ -6016,6 +6084,7 @@ async function addConnection(formData) {
   if (sourceType === targetType && sourceId === targetId) { showToast("来源和目标不能相同"); return; }
   if (!thought) { showToast("请填写你的想法"); return; }
 
+  const connectionsBefore = structuredClone(state.connections || []);
   if (connId) {
     const idx = (state.connections || []).findIndex((c) => c.id === connId);
     if (idx !== -1) {
@@ -6041,6 +6110,7 @@ async function addConnection(formData) {
     if (!connId) activateTab("connections");
     showToast(connId ? "关联已更新" : "关联已保存");
   } catch (error) {
+    state.connections = connectionsBefore;
     showToast(error.message);
   }
 }
@@ -6050,6 +6120,7 @@ async function deleteConnection(connId) {
   showConfirmDialog({
     message: "确定删除这条关联记录吗？",
     onConfirm: async () => {
+      const connectionsBefore = structuredClone(state.connections || []);
       state.connections = (state.connections || []).filter((c) => c.id !== connId);
       try {
         const result = await syncState();
@@ -6060,6 +6131,8 @@ async function deleteConnection(connId) {
         renderConnections();
         showToast("关联已删除");
       } catch (error) {
+        state.connections = connectionsBefore;
+        renderConnections();
         showToast(error.message);
       }
     },
@@ -6080,6 +6153,10 @@ function openConnectionForEdit(connId) {
   connSourceQuoteComboWrap?._comboboxReset?.();
   connTargetBookComboWrap?._comboboxReset?.();
   connTargetQuoteComboWrap?._comboboxReset?.();
+  const targetQuote = conn.targetType === "quote"
+    ? state.quotes.find((quote) => quote.id === conn.targetId)
+    : null;
+  resetTargetQuoteScope(targetQuote?.bookId || "");
   toggleConnComboboxes("source", conn.sourceType);
   toggleConnComboboxes("target", conn.targetType);
   if (conn.sourceType === "book") {
@@ -6110,7 +6187,10 @@ function bindEvents() {
   initBookCombobox(connSourceBookComboWrap, document.getElementById("connSourceBookId"), true);
   initBookCombobox(connTargetBookComboWrap, document.getElementById("connTargetBookId"), true);
   initQuoteCombobox(connSourceQuoteComboWrap, document.getElementById("connSourceQuoteId"));
-  initQuoteCombobox(connTargetQuoteComboWrap, document.getElementById("connTargetQuoteId"));
+  initQuoteCombobox(connTargetQuoteComboWrap, document.getElementById("connTargetQuoteId"), {
+    scopeSelect: document.getElementById("connTargetQuoteScope"),
+    sourceQuoteId: () => document.getElementById("connSourceQuoteId")?.value || "",
+  });
 
   els.openBookDialogBtn?.addEventListener("click", () => {
     resetBookDraft();

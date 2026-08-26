@@ -1780,6 +1780,37 @@ textarea {
   color: var(--color-ink-muted);
 }
 
+.conn-quote-scope-label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+
+.conn-quote-scope-select {
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.quote-combobox-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.quote-combobox-clear {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+}
+
 .quote-detail-content {
   white-space: pre-wrap;
   line-height: 1.7;

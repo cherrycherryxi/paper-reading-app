@@ -29,7 +29,7 @@ function createElementStub(tagName = "div") {
     dispatch(type, e = {}) { (listeners[type] || []).forEach((fn) => fn(e)); },
     getBoundingClientRect() { return { top: 100, bottom: 140, left: 20, width: 300 }; },
     querySelector() { return null; }, querySelectorAll() { return []; },
-    showModal() {}, close() {}, setAttribute() {}, closest() { return null; },
+    showModal() {}, close() {}, setAttribute() {}, closest() { return null; }, focus() {},
   };
 }
 
@@ -73,28 +73,32 @@ globalThis.__hooks = {
 }
 
 // 装一个摘抄 combobox，返回驱动它所需的把手。
-function mountQuoteCombobox(quotes) {
+function mountQuoteCombobox(quotes, { books, scope = "all", sourceQuoteId = "" } = {}) {
   const hooks = createHarness();
   hooks.setState({
-    books: [{ id: "b1", title: "置身事内", author: "兰小欢" }],
+    books: books || [{ id: "b1", title: "置身事内", author: "兰小欢" }],
     quotes, sessions: [], connections: [], chatHistories: {}, chatContexts: {},
   });
 
   const textInput = createElementStub("input");
   const list = createElementStub("ul");
+  const clearButton = createElementStub("button");
   const wrapper = createElementStub("div");
   wrapper.querySelector = (sel) => {
     if (sel === ".book-combobox-input") return textInput;
     if (sel === ".book-combobox-list") return list;
+    if (sel === ".quote-combobox-clear") return clearButton;
     return null;
   };
   const hiddenInput = createElementStub("input");
+  const scopeSelect = createElementStub("select");
+  scopeSelect.value = scope;
 
-  hooks.initQuoteCombobox(wrapper, hiddenInput);
+  hooks.initQuoteCombobox(wrapper, hiddenInput, { scopeSelect, sourceQuoteId: () => sourceQuoteId });
   wrapper._comboboxUpdate(quotes);
 
   return {
-    wrapper, textInput, list, hiddenInput,
+    wrapper, textInput, list, hiddenInput, scopeSelect, clearButton,
     // focus 打开下拉；labels() 读渲染出的 <li> 文本
     open() { textInput.dispatch("focus"); },
     type(q) { textInput.value = q; textInput.dispatch("input"); },
@@ -151,6 +155,49 @@ test("OPT-142: 按摘抄标签和我的理解都能找到关联目标", () => {
 
   c.type("承担后果");
   assert.deepEqual(c.labels(), ["置身事内 · 手打的摘抄正文。"], "我的理解应与摘抄页检索口径一致");
+});
+
+test("E289: 连续中文查询按词片召回并优先跨书摘抄", () => {
+  const books = [{ id: "b1", title: "见树又见林" }, { id: "b2", title: "你的脚比头年轻" }];
+  const quotes = [
+    { id: "source", bookId: "b1", kind: "quote", content: "在地球存在的大部分时间里没有生命。", tags: [] },
+    { id: "same", bookId: "b1", kind: "quote", content: "地球上的其他讨论。", tags: [] },
+    { id: "target", bookId: "b2", kind: "quote", content: "把地球45.4亿年的历史浓缩成一天。", tags: [] },
+  ];
+  const c = mountQuoteCombobox(quotes, { books, scope: "all", sourceQuoteId: "source" });
+  c.open();
+  c.type("地球存在时间");
+
+  assert.equal(c.labels()[0], "你的脚比头年轻 · 把地球45.4亿年的历史浓缩成一天。");
+  assert.ok(!c.labels().some((label) => label.includes("在地球存在的大部分时间")), "source quote must be excluded");
+});
+
+test("E289: 其他书与指定书范围不会被当前书前 30 条挤占", () => {
+  const books = [{ id: "b1", title: "当前书" }, { id: "b2", title: "目标书" }, { id: "b3", title: "第三本" }];
+  const quotes = [
+    { id: "source", bookId: "b1", kind: "quote", content: "来源", tags: [] },
+    ...Array.from({ length: 35 }, (_, i) => ({ id: `same-${i}`, bookId: "b1", kind: "quote", content: `当前书摘抄${i}`, tags: [] })),
+    { id: "target", bookId: "b2", kind: "quote", content: "跨书目标", tags: [] },
+    { id: "third", bookId: "b3", kind: "quote", content: "第三本目标", tags: [] },
+  ];
+  const c = mountQuoteCombobox(quotes, { books, scope: "other", sourceQuoteId: "source" });
+  c.open();
+  assert.deepEqual(c.labels(), ["目标书 · 跨书目标", "第三本 · 第三本目标"]);
+
+  c.scopeSelect.value = "book:b2";
+  c.scopeSelect.dispatch("change");
+  assert.deepEqual(c.labels(), ["目标书 · 跨书目标"]);
+});
+
+test("E289: 清除按钮同时移除可见标签和隐藏的目标 ID", () => {
+  const c = mountQuoteCombobox([TYPED_QUOTE]);
+  c.wrapper._comboboxSetValue("q-typed");
+  assert.equal(c.hiddenInput.value, "q-typed");
+
+  c.clearButton.dispatch("click");
+
+  assert.equal(c.hiddenInput.value, "");
+  assert.equal(c.textInput.value, "");
 });
 
 test("OPT-111: 选中 OCR 摘抄后，输入框回填的也是带正文的标签", () => {

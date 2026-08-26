@@ -856,7 +856,17 @@
             <input type="hidden" name="targetId" id="connTargetBookId" />
           </div>
           <div class="book-combobox is-hidden" id="connTargetQuoteCombobox">
-            <input type="text" class="book-combobox-input" placeholder="搜索书名或摘抄内容…" autocomplete="off" />
+            <label class="conn-quote-scope-label" for="connTargetQuoteScope">
+              <span>查找范围</span>
+              <select id="connTargetQuoteScope" class="conn-quote-scope-select">
+                <option value="other">其他书（推荐）</option>
+                <option value="all">全部书</option>
+              </select>
+            </label>
+            <div class="quote-combobox-input-row">
+              <input type="text" class="book-combobox-input" placeholder="输入多个关键词，如：地球 存在 时间" autocomplete="off" />
+              <button type="button" class="quote-combobox-clear is-hidden" aria-label="清除已选目标摘抄">清除</button>
+            </div>
             <ul class="book-combobox-list"></ul>
             <input type="hidden" name="targetQuoteId" id="connTargetQuoteId" />
           </div>

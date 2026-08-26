@@ -199,6 +199,37 @@ test("OPT-169: edit conflict keeps dialog open and does not report success", asy
   assert.ok(!h.toasts.some((message) => message === "关联已更新"));
 });
 
+test("OPT-170: ordinary add failure rolls back the optimistic connection", async () => {
+  const h = createHarness(async () => { throw new Error("网络中断"); });
+  loggedIn(h, { ...emptyState(), books: twoBooks() });
+  h.els.connectionDialog.open = true;
+
+  await h.addConnection(form({
+    sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2",
+    kind: "对比", thought: "不能延迟写入", tags: "",
+  }));
+
+  assert.equal(h.getState().connections.length, 0, "failed add must leave no local connection");
+  assert.equal(h.els.connectionDialog.open, true, "form stays open for retry");
+  assert.ok(h.toasts.length > 0, "ordinary failure must remain visible to the user");
+  assert.ok(!h.toasts.includes("关联已保存"));
+});
+
+test("OPT-170: ordinary edit failure restores the previous connection", async () => {
+  const original = { id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2", kind: "延伸", thought: "旧值", tags: [] };
+  const h = createHarness(async () => { throw new Error("保存超时"); });
+  loggedIn(h, { ...emptyState(), books: twoBooks(), connections: [original] });
+
+  await h.addConnection(form({
+    id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2",
+    kind: "对比", thought: "未保存的新值", tags: "",
+  }));
+
+  assert.equal(h.getState().connections[0].thought, "旧值");
+  assert.ok(h.toasts.length > 0, "ordinary failure must remain visible to the user");
+  assert.ok(!h.toasts.includes("关联已更新"));
+});
+
 // --- deleteConnection ---
 
 test("OPT-045: deleteConnection removes the link only after confirm", async () => {
@@ -238,6 +269,21 @@ test("OPT-169: deleteConnection conflict restores server state and does not repo
   assert.equal(h.getState().connections.length, 1, "server copy must remain visible after conflict");
   assert.ok(h.toasts.some((message) => message.includes("关联未删除")));
   assert.ok(!h.toasts.some((message) => message === "关联已删除"));
+});
+
+test("OPT-170: ordinary delete failure restores the removed connection", async () => {
+  const connection = { id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2", kind: "对比", thought: "保留", tags: [] };
+  const h = createHarness(async () => { throw new Error("删除失败"); });
+  loggedIn(h, { ...emptyState(), books: twoBooks(), connections: [connection] });
+
+  await h.deleteConnection("c1");
+  h.els.confirmDialogConfirmBtn._click();
+  await flush();
+
+  assert.equal(h.getState().connections.length, 1);
+  assert.equal(h.getState().connections[0].id, "c1");
+  assert.ok(h.toasts.length > 0, "ordinary failure must remain visible to the user");
+  assert.ok(!h.toasts.includes("关联已删除"));
 });
 
 // --- renderConnections ---
