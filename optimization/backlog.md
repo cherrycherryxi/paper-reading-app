@@ -1599,7 +1599,7 @@ Format per item:
 - evidence: PR #134 已 squash 合入 `feature/agent`，提交 `7504173`；`syncState()` 现以 `{saved:false, reason:"state_conflict"}` 区分冲突，关联新增/编辑/删除均停止成功收尾并提示重试；`tests/frontend/state-optimistic-lock.test.js` 锁定结构化返回，`tests/frontend/connection-crud.test.js` 覆盖三条 409 回归。
 
 ### OPT-170 — 关联普通保存失败后未回滚本地变更 — 由 explore E292 提拔 [2026-08-26]
-- status: open
+- status: done (2026-08-26, commit `783a4bf` — 关联新增/编辑/删除普通失败恢复操作前快照，409 继续采用服务器状态；三条失败回滚测试已落地)
 - area: frontend / data correctness / error handling
 - priority: P1
 - size: S
@@ -1609,7 +1609,7 @@ Format per item:
 - how: 在关联新增/编辑/删除修改前保存 connections 快照；普通异常时恢复快照并重绘，保留表单和明确失败提示；409 继续采用服务器权威 state，不用本地快照覆盖。补新增、编辑、删除三条普通 reject/500 回归，并断言后续 sync 不携带失败变更。Touch: `app.js:6019-6064`、`tests/frontend/connection-crud.test.js`。
 
 ### OPT-171 — 畸形关联字段可穿过 state 归一化并拖垮整个关联页 — 由 explore E293 提拔 [2026-08-26]
-- status: open
+- status: new
 - area: backend / frontend / data integrity
 - priority: P1
 - size: S
@@ -1617,3 +1617,13 @@ Format per item:
 - description: 服务端 `sanitize_state()` 原样透传 list 类型的 connections（`app_server.py:794-865`），前端 `normalizeStateShape()` 也只校验外层数组（`app.js:414-427`）。若单项 `tags` 为字符串，`buildConnectionCard()` 的 `(conn.tags || []).map(...)` 会抛错（`app.js:1037-1042`），而 `renderConnections()` 整体 map 所有记录（`app.js:1076-1116`），导致整个关联页无法渲染。
 - why: 全量 state 支持备份导入与旧客户端回写，不能假设每个嵌套字段永久符合最新 schema。当前错误边界把一条局部脏数据放大为全部关联不可达，且没有测试守卫。
 - how: 增加 connection 专用清洗：过滤非对象/空 ID，约束 sourceType/targetType，字符串化 ID/kind/thought，tags 仅保留去空字符串数组，同时保留 `isSample` 等明确兼容字段；前端渲染再以 `Array.isArray(conn.tags)` 防御性回落。补 sanitizer 与页面渲染的畸形成员、畸形 tags、合法示例字段回归。Touch: `app_server.py:794-865`、`app.js:414-427,1037-1042`、相关 agent/frontend tests。
+
+### OPT-172 — 关联摘抄支持跨书多词检索与目标书范围 — 由 explore E289 提拔并由 owner 选定 [2026-08-26]
+- status: done (2026-08-26, commit `783a4bf` — 中文词片召回、命中数/跨书排序、其他书/全部书/指定书范围、排除来源与清除误选均已实现)
+- area: frontend / ux / retrieval
+- priority: P1
+- size: M
+- northstar: 强——直接解决 owner 在《见树又见林》与《你的脚比头年轻》之间建立摘抄关联时，目标被当前书候选挤占且连续关键词无法命中的真实问题。
+- description: 关联摘抄选择器原先将整段查询作为单一子串并截取前 30 条，没有跨书排序或目标书范围，导致同主题跨书摘抄难以发现。
+- why: 用户知道目标摘抄属于另一本书时，应能先收窄书籍范围；连续中文主题词也应拆分召回，不能要求原文出现完全相同的整句。
+- how: `initQuoteCombobox()` 对连续中文生成双字词片，按命中数、完整短语与跨书优先级排序；目标侧提供其他书/全部书/指定书范围，排除来源摘抄并支持显式清除。Touch: `app.js`、`index.html`、`styles.css`、`tests/frontend/quote-combobox-ocr-label.test.js`。

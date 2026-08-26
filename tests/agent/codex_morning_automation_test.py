@@ -38,13 +38,24 @@ class CodexMorningAutomationTests(unittest.TestCase):
 
     def test_email_copy_matches_the_actual_candidate_count(self):
         source = MORNING.read_text()
-        self.assertIn("CARD_COUNT=$(grep -c '^## 卡片'", source)
+        self.assertIn("CARD_COUNT=$(grep -Ec '^## 卡片(①|②)$'", source)
         self.assertIn('CARD_LABEL="今日 1 张候选选题卡"', source)
         self.assertIn('REPLY_HINT="1"', source)
         self.assertIn('CARD_LABEL="今日 2 张候选选题卡"', source)
         self.assertIn('REPLY_HINT="1 / 2 / both"', source)
         self.assertIn("【${CARD_LABEL}】", source)
         self.assertIn("回复 ${REPLY_HINT}", source)
+        card_branch = source[source.index('if [ "$CARD_COUNT" -ge 1 ]; then', source.index('BODY=')):source.index("fi", source.index('if [ "$CARD_COUNT" -ge 1 ]; then', source.index('BODY=')))]
+        self.assertIn("sed '1,5d' \"$PICK\"", card_branch)
+
+    def test_blank_card_output_never_enters_waiting_or_requests_a_reply(self):
+        source = MORNING.read_text()
+        self.assertIn("GENERATED_CARD_COUNT=$(grep -Ec '^## 卡片(①|②)$'", source)
+        self.assertIn("STATUS: NO_CANDIDATES", source)
+        self.assertIn("今日无合格候选，不进入 WAITING", source)
+        self.assertIn('CARD_LABEL="今日无候选选题卡"', source)
+        self.assertIn("本日无需回复", source)
+        self.assertIn('MAIL_SUBJECT="今日选题 · ${TODAY} · paper-reading-app｜今日无候选"', source)
 
 
 if __name__ == "__main__":

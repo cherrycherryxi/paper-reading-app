@@ -98,6 +98,8 @@ class CodexNightlyAutomationTests(unittest.TestCase):
         self.assertNotIn("gh pr merge", implement)
         self.assertIn("--sandbox workspace-write", explore)
         self.assertIn("optimization/explore.md|optimization/backlog.md|.wolf/*", explore)
+        self.assertIn(r"\`- status: new\`", explore)
+        self.assertIn(r"不得创造 \`open\` 等状态", explore)
 
     def test_all_tasks_use_disposable_clones_and_preserve_failed_evidence(self):
         common = (CODEX_DIR / "nightly-common.sh").read_text()

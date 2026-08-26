@@ -5478,3 +5478,29 @@
 |------|--------|---------|---------|--------|
 | 10:04 | Created ../../.claude/paper-loop/cards-2026-08-26.md | — | ~1 |
 | 10:04 | Session end: 1 writes across 1 files (cards-2026-08-26.md) | 0 reads | ~1 tok |
+| 11:25 | Session end: 1 writes across 1 files (cards-2026-08-26.md) | 0 reads | ~1 tok |
+| 11:27 | Session end: 1 writes across 1 files (cards-2026-08-26.md) | 0 reads | ~1 tok |
+| 11:28 | Created scripts/codex/nightly-explore.sh | — | ~1181 |
+| 11:28 | Created scripts/codex/paper-morning.sh | — | ~2085 |
+| 11:28 | Created optimization/backlog.md | — | ~48540 |
+| 11:28 | Created tests/agent/codex_morning_automation_test.py | — | ~782 |
+| 11:28 | Created tests/agent/codex_nightly_automation_test.py | — | ~6050 |
+
+- 晨间候选不能用文件大小判断生成成功：空白文件也会通过 `-s`。必须按合法 `## 卡片①/②` 标题计数；零候选写 `STATUS: NO_CANDIDATES`，邮件明确无需回复。Explore 新提拔 Backlog 项必须遵循既有状态机写成 `new`，不能另造 `open` 导致晨间选择器漏项。
+
+- 关联摘抄选择的真实跨书失败不等于必须引入语义模型：本次《见树又见林》与《你的脚比头年轻》目标都含“地球/历史”，主要故障是连续中文整句 `includes`、默认前 30 条被当前书占满、缺少目标书范围。组合解法是中文双字词片召回 + 命中数排序 + 跨书优先，并提供“其他书/全部书/指定书”范围、排除来源摘抄和显式清除目标。关联普通网络失败则在操作前快照 `state.connections`，异常时回滚；409 继续采用服务器权威状态。
+- 上述 OPT-170 与 E289/OPT-172 已由 `783a4bf` 落地；前端完整回归为 519 passed，静态资源后端测试 4 passed。
+| 11:29 | Created scripts/codex/paper-morning.sh | — | ~2085 |
+| 11:29 | Created tests/agent/codex_morning_automation_test.py | — | ~855 |
+| 11:30 | Session end: 8 writes across 6 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~65428 tok |
+| 11:53 | Session end: 8 writes across 6 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~65428 tok |
+| 12:01 | Session end: 8 writes across 6 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~65428 tok |
+| 12:07 | Created index.html | — | ~13926 |
+| 12:07 | Created app.js | — | ~76163 |
+| 12:07 | Created styles.css | — | ~28602 |
+| 12:07 | Created tests/frontend/connection-crud.test.js | — | ~4280 |
+| 12:07 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~2425 |
+| 12:07 | Created tests/frontend/connection-crud.test.js | — | ~4355 |
+| 12:08 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~2551 |
+| 12:09 | Session end: 15 writes across 11 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~198725 tok |
+| 12:14 | Created optimization/backlog.md | — | ~48731 |

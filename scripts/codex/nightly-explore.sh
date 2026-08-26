@@ -64,7 +64,7 @@ $OPEN_PRS
 1. 探索 3-6 个尚未进入 backlog 的新方向，可覆盖 UX、测试、性能、无障碍、错误处理和代码健康；优先当前 Theme 或真实 signal。
 2. EVIDENCE RULE：任何现有缺陷/缺失都必须实际打开当前文件核实，引用准确 file:line；禁止凭记忆捏造 UI 文案或行为。先确认不是 backlog、open PR、已合并代码或 explore 旧项的重复。
 3. 向 optimization/explore.md 追加 $TODAY 小节，每项写 what/why/S-M-L/files/northstar。explore 是 append-only，不重写历史。
-4. 最多提拔 1-2 个证据最强的方向到 optimization/backlog.md，使用远端当前最大 OPT 编号之后的空闲编号；不确定或弱北极星项不提拔。
+4. 最多提拔 1-2 个证据最强的方向到 optimization/backlog.md，使用远端当前最大 OPT 编号之后的空闲编号；新提拔项必须写成 \`- status: new\`，不得创造 \`open\` 等状态；不确定或弱北极星项不提拔。
 5. 只允许修改 optimization/explore.md、optimization/backlog.md 和 .wolf/；绝不写应用代码，绝不开 PR。
 6. 回复末尾用 <<<SUMMARY_START>>> 与 <<<SUMMARY_END>>> 包住 250 字以内中文摘要。
 "

@@ -67,7 +67,7 @@ else
 
 再用 \`gh pr list --state all --base feature/agent\` 和最近合并提交核实。候选只能来自当前仍未完成的 \`new\` 或 \`triaged\` 条目。**绝不能**把 \`done\`、\`in-progress\`、已有 open PR、已合并 PR 或当前代码已经实现的条目写入候选卡；文档状态与代码/PR 证据冲突时，以 GitHub 已合并 PR 和当前代码为准并排除该条目。额外读取当天 \`optimization/triage.md\` 的 \`Next up\` 编号：它已被夜间路径认领，即使仍显示 \`triaged\` 也必须从晨间卡排除。晨间优先选择 P1 或 M/L，及涉及信息架构、导航、视觉方案、产品取舍、owner 直接反馈需要确认的任务；不要用夜间无人值守的局部 S 任务凑卡。写卡前逐一复核两个编号均满足这些条件；若只剩一个合格项，只写一张卡，不得用已完成项凑数。
 
-额外要求（不写应用代码、不做深度调研，只在按流程选出最多 2 张卡片后）：把最终候选卡片用 apply_patch 写入文件 ${CARDS}。有两个合格项时严格用如下两张格式；只有一个时只写卡片①，绝不伪造卡片②（不要写别的）：
+额外要求（不写应用代码、不做深度调研，只在按流程选出最多 2 张卡片后）：把最终候选卡片用 apply_patch 写入文件 ${CARDS}。没有合格项时不要创建或修改该文件。有两个合格项时严格用如下两张格式；只有一个时只写卡片①，绝不伪造卡片②（不要写别的）：
 ## 卡片①
 编号: <OPT/E 编号>
 标题: <标题>
@@ -83,8 +83,10 @@ else
 写完即停。" \
        >> "$LOG" 2>&1
 
-    # 用脚本拼装机器可读表头（TOKEN/STATUS/CHOICE 由脚本掌控，不交给模型）
-    if [ -s "$CARDS" ]; then
+    # 只有真实卡片标题才算候选；空白或任意非卡片文本不得进入 WAITING。
+    GENERATED_CARD_COUNT=$(grep -Ec '^## 卡片(①|②)$' "$CARDS" 2>/dev/null || true)
+    if [ "$GENERATED_CARD_COUNT" -ge 1 ] && [ "$GENERATED_CARD_COUNT" -le 2 ] \
+       && grep -q '^## 卡片①$' "$CARDS"; then
         {
             echo "DATE: $TODAY"
             echo "TOKEN: $TOKEN"
@@ -93,9 +95,17 @@ else
             echo "---"
             cat "$CARDS"
         } > "$PICK"
-        echo "[$(date)] 今日卡片已写入 $PICK" >> "$LOG"
+        echo "[$(date)] 今日 ${GENERATED_CARD_COUNT} 张卡片已写入 $PICK" >> "$LOG"
     else
-        echo "[$(date)] 警告：未生成 cards 文件，Phase2 失败" >> "$LOG"
+        rm -f "$CARDS"
+        {
+            echo "DATE: $TODAY"
+            echo "TOKEN: $TOKEN"
+            echo "STATUS: NO_CANDIDATES"
+            echo "CHOICE:"
+            echo "---"
+        } > "$PICK"
+        echo "[$(date)] 今日无合格候选，不进入 WAITING" >> "$LOG"
     fi
 fi
 
@@ -103,13 +113,16 @@ fi
 # token 以 pick 文件为单一真源（幂等跳过 Phase2 时仍与 reader 一致）
 EMAIL_TOKEN=$(grep -m1 '^TOKEN:' "$PICK" 2>/dev/null | awk '{print $2}')
 [ -n "$EMAIL_TOKEN" ] || EMAIL_TOKEN="$TOKEN"
-CARD_COUNT=$(grep -c '^## 卡片' "$PICK" 2>/dev/null || true)
+CARD_COUNT=$(grep -Ec '^## 卡片(①|②)$' "$PICK" 2>/dev/null || true)
 if [ "$CARD_COUNT" -ge 2 ]; then
     CARD_LABEL="今日 2 张候选选题卡"
     REPLY_HINT="1 / 2 / both"
-else
+elif [ "$CARD_COUNT" -eq 1 ]; then
     CARD_LABEL="今日 1 张候选选题卡"
     REPLY_HINT="1"
+else
+    CARD_LABEL="今日无候选选题卡"
+    REPLY_HINT=""
 fi
 FOCUS=$(bash "$HOME/.claude/scripts/paper-owner-focus.sh" "$REPO" 2>/dev/null)
 BODY="$STATE_DIR/morning-mail-$TODAY.md"
@@ -120,10 +133,13 @@ BODY="$STATE_DIR/morning-mail-$TODAY.md"
         echo
         echo "----------------------------------------"
     fi
-    if [ -s "$PICK" ]; then
+    if [ "$CARD_COUNT" -ge 1 ]; then
         echo "【${CARD_LABEL}】回复本邮件，正文首行写 ${REPLY_HINT} 即可让它自动实现："
         echo
         sed '1,5d' "$PICK"   # 去掉机器表头，只发卡片正文
+        echo
+    else
+        echo "【${CARD_LABEL}】当前没有满足状态、优先级与自动化边界的候选，本日无需回复。"
         echo
     fi
     echo "----------------------------------------"
@@ -133,8 +149,13 @@ BODY="$STATE_DIR/morning-mail-$TODAY.md"
 
 # 发信（send-email.py 内部已重试 4 次应对 SMTP 偶发断连）。若仍失败（如代理出口封 SMTP），
 # 改走 Bark 推送兜底——至少让 owner 第一时间看到今日选题卡，不至于两眼一抹黑。
+if [ "$CARD_COUNT" -ge 1 ]; then
+    MAIL_SUBJECT="今日选题 · ${TODAY} · paper-reading-app｜回复 ${REPLY_HINT} （token:${EMAIL_TOKEN}）"
+else
+    MAIL_SUBJECT="今日选题 · ${TODAY} · paper-reading-app｜今日无候选"
+fi
 if /usr/bin/python3 "$HOME/.claude/scripts/send-email.py" \
-    --subject "今日选题 · ${TODAY} · paper-reading-app｜回复 ${REPLY_HINT} （token:${EMAIL_TOKEN}）" \
+    --subject "$MAIL_SUBJECT" \
     --body-file "$BODY" >> "$LOG" 2>&1; then
     echo "[$(date)] 晨间邮件已发" >> "$LOG"
 else
