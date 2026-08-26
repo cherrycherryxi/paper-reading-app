@@ -5221,3 +5221,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——降低关联对象误选，但只覆盖类型往返子场景，适合与 E290 的选择器收口一起评估，不单独提拔。
 
 > 本次 run 新发现 4 条：E292（普通网络失败遗留未落库关联，S，correctness/error handling）、E293（畸形关联字段拖垮整页，S，数据兼容/错误隔离）、E294（关联两端不可键盘回溯，S，无障碍）、E295（类型往返恢复旧选择，S，UX）。提拔 E292→OPT-170、E293→OPT-171；其余因无直接辅助技术 signal 或只覆盖误选子场景留探索池。所有现有缺口均由当前文件逐行核实，并已排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。
+
+## 2026-08-27
+
+> 扫描焦点：在 2026-W35「深度共读上下文可信」主题下，继续核对同一书内的任务切换、取消竞态、历史恢复与沉淀建议状态同步。隔离 clone 当前 `HEAD` 与现存 `origin/feature/agent` 引用均为 `4fcda98`，已包含当日 triage；`git fetch origin feature/agent` 因 `.git/FETCH_HEAD` 只读失败，`git ls-remote` 与 `gh pr list` 又因 github.com 无法解析而失败，因此不宣称实时远端或 open PR 状态。已核对 backlog 最大 OPT-172、旧 E001–295、最近提交和当前实现；以下方向不重复 OPT-160/161/167/168 或旧 E262/E264/E282–284。由于无法刷新远端编号，且当日 triage 已记录夜间实现预算 8/8，本轮不提拔 backlog。
+
+### E296 — 取消请求与完成竞态时，接口返回 COMPLETED 但前端不渲染最终结果 (S)
+
+**What:** 用户在任务即将完成时点击取消，服务端若已先完成，会按终态保护原样返回 `COMPLETED` run；取消按钮处理器只更新状态栏，不调用结果渲染。页面会显示“已完成”，却仍看不到该任务已经落库的结论与证据，必须再点历史记录或刷新才能恢复。
+
+**Evidence:** `ResearchRunStore.cancel()` 只在非终态时写 `CANCELLED`，否则直接返回现有 run（`deep_reading.py:262-281`）；取消端点把该 run 原样回包（`app_server.py:5061-5075`）。前端正常轮询路径同时调用 `renderStatus(activeRun)` 与 `renderResult(activeRun)`（`chat.js:1248-1253`），但取消成功路径只调用前者（`chat.js:1319-1327`）。现有深度共读前端测试仅用正则检查取消异常的上下文隔离，没有覆盖取消响应为 `COMPLETED` 的竞态（`tests/frontend/deep-reading-workbench.test.js:108-110`）。
+
+**Why:** 后端为防止取消覆盖已完成结果而保留 COMPLETED 是正确的；前端漏渲染却把“数据已完成”表现成“只有状态没有结果”，直接削弱 Theme 3 的结果可信与可恢复性。最小修复是在取消回包后与 `loadRun()` 一样同时渲染 status/result，并按终态清理轮询、刷新历史。
+
+**Size:** S
+
+**Files:** `deep_reading.py:262-281`; `app_server.py:5061-5075`; `chat.js:1248-1260,1319-1327`; `tests/frontend/deep-reading-workbench.test.js:108-110`
+
+**Northstar:** 强——避免已经生成并持久化的研究结果在最敏感的完成/取消边界上从界面消失，直接保护深度回顾的可信度；因远端编号无法安全刷新，本轮不提拔。
+
+### E297 — 同一上下文切换历史任务时，较早请求的迟到响应可覆盖用户刚选中的任务 (S)
+
+**What:** `researchContextRevision` 只在书/摘抄上下文改变时递增。同一本书内，运行中任务 A 的轮询请求尚未返回时，用户点击历史任务 B，两次 `loadRun()` 使用相同 revision；若 A 后返回，它会重新覆盖 B 的状态与结果，并可能继续为 A 安排轮询。用户明确选择的历史任务因此被旧请求抢回。
+
+**Evidence:** `loadRun()` 只以 `revision !== researchContextRevision` 丢弃响应，随后无条件覆盖全局 `activeRun` 并渲染（`chat.js:1248-1260`）；历史点击只捕获同一个上下文 revision 后直接调用 `loadRun()`，没有 run-level request token 或 selection revision（`chat.js:1331-1336`）。OPT-168 的当前回归只模拟 A→B 书籍上下文切换，因此 revision 会变化；没有覆盖同一本书内 run A→run B 的响应乱序（`tests/frontend/deep-reading-workbench.test.js:37-106`）。
+
+**Why:** 历史回顾的基本契约是最后一次选择生效。可增加 `activeRunRequestRevision`，每次显式选择、新建、取消或轮询时携带目标 run id，只允许仍为当前选择的响应写 UI；这与已完成的跨书 context revision 互补，不改变后端。
+
+**Size:** S
+
+**Files:** `chat.js:1248-1260,1331-1336`; `tests/frontend/deep-reading-workbench.test.js:37-106`
+
+**Northstar:** 强——阻止同一书的旧研究结果覆盖用户正在核验的新选择，保护结论归属与历史回顾连续性；无真实触发 signal，暂留探索池。
+
+### E298 — 深度共读历史首次读取失败后只有死胡同文案，没有原地重试 (S)
+
+**What:** 历史列表请求遇到一次瞬断或 5xx 后，会把列表替换成“暂时无法读取历史任务。”，但页面没有重试按钮，也没有定时重试；用户必须切换模式或上下文才能再次触发 `loadHistory()`。
+
+**Evidence:** `loadHistory()` 的 catch 只写固定错误文案（`chat.js:1273-1288`）；事件绑定只有模式切换、上下文变化和任务终态会再次调用它（`chat.js:1159-1190,1257-1260,1357-1362`），错误文案本身无按钮或事件。`#researchHistoryList` 只是普通容器（`index.html:241-244`），现有工作台测试也未覆盖历史失败后的恢复操作（`tests/frontend/deep-reading-workbench.test.js:12-110`）。
+
+**Why:** 旧研究结果是 Theme 3 的积累资产，一次临时网络错误不应把本次页面会话变成无法恢复的历史入口。可在错误态渲染“重试”按钮并保留当前 context revision，点击只重跑当前上下文历史请求。
+
+**Size:** S
+
+**Files:** `chat.js:1159-1190,1257-1288,1357-1362`; `index.html:241-244`; `tests/frontend/deep-reading-workbench.test.js:12-110`
+
+**Northstar:** 中——提高历史回顾在移动网络瞬断下的自恢复能力，但暂无真实失败 signal，不提拔。
+
+### E299 — 每次研究建议审批都对用户全部 `research_runs.result_json` 做不可索引的 LIKE 扫描 (M)
+
+**What:** 为把 action 新状态同步回研究结果卡，审批/忽略路径按 user_id 取出 `result_json LIKE '%action-id%'` 的所有候选 run，再逐条 JSON 解析和遍历 proposal。action 与 research run 没有结构化关联列；随着研究历史累积，每次保存建议的成本线性增长，JSON 文本匹配也无法利用现有索引。
+
+**Evidence:** `sync_research_action_result()` 使用 `WHERE user_id = ? AND result_json LIKE ?`，随后逐行 `json.loads` 并遍历 proposals（`app_server.py:3656-3678`）。`research_runs` schema 只有 `(user_id, created_at DESC)` 索引，没有 action/run 关联表或 action id 列（`app_server.py:576-608`）。该同步函数会在 approve 与 reject 状态迁移后执行（`app_server.py:6322-6412`）。
+
+**Why:** 当前历史量小，不是立即的用户故障；但深度共读若成为持续回顾入口，审批一次建议不应扫描全部历史 JSON。更稳妥的结构是 proposal/action 创建时保存 `research_run_id` 关联，状态迁移后按主键只更新一个 run；涉及 schema 迁移与兼容旧记录，故评为 M。
+
+**Size:** M
+
+**Files:** `app_server.py:576-608,3656-3678,6322-6412`; 相关 deep-reading/action tests
+
+**Northstar:** 弱中——降低长期历史增长后的审批延迟与代码脆弱性，但当前无性能 signal，留作代码健康方向。
+
+> 本次 run 新发现 4 条：E296（完成/取消竞态漏渲染结果，S，correctness）、E297（同上下文历史请求乱序覆盖，S，correctness）、E298（历史失败无原地重试，S，error handling/UX）、E299（建议状态同步线性扫描 JSON，M，performance/code health）。E296/E297 证据最强，但远端编号无法安全刷新且当日实现预算已满，本轮只追加探索，不修改 backlog。
