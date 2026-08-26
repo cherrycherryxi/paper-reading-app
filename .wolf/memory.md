@@ -5544,3 +5544,8 @@
 | 22:09 | Session end: 14 writes across 5 files (app.js, index.html, styles.css, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js) | 0 reads | ~448838 tok |
 | 22:17 | Session end: 14 writes across 5 files (app.js, index.html, styles.css, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js) | 0 reads | ~448838 tok |
 | 22:21 | Session end: 14 writes across 5 files (app.js, index.html, styles.css, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js) | 0 reads | ~448838 tok |
+## 2026-08-27 · 夜间 Triage：关联修复对账与预算闸门
+
+- `783a4bf` 已完成 OPT-170/172，`bb7dae9` 收口 iPhone 候选选择体验；真实代码与测试均在当前树中，不能继续作为待办。
+- OPT-171 是唯一符合夜间边界的未完成项：P1/S、Theme 3 强贡献、局部数据清洗与渲染防御、验收清楚且无需 owner 产品判断。
+- 外层统计最近 7 天 `auto/` 实现 PR 为 8/8，故 2026-08-27 不指派；预算优先于候选适配性。

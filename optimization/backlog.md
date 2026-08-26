@@ -1609,7 +1609,7 @@ Format per item:
 - how: 在关联新增/编辑/删除修改前保存 connections 快照；普通异常时恢复快照并重绘，保留表单和明确失败提示；409 继续采用服务器权威 state，不用本地快照覆盖。补新增、编辑、删除三条普通 reject/500 回归，并断言后续 sync 不携带失败变更。Touch: `app.js:6019-6064`、`tests/frontend/connection-crud.test.js`。
 
 ### OPT-171 — 畸形关联字段可穿过 state 归一化并拖垮整个关联页 — 由 explore E293 提拔 [2026-08-26]
-- status: new
+- status: triaged — P1/S，符合夜间局部正确性边界，但 2026-08-27 最近 7 天 `auto/` 实现 PR 已达 8/8，预算耗尽，本轮不指派
 - area: backend / frontend / data integrity
 - priority: P1
 - size: S
