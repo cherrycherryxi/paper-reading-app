@@ -30,6 +30,7 @@ function createElementStub(tagName = "div") {
     getBoundingClientRect() { return { top: 100, bottom: 140, left: 20, width: 300 }; },
     querySelector() { return null; }, querySelectorAll() { return []; },
     showModal() {}, close() {}, setAttribute() {}, closest() { return null; }, focus() {},
+    blur() { this.dispatch("blur"); },
   };
 }
 
@@ -38,6 +39,7 @@ function createHarness() {
   const getElement = (s) => { if (!elements.has(s)) elements.set(s, createElementStub()); return elements.get(s); };
   const document = {
     body: createElementStub("body"),
+    addEventListener() {},
     querySelector(s) { return getElement(s); },
     querySelectorAll() { return []; },
     createElement(t) { return createElementStub(t); },
@@ -102,7 +104,7 @@ function mountQuoteCombobox(quotes, { books, scope = "all", sourceQuoteId = "" }
     // focus 打开下拉；labels() 读渲染出的 <li> 文本
     open() { textInput.dispatch("focus"); },
     type(q) { textInput.value = q; textInput.dispatch("input"); },
-    labels() { return list.children.map((li) => li.textContent); },
+    labels() { return list.children.map((li) => li.dataset.label || li.textContent); },
   };
 }
 
@@ -198,6 +200,67 @@ test("E289: 清除按钮同时移除可见标签和隐藏的目标 ID", () => {
 
   assert.equal(c.hiddenInput.value, "");
   assert.equal(c.textInput.value, "");
+});
+
+test("移动端滑动从 touchstart 开始时不误选，完整点击才选择", () => {
+  const c = mountQuoteCombobox([TYPED_QUOTE]);
+  c.open();
+  const option = c.list.children[0];
+
+  option.dispatch("touchstart", { preventDefault() { throw new Error("不应取消原生滚动"); } });
+  assert.equal(c.hiddenInput.value, "", "手指落下只是滚动起点，不应选中摘抄");
+
+  option.dispatch("click", { stopPropagation() {} });
+  assert.equal(c.hiddenInput.value, "q-typed", "完整点击后才应选中摘抄");
+});
+
+test("键盘完成键只收起键盘，不提交或自动选择候选", () => {
+  const c = mountQuoteCombobox([TYPED_QUOTE]);
+  c.open();
+  let prevented = false;
+  let stopped = false;
+
+  c.textInput.dispatch("keydown", {
+    key: "Enter",
+    preventDefault() { prevented = true; },
+    stopPropagation() { stopped = true; },
+  });
+
+  assert.equal(prevented, true, "必须阻止 Enter 提交关联表单");
+  assert.equal(stopped, true, "必须阻止 Enter 冒泡到外层表单");
+  assert.equal(c.hiddenInput.value, "", "不能猜测并自动选择第一条候选");
+  assert.equal(c.list.classList.contains("is-open"), true, "收起键盘后应保留列表供滑动选择");
+});
+
+test("输入框失焦不会关闭候选列表，避免 iOS 完成键收起键盘时列表消失", () => {
+  const c = mountQuoteCombobox([TYPED_QUOTE]);
+  c.open();
+
+  c.textInput.dispatch("blur");
+
+  assert.equal(c.list.classList.contains("is-open"), true, "blur 后列表必须继续可选");
+  assert.equal(c.hiddenInput.value, "", "失焦本身不能改变选中项");
+});
+
+test("候选项分层呈现书名与三行摘抄正文", () => {
+  const c = mountQuoteCombobox([TYPED_QUOTE]);
+  c.open();
+  const option = c.list.children[0];
+
+  assert.equal(option.children[0].className, "quote-combobox-book");
+  assert.equal(option.children[0].textContent, "《置身事内》");
+  assert.equal(option.children[1].className, "quote-combobox-excerpt");
+  assert.equal(option.children[1].textContent, "手打的摘抄正文。");
+});
+
+test("历史书名已带书名号时，候选项仍只显示一层书名号", () => {
+  const c = mountQuoteCombobox([TYPED_QUOTE], {
+    books: [{ id: "b1", title: "《置身事内》", author: "兰小欢" }],
+  });
+  c.open();
+
+  assert.equal(c.list.children[0].children[0].textContent, "《置身事内》");
+  assert.notEqual(c.list.children[0].children[0].textContent, "《《置身事内》》");
 });
 
 test("OPT-111: 选中 OCR 摘抄后，输入框回填的也是带正文的标签", () => {

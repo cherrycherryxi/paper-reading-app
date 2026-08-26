@@ -14,7 +14,7 @@
 
 - **[2026-07-18] 做小红书/宣传物料：从真实小细节起、引起共鸣，图和文案都不能「一看就是 AI 生成的」。** owner 明确否掉了我第一版第2篇：渐变绿设计卡（Canva/AI 模板脸）+「受够了所有读书 App」这类宏大 slogan 文案 = 一眼假、无共鸣。**正确做法**：①内容从 owner 真实阅读数据里挖具体细节——App 里有 6 条真实「思想碰撞」连接（如《冬牧场》↔《万物有灵且美》、博尔赫斯《小径分岔的花园》↔ 塞林格《九故事》讲两种时间观），163 条真实摘抄、146 本书、评分/日期，这些编不出来、才动人；②文案用**日记体第一人称**，从一个具体瞬间讲起，零 slogan、不吹功能（App 只是「那条线安静待着的地方」），把只有 owner 知道的私人细节留成 `【】` 让她填；③配图用 **App 真实截图**（Playwright 用 owner 真实 session token 以 iPhone12 视口截真实 UI，脚本 `scratchpad/shot_connections.py` 已跑通：`.venv` 装 playwright + `channel="chrome"` 不下载 chromium；token 从 sessions 表取她最新一条；tab 是 `.mobile-tab[data-tab="connections"]`），owner 有空再补拍实物照当封面（「两者结合」是她选的）。挑真实摘抄/连接时避开个人隐私沉重向的。这条同时意味着**小红书自动化（paper-xhs）要按此重做**：从她真实数据选细节 + 截真实界面 + 日记体草稿留【】，而不是生成设计卡。
 
-- **[2026-07-17] 别把每日定时自动化叫「loop」。** owner 明确纠正："以后在说这个功能时不要用 loop 这种不准确的词"。按实际机制称呼：**launchd 定时任务**——「晨间任务」(`paper-morning` 10:00 审 PR + 出选题卡)、「轮询器」(`paper-implement-poll` 每 30min 读回信→实现→合入 dev)、「收工任务」(`paper-wrapup` 23:30 日报)。**「loop」一词只留给 `/loop` skill**（Claude Code 里已运行会话内的自我排程，冷启动不了，与 launchd 是两套东西）。混用的代价是每次讨论都得先花一轮拆歧义。⚠️ 约束的是**口头表述**，不是去重命名文件——`~/.claude/paper-loop/` 状态目录、`settings.json` SessionStart 钩子里「用 /loop 交互推进」的文案（那处是真 /loop，没说错）都保持原样。
+- **[2026-07-17，2026-08-26 调整时间] 别把每日定时自动化叫「loop」。** owner 明确纠正："以后在说这个功能时不要用 loop 这种不准确的词"。按实际机制称呼：**launchd 定时任务**——「晨间任务」(`paper-morning` 07:00 审 PR + 出选题卡)、「轮询器」(`paper-implement-poll` 每 30min 读回信→实现→合入 dev)、「收工任务」(`paper-wrapup` 23:30 日报)。**「loop」一词只留给 `/loop` skill**（Claude Code 里已运行会话内的自我排程，冷启动不了，与 launchd 是两套东西）。混用的代价是每次讨论都得先花一轮拆歧义。⚠️ 约束的是**口头表述**，不是去重命名文件——`~/.claude/paper-loop/` 状态目录、`settings.json` SessionStart 钩子里「用 /loop 交互推进」的文案（那处是真 /loop，没说错）都保持原样。
 
 ## Key Learnings
 

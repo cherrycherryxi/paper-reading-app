@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-26T04:14:01.080Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-26T14:09:17.346Z
 > Files: 377 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -248,7 +248,7 @@
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~81360 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~76163 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~76669 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15683 tok)
@@ -257,7 +257,7 @@
 - `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~5382 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~13926 tok)
+- `index.html` — 🐛 又买了一本书 (~13931 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -268,7 +268,7 @@
 - `README.md` — Project documentation (~1455 tok)
 - `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~28602 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~28871 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -453,7 +453,7 @@
 - `nightly-triage.sh` — 每日 01:00：在隔离 worktree 中执行夜间 Agent1（Triage）。 (~1406 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
 - `paper-implement-poll.sh` — 每 30 分钟（launchd StartInterval 1800）轮询一次： (~957 tok)
-- `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~2085 tok)
+- `paper-morning.sh` — 每天 07:00（launchd）无人值守晨间任务： (~2085 tok)
 - `paper-morning.sh` — 每天 10:00（launchd）无人值守晨间任务： (~1792 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
 - `paper-wrapup.sh` — 每天 23:30（launchd）有条件自动收工日报： (~1434 tok)
@@ -501,7 +501,7 @@
 - `book_ocr_endpoint_test.py` — Tests: success_returns_parsed_fields, success_tolerates_markdown_code_fence, missing_image_returns_400, unauthorized_returns_401 + 1 more (~1524 tok)
 - `ci_workflow_contract_test.py` — Regression contracts for the CI and Codex auto-remediation wiring. (~402 tok)
 - `codex_cloud_scheduled_test.py` — Contracts for the remote Codex Cloud Scheduled nightly pipeline. (~962 tok)
-- `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~855 tok)
+- `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~955 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~6050 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
 - `codex_review_workflow_contract_test.py` — Regression contracts for handing Codex review findings back to Codex. (~539 tok)
@@ -571,7 +571,7 @@
 - `combobox-position-and-label.test.js` — bug-415: 关联对话框书籍 combobox 两个问题 (~1472 tok)
 - `combobox-single-open.test.js` — bug-406: 关联对话框「在目标摘抄框输入，却弹出并显示来源那一侧的下拉」。 (~1391 tok)
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~4355 tok)
-- `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1442 tok)
+- `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1544 tok)
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
 - `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1337 tok)
@@ -589,7 +589,7 @@
 - `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~2877 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
 - `quote-card-image-thumb.test.js` — OPT-158: quote cards use a calm, type-specific art cover in the review grid. (~1633 tok)
-- `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~2551 tok)
+- `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~3134 tok)
 - `quote-content-display.test.js` — Regression coverage for compact quote cards: (~1190 tok)
 - `quote-image-onerror.test.js` — OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。 (~1516 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~2594 tok)

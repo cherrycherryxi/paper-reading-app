@@ -11,6 +11,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "..", "app.js"), "utf8");
+const stylesSource = fs.readFileSync(path.join(__dirname, "..", "..", "styles.css"), "utf8");
 
 function createElementStub(tagName = "div") {
   let innerHTML = "";
@@ -116,9 +117,18 @@ test("OPT-080: quoteLabel 截断阈值放宽（32 → 70 字）", () => {
     "quoteLabel 应截断至 70 字（两行封顶下更贴合）");
 });
 
-test("OPT-080: 目标下拉行改为两行封顶，不再单行强省略", () => {
+test("OPT-080: 目标下拉分层显示书名与三行正文，不再单行强省略", () => {
   // 旧样式 white-space:nowrap;text-overflow:ellipsis 会与 slice 叠加双重截断。
   assert.doesNotMatch(appSource, /li\.style\.cssText = "overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"/,
     "旧的单行强省略样式必须已移除");
-  assert.match(appSource, /-webkit-line-clamp:2/, "目标下拉行应两行封顶（line-clamp:2）");
+  assert.match(appSource, /quote-combobox-book/, "目标下拉应单独显示书名");
+  assert.match(appSource, /quote-combobox-excerpt/, "目标下拉应单独显示摘抄正文");
+});
+
+test("移动端关联候选列表进入文档流，不会覆盖搜索输入框", () => {
+  assert.match(
+    stylesSource,
+    /#connectionDialog \.book-combobox-list\s*\{[\s\S]*?position:\s*static;/,
+    "触屏端候选列表不能继续使用易受 iOS 键盘视口影响的 fixed 定位"
+  );
 });

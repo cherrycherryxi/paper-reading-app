@@ -5490,6 +5490,9 @@
 
 - 关联摘抄选择的真实跨书失败不等于必须引入语义模型：本次《见树又见林》与《你的脚比头年轻》目标都含“地球/历史”，主要故障是连续中文整句 `includes`、默认前 30 条被当前书占满、缺少目标书范围。组合解法是中文双字词片召回 + 命中数排序 + 跨书优先，并提供“其他书/全部书/指定书”范围、排除来源摘抄和显式清除目标。关联普通网络失败则在操作前快照 `state.connections`，异常时回滚；409 继续采用服务器权威状态。
 - 上述 OPT-170 与 E289/OPT-172 已由 `783a4bf` 落地；前端完整回归为 519 passed，静态资源后端测试 4 passed。
+- 2026-08-26 owner 将晨间选题任务从每天 10:00 调整为 07:00；仓库 LaunchAgent 模板、本机已安装配置、脚本/夜间提示与文档中的时间口径必须同步，不能只改其中一处。
+- 关联摘抄候选列表不能在 `touchstart`/`mousedown` 阶段选中：移动端手指落下既可能是点击，也可能是滚动起点，提前 `preventDefault` 会吞掉 iOS 惯性滚动并造成误选。统一等完整 `click` 再选中；搜索输入框的 Enter/键盘“完成”只收起键盘并保留候选列表，不提交表单或猜选第一项。候选项应把书名与摘抄正文分层呈现。iOS 键盘持续改变 `visualViewport` 时，不要依赖 fixed 坐标或一次性 blur 标记保留列表；关联弹窗触屏端应让列表进入正常文档流，且 blur 不关闭，只响应明确的组件外点击/选中/切换。
+- 新增任何书名展示都要遵守项目既有兼容规则：历史数据可能已经包含 `《》`，显示前先剥离已有书名号，再统一包一层；不能直接写成 `《${book.title}》`。
 | 11:29 | Created scripts/codex/paper-morning.sh | — | ~2085 |
 | 11:29 | Created tests/agent/codex_morning_automation_test.py | — | ~855 |
 | 11:30 | Session end: 8 writes across 6 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~65428 tok |
@@ -5504,3 +5507,38 @@
 | 12:08 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~2551 |
 | 12:09 | Session end: 15 writes across 11 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~198725 tok |
 | 12:14 | Created optimization/backlog.md | — | ~48731 |
+| 12:15 | Session end: 16 writes across 11 files (cards-2026-08-26.md, nightly-explore.sh, paper-morning.sh, backlog.md, codex_morning_automation_test.py) | 0 reads | ~250936 tok |
+
+## Session: 2026-08-26 12:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:57 | Created scripts/codex/launchd/com.huangnanqi.paper-codex-morning.plist | — | ~265 |
+| 20:57 | Created scripts/codex/paper-morning.sh | — | ~2085 |
+| 20:57 | Created scripts/codex/nightly-triage.sh | — | ~1481 |
+| 20:57 | Created scripts/codex/README.md | — | ~1017 |
+| 20:57 | Created tests/agent/codex_nightly_automation_test.py | — | ~6050 |
+| 20:57 | Created tests/agent/codex_morning_automation_test.py | — | ~955 |
+| 20:57 | Session end: 6 writes across 6 files (com.huangnanqi.paper-codex-morning.plist, paper-morning.sh, nightly-triage.sh, README.md, codex_nightly_automation_test.py) | 0 reads | ~12198 tok |
+
+## Session: 2026-08-26 21:57
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:00 | Created app.js | — | ~76558 |
+| 22:00 | Created index.html | — | ~13931 |
+| 22:00 | Created styles.css | — | ~28792 |
+| 22:00 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~2956 |
+| 22:00 | Created tests/frontend/connection-entry-ux.test.js | — | ~1459 |
+| 22:01 | Created app.js | — | ~76564 |
+| 22:01 | Created styles.css | — | ~28786 |
+| 22:01 | Session end: 7 writes across 5 files (app.js, index.html, styles.css, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js) | 0 reads | ~230041 tok |
+| 22:06 | Created app.js | — | ~76649 |
+| 22:06 | Created styles.css | — | ~28886 |
+| 22:06 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~3044 |
+| 22:06 | Created tests/frontend/connection-entry-ux.test.js | — | ~1544 |
+| 22:07 | Created styles.css | — | ~28871 |
+| 22:07 | Session end: 12 writes across 5 files (app.js, index.html, styles.css, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js) | 0 reads | ~369035 tok |
+| 22:09 | Created app.js | — | ~76669 |
+| 22:09 | Created tests/frontend/quote-combobox-ocr-label.test.js | — | ~3134 |
+| 22:09 | Session end: 14 writes across 5 files (app.js, index.html, styles.css, quote-combobox-ocr-label.test.js, connection-entry-ux.test.js) | 0 reads | ~448838 tok |

@@ -1734,7 +1734,7 @@ textarea {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-card);
-  max-height: 220px;
+  max-height: min(320px, 42dvh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   list-style: none;
@@ -1757,6 +1757,40 @@ textarea {
   color: var(--color-ink);
   gap: 8px;
   line-height: 1.4;
+}
+
+.quote-combobox-option {
+  display: block;
+  min-height: 72px;
+  padding: 10px 14px 12px;
+}
+
+.quote-combobox-book,
+.quote-combobox-excerpt {
+  display: block;
+}
+
+.quote-combobox-book {
+  margin-bottom: 3px;
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.quote-combobox-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.book-combobox-item + .book-combobox-item {
+  border-top: 1px solid var(--color-border);
 }
 
 .book-combobox-item:active,
@@ -3115,6 +3149,16 @@ dialog::backdrop {
    bottom-tab layout instead of the mouse-oriented desktop sidebar — iOS Safari
    has repeated dialog/fixed-positioning bugs with the desktop layout. */
 @media (max-width: 768px), (pointer: coarse) {
+  /* iOS 软键盘会连续改变 visualViewport；fixed 下拉即使重算坐标也可能短暂覆盖输入框。
+     关联弹窗改用正常文档流：列表只会出现在输入框下方，绝不遮住输入内容。 */
+  #connectionDialog .book-combobox-list {
+    position: static;
+    width: 100% !important;
+    max-height: min(300px, 36dvh) !important;
+    margin-top: 6px;
+    overscroll-behavior: contain;
+  }
+
   body {
     background-color: var(--color-bg);
   }

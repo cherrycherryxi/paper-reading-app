@@ -5703,11 +5703,16 @@ function positionComboboxList(textInput, list) {
   const vv = window.visualViewport;
   const viewTop = vv ? vv.offsetTop : 0;
   const viewBottom = viewTop + (vv ? vv.height : window.innerHeight || 0);
-  const listH = Math.min(list.scrollHeight || 220, 220);
   const spaceBelow = viewBottom - rect.bottom;
+  const spaceAbove = rect.top - viewTop;
+  const preferredHeight = Math.min(list.scrollHeight || 320, 320);
+  const openAbove = spaceBelow < preferredHeight + 8 && spaceAbove > spaceBelow;
+  const availableHeight = Math.max(120, (openAbove ? spaceAbove : spaceBelow) - 8);
+  const listH = Math.min(preferredHeight, availableHeight);
   list.style.left = `${rect.left}px`;
   list.style.width = `${rect.width}px`;
-  if (spaceBelow < listH + 8 && (rect.top - viewTop) > spaceBelow) {
+  list.style.maxHeight = `${listH}px`;
+  if (openAbove) {
     list.style.top = `${Math.max(viewTop + 4, rect.top - listH - 2)}px`; // 向上翻转
   } else {
     list.style.top = `${rect.bottom + 2}px`;
@@ -5839,6 +5844,11 @@ function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
   let allQuotes = [];
   let isOpen = false;
 
+  list.setAttribute("role", "listbox");
+  textInput.setAttribute("role", "combobox");
+  textInput.setAttribute("aria-autocomplete", "list");
+  textInput.setAttribute("aria-expanded", "false");
+
   // OCR 摘抄正文只存在 ocrText 里（content 为空），回落后标签才不会退化成「书名 · 」，
   // 搜索也才命中得到（OPT-111，与列表/详情/分享卡的 content || ocrText 口径一致）。
   function quoteText(q) {
@@ -5911,14 +5921,28 @@ function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
     }
     quotes.forEach((quote) => {
       const li = document.createElement("li");
-      li.className = "book-combobox-item" + (quote.id === hiddenInput.value ? " is-selected" : "");
-      // 两行封顶：同书多段摘抄可辨识（OPT-080）。垂直 padding 归零以消除 -webkit-box
-      // + line-clamp 在带 padding 时的裁切泄漏，行距改用 margin 撑起（margin 在 overflow 盒外）。
-      li.style.cssText = "display:-webkit-box;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.6;padding:0 14px;margin:6px 0;";
-      li.textContent = quoteLabel(quote);
-      function doPick(e) { e.preventDefault(); pick(quote); }
-      li.addEventListener("mousedown", doPick);
-      li.addEventListener("touchstart", doPick, { passive: false });
+      li.className = "book-combobox-item quote-combobox-option" + (quote.id === hiddenInput.value ? " is-selected" : "");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", quote.id === hiddenInput.value ? "true" : "false");
+      li.dataset.label = quoteLabel(quote);
+
+      const book = state.books.find((item) => item.id === quote.bookId);
+      const bookName = document.createElement("span");
+      bookName.className = "quote-combobox-book";
+      const bareBookName = (book?.title || "未知书籍").replace(/[《》]/g, "").trim();
+      bookName.textContent = `《${bareBookName}》`;
+      const excerpt = document.createElement("span");
+      excerpt.className = "quote-combobox-excerpt";
+      excerpt.textContent = quoteText(quote) || "（空摘抄）";
+      li.appendChild(bookName);
+      li.appendChild(excerpt);
+
+      // 必须等完整 click 才选择。touchstart 会在手指刚落下时触发并取消原生滚动，
+      // 导致 iPhone 上无法滑动候选列表，还会误选手指碰到的第一条。
+      li.addEventListener("click", (event) => {
+        event.stopPropagation();
+        pick(quote);
+      });
       list.appendChild(li);
     });
   }
@@ -5929,11 +5953,13 @@ function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
     list.classList.add("is-open"); // 先显示再定位，positionList 才能测到列表高度
     positionList();
     isOpen = true;
+    textInput.setAttribute("aria-expanded", "true");
   }
 
   function closeList() {
     list.classList.remove("is-open");
     isOpen = false;
+    textInput.setAttribute("aria-expanded", "false");
     _unregisterOpenCombobox(closeList);
   }
 
@@ -5951,7 +5977,29 @@ function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
     if (!isOpen) openList();
     else positionList();
   });
-  textInput.addEventListener("blur", () => setTimeout(closeList, 200));
+  textInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    // iOS 键盘「完成」会提交所在 form。搜索框内按下时只收起键盘，既不提交关联，
+    // 也不猜测用户想选哪一条；候选列表继续保留，便于无遮挡地滑动后明确点选。
+    event.preventDefault();
+    event.stopPropagation();
+    textInput.blur();
+    // Safari 收起软键盘后 visualViewport 的最终尺寸通常晚于 keydown/blur；延后再构建
+    // 与定位一次，避免使用键盘尚在时的旧视口。列表本身不依赖 blur 保活。
+    setTimeout(() => {
+      buildList(textInput.value);
+      if (!isOpen) openList();
+      else positionList();
+    }, 350);
+  });
+
+  // iOS 的键盘「完成」也会触发 blur，不能把 blur 当作用户放弃选择。只有用户明确
+  // 点到组件外部时才关闭；选中、清除、切换其它 combobox 和关闭 dialog 仍会显式关闭。
+  if (typeof document.addEventListener === "function" && typeof wrapperEl.contains === "function") {
+    document.addEventListener("pointerdown", (event) => {
+      if (isOpen && !wrapperEl.contains(event.target)) closeList();
+    });
+  }
 
   wrapperEl.closest(".dialog-form")?.addEventListener("scroll", () => {
     if (isOpen) positionList();
