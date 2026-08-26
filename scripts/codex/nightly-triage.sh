@@ -84,7 +84,7 @@ ${PR_EVIDENCE}
 1. 对每个未完成 backlog 项评估 priority、S/M/L 和北极星贡献；当前 Theme 与真实 signal 高于纯工程判断。无合理北极星贡献的一律 P3 parked，不能指派。
 2. 用最近合并 PR 与 git log 对账，merged 项在 backlog 和 triage 都标 done；不得凭描述臆断完成。
 3. 每 7 天最多 8 个 headRefName 以 auto/ 开头的实现 PR。使用上方外层统计；达到上限时 Next up 明写预算耗尽且不指派。若统计为 UNKNOWN，为避免超预算也不指派，并写明证据不可用。
-4. 夜间路径只可指派**复杂度 S**、验收边界清楚、无需 owner 产品/设计判断的局部任务（例如回归修复、明确的正确性或可访问性缺口）。优先级不改变这个边界：P1 但属于 M/L、信息架构/导航调整、主页重构、视觉方案、需要在多种体验取舍中选择、或 owner 新反馈尚需诠释的项，一律留给 10:00 晨间候选卡，不能写入 Next up。若没有合格的夜间 S 任务，Next up 明确写“无符合夜间条件的任务”，不要为了填满预算而指派。
+4. 夜间路径只可指派**复杂度 S**、验收边界清楚、无需 owner 产品/设计判断的局部任务（例如回归修复、明确的正确性或可访问性缺口）。优先级不改变这个边界：P1 但属于 M/L、信息架构/导航调整、主页重构、视觉方案、需要在多种体验取舍中选择、或 owner 新反馈尚需诠释的项，一律留给 07:00 晨间候选卡，不能写入 Next up。若没有合格的夜间 S 任务，Next up 明确写“无符合夜间条件的任务”，不要为了填满预算而指派。
 5. 将 optimization/triage.md 的 Last triaged 更新为 ${TODAY}，并至多指派一个符合上述夜间边界的未完成项；写明理由、关键文件、signal/Theme，并在理由中写“夜间适配：是”及其依据。
 6. 只允许修改 optimization/triage.md、optimization/backlog.md 和 .wolf/。不要修改 roadmap/signals/explore 或应用代码。
 7. 回复末尾输出单独成行的 <<<SUMMARY_START>>> 与 <<<SUMMARY_END>>>，中间写 200 字以内中文摘要。

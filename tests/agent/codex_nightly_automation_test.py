@@ -54,7 +54,7 @@ class CodexNightlyAutomationTests(unittest.TestCase):
         self.assertIn("explore-$TODAY.done", explore)
         self.assertIn("复杂度 S", triage)
         self.assertIn("夜间适配：是", triage)
-        self.assertIn("一律留给 10:00 晨间候选卡", triage)
+        self.assertIn("一律留给 07:00 晨间候选卡", triage)
         self.assertIn("Next up 明确写“无符合夜间条件的任务”", triage)
         self.assertIn("Next up", morning)
         self.assertIn("即使仍显示", morning)

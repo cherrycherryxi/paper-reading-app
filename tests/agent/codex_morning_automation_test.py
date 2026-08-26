@@ -1,5 +1,6 @@
 """Regression contracts for the Codex morning review and candidate-card flow."""
 import subprocess
+import plistlib
 import unittest
 from pathlib import Path
 
@@ -9,6 +10,12 @@ MORNING = ROOT / "scripts" / "codex" / "paper-morning.sh"
 
 
 class CodexMorningAutomationTests(unittest.TestCase):
+    def test_launchd_runs_every_day_at_seven(self):
+        plist_path = ROOT / "scripts" / "codex" / "launchd" / "com.huangnanqi.paper-codex-morning.plist"
+        with plist_path.open("rb") as handle:
+            schedule = plistlib.load(handle)["StartCalendarInterval"]
+        self.assertEqual(schedule, {"Hour": 7, "Minute": 0})
+
     def test_script_parses_and_uses_codex(self):
         result = subprocess.run(["bash", "-n", str(MORNING)], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)

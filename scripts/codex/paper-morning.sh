@@ -1,5 +1,5 @@
 #!/bin/bash
-# 每天 10:00（launchd）无人值守晨间任务：
+# 每天 07:00（launchd）无人值守晨间任务：
 #   1) 审查昨晚 base=feature/agent 的新 PR，按闸门自动合并 / 改后合并 / 重大留人；
 #   2) 生成今日 2 张候选选题卡，写入 today-pick.md（STATUS: WAITING）并邮件发给 owner。
 # 只动 feature/agent，绝不 push main、绝不发 prod。闸门与测试门禁见下方 prompt。

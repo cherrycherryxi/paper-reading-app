@@ -12,7 +12,7 @@
     <key>PATH</key><string>/Users/huangnanqi/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
   </dict>
   <key>StartCalendarInterval</key><dict>
-    <key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer>
+    <key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer>
   </dict>
   <key>StandardOutPath</key><string>/Users/huangnanqi/.claude/codex-paper-morning.cron.log</string>
   <key>StandardErrorPath</key><string>/Users/huangnanqi/.claude/codex-paper-morning.cron.log</string>
