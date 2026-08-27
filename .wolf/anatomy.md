@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-26T14:09:17.346Z
-> Files: 377 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-27T11:57:47.520Z
+> Files: 378 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -234,6 +234,7 @@
 - `review-2026-08-24.md` — 2026-08-24 夜间 PR 审查 (~135 tok)
 - `review-2026-08-25.md` — 2026-08-25 夜间 PR 审查 (~117 tok)
 - `review-2026-08-26.md` (~2 tok)
+- `review-2026-08-27.md` (~2 tok)
 - `today-pick.md` — 卡片① (~49 tok)
 
 ## ../../.claude/scripts/configs/
@@ -414,7 +415,7 @@
 - `explore.md` — Exploration — new optimization directions (~68110 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
-- `signals.md` — Signals — 真实使用信号日志 (~1404 tok)
+- `signals.md` — Signals — 真实使用信号日志 (~1423 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
 - `triage.md` — Triage (~1870 tok)
 

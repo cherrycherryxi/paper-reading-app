@@ -5561,3 +5561,17 @@
 - 跨书 context revision 已由 OPT-168 修复，但同一本书内切换两个 research run 仍需独立的 run-level revision；否则先发请求的迟到响应可覆盖用户最后选择。
 - 取消接口可能因完成先赢而返回 COMPLETED；前端取消成功路径必须像轮询路径一样同时渲染 status 与 result，不能只更新状态栏。
 - 本轮远端 fetch/ls-remote/PR 查询均不可用，且当日 triage 记录预算 8/8，因此只追加 E296–E299，不占用新 OPT 编号。
+
+## Session: 2026-08-26 07:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:01 | Created ../../.claude/paper-loop/review-2026-08-27.md | — | ~3 |
+| 07:01 | Session end: 1 writes across 1 files (review-2026-08-27.md) | 0 reads | ~3 tok |
+
+## Session: 2026-08-26 07:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:57 | Created optimization/signals.md | — | ~1518 |
+| 19:57 | Session end: 1 writes across 1 files (signals.md) | 0 reads | ~1626 tok |
