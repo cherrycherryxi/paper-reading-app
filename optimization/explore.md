@@ -5283,3 +5283,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——降低长期历史增长后的审批延迟与代码脆弱性，但当前无性能 signal，留作代码健康方向。
 
 > 本次 run 新发现 4 条：E296（完成/取消竞态漏渲染结果，S，correctness）、E297（同上下文历史请求乱序覆盖，S，correctness）、E298（历史失败无原地重试，S，error handling/UX）、E299（建议状态同步线性扫描 JSON，M，performance/code health）。E296/E297 证据最强，但远端编号无法安全刷新且当日实现预算已满，本轮只追加探索，不修改 backlog。
+
+## 2026-08-28
+
+> 扫描焦点：沿 2026-08-27 owner“摘抄与笔记卡片不易区分”的真实 signal，核对摘抄页在类型辨认之外的筛选反馈、卡片可达性与规模化浏览边界。隔离 clone 当前 `HEAD` 与现存 `origin/feature/agent` 引用均为 `361a1e7`，已包含当日 triage；用户提供的 open PR 数据为空或不可用，本轮不据此臆造状态。已核对 backlog 最大 OPT-173、旧 E001–299、最近提交与当前实现；以下方向不重复 OPT-158/173、OPT-046/147 或旧 E70/E126/E202/E291/E294。
+
+### E300 — 摘抄筛选零结果仍提示“还没有摘抄”，把搜索无命中误报成数据为空 (S)
+
+**What:** 用户输入搜索词或切到“摘抄/笔记”类型后若没有匹配项，页面仍显示“还没有摘抄卡片，点左上角加号新增一张”。即使账号里已有另一类型或其他关键词的卡片，也会被描述为从未积累，且零结果区没有直接清除筛选的入口。
+
+**Evidence:** `renderQuotes()` 已读取当前类型与搜索词并执行两层过滤（`app.js:2079-2097`），但 `quotes.length === 0` 时无条件写入同一新增提示（`app.js:2099-2102`）。页面虽有独立“清除全部筛选”按钮（`index.html:140-143`），空状态本身不像书单零结果那样提供恢复按钮；书单已按“完全无数据/筛选无命中”分支处理并在后者绑定清除入口（`app.js:1880-1891`）。现有 `search-field-bundle` 与 `clear-filters` 测试覆盖搜索字段和清除函数，没有锁定摘抄零结果文案的语义分支。
+
+**Why:** 最新 signal 发生在摘抄页的卡片辨认与浏览过程；当用户用现有类型 chip 辅助辨认时，零结果不应反过来暗示积累丢失。最小修复是区分“state 中确实没有常规摘抄/笔记”和“当前筛选无匹配”，后者显示搜索/类型无命中并提供原地清除。
+
+**Size:** S
+
+**Files:** `app.js:1880-1891,2079-2102`; `index.html:135-143`; `tests/frontend/search-field-bundle.test.js`; `tests/frontend/clear-filters.test.js`
+
+**Northstar:** 中——减少回顾已有卡片时的误解和恢复成本，贴近最新真实浏览 signal；但 owner 未直接反馈零结果，因此暂不提拔。
+
+### E301 — 摘抄卡整卡只支持点击，键盘无法打开详情 (S)
+
+**What:** 摘抄卡用 `<article>` 承担整卡打开详情的交互，但没有链接/按钮语义、`tabindex` 或 Enter/Space 处理。触摸和鼠标用户可点卡片正文进入详情，键盘用户只能到达卡内的“操作菜单”，无法使用主要的整卡入口。
+
+**Evidence:** 每张卡输出为无可聚焦属性的 `<article class="quote-grid-card" data-quote-id>`（`app.js:2119-2140`）；列表委托只监听 `click`，命中卡片后调用 `openQuoteDetail()`（`app.js:6609-6627`），没有对应 `keydown` 委托。当前卡片测试只验证 quote/note 视觉 class 与装饰符号（`tests/frontend/quote-card-image-thumb.test.js:138-153`），未覆盖键盘打开详情。旧 E294 是关联页两端实体导航，本项是最新 signal 指向的摘抄卡片墙，不是同一交互面。
+
+**Why:** 卡片详情承载完整原文、我的理解、标签及后续编辑/探讨动作；若主要入口不可键盘到达，视觉区分改善也无法让非指针用户完成同一回顾路径。可将正文入口改为语义 button/link，或为 article 补 role、tabindex、可辨识名称与 Enter/Space 委托，并保留菜单事件隔离。
+
+**Size:** S
+
+**Files:** `app.js:2119-2140,6609-6627`; `tests/frontend/quote-card-image-thumb.test.js`; 相关 accessibility tests
+
+**Northstar:** 中——补齐摘抄回顾主入口的键盘可达性，但没有辅助技术用户 signal，暂留探索池。
+
+### E302 — 摘抄类型筛选只切换视觉 class，辅助技术不知道当前选中项 (S)
+
+**What:** “全部/摘抄/笔记”三个按钮以 `.active` 表示选择状态，点击和“清除全部筛选”都只改 class；DOM 没有 `aria-pressed`、`aria-current` 或单选组语义。读屏用户能听到三个普通按钮，却无法确认当前正在看全部、摘抄还是笔记。
+
+**Evidence:** 三个筛选按钮只有 `class` 与 `data-quote-type`（`index.html:135-139`）。点击处理移除/添加 `.active` 后重渲染（`app.js:6587-6592`），清除函数同样只 toggle class（`app.js:1818-1826`）；两条路径都不更新任何可访问状态。旧 OPT-046/E70 针对全局 Tab 导航，本项是摘抄内容类型筛选，语义和作用域不同。
+
+**Why:** 最新 owner signal 正是两种内容类型难区分；视觉样式只能服务看得见差异的用户，筛选控件本身也应以程序化状态明确当前类型。最小实现可为按钮维护互斥 `aria-pressed`，并让点击与清除共用一个状态同步 helper，避免视觉与语义分叉。
+
+**Size:** S
+
+**Files:** `index.html:135-139`; `app.js:1818-1826,6587-6592`; `tests/frontend/clear-filters.test.js`; 相关 accessibility tests
+
+**Northstar:** 中——与类型辨认 signal 同源并补齐非视觉通道，但属于 OPT-173 视觉方案之外的无障碍收口，缺直接辅助技术 signal，不单独提拔。
+
+### E303 — 摘抄墙一次渲染全部卡片，积累增长后首屏工作量无上限 (M)
+
+**What:** 摘抄页会对所有匹配卡片一次性 `map().join()` 并替换整个列表；没有页大小、加载更多或增量渲染。每张卡渲染时还会计算关联数和探讨数，长期积累越多，任一搜索输入或类型切换触发的整页重建成本越高。
+
+**Evidence:** 过滤和排序后的完整 `quotes` 数组直接进入 `quotes.map(...).join("")`（`app.js:2082-2106,2140-2142`），函数内没有 `slice`、display limit 或加载更多分支；搜索每次防抖后重跑 `renderQuotes()`（`app.js:6583-6585`），类型切换也立即整页重跑（`app.js:6587-6592`）。卡片模板分别调用 `getConnectionCount()` 与 `getQuoteChatCount()` 生成徽标（`app.js:2137`）。OPT-147 只为书单加入首屏 24 张分页；旧 E126/E202 只讨论计数遍历，本项聚焦摘抄墙 DOM 数量和整页替换边界。
+
+**Why:** 产品北极星要求摘抄持续积累并回流，列表规模不应反过来惩罚长期使用。可复用书单的稳定分页模式，默认渲染固定批次并提供“加载更多”；搜索结果是否分页需单独定义，避免隐藏精确命中。
+
+**Size:** M
+
+**Files:** `app.js:2082-2142,6583-6592`; `tests/frontend/quote-content-display.test.js`; `tests/frontend/search-field-bundle.test.js`; 可参考 `app.js:1895-1923`
+
+**Northstar:** 弱中——长期保护摘抄回顾性能，但当前没有性能或卡顿 signal，不提拔。
+
+> 本次 run 新发现 4 条：E300（筛选零结果误报为无积累，S，UX/error feedback）、E301（摘抄卡详情入口不可键盘访问，S，accessibility）、E302（类型筛选状态不向辅助技术暴露，S，accessibility）、E303（摘抄墙无分页且整页重建，M，performance/code health）。四项均由当前文件逐行核实并排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。最新真实 signal 已由 OPT-173 完整登记，而本轮相邻缺口缺少同等强度的直接证据，因此不修改 backlog、不占用 OPT 编号。
