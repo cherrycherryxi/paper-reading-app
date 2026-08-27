@@ -1609,7 +1609,7 @@ Format per item:
 - how: 在关联新增/编辑/删除修改前保存 connections 快照；普通异常时恢复快照并重绘，保留表单和明确失败提示；409 继续采用服务器权威 state，不用本地快照覆盖。补新增、编辑、删除三条普通 reject/500 回归，并断言后续 sync 不携带失败变更。Touch: `app.js:6019-6064`、`tests/frontend/connection-crud.test.js`。
 
 ### OPT-171 — 畸形关联字段可穿过 state 归一化并拖垮整个关联页 — 由 explore E293 提拔 [2026-08-26]
-- status: triaged — P1/S，符合夜间局部正确性边界，但 2026-08-27 最近 7 天 `auto/` 实现 PR 已达 8/8，预算耗尽，本轮不指派
+- status: triaged — P1/S，符合夜间局部正确性边界，但 2026-08-28 最近 7 天 `auto/` 实现 PR 已达 8/8，预算耗尽，本轮不指派
 - area: backend / frontend / data integrity
 - priority: P1
 - size: S
@@ -1627,3 +1627,13 @@ Format per item:
 - description: 关联摘抄选择器原先将整段查询作为单一子串并截取前 30 条，没有跨书排序或目标书范围，导致同主题跨书摘抄难以发现。
 - why: 用户知道目标摘抄属于另一本书时，应能先收窄书籍范围；连续中文主题词也应拆分召回，不能要求原文出现完全相同的整句。
 - how: `initQuoteCombobox()` 对连续中文生成双字词片，按命中数、完整短语与跨书优先级排序；目标侧提供其他书/全部书/指定书范围，排除来源摘抄并支持显式清除。Touch: `app.js`、`index.html`、`styles.css`、`tests/frontend/quote-combobox-ocr-label.test.js`。
+
+### OPT-173 — 摘抄页的摘抄与笔记封面差异不够直观 [2026-08-28]
+- status: triaged — P1/M；留给 07:00 晨间候选卡，不进入夜间 Next up
+- area: frontend / visual design
+- priority: P1
+- size: M
+- northstar: 强——2026-08-27 owner 真实浏览反馈直接指出两类卡片难以区分；摘抄页是回顾入口，降低类型辨认成本有助于用户快速扫读已有积累。
+- description: 当前 `renderQuotes()` 已按 kind 输出 `quote-cover-art--quote` / `quote-cover-art--note`，并分别使用 `❝` / `✎` 装饰；`tests/frontend/quote-card-image-thumb.test.js` 也锁定两种变体。但 owner 仍在真机反馈“不容易区分”，说明现有符号与轻量样式的感知差异不足，不能把“代码已有分支”误记为体验已完成。
+- why: 这是当前 Theme 3「积累可信」下的高置信 owner signal，能让摘抄与个人笔记在回顾时更快被识别。但如何通过配色、版式、文字标签或图形形成区别，涉及视觉方案取舍；现有证据只证明问题，不足以替 owner 选择方案。
+- how: 由 07:00 晨间候选卡交给 owner 选定视觉方向后，再调整 `app.js` 的封面语义和 `styles.css` 的两类变体，并扩充 `tests/frontend/quote-card-image-thumb.test.js`。不得由夜间 Agent 自行决定视觉方案。Touch: `app.js`（`quoteCoverMarkMap` / `renderQuotes`）、`styles.css`（`.quote-cover-art--quote` / `.quote-cover-art--note`）、相关前端测试。

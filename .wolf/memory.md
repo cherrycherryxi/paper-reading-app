@@ -5581,3 +5581,14 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+## Current planning state (2026-08-28)
+
+- 夜间 Triage 使用外层一次性统计：最近 7 天 `auto/` 实现 PR 为 8/8，预算耗尽，Next up 不指派；未调用 GitHub。
+- OPT-171 仍为 P1/S，Theme 3 强贡献且夜间适配，但预算优先。
+- 2026-08-27 owner signal 指出摘抄与笔记卡片封面仍难区分。当前代码虽已有 quote/note class 与符号，体验证据仍表明差异不足，因此新增 OPT-173=P1/M；视觉方案需 owner 取舍，只留给 07:00 晨间候选卡。
+
+## 2026-08-28 · 夜间 Explore：摘抄页回顾边界
+
+- 2026-08-27 owner 的摘抄/笔记卡片辨认 signal 已由 OPT-173 完整登记；相邻探索不得重复包装为新的视觉 backlog 项。
+- `renderQuotes()` 的筛选零结果仍使用“还没有摘抄”新增提示；摘抄卡整卡只有 click 入口，类型 chips 只维护 `.active`，三者分别形成恢复反馈、键盘可达与可访问状态缺口。
+- 摘抄墙会一次性重建全部匹配卡片，尚无分页边界；当前无卡顿 signal，故 E300–E303 全部只留 Explore，不占用 OPT 编号。
