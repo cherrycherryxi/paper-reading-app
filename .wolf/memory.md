@@ -5575,3 +5575,8 @@
 |------|--------|---------|---------|--------|
 | 19:57 | Created optimization/signals.md | — | ~1518 |
 | 19:57 | Session end: 1 writes across 1 files (signals.md) | 0 reads | ~1626 tok |
+## Current planning state (2026-08-28)
+
+- 夜间 Triage 使用外层一次性统计：最近 7 天 `auto/` 实现 PR 为 8/8，预算耗尽，Next up 不指派；未调用 GitHub。
+- OPT-171 仍为 P1/S，Theme 3 强贡献且夜间适配，但预算优先。
+- 2026-08-27 owner signal 指出摘抄与笔记卡片封面仍难区分。当前代码虽已有 quote/note class 与符号，体验证据仍表明差异不足，因此新增 OPT-173=P1/M；视觉方案需 owner 取舍，只留给 07:00 晨间候选卡。
