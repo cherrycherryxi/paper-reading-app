@@ -28,7 +28,7 @@ from urllib.request import Request, urlopen
 
 from mcp_dispatcher import MCPToolDispatcher
 from tool_schema_provider import ToolSchema, ToolSchemaProvider
-from deep_reading import DeepReadingRunner, ResearchRunStore, harness_capability
+from deep_reading import DeepReadingRunner, ResearchRunStore, harness_capability, web_research_capability
 
 BASE_DIR = Path(__file__).resolve().parent
 # DB and uploads paths are env-configurable so production deploys can point
@@ -588,6 +588,7 @@ def init_db() -> None:
             error_message TEXT NOT NULL DEFAULT '',
             gateway_token_hash TEXT NOT NULL,
             cancel_requested INTEGER NOT NULL DEFAULT 0,
+            web_enabled INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             completed_at TEXT NOT NULL DEFAULT '',
@@ -606,6 +607,38 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_research_events_run_created
             ON research_run_events (run_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS research_web_requests (
+            request_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            query TEXT NOT NULL,
+            operation TEXT NOT NULL DEFAULT 'search',
+            endpoint_host TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL,
+            result_count INTEGER NOT NULL DEFAULT 0,
+            error_message TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(run_id) REFERENCES research_runs(run_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_research_web_run_created
+            ON research_web_requests (run_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS research_web_sources (
+            source_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            url TEXT NOT NULL,
+            title TEXT NOT NULL DEFAULT '',
+            score REAL NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            UNIQUE(run_id, url),
+            FOREIGN KEY(run_id) REFERENCES research_runs(run_id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_research_web_sources_run
+            ON research_web_sources (run_id, created_at);
 
         CREATE TABLE IF NOT EXISTS rate_limit_counters (
             user_id TEXT NOT NULL,
@@ -689,6 +722,16 @@ def init_db() -> None:
         conn.execute("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
     if "plan_expires_at" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN plan_expires_at TEXT NOT NULL DEFAULT ''")
+    research_cols = {
+        row["name"] for row in conn.execute("PRAGMA table_info(research_runs)").fetchall()
+    }
+    if "web_enabled" not in research_cols:
+        conn.execute("ALTER TABLE research_runs ADD COLUMN web_enabled INTEGER NOT NULL DEFAULT 0")
+    web_request_cols = {
+        row["name"] for row in conn.execute("PRAGMA table_info(research_web_requests)").fetchall()
+    }
+    if "operation" not in web_request_cols:
+        conn.execute("ALTER TABLE research_web_requests ADD COLUMN operation TEXT NOT NULL DEFAULT 'search'")
     # Email uniqueness for non-empty values only — use a partial index so
     # legacy users (email='') don't collide with each other.
     conn.execute(
@@ -3535,6 +3578,22 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
     proposals = [proposal for proposal in raw_proposals[:3] if isinstance(proposal, dict)]
     invalid_proposal_count = min(len(raw_proposals), 3) - len(proposals)
     result["proposals"] = proposals
+    raw_web_evidence = result.get("webEvidence") if isinstance(result.get("webEvidence"), list) else []
+    valid_web_evidence = []
+    if run.get("webEnabled"):
+        for item in raw_web_evidence[:20]:
+            if not isinstance(item, dict):
+                continue
+            url = str(item.get("url") or "").strip()
+            if urlparse(url).scheme not in {"http", "https"}:
+                continue
+            valid_web_evidence.append({
+                "title": str(item.get("title") or "")[:300],
+                "url": url[:2000],
+                "snippet": str(item.get("snippet") or "")[:1000],
+                "retrievedAt": str(item.get("retrievedAt") or "")[:40],
+            })
+    result["webEvidence"] = valid_web_evidence
     if invalid_proposal_count:
         result["proposalWarning"] = f"已移除 {invalid_proposal_count} 条格式无效的研究建议"
     conn = get_conn()
@@ -4447,7 +4506,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             conn.close()
             self._active_conn = None
-            self._send_json({"deepReading": harness_capability()})
+            self._send_json({"deepReading": harness_capability(), "webResearch": web_research_capability()})
             return
 
         research_match = re.fullmatch(r"/api/research-runs/([^/]+)(/stream)?", parsed.path)
@@ -4608,8 +4667,22 @@ class Handler(BaseHTTPRequestHandler):
                 }
                 for r in conn.execute(
                     "SELECT run_id,context_type,book_id,quote_id,question,status,progress_stage,"
-                    " progress_message,result_json,error_message,created_at,updated_at,completed_at"
+                    " progress_message,result_json,error_message,web_enabled,created_at,updated_at,completed_at"
                     " FROM research_runs WHERE user_id = ? ORDER BY created_at",
+                    (user["id"],),
+                ).fetchall()
+            ]
+            research_web_requests = [
+                dict(r) for r in conn.execute(
+                    "SELECT request_id,run_id,query,operation,endpoint_host,status,result_count,error_message,created_at"
+                    " FROM research_web_requests WHERE user_id = ? ORDER BY created_at",
+                    (user["id"],),
+                ).fetchall()
+            ]
+            research_web_sources = [
+                dict(r) for r in conn.execute(
+                    "SELECT source_id,run_id,url,title,score,created_at"
+                    " FROM research_web_sources WHERE user_id = ? ORDER BY created_at",
                     (user["id"],),
                 ).fetchall()
             ]
@@ -4638,6 +4711,8 @@ class Handler(BaseHTTPRequestHandler):
                 "agentTraces": traces,
                 "agentActions": actions,
                 "researchRuns": research_runs,
+                "researchWebRequests": research_web_requests,
+                "researchWebSources": research_web_sources,
                 "uploadedFiles": uploaded_files,
             }
             conn.close()
@@ -5041,11 +5116,17 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._read_json()
             context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
             question = str(payload.get("question") or "").strip()
+            web_enabled = payload.get("webEnabled") is True
+            if web_enabled and not web_research_capability()["available"]:
+                conn.close()
+                self._active_conn = None
+                self._send_json({"error": web_research_capability()["reason"], "code": "web_research_unavailable"}, 400)
+                return
             user_id = user["id"]
             conn.close()
             self._active_conn = None
             try:
-                run, gateway_token = research_store().create(user_id, context, question)
+                run, gateway_token = research_store().create(user_id, context, question, web_enabled=web_enabled)
             except ValueError as error:
                 self._send_json({"error": str(error)}, 400)
                 return
@@ -6527,6 +6608,8 @@ class Handler(BaseHTTPRequestHandler):
                     " SELECT run_id FROM research_runs WHERE user_id = ?)",
                     (user_id,),
                 )
+                conn.execute("DELETE FROM research_web_requests WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM research_web_sources WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM research_runs WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM model_logs WHERE user_id = ?", (user_id,))
                 conn.execute("DELETE FROM rate_limit_counters WHERE user_id = ?", (user_id,))

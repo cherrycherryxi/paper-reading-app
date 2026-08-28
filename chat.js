@@ -1107,6 +1107,8 @@
   const contextCard = document.querySelector("#researchContextCard");
   const form = document.querySelector("#researchForm");
   const questionInput = document.querySelector("#researchQuestion");
+  const webOption = document.querySelector("#researchWebOption");
+  const webEnabledInput = document.querySelector("#researchWebEnabled");
   const startBtn = document.querySelector("#researchStartBtn");
   const cancelBtn = document.querySelector("#researchCancelBtn");
   const statusBox = document.querySelector("#researchStatus");
@@ -1198,7 +1200,13 @@
     try {
       const payload = await window.paperReadingApp.apiFetch("/api/research-capabilities", {}, true);
       const capability = payload.deepReading || {};
+      const webCapability = payload.webResearch || {};
       runtimeAvailable = Boolean(capability.available);
+      if (webOption) webOption.hidden = !webCapability.available;
+      if (webEnabledInput) {
+        webEnabledInput.checked = false;
+        webEnabledInput.disabled = !webCapability.available;
+      }
       if (!runtimeAvailable) {
         startBtn.disabled = true;
         statusBox.dataset.state = "FAILED";
@@ -1236,11 +1244,13 @@
     const relationLabel = { support: "支持", challenge: "反驳", extend: "延伸" };
     const proposalLabel = { summary: "保存总结", question: "保存问题", tag: "添加标签", link_thought: "建立关联", add_note: "保存笔记" };
     const evidence = Array.isArray(result.evidenceMap) ? result.evidenceMap : [];
+    const webEvidence = Array.isArray(result.webEvidence) ? result.webEvidence : [];
     const questions = Array.isArray(result.openQuestions) ? result.openQuestions : [];
     const proposals = Array.isArray(result.proposals) ? result.proposals : [];
     resultBox.innerHTML = `
       <article><h3>研究结论</h3><p>${esc(result.summary || "暂无结论")}</p></article>
       <article><h3>证据地图</h3><ul class="research-evidence-list">${evidence.map((item) => `<li class="research-evidence-item"><span class="research-relation">${esc(relationLabel[item.relation] || item.relation || "证据")}</span><strong>${esc(item.claim || "")}</strong><div class="research-evidence-reason">${esc(item.reason || "")} · ${esc((item.evidenceIds || []).join("、"))}</div></li>`).join("") || "<li>暂无可核验的证据。</li>"}</ul>${result.evidenceWarning ? `<p class="research-evidence-reason">${esc(result.evidenceWarning)}</p>` : ""}</article>
+      ${webEvidence.length ? `<article><h3>公开网络资料</h3><p class="research-web-disclosure">这些资料来自本次联网检索，不属于你的个人摘抄。</p><ul class="research-evidence-list">${webEvidence.map((item) => `<li class="research-evidence-item research-web-evidence"><a href="${esc(item.url || "")}" target="_blank" rel="noopener noreferrer">${esc(item.title || item.url || "公开资料")}</a><div class="research-evidence-reason">${esc(item.snippet || "")}</div></li>`).join("")}</ul></article>` : ""}
       <article><h3>值得继续追问</h3><ul class="research-question-list">${questions.map((item) => `<li>${esc(item)}</li>`).join("") || "<li>暂无。</li>"}</ul></article>
       ${proposals.length ? `<article><h3>待确认的沉淀建议</h3><ul class="research-proposal-list">${proposals.map((item) => `<li class="research-proposal-item"><strong>${esc(proposalLabel[item.type] || "阅读建议")}</strong><p>${esc(item.reason || "")}</p><span class="research-evidence-reason">依据 ${esc((item.evidenceIds || []).join("、") || "未标注")}</span>${item.action?.id && ["PENDING_APPROVAL", "FAILED"].includes(item.action.status) ? `<div class="research-proposal-actions" data-research-action="${esc(item.action.id)}"><button class="button button-primary button-small" type="button" data-research-approve>${item.action.status === "FAILED" ? "重试保存" : "确认保存"}</button><button class="button button-ghost button-small" type="button" data-research-reject>忽略</button></div>` : `<div class="research-evidence-reason">${esc(item.error || ({ EXECUTED: "已保存到阅读记录", REJECTED: "已忽略" }[item.action?.status] || "此建议不能执行"))}</div>`}</li>`).join("")}</ul></article>` : ""}`;
   }
@@ -1281,7 +1291,7 @@
       const payload = await window.paperReadingApp.apiFetch(`/api/research-runs?${query}`, {}, true);
       if (revision !== researchContextRevision) return;
       const runs = payload.runs || [];
-      historyList.innerHTML = runs.length ? runs.map((run) => `<div class="research-history-item"><button type="button" data-research-run-id="${esc(run.id)}"><strong>${esc(run.question)}</strong><span>${esc(run.progress?.message || run.status)}</span><time>${esc(new Date(run.createdAt).toLocaleString("zh-CN"))}</time></button></div>`).join("") : "<p>还没有深度共读记录。</p>";
+      historyList.innerHTML = runs.length ? runs.map((run) => `<div class="research-history-item"><button type="button" data-research-run-id="${esc(run.id)}"><strong>${esc(run.question)}</strong><span>${run.webEnabled ? "联网 · " : ""}${esc(run.progress?.message || run.status)}</span><time>${esc(new Date(run.createdAt).toLocaleString("zh-CN"))}</time></button></div>`).join("") : "<p>还没有深度共读记录。</p>";
     } catch (_) {
       if (revision !== researchContextRevision) return;
       historyList.innerHTML = "<p>暂时无法读取历史任务。</p>";
@@ -1305,10 +1315,11 @@
       const payload = await window.paperReadingApp.apiFetch("/api/research-runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: context(), question }),
+        body: JSON.stringify({ context: context(), question, webEnabled: Boolean(webEnabledInput?.checked) }),
       }, true);
       if (revision !== researchContextRevision) return;
       activeRun = payload.run;
+      if (webEnabledInput) webEnabledInput.checked = false;
       renderStatus(activeRun);
       renderResult(activeRun);
       loadRun(activeRun.id);
@@ -1368,6 +1379,7 @@
     activeRun = null;
     capabilityLoaded = false;
     runtimeAvailable = true;
+    if (webEnabledInput) webEnabledInput.checked = false;
     if (startBtn) startBtn.disabled = false;
     renderStatus(null);
     renderResult(null);

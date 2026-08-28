@@ -231,6 +231,10 @@
             <form id="researchForm" class="research-form">
               <label for="researchQuestion">这次想深挖什么</label>
               <textarea id="researchQuestion" rows="3" maxlength="2000" placeholder="例如：围绕当前摘抄，找出支持、反驳与延伸它的阅读证据。"></textarea>
+              <label id="researchWebOption" class="research-web-option" hidden>
+                <input id="researchWebEnabled" type="checkbox">
+                <span><strong>本次允许联网查公开资料</strong><small>仅发送模型生成的简短检索词；保护规则会拦截长段摘抄原文。每次任务默认关闭。</small></span>
+              </label>
               <div class="research-form-actions">
                 <button id="researchStartBtn" class="button button-primary" type="submit">开始深度共读</button>
                 <button id="researchCancelBtn" class="button button-ghost" type="button" hidden>取消任务</button>

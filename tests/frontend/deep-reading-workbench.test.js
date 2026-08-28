@@ -28,6 +28,18 @@ test("研究工作台提供上下文、后台进度、结果和历史入口", ()
   assert.equal((chat.match(/new CustomEvent\("paper-reading-chat-context-changed"\)/g) || []).length, 2);
 });
 
+test("联网研究按单次任务授权且网络证据与个人证据分层", () => {
+  assert.match(html, /id="researchWebEnabled" type="checkbox"/);
+  assert.match(html, /每次任务默认关闭/);
+  assert.match(chat, /webEnabledInput\.checked = false/);
+  assert.match(chat, /webEnabled: Boolean\(webEnabledInput\?\.checked\)/);
+  assert.match(chat, /公开网络资料/);
+  assert.match(chat, /不属于你的个人摘抄/);
+  assert.match(styles, /\.research-web-option input\[type="checkbox"\][\s\S]*appearance:\s*auto/);
+  assert.match(styles, /\.research-web-option input\[type="checkbox"\][\s\S]*-webkit-appearance:\s*checkbox/);
+  assert.match(styles, /\.research-web-option input\[type="checkbox"\][\s\S]*padding:\s*0/);
+});
+
 test("研究交互满足移动点击和减弱动画边界", () => {
   assert.match(styles, /chat-mode-switch button[\s\S]*min-height:\s*44px/);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);

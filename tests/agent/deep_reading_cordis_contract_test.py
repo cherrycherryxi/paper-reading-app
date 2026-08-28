@@ -4,9 +4,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CORDIS = ROOT / "experiments" / "dsh-paper-reading" / "cordis.yml"
+REQUIREMENTS = ROOT / "requirements-dsh.txt"
 
 
 class DeepReadingCordisContractTests(unittest.TestCase):
+    def test_sdk_upgrade_is_exactly_pinned(self):
+        self.assertIn("deepseek-harness-sdk==0.1.1rc1", REQUIREMENTS.read_text(encoding="utf-8"))
+
     def test_gateway_tools_share_the_root_registry_and_are_strictly_ordered(self):
         source = CORDIS.read_text(encoding="utf-8")
         self.assertNotIn("@deepseek-ai/dsh-agent-spine-demo", source)
@@ -19,6 +23,7 @@ class DeepReadingCordisContractTests(unittest.TestCase):
             "get_connections",
             "get_confirmed_memories",
             "get_reading_timeline",
+            "search_public_web",
         )
         for tool in expected:
             self.assertIn(f"mcp__paper-reading__{tool}", source)

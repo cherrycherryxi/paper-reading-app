@@ -17,6 +17,7 @@ import sqlite3
 import tempfile
 import threading
 import time
+import urllib.parse
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -77,6 +78,19 @@ def harness_capability() -> dict[str, Any]:
     return {"available": True, "reason": ""}
 
 
+def web_research_capability() -> dict[str, Any]:
+    """Describe the operator-controlled Tavily capability without leaking secrets."""
+    enabled = os.getenv("DEEP_READING_WEB_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    if not enabled:
+        return {"available": False, "reason": "管理员未启用联网研究"}
+    return {
+        "available": True,
+        "reason": "",
+        "provider": "tavily",
+        "authMode": "api_key" if os.getenv("TAVILY_API_KEY", "").strip() else "keyless",
+    }
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
@@ -121,6 +135,7 @@ def serialize_run(row: sqlite3.Row, events: list[sqlite3.Row] | None = None) -> 
             "quoteId": row["quote_id"],
         },
         "question": row["question"],
+        "webEnabled": bool(row["web_enabled"]) if "web_enabled" in row.keys() else False,
         "status": row["status"],
         "progress": {"stage": row["progress_stage"], "message": row["progress_message"]},
         "result": result,
@@ -146,7 +161,9 @@ class ResearchRunStore:
     def __init__(self, db_path: Path):
         self.db_path = Path(db_path)
 
-    def create(self, user_id: str, context: dict[str, Any], question: str) -> tuple[dict[str, Any], str]:
+    def create(
+        self, user_id: str, context: dict[str, Any], question: str, web_enabled: bool = False,
+    ) -> tuple[dict[str, Any], str]:
         context_type = str(context.get("type") or "global")
         if context_type not in VALID_CONTEXT_TYPES:
             raise ValueError("invalid context type")
@@ -176,15 +193,21 @@ class ResearchRunStore:
                 for item in state.get("quotes", [])
             ):
                 raise ValueError("quoteId does not exist in book")
-            conn.execute(
-                "INSERT INTO research_runs "
-                "(run_id,user_id,dsh_session_id,context_type,book_id,quote_id,question,status,"
-                " progress_stage,progress_message,result_json,error_message,gateway_token_hash,"
-                " cancel_requested,created_at,updated_at,completed_at)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (run_id, user_id, f"dsh-{run_id}", context_type, book_id, quote_id, question,
-                 "CREATED", "created", "任务已创建", "{}", "", _token_hash(token), 0, now, now, ""),
+            has_web_column = any(row[1] == "web_enabled" for row in conn.execute("PRAGMA table_info(research_runs)"))
+            columns = (
+                "run_id,user_id,dsh_session_id,context_type,book_id,quote_id,question,status,"
+                "progress_stage,progress_message,result_json,error_message,gateway_token_hash,"
+                "cancel_requested,created_at,updated_at,completed_at"
             )
+            values: tuple[Any, ...] = (
+                run_id, user_id, f"dsh-{run_id}", context_type, book_id, quote_id, question,
+                "CREATED", "created", "任务已创建", "{}", "", _token_hash(token), 0, now, now, "",
+            )
+            if has_web_column:
+                columns += ",web_enabled"
+                values += (int(bool(web_enabled)),)
+            placeholders = ",".join("?" for _ in values)
+            conn.execute(f"INSERT INTO research_runs ({columns}) VALUES ({placeholders})", values)
             self._event_conn(conn, run_id, "RUN_CREATED", {"contextType": context_type})
             conn.commit()
             row = conn.execute("SELECT * FROM research_runs WHERE run_id = ?", (run_id,)).fetchone()
@@ -364,6 +387,15 @@ class ResearchRunStore:
 
 def build_research_prompt(run: dict[str, Any]) -> str:
     context = run["context"]
+    web_enabled = bool(run.get("webEnabled"))
+    web_instruction = (
+        "联网研究已由用户为本次任务单独授权。必要时可调用 `mcp__paper-reading__search_public_web`；"
+        "如摘要不足，只能将该工具刚返回的 URL 交给 `mcp__paper-reading__extract_public_pages` 定向提取；"
+        "网络材料只能放入 webEvidence，不得伪装成用户摘抄，也不得直接生成写入操作。"
+        "若联网检索失败，继续基于个人阅读证据完成任务并明确说明限制。"
+        if web_enabled else
+        "本次任务未授权联网。不得调用联网工具，也不得声称查阅了互联网资料。"
+    )
     return f"""你是 paper-reading-app 的高级阅读研究员。请只通过 paper-reading Gateway 的只读工具取证。
 
 研究问题：{run['question']}
@@ -372,12 +404,13 @@ bookId：{context['bookId']}
 quoteId：{context['quoteId']}
 
 要求：
+0. {web_instruction}
 1. 最终回答前必须通过原生 function calling 调用 `mcp__paper-reading__get_reading_context`，参数使用上面的 contextType、bookId、quoteId。不得把 `<tool_calls>`、`<invoke>` 或工具参数写进普通文本。
 2. 随后必须至少调用一次 `mcp__paper-reading__search_quotes`；需要扩展取证时再调用 list_books、get_connections、get_confirmed_memories 或 get_reading_timeline。
 3. 只要工具返回了摘抄，就必须在 evidenceMap 中引用其真实 id。工具没有返回证据时，不得给出实质性研究结论，只能说明证据不足。
 4. 明确区分“用户原始记录”与“你的推断”，不得虚构书中内容。
 5. 最终只输出 JSON，不要 Markdown，顶层结构为：
-{{"summary":"结论", "evidenceMap":[{{"relation":"support|challenge|extend", "claim":"判断", "evidenceIds":["证据ID"], "reason":"解释"}}], "openQuestions":["待追问"], "proposals":[]}}
+{{"summary":"结论", "evidenceMap":[{{"relation":"support|challenge|extend", "claim":"判断", "evidenceIds":["个人证据ID"], "reason":"解释"}}], "webEvidence":[{{"title":"网页标题", "url":"https://...", "snippet":"摘要", "retrievedAt":"时间"}}], "openQuestions":["待追问"], "proposals":[]}}
 6. evidenceMap 中每项至少包含一个真实证据 ID；proposals 最多 3 条，只是待用户审批的建议，不能自行写入。
 7. proposal 只能使用以下 data 结构，不得创造字段或英文关系值：
    - summary：{{"type":"summary","data":{{"bookId":"书ID","content":"总结"}},"reason":"原因","evidenceIds":["证据ID"]}}
@@ -501,6 +534,7 @@ class DeepReadingRunner:
             result = _json_object(run_result.final_response)
             result.setdefault("summary", "")
             result.setdefault("evidenceMap", [])
+            result.setdefault("webEvidence", [])
             result.setdefault("openQuestions", [])
             proposals = result.get("proposals") if isinstance(result.get("proposals"), list) else []
             result["proposals"] = proposals[:3]

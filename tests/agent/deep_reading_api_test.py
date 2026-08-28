@@ -47,14 +47,17 @@ class DeepReadingApiTests(unittest.TestCase):
         self.original_runner = app_server.research_runner
         self.original_gateway = app_server.ensure_research_gateway
         self.original_capability = app_server.harness_capability
+        self.original_web_capability = app_server.web_research_capability
         app_server.research_runner = lambda: self.runner
         app_server.ensure_research_gateway = lambda: None
         app_server.harness_capability = lambda: {"available": True, "reason": ""}
+        app_server.web_research_capability = lambda: {"available": True, "reason": ""}
 
     def tearDown(self):
         app_server.research_runner = self.original_runner
         app_server.ensure_research_gateway = self.original_gateway
         app_server.harness_capability = self.original_capability
+        app_server.web_research_capability = self.original_web_capability
         app_server.DB_PATH = self.original_db_path
         app_server.UPLOAD_DIR = self.original_upload_dir
         self.temp_dir.cleanup()
@@ -95,6 +98,25 @@ class DeepReadingApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(cancelled["run"]["status"], "CANCELLED")
         self.assertEqual(self.runner.cancelled, [run_id])
+
+    def test_web_permission_is_explicit_per_run_and_not_sticky(self):
+        _, first = self.request("POST", "/api/research-runs", {
+            "context": {"type": "book", "bookId": "b1"}, "question": "联网研究", "webEnabled": True,
+        })
+        _, second = self.request("POST", "/api/research-runs", {
+            "context": {"type": "book", "bookId": "b1"}, "question": "离线研究",
+        })
+        self.assertTrue(first["run"]["webEnabled"])
+        self.assertFalse(second["run"]["webEnabled"])
+
+    def test_web_permission_is_rejected_when_operator_switch_is_off(self):
+        app_server.web_research_capability = lambda: {"available": False, "reason": "管理员未启用联网研究"}
+        status, response = self.request("POST", "/api/research-runs", {
+            "context": {"type": "book", "bookId": "b1"}, "question": "联网研究", "webEnabled": True,
+        })
+        self.assertEqual(status, 400)
+        self.assertEqual(response["code"], "web_research_unavailable")
+        self.assertEqual(self.runner.started, [])
 
     def test_gateway_startup_failure_marks_created_run_failed(self):
         app_server.ensure_research_gateway = lambda: (_ for _ in ()).throw(ValueError("gateway startup failed"))

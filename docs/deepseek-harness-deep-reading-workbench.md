@@ -10,13 +10,13 @@
 截至 2026-08-15，阶段 1 与 Proposal 审批骨架已在 `feature/agent` 工作树落地：
 
 - `deep_reading.py`：Research Run 生命周期、后台执行、dsh SDK 适配和结构化结果解析。
-- `paper_reading_gateway.py`：6 个只读 MCP 工具；临时 bearer token 在服务端绑定 run 与 user，工具 Schema 不出现 `user_id`。
+- `paper_reading_gateway.py`：6 个个人数据只读 MCP 工具和 1 个可选受控搜索工具；临时 bearer token 在服务端绑定 run 与 user，工具 Schema 不出现 `user_id`。
 - `experiments/dsh-paper-reading/cordis.yml`：在同一根作用域组合最小 Agent core、只读 MCP 客户端和 JSONL session；不加载 Shell、文件系统、PTY 和写入工具。
 - `app_server.py`：创建、查询、列表、事件回放、取消、账户导出和删除；Gateway 在首次任务时按需绑定 `127.0.0.1:8789`。
 - `index.html`、`chat.js`、`styles.css`：现有「探讨」内双模式、书籍/摘抄详情直达、后台轮询、结构化结果、历史任务和逐条审批。
 - dsh proposal 会先经过既有 `ActionValidator`，再进入既有 `ActionStateMachine`；确认后仍由 `MCPToolDispatcher` 调用原写入 MCP。
 
-官方 `deepseek-harness-sdk==0.1.0rc6` 的配套 runtime wheel 只发布 Linux x64/arm64 和 macOS 14 arm64。当前 Intel macOS 13 开发机已在仓库外从官方源码构建 macOS x64 单文件 JSONRPC runtime，并通过 `DSH_RUNTIME_BIN` 完成真实模型联调；生产仍应使用官方支持平台和 wheel。
+SDK 已锁定到 `deepseek-harness-sdk==0.1.1rc1`。运行时必须与 SDK 配套；官方 wheel 未覆盖的平台继续通过 `DSH_RUNTIME_BIN` 指向仓库外构建的 JSONRPC runtime。
 
 真实回路验证发现并修复了两个组合问题。第一，`agent-spine-demo` 内部拥有子作用域 Tool Registry，不能与外部兄弟 MCP 插件组成同一个模型工具视图，因此改用官方 base 的根级最小核心组件。第二，JSONRPC readiness 早于异步 MCP discovery，Runner 增加 1.5 秒可配置发现窗口，`toolOrder` 同时充当强校验；工具尚未注册时任务明确失败，不会退化成无证据回答。修正后 V4 Pro 已真实执行 Gateway `tools/list` 和多次 `tools/call`，引用隔离数据中的 q1/q2 完成研究。
 
@@ -684,12 +684,12 @@ CREATED
 
 开发前必须再次核验当时的 dsh 版本和官方接口，因为 Developer Preview 会发生破坏兼容变更。
 
-- [x] 确认 dsh 当前安装方式、版本和锁定策略（`requirements-dsh.txt` 锁 `0.1.0rc6`）。
+- [x] 确认 dsh 当前安装方式、版本和锁定策略（`requirements-dsh.txt` 锁 `0.1.1rc1`）。
 - [x] 真实确认 dsh MCP 客户端支持 Python FastMCP Streamable HTTP；Intel macOS 使用仓库外构建的单文件 runtime 完成联调。
 - [x] 无需建立外置 TypeScript Adapter；应用仓库继续保持纯 Python 后端和裸 ES2020 前端。
 - [x] 定义 Gateway 身份绑定和单任务 bearer token。
 - [ ] 明确开发数据库副本及禁止 Prod 的机器护栏。
-- [x] 确定六个只读工具的 Schema、字段白名单和返回上限。
+- [x] 确定个人数据只读工具和可选受控搜索工具的 Schema、字段白名单及返回上限。
 - [x] 使用《测试书》与 q1/q2 脱敏摘抄完成真实深度共读 golden case。
 - [x] 完成前端四状态、上下文直达、历史和 proposal 审批实现；源码、自动化交互约束以及 Chrome 桌面端、iPhone 12 登录态真实交互均已通过。
 - [x] 只读里程碑与 proposal 人工审批闭环均已实现；不开放自动写入。
@@ -701,3 +701,16 @@ CREATED
 - DeepSeek Harness Web UI 指南：https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/guide/index.md
 - 当前产品 Agent 分析：[product-agent-context-and-control-analysis.md](./product-agent-context-and-control-analysis.md)
 - 当前应用架构：[README.md](../README.md)
+
+## 18. 受控联网研究
+
+联网采用双层显式授权，默认关闭：
+
+- 服务端总开关：`DEEP_READING_WEB_ENABLED=true`。
+- 搜索与提取只访问代码内固定的 `https://api.tavily.com/search` 和 `/extract`，无需部署 Docker 或配置任意端点。
+- 可选凭据：`TAVILY_API_KEY`。未配置时使用 Tavily keyless Search/Extract，受共享限流约束；生产环境建议单独配置 API Key。
+- 用户每次创建任务时单独勾选“本次允许联网”，选择不会记忆到下一次任务。
+
+Gateway 先用 `search_public_web` 搜索并登记来源，只有同一任务刚返回的 URL 才能交给 `extract_public_pages`；每次最多提取 3 个 URL，每个来源只取 2 个与查询相关的片段。它拒绝本机/字面量内网 URL、重定向、超长响应和疑似整段私人摘抄的查询。单任务最多 5 次联网请求、搜索每次最多 8 条、8 秒超时。查询、操作类型、固定端点主机、状态和结果数写入 `research_web_requests`，允许提取的来源写入 `research_web_sources`，两者都随账户导出和删除。网络证据单独保存在 `webEvidence`，不能充当个人摘抄 ID，也不能绕过 proposal 审批。
+
+Intel macOS 等没有官方 runtime wheel 的平台使用 `pip install --no-deps deepseek-harness-sdk==0.1.1rc1`，并把 `DSH_RUNTIME_BIN` 指向同版本源码构建的 runtime；官方支持的平台直接安装 `requirements-dsh.txt`。

@@ -4797,6 +4797,55 @@ body.is-admin .admin-only { display: revert; }
   font-size: 16px;
 }
 
+.research-web-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px;
+  border-radius: 10px;
+  background: var(--surface-muted, #f7f4ee);
+  cursor: pointer;
+}
+
+.research-web-option[hidden] { display: none; }
+
+.research-web-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  margin: 1px 0 0;
+  border-radius: 4px;
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  background: var(--color-surface);
+  flex: 0 0 auto;
+}
+
+.research-web-option input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.research-web-option span,
+.research-web-option small { display: block; }
+
+.research-web-option small,
+.research-web-disclosure {
+  margin-top: 4px;
+  color: var(--text-secondary, #716b61);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.research-web-evidence a {
+  color: var(--accent, #7d5e24);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
 .research-form-actions {
   display: flex;
   gap: 8px;
