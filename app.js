@@ -116,6 +116,9 @@ const els = {
   quotesList: document.querySelector("#quotesList"),
   logsList: document.querySelector("#modelLogsList"),
   meSummary: document.querySelector("#meSummary"),
+  readingInsightsStatus: document.querySelector("#readingInsightsStatus"),
+  refreshReadingInsightsBtn: document.querySelector("#refreshReadingInsightsBtn"),
+  shareReadingInsightsBtn: document.querySelector("#shareReadingInsightsBtn"),
   meMemoryCount: document.querySelector("#meMemoryCount"),
   meMemoryPreview: document.querySelector("#meMemoryPreview"),
   meImportExcelBtn: document.querySelector("#meImportExcelBtn"),
@@ -229,6 +232,9 @@ let state = structuredClone(initialState);
 // from every server response that carries `stateVersion` (see apiFetch) and
 // echoed back on PUT /api/state so the server can reject a stale overwrite.
 let stateVersion = "";
+let readingInsightNarratives = null;
+let readingInsightNarrativeKey = "";
+let readingInsightsLoading = false;
 let pendingBookImage = null;
 let pendingBookEditImage = null;
 // AI 起草的读后感原文（OPT-101）。保存时拿它和 textarea 里的文本比对：一字未改才算
@@ -1367,31 +1373,109 @@ function renderHero() {
   els.heroQuotes.textContent = quoteCount;
 }
 
-function renderSummary() {
+function readingInsightMetrics() {
   const finishedBooks = state.books.filter((item) => item.status === "finished").length;
   const readingBooks = state.books.filter((item) => item.status === "reading").length;
+  const wishlistBooks = state.books.filter((item) => item.status === "wishlist").length;
+  const pausedBooks = state.books.filter((item) => item.status === "paused").length;
   const completionRate = state.books.length ? Math.round((finishedBooks / state.books.length) * 100) : 0;
-  const quoteCount = state.quotes.filter(isRegularQuote).length;
-  const stats = [
-    { label: "阅读中", value: readingBooks, icon: "📖" },
-    { label: "书单总数", value: state.books.length, icon: "📚" },
-    { label: "阅读记录", value: state.sessions.length, icon: "🕐" },
-    { label: "摘抄卡片", value: quoteCount, icon: "✍️" },
-  ];
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const weeks = Array.from({ length: 8 }, (_, index) => ({
+    start: new Date(weekStart.getTime() - (7 - index) * 7 * 86400000),
+    minutes: 0,
+  }));
+  state.sessions.forEach((session) => {
+    const time = Date.parse(session.date || session.createdAt || "");
+    if (!Number.isFinite(time)) return;
+    const index = Math.floor((time - weeks[0].start.getTime()) / (7 * 86400000));
+    if (index >= 0 && index < weeks.length) weeks[index].minutes += Math.max(0, Number(session.minutes || 0));
+  });
+  const previousAverage = Math.round(weeks.slice(3, 7).reduce((sum, item) => sum + item.minutes, 0) / 4);
+  const thisWeekMinutes = weeks[7].minutes;
+  const trend = previousAverage ? Math.round(((thisWeekMinutes - previousAverage) / previousAverage) * 100) : null;
 
-  els.meSummary.innerHTML = stats
-    .map(
-      (item) => `
-        <div class="stat-card profile-stat-card">
-          <div class="profile-stat-icon">${item.icon}</div>
-          <strong>${item.value}</strong>
-          <span>${item.label}</span>
-        </div>
-      `
-    )
-    .join("");
-  els.readingCompletionRate.textContent = `${completionRate}%`;
-  els.readingCompletionBar.style.width = `${completionRate}%`;
+  const themeBooks = new Map();
+  const addTheme = (rawTag, bookId = "") => {
+    const tag = String(rawTag || "").trim();
+    if (!tag || tag.length > 24) return;
+    if (!themeBooks.has(tag)) themeBooks.set(tag, new Set());
+    if (bookId) themeBooks.get(tag).add(bookId);
+  };
+  state.books.forEach((book) => (Array.isArray(book.tags) ? book.tags : []).forEach((tag) => addTheme(tag, book.id)));
+  state.quotes.forEach((quote) => (Array.isArray(quote.tags) ? quote.tags : []).forEach((tag) => addTheme(tag, quote.bookId)));
+  state.connections.forEach((connection) => (Array.isArray(connection.tags) ? connection.tags : []).forEach((tag) => {
+    const source = state.quotes.find((quote) => quote.id === connection.sourceId);
+    addTheme(tag, source?.bookId || (connection.sourceType === "book" ? connection.sourceId : ""));
+  }));
+  const themes = [...themeBooks.entries()]
+    .map(([name, books]) => ({ name, bookCount: books.size }))
+    .sort((a, b) => b.bookCount - a.bookCount || a.name.localeCompare(b.name, "zh-CN"))
+    .slice(0, 5);
+  const quoteCount = state.quotes.filter((item) => item.kind !== "note" && item.kind !== "question").length;
+  const noteCount = state.quotes.filter((item) => item.kind === "note").length;
+  const memoryCount = Array.isArray(state.memories) ? state.memories.length : 0;
+  return {
+    weeks: weeks.map((item) => item.minutes), thisWeekMinutes, previousAverage, trend,
+    structure: { readingBooks, finishedBooks, wishlistBooks, pausedBooks, totalBooks: state.books.length, completionRate },
+    themes,
+    funnel: { quoteCount, noteCount, connectionCount: state.connections.length, memoryCount },
+  };
+}
+
+function defaultReadingInsightNarratives(metrics) {
+  const activeWeeks = metrics.weeks.filter((value) => value > 0).length;
+  const focus = metrics.structure.readingBooks > 5
+    ? `同时在读 ${metrics.structure.readingBooks} 本，注意力可能有些分散。`
+    : metrics.structure.readingBooks ? `当前在读 ${metrics.structure.readingBooks} 本，阅读范围相对聚焦。` : "当前没有标记为阅读中的书。";
+  return {
+    momentum: activeWeeks < 2 ? "阅读记录还不够多，继续积累后才能判断稳定趋势。" : metrics.trend === null ? "本周开始形成阅读记录，可以先观察连续性。" : metrics.trend >= 20 ? "本周阅读投入明显高于近期平均。" : metrics.trend <= -20 ? "本周阅读投入低于近期平均，可以从一次短阅读重新开始。" : "近期阅读节奏整体稳定。",
+    structure: focus,
+    themes: metrics.themes.length ? `目前最常跨书出现的主题是“${metrics.themes[0].name}”。` : "标签和关联还不足，暂时无法形成可靠的兴趣主题。",
+    sediment: metrics.funnel.quoteCount && !metrics.funnel.connectionCount ? "已经积累了一批摘抄，下一步可以尝试建立第一条跨书关联。" : metrics.funnel.connectionCount ? `已有 ${metrics.funnel.connectionCount} 条关联，阅读内容正在形成自己的知识网络。` : "继续积累摘抄、笔记和关联后，这里会显示知识沉淀路径。",
+  };
+}
+
+function renderSummary() {
+  const metrics = readingInsightMetrics();
+  const metricKey = readingInsightsCacheKey(metrics);
+  const currentAiNarratives = readingInsightNarrativeKey === metricKey ? readingInsightNarratives : null;
+  const narratives = { ...defaultReadingInsightNarratives(metrics), ...(currentAiNarratives || {}) };
+  const maxMinutes = Math.max(1, ...metrics.weeks);
+  const maxThemeBooks = Math.max(1, ...metrics.themes.map((item) => item.bookCount));
+  const structure = metrics.structure;
+  const structureTotal = Math.max(1, structure.totalBooks);
+  const readingEnd = (structure.readingBooks / structureTotal) * 360;
+  const finishedEnd = readingEnd + (structure.finishedBooks / structureTotal) * 360;
+  const wishlistEnd = finishedEnd + (structure.wishlistBooks / structureTotal) * 360;
+  const funnelMax = Math.max(1, metrics.funnel.quoteCount, metrics.funnel.noteCount, metrics.funnel.connectionCount, metrics.funnel.memoryCount);
+  const funnelItems = [
+    ["摘抄", metrics.funnel.quoteCount], ["笔记", metrics.funnel.noteCount],
+    ["关联", metrics.funnel.connectionCount], ["记忆", metrics.funnel.memoryCount],
+  ];
+  els.meSummary.innerHTML = `
+    <article class="reading-insight-card" aria-labelledby="insightMomentumTitle">
+      <header><div><span>最近 8 周</span><h4 id="insightMomentumTitle">阅读动力</h4></div><strong>${metrics.thisWeekMinutes}<small>分钟/本周</small></strong></header>
+      <div class="insight-week-bars" role="img" aria-label="最近八周阅读分钟数：${metrics.weeks.join("、")}">${metrics.weeks.map((minutes, index) => `<span style="--bar:${Math.max(4, Math.round((minutes / maxMinutes) * 100))}%" title="${minutes} 分钟"><i></i><small>${index === 7 ? "本周" : index + 1}</small></span>`).join("")}</div>
+      <p data-insight-copy="momentum">${escapeHtml(narratives.momentum)}</p>
+    </article>
+    <article class="reading-insight-card" aria-labelledby="insightStructureTitle">
+      <header><div><span>书单状态</span><h4 id="insightStructureTitle">阅读结构</h4></div><strong>${structure.completionRate}<small>% 已读完</small></strong></header>
+      <div class="insight-structure"><div class="insight-donut" role="img" aria-label="在读 ${structure.readingBooks} 本，已读完 ${structure.finishedBooks} 本，想读 ${structure.wishlistBooks} 本，暂停 ${structure.pausedBooks} 本" style="--reading-end:${readingEnd}deg;--finished-end:${finishedEnd}deg;--wishlist-end:${wishlistEnd}deg"><b>${structure.totalBooks}</b><small>本书</small></div><ul><li><i class="is-reading"></i>在读 ${structure.readingBooks}</li><li><i class="is-finished"></i>读完 ${structure.finishedBooks}</li><li><i class="is-wishlist"></i>想读 ${structure.wishlistBooks}</li><li><i class="is-paused"></i>暂停 ${structure.pausedBooks}</li></ul></div>
+      <p data-insight-copy="structure">${escapeHtml(narratives.structure)}</p>
+    </article>
+    <article class="reading-insight-card" aria-labelledby="insightThemesTitle">
+      <header><div><span>跨书主题</span><h4 id="insightThemesTitle">兴趣图谱</h4></div><strong>${metrics.themes.length}<small>个主题</small></strong></header>
+      <div class="insight-theme-bars">${metrics.themes.length ? metrics.themes.map((item) => `<div><span>${escapeHtml(item.name)}</span><i><b style="width:${Math.max(8, Math.round((item.bookCount / maxThemeBooks) * 100))}%"></b></i><small>${item.bookCount} 本</small></div>`).join("") : '<div class="insight-empty">给书籍或摘抄添加标签后生成主题图谱。</div>'}</div>
+      <p data-insight-copy="themes">${escapeHtml(narratives.themes)}</p>
+    </article>
+    <article class="reading-insight-card" aria-labelledby="insightFunnelTitle">
+      <header><div><span>从收集到理解</span><h4 id="insightFunnelTitle">知识沉淀</h4></div><strong>${metrics.funnel.connectionCount}<small>条关联</small></strong></header>
+      <div class="insight-funnel" role="img" aria-label="摘抄 ${metrics.funnel.quoteCount}，笔记 ${metrics.funnel.noteCount}，关联 ${metrics.funnel.connectionCount}，记忆 ${metrics.funnel.memoryCount}">${funnelItems.map(([label, value]) => `<div><span>${label}</span><i style="width:${Math.max(12, Math.round((value / funnelMax) * 100))}%"></i><strong>${value}</strong></div>`).join("")}</div>
+      <p data-insight-copy="sediment">${escapeHtml(narratives.sediment)}</p>
+    </article>`;
 
   const memories = Array.isArray(state.memories) ? state.memories : [];
   if (els.meMemoryCount) els.meMemoryCount.textContent = `${memories.length} 条记忆`;
@@ -1401,6 +1485,53 @@ function renderSummary() {
       return String(item.updatedAt || item.createdAt || "") > String(result.updatedAt || result.createdAt || "") ? item : result;
     }, null);
     els.meMemoryPreview.textContent = latest?.content || "保存你确认过的阅读偏好、观点和目标。";
+  }
+}
+
+function readingInsightsCacheKey(metrics) {
+  const signature = JSON.stringify(metrics);
+  let hash = 0;
+  for (let index = 0; index < signature.length; index += 1) hash = ((hash << 5) - hash + signature.charCodeAt(index)) | 0;
+  return `paper-reading-insights:${currentUser?.id || "guest"}:${hash}`;
+}
+
+async function loadReadingInsights({ force = false } = {}) {
+  if (!currentUser?.id || readingInsightsLoading) return;
+  const metrics = readingInsightMetrics();
+  const cacheKey = readingInsightsCacheKey(metrics);
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+      if (cached?.narratives) {
+        readingInsightNarratives = cached.narratives;
+        readingInsightNarrativeKey = cacheKey;
+        renderSummary();
+        if (els.readingInsightsStatus) els.readingInsightsStatus.textContent = "AI 已结合当前数据解释趋势；图表数值由本地计算。";
+        return;
+      }
+    } catch (_) { /* ignore corrupt local cache */ }
+  }
+  readingInsightsLoading = true;
+  if (readingInsightNarrativeKey !== cacheKey) readingInsightNarratives = null;
+  if (els.refreshReadingInsightsBtn) els.refreshReadingInsightsBtn.disabled = true;
+  if (els.readingInsightsStatus) els.readingInsightsStatus.textContent = "AI 正在解释你的阅读趋势…";
+  try {
+    const payload = await apiFetch("/api/reading-insights", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ metrics }),
+    });
+    readingInsightNarratives = payload.narratives || null;
+    readingInsightNarrativeKey = cacheKey;
+    localStorage.setItem(cacheKey, JSON.stringify({ narratives: readingInsightNarratives, createdAt: new Date().toISOString() }));
+    renderSummary();
+    if (els.readingInsightsStatus) els.readingInsightsStatus.textContent = "AI 已结合当前数据解释趋势；图表数值由本地计算。";
+  } catch (_) {
+    readingInsightNarratives = null;
+    readingInsightNarrativeKey = "";
+    renderSummary();
+    if (els.readingInsightsStatus) els.readingInsightsStatus.textContent = "AI 解读暂不可用，当前展示可核验的本地分析。";
+  } finally {
+    readingInsightsLoading = false;
+    if (els.refreshReadingInsightsBtn) els.refreshReadingInsightsBtn.disabled = false;
   }
 }
 
@@ -1930,6 +2061,8 @@ function renderBooks() {
 }
 
 function renderTimeline() {
+  // 独立「记录」页已下线；保留渲染器供历史测试和未来嵌入式视图复用。
+  if (!els.timeline) return;
   if (!currentUser?.id && !hasSampleData()) {
     els.timeline.className = "timeline empty-state";
     els.timeline.textContent = "登录后，这里会显示最近阅读情况。";
@@ -2454,6 +2587,10 @@ function activateTab(tabName) {
       const msgs = document.querySelector("#chatMessages");
       if (msgs) msgs.scrollTop = msgs.scrollHeight;
     });
+  }
+  if (tabName === "me") {
+    renderSummary();
+    loadReadingInsights();
   }
 }
 
@@ -3724,6 +3861,122 @@ async function renderBookShareCard(book) {
   return canvas.toDataURL("image/png");
 }
 
+function drawInsightShareCopy(ctx, C, text, x, y, maxWidth, maxLines = 2) {
+  ctx.fillStyle = C.inkSoft;
+  ctx.font = `30px ${C.sans}`;
+  const lines = wrapCanvasText(ctx, truncateForShare(text, 100), maxWidth).slice(0, maxLines);
+  lines.forEach((line, index) => ctx.fillText(line, x, y + index * 42));
+}
+
+function drawInsightSharePanel(ctx, C, y, eyebrow, title, value, valueUnit) {
+  const x = C.PAD, width = C.W - C.PAD * 2, height = 294;
+  ctx.fillStyle = C.tint;
+  roundRectPath(ctx, x, y, width, height, 24);
+  ctx.fill();
+  ctx.fillStyle = C.inkMuted;
+  ctx.font = `700 24px ${C.sans}`;
+  ctx.fillText(eyebrow, x + 38, y + 46);
+  ctx.fillStyle = C.ink;
+  ctx.font = `700 42px ${C.serif}`;
+  ctx.fillText(title, x + 38, y + 98);
+  ctx.textAlign = "right";
+  ctx.font = `700 48px ${C.sans}`;
+  ctx.fillText(String(value), x + width - 38, y + 84);
+  ctx.fillStyle = C.inkMuted;
+  ctx.font = `22px ${C.sans}`;
+  ctx.fillText(valueUnit, x + width - 38, y + 112);
+  ctx.textAlign = "left";
+  return { x, y, width, height, contentTop: y + 132 };
+}
+
+async function renderReadingInsightsShareCard() {
+  const C = activeShareCard();
+  const { qr, logo } = await loadShareAssets();
+  const metrics = readingInsightMetrics();
+  const metricKey = readingInsightsCacheKey(metrics);
+  const narratives = {
+    ...defaultReadingInsightNarratives(metrics),
+    ...(readingInsightNarrativeKey === metricKey ? readingInsightNarratives : null),
+  };
+  const height = 2130;
+  const { canvas, ctx } = newShareCanvas(C, height);
+  const headerBottom = drawShareHeader(ctx, C, logo);
+  const contentW = C.W - C.PAD * 2;
+  let y = headerBottom + 72;
+
+  ctx.fillStyle = C.inkMuted;
+  ctx.font = `700 26px ${C.sans}`;
+  ctx.fillText(`AI 阅读洞察 · ${new Date().toLocaleDateString("zh-CN")}`, C.PAD, y);
+  y += 64;
+  ctx.fillStyle = C.ink;
+  ctx.font = `700 58px ${C.serif}`;
+  ctx.fillText("我的阅读，正在形成什么？", C.PAD, y);
+  y += 62;
+  ctx.fillStyle = C.inkMuted;
+  ctx.font = `26px ${C.sans}`;
+  ctx.fillText("数字来自阅读记录，AI 只解释趋势。", C.PAD, y);
+  y += 58;
+
+  const momentum = drawInsightSharePanel(ctx, C, y, "最近 8 周", "阅读动力", metrics.thisWeekMinutes, "分钟 / 本周");
+  const maxMinutes = Math.max(1, ...metrics.weeks);
+  const barGap = 18, barW = 78, chartBase = momentum.contentTop + 80;
+  metrics.weeks.forEach((minutes, index) => {
+    const barH = Math.max(5, Math.round((minutes / maxMinutes) * 72));
+    const bx = momentum.x + 38 + index * (barW + barGap);
+    ctx.fillStyle = index === 7 ? C.ink : C.accent;
+    roundRectPath(ctx, bx, chartBase - barH, barW, barH, 7);
+    ctx.fill();
+  });
+  drawInsightShareCopy(ctx, C, narratives.momentum, momentum.x + 38, momentum.y + 260, contentW - 76, 1);
+  y += momentum.height + 22;
+
+  const structure = metrics.structure;
+  const structurePanel = drawInsightSharePanel(ctx, C, y, "书单状态", "阅读结构", structure.completionRate, "% 已读完");
+  const structureItems = [["在读", structure.readingBooks, C.accent], ["读完", structure.finishedBooks, C.ink], ["想读", structure.wishlistBooks, C.inkMuted], ["暂停", structure.pausedBooks, C.hair]];
+  let sx = structurePanel.x + 38;
+  structureItems.forEach(([label, value, color]) => {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(sx + 8, structurePanel.contentTop + 16, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.inkSoft;
+    ctx.font = `26px ${C.sans}`;
+    ctx.fillText(`${label} ${value}`, sx + 24, structurePanel.contentTop + 24);
+    sx += 205;
+  });
+  drawInsightShareCopy(ctx, C, narratives.structure, structurePanel.x + 38, structurePanel.y + 244, contentW - 76, 1);
+  y += structurePanel.height + 22;
+
+  const themesPanel = drawInsightSharePanel(ctx, C, y, "跨书主题", "兴趣图谱", metrics.themes.length, "个主题");
+  const maxTheme = Math.max(1, ...metrics.themes.map((item) => item.bookCount));
+  metrics.themes.slice(0, 3).forEach((item, index) => {
+    const rowY = themesPanel.contentTop + index * 38;
+    ctx.fillStyle = C.inkSoft; ctx.font = `25px ${C.sans}`; ctx.fillText(item.name, themesPanel.x + 38, rowY + 22);
+    ctx.fillStyle = C.hair; roundRectPath(ctx, themesPanel.x + 210, rowY + 5, 570, 17, 9); ctx.fill();
+    ctx.fillStyle = C.ink; roundRectPath(ctx, themesPanel.x + 210, rowY + 5, Math.max(24, 570 * item.bookCount / maxTheme), 17, 9); ctx.fill();
+    ctx.fillStyle = C.inkMuted; ctx.textAlign = "right"; ctx.fillText(`${item.bookCount} 本`, themesPanel.x + themesPanel.width - 38, rowY + 22); ctx.textAlign = "left";
+  });
+  if (!metrics.themes.length) drawInsightShareCopy(ctx, C, "标签数据不足，暂未形成主题图谱。", themesPanel.x + 38, themesPanel.contentTop + 36, contentW - 76, 1);
+  drawInsightShareCopy(ctx, C, narratives.themes, themesPanel.x + 38, themesPanel.y + 268, contentW - 76, 1);
+  y += themesPanel.height + 22;
+
+  const funnel = metrics.funnel;
+  const funnelPanel = drawInsightSharePanel(ctx, C, y, "从收集到理解", "知识沉淀", funnel.connectionCount, "条关联");
+  const funnelItems = [["摘抄", funnel.quoteCount], ["笔记", funnel.noteCount], ["关联", funnel.connectionCount], ["记忆", funnel.memoryCount]];
+  const funnelMax = Math.max(1, ...funnelItems.map((item) => item[1]));
+  funnelItems.forEach(([label, value], index) => {
+    const rowY = funnelPanel.contentTop + index * 31;
+    ctx.fillStyle = C.inkSoft; ctx.font = `23px ${C.sans}`; ctx.fillText(label, funnelPanel.x + 38, rowY + 19);
+    ctx.fillStyle = index === 3 ? C.ink : C.accent;
+    roundRectPath(ctx, funnelPanel.x + 130, rowY + 4, Math.max(18, 620 * value / funnelMax), 16, 8); ctx.fill();
+    ctx.fillStyle = C.inkMuted; ctx.textAlign = "right"; ctx.fillText(String(value), funnelPanel.x + funnelPanel.width - 38, rowY + 19); ctx.textAlign = "left";
+  });
+  drawInsightShareCopy(ctx, C, narratives.sediment, funnelPanel.x + 38, funnelPanel.y + 276, contentW - 76, 1);
+
+  const dividerY = 1785;
+  drawShareDivider(ctx, C, dividerY);
+  drawShareFooter(ctx, C, qr, dividerY + 56, "看见阅读留下的轨迹", "扫码，继续你的阅读");
+  return canvas.toDataURL("image/png");
+}
+
 // 读后卡内容区宽度（左右各留 48 内边距）。
 function contentWFor(C, innerPad) {
   return C.W - C.PAD * 2 - innerPad * 2;
@@ -3734,7 +3987,7 @@ function openShareCardDialog(dataUrl, filename) {
   const dialog = document.getElementById("shareCardDialog");
   const img = document.getElementById("shareCardImg");
   const dl = document.getElementById("shareCardDownload");
-  if (img) img.src = dataUrl;
+  if (img) { img.src = dataUrl; img.alt = `${filename || "内容"}分享图`; }
   if (dl) { dl.href = dataUrl; dl.download = `${String(filename).replace(/[《》\/\\]/g, "")}-分享图.png`; }
   dialog?.showModal();
 }
@@ -3777,6 +4030,19 @@ async function shareBookCard(bookId) {
     openShareCardDialog(await renderBookShareCard(book), book.title || "书");
   } catch (err) {
     showToast("生成分享图失败：" + (err?.message || err));
+  }
+}
+
+async function shareReadingInsightsCard() {
+  if (!requireAuth("生成 AI 阅读洞察分享图")) return;
+  try {
+    if (els.shareReadingInsightsBtn) els.shareReadingInsightsBtn.disabled = true;
+    showToast("正在生成 AI 阅读洞察分享图…");
+    openShareCardDialog(await renderReadingInsightsShareCard(), "AI阅读洞察");
+  } catch (err) {
+    showToast("生成分享图失败：" + (err?.message || err));
+  } finally {
+    if (els.shareReadingInsightsBtn) els.shareReadingInsightsBtn.disabled = false;
   }
 }
 
@@ -4141,7 +4407,7 @@ function openBookDetailDialog(bookId) {
   if (bookSessions.length && sessionsWrap && sessionsSummary && els.bookDetailSessions) {
     const totalMinutes = bookSessions.reduce((sum, session) => sum + Number(session.minutes || 0), 0);
     sessionsSummary.textContent = `${bookSessions.length} 次${totalMinutes > 0 ? ` · 共 ${totalMinutes} 分钟` : ""}`;
-    const sessionCards = bookSessions.slice(0, 5).map((session) => {
+    const sessionCards = bookSessions.map((session) => {
       const details = [`第 ${session.startPage ?? "-"}–${session.endPage ?? "-"} 页`];
       if (Number(session.minutes || 0) > 0) details.push(`${session.minutes} 分钟`);
       return `<div class="book-detail-session">
@@ -4149,10 +4415,7 @@ function openBookDetailDialog(bookId) {
         <span>${escapeHtml(details.join(" · "))}</span>
       </div>`;
     }).join("");
-    const moreButton = bookSessions.length > 5
-      ? `<button class="detail-link-btn" type="button" data-book-detail-action="sessions">查看全部 ${bookSessions.length} 条记录</button>`
-      : "";
-    els.bookDetailSessions.innerHTML = `${sessionCards}${moreButton}`;
+    els.bookDetailSessions.innerHTML = sessionCards;
     sessionsWrap.classList.remove("is-hidden");
   } else if (sessionsWrap) {
     if (sessionsSummary) sessionsSummary.textContent = "";
@@ -4226,18 +4489,6 @@ function goToBookQuotes() {
   if (els.quoteSearch) {
     els.quoteSearch.value = book.title;
     renderQuotes();
-  }
-}
-
-function goToBookSessions() {
-  const bookId = _bookDetailCurrentId;
-  const book = state.books.find((b) => b.id === bookId);
-  if (!book) return;
-  els.bookDetailDialog.close();
-  activateTab("session");
-  if (els.sessionSearch) {
-    els.sessionSearch.value = book.title;
-    renderTimeline();
   }
 }
 
@@ -6250,6 +6501,8 @@ function bindEvents() {
     resetBookDraft();
     openDialog(els.bookDialog, "新增书籍");
   });
+  els.refreshReadingInsightsBtn?.addEventListener("click", () => loadReadingInsights({ force: true }));
+  els.shareReadingInsightsBtn?.addEventListener("click", shareReadingInsightsCard);
   els.clearSampleBtn?.addEventListener("click", () => {
     if (window.confirm("清除所有示例内容？你自己添加的书和摘抄不受影响。")) {
       clearSampleData();
@@ -6437,11 +6690,6 @@ function bindEvents() {
     if (!quoteBtn) return;
     els.bookDetailDialog.close();
     openQuoteDetail(quoteBtn.dataset.detailQuoteId);
-  });
-
-  els.bookDetailSessions?.addEventListener("click", (event) => {
-    const action = event.target.closest("[data-book-detail-action]");
-    if (action?.dataset.bookDetailAction === "sessions") goToBookSessions();
   });
 
   document.getElementById("bookDetailConnections")?.addEventListener("click", (event) => {

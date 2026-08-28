@@ -9,11 +9,15 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const chat = fs.readFileSync(path.join(root, "chat.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
-test("深度共读是探讨内双模式，不新增底部导航", () => {
-  assert.match(html, /role="tablist" aria-label="探讨模式"/);
-  assert.match(html, />日常探讨</);
-  assert.match(html, />深度共读</);
-  assert.equal((html.match(/data-tab="/g) || []).length, 6);
+test("探讨保持单一入口，深入研究作为对话内升级动作", () => {
+  assert.doesNotMatch(html, /role="tablist" aria-label="探讨模式"/);
+  assert.match(html, /id="chatResearchModeBtn"[^>]*>✦ 深入研究</);
+  assert.match(html, /id="chatResearchSuggestion"[^>]*hidden/);
+  assert.match(chat, /function upgradeToResearch\(\)/);
+  assert.match(chat, /questionInput\.value = question/);
+  assert.match(chat, /researchIntentPattern/);
+  assert.doesNotMatch(chat, /researchSuggestionBtn[^]*?\.click\(\)/);
+  assert.equal((html.match(/data-tab="/g) || []).length, 5);
 });
 
 test("研究工作台提供上下文、后台进度、结果和历史入口", () => {
@@ -41,9 +45,20 @@ test("联网研究按单次任务授权且网络证据与个人证据分层", ()
 });
 
 test("研究交互满足移动点击和减弱动画边界", () => {
-  assert.match(styles, /chat-mode-switch button[\s\S]*min-height:\s*44px/);
+  assert.match(styles, /\.chat-research-trigger[\s\S]*min-height:\s*44px/);
+  assert.match(styles, /\.chat-research-suggestion button[^}]*min-height:\s*44px/);
+  assert.match(styles, /\.research-workspace-header button[^}]*min-height:\s*44px/);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
   assert.match(styles, /\.research-workspace[\s\S]*min-width:\s*0/);
+});
+
+test("研究结果会披露无跨书发现，并可带着结论回到探讨", () => {
+  assert.match(chat, /result\.noveltyWarning/);
+  assert.match(chat, /data-research-continue/);
+  assert.match(chat, /基于刚才的研究结论/);
+  assert.match(chat, /dailyDraft === researchedQuestion/);
+  assert.match(styles, /\.research-novelty-warning/);
+  assert.match(styles, /\.research-continue-chat[^}]*min-height:\s*44px/);
 });
 
 test("切换深度共读上下文会清空旧结果，并忽略旧上下文的迟到响应", async () => {

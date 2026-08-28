@@ -215,6 +215,7 @@ PLAN_LIMITS = {
         "book_cap": 50,
         "endpoints": {
             "chat": {"hour": 30, "day": 50},
+            "reading_insights": {"hour": 12, "day": 40},
             # 「精识别」与「快速识别」共用此桶：40/天 = 20 + 20。前端「我的」显示一条 OCR 用量。
             "ocr": {"hour": 12, "day": 40},
             # Auth endpoints are limited per client IP (no user yet). Values are
@@ -230,6 +231,7 @@ PLAN_LIMITS = {
         "book_cap": 0,
         "endpoints": {
             "chat": {"hour": 60, "day": 240},
+            "reading_insights": {"hour": 30, "day": 120},
             "ocr": {"hour": 24, "day": 80},
             # Auth limits are pre-auth (always resolved against the free plan);
             # mirrored here only for symmetry.
@@ -3620,6 +3622,26 @@ def persist_research_proposals(run: dict, result: dict) -> dict:
             result["evidenceWarning"] = f"已移除 {invalid_evidence_count} 条无法定位到阅读记录的证据"
             if not valid_evidence_map:
                 result["summary"] = "证据不足，无法形成可靠的研究结论。"
+        current_book_id = str((run.get("context") or {}).get("bookId") or run.get("bookId") or "")
+        quote_books = {
+            str(item.get("id")): str(item.get("bookId") or "")
+            for item in state.get("quotes", []) if isinstance(item, dict)
+        }
+        cited_book_ids = {
+            quote_books.get(str(evidence_id), "")
+            for item in valid_evidence_map
+            for evidence_id in item.get("evidenceIds", [])
+            if quote_books.get(str(evidence_id), "")
+        }
+        cross_book_ids = sorted(book_id for book_id in cited_book_ids if book_id != current_book_id)
+        result["researchMeta"] = {
+            "citedBookCount": len(cited_book_ids),
+            "crossBookCount": len(cross_book_ids),
+            "crossBookDiscovery": bool(cross_book_ids),
+        }
+        cross_book_terms = ("跨书", "其他书", "异曲同工", "反驳", "对照", "比较", "关联")
+        if current_book_id and any(term in str(run.get("question") or "") for term in cross_book_terms) and not cross_book_ids:
+            result["noveltyWarning"] = "本次没有形成跨书发现：可核验证据仍全部来自当前书。"
         if not proposals:
             return result
 
@@ -3953,6 +3975,29 @@ def call_deepseek(messages: list[dict], model: str | None = None, max_tokens: in
             raise RuntimeError(str(error.reason)) from error
 
     raise RuntimeError("DeepSeek API 暂时不可用，请稍后重试")
+
+
+READING_INSIGHT_KEYS = ("momentum", "structure", "themes", "sediment")
+
+
+def parse_reading_insight_narratives(raw: str) -> dict[str, str]:
+    """Parse the small, display-only insight contract without trusting prose around it."""
+    cleaned = str(raw or "").strip()
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL | re.IGNORECASE)
+    candidate = fenced.group(1) if fenced else cleaned[cleaned.find("{") : cleaned.rfind("}") + 1]
+    try:
+        parsed = json.loads(candidate)
+    except (ValueError, TypeError) as error:
+        raise ValueError("AI 阅读洞察返回格式无效") from error
+    if not isinstance(parsed, dict):
+        raise ValueError("AI 阅读洞察返回格式无效")
+    narratives = {}
+    for key in READING_INSIGHT_KEYS:
+        value = " ".join(str(parsed.get(key) or "").split())[:180]
+        if not value:
+            raise ValueError(f"AI 阅读洞察缺少字段: {key}")
+        narratives[key] = value
+    return narratives
 
 
 def call_deepseek_stream(messages: list[dict], model: str | None = None, max_tokens: int = 2400):
@@ -5102,6 +5147,39 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+
+        if parsed.path == "/api/reading-insights":
+            conn, user = self._require_user()
+            if not conn:
+                return
+            if not self._enforce_rate_limit(conn, user["id"], "reading_insights"):
+                conn.close()
+                return
+            payload = self._read_json()
+            metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+            serialized_metrics = json.dumps(metrics, ensure_ascii=False, separators=(",", ":"))
+            if not metrics or len(serialized_metrics) > 8000:
+                conn.close()
+                self._active_conn = None
+                self._send_json({"error": "阅读分析数据无效"}, 400)
+                return
+            conn.close()
+            self._active_conn = None
+            prompt = (
+                "你是个人阅读分析师。根据下面的聚合统计分别写四条中文洞察，每条不超过70字。"
+                "只能解释给定数字，不得虚构用户比较、人格判断或未提供的事实。"
+                "数据不足时明确说数据不足，并给一个轻量下一步。"
+                "严格只输出 JSON 对象，字段必须为 momentum、structure、themes、sediment。\n"
+                f"聚合统计：{serialized_metrics}"
+            )
+            try:
+                raw = call_deepseek([{"role": "user", "content": prompt}], max_tokens=420)
+                self._send_json({"narratives": parse_reading_insight_narratives(raw)})
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 502)
+            except Exception as error:
+                self._send_json({"error": str(error)}, 503)
+            return
 
         if parsed.path == "/api/research-runs":
             conn, user = self._require_user()

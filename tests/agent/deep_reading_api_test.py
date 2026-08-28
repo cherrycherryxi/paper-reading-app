@@ -235,6 +235,18 @@ class DeepReadingApiTests(unittest.TestCase):
         self.assertEqual(result["summary"], "当前没有足够的阅读记录可供分析")
         self.assertNotIn("evidenceWarning", result)
 
+    def test_cross_book_request_discloses_when_only_current_book_was_found(self):
+        run, _ = app_server.research_store().create(
+            "u1", {"type": "book", "bookId": "b1"}, "找出其他书中的异曲同工",
+        )
+        result = app_server.persist_research_proposals(run, {
+            "summary": "只归纳了当前书",
+            "evidenceMap": [{"claim": "当前书证据", "evidenceIds": ["q1"]}],
+            "proposals": [],
+        })
+        self.assertFalse(result["researchMeta"]["crossBookDiscovery"])
+        self.assertIn("没有形成跨书发现", result["noveltyWarning"])
+
     def test_cancellation_winning_write_lock_creates_no_trace_or_action(self):
         run, _ = app_server.research_store().create("u1", {"type": "book", "bookId": "b1"}, "取消竞态")
         cancelling_conn = app_server.get_conn()

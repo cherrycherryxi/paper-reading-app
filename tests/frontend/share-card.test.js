@@ -95,8 +95,8 @@ function buildContext() {
   const instrumented = `${sourceWithoutBoot}
 showToast = function (m) { __toasts.push(String(m)); };
 globalThis.__hooks = {
-  renderQuoteShareCard, renderConnectionShareCard, renderBookShareCard,
-  shareQuoteCard, shareConnectionCard, shareBookCard, wrapCanvasText, truncateForShare,
+  renderQuoteShareCard, renderConnectionShareCard, renderBookShareCard, renderReadingInsightsShareCard,
+  shareQuoteCard, shareConnectionCard, shareBookCard, shareReadingInsightsCard, wrapCanvasText, truncateForShare,
   BOOK_REVIEW_MAX_CHARS, BOOK_REVIEW_TARGET_CHARS,
   setState(v) { state = v; },
   setUser(v) { currentUser = v; authToken = "test-token"; },
@@ -120,6 +120,27 @@ test("renderQuoteShareCard 把正文/出处/品牌/slogan 都画进画布并产�
   assert.ok(joined.includes("买书容易，读完才算。"), "slogan 应画入");
   assert.ok(joined.includes("批注 · 很喜欢这句"), "批注应画入");
   assert.ok(ctx.__draws.images >= 2, "应绘制 logo 与二维码两张图");
+});
+
+test("AI 阅读洞察分享图复用品牌视觉并绘制四类分析", async () => {
+  const { hooks, ctx } = buildContext();
+  hooks.setUser({ id: "u1" });
+  hooks.setState({
+    books: [
+      { id: "b1", title: "见树又见林", status: "reading", tags: ["时间"] },
+      { id: "b2", title: "你的脚比头年轻", status: "finished", tags: ["时间", "历史"] },
+    ],
+    sessions: [{ id: "s1", bookId: "b1", date: new Date().toISOString(), minutes: 45 }],
+    quotes: [{ id: "q1", bookId: "b1", kind: "quote", tags: ["时间"] }],
+    connections: [{ id: "c1", sourceType: "book", sourceId: "b1", tags: ["时间"] }],
+    memories: [{ id: "m1", content: "关注时间" }],
+  });
+  const dataUrl = await hooks.renderReadingInsightsShareCard();
+  assert.equal(dataUrl, "data:image/png;base64,FAKECARD");
+  for (const text of ["又买了一本书", "阅读动力", "阅读结构", "兴趣图谱", "知识沉淀", "看见阅读留下的轨迹"]) {
+    assert.ok(ctx.__draws.texts.includes(text), `分享图应绘制 ${text}`);
+  }
+  assert.ok(ctx.__draws.texts.some((text) => text.startsWith("AI 阅读洞察 · ")), "分享图应标注 AI 阅读洞察与日期");
 });
 
 test("长正文按宽度折行（wrapCanvasText）", () => {

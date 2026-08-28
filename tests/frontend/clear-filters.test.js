@@ -85,16 +85,15 @@ for (const page of [
   });
 }
 
-test("结构：三页都有 ✕ 清除按钮、render 里切换其显隐、bindEvents 里绑定点击", () => {
-  for (const id of ["clearSessionFiltersBtn", "clearQuoteFiltersBtn", "clearConnectionFiltersBtn"]) {
+test("结构：保留的摘抄与关联页都有 ✕ 清除按钮和完整绑定", () => {
+  assert.ok(!indexHtml.includes('id="clearSessionFiltersBtn"'), "已下线的记录页不应残留筛选控件");
+  for (const id of ["clearQuoteFiltersBtn", "clearConnectionFiltersBtn"]) {
     assert.ok(indexHtml.includes(`id="${id}"`), `index.html 应有 #${id}`);
   }
-  // 每个 render 函数把对应 ✕ 按钮按 hasActive*Filters 结果显隐
-  assert.match(appSource, /els\.clearSessionFiltersBtn\?\.classList\.toggle\("is-hidden", !hasActiveSessionFilters\(\)\)/);
+  // 每个仍可见页面的 render 函数把对应 ✕ 按钮按 hasActive*Filters 结果显隐
   assert.match(appSource, /els\.clearQuoteFiltersBtn\?\.classList\.toggle\("is-hidden", !hasActiveQuoteFilters\(\)\)/);
   assert.match(appSource, /els\.clearConnectionFiltersBtn\?\.classList\.toggle\("is-hidden", !hasActiveConnectionFilters\(\)\)/);
   // 点击绑定
-  assert.match(appSource, /els\.clearSessionFiltersBtn\?\.addEventListener\("click", clearAllSessionFilters\)/);
   assert.match(appSource, /els\.clearQuoteFiltersBtn\?\.addEventListener\("click", clearAllQuoteFilters\)/);
   assert.match(appSource, /els\.clearConnectionFiltersBtn\?\.addEventListener\("click", clearAllConnectionFilters\)/);
 });

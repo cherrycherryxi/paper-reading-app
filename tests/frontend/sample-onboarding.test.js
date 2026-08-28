@@ -183,9 +183,9 @@ test("demo 预览：已登录时是 no-op（不覆盖真实 state）", async () 
   assert.deepEqual(st.books.map((b) => b.id), ["mine"], "已登录不应被示例覆盖");
 });
 
-test("结构：书单/记录/摘抄的未登录门禁须放行示例预览(否则示例只在关联/我的可见)", () => {
+test("结构：书单/摘抄的未登录门禁须放行示例预览", () => {
   // 未登录但有示例 → 应渲染内容，不该短路成「登录后…」占位。
-  for (const fn of ["renderBooks", "renderTimeline", "renderQuotes"]) {
+  for (const fn of ["renderBooks", "renderQuotes"]) {
     const re = new RegExp(`function ${fn}\\(\\)\\s*\\{\\s*\\n\\s*if \\(!currentUser\\?\\.id && !hasSampleData\\(\\)\\)`);
     assert.match(appSource, re, `${fn} 未登录门禁须为 !currentUser?.id && !hasSampleData()`);
   }

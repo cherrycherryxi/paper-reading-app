@@ -1103,6 +1103,9 @@
   const researchBtn = document.querySelector("#chatResearchModeBtn");
   const dailyParts = [...document.querySelectorAll(".chat-daily-only")];
   const researchWorkspace = document.querySelector("#chatResearchWorkspace");
+  const chatInput = document.querySelector("#chatInput");
+  const researchSuggestion = document.querySelector("#chatResearchSuggestion");
+  const researchSuggestionBtn = document.querySelector("#chatResearchSuggestionBtn");
   const clearBtn = document.querySelector("#chatClearBtn");
   const contextCard = document.querySelector("#researchContextCard");
   const form = document.querySelector("#researchForm");
@@ -1131,6 +1134,13 @@
   const findQuote = (id) => (state().quotes || []).find((item) => item.id === id);
   const contextKey = (current = context()) => [current.type || "global", current.bookId || "", current.quoteId || ""].join(":");
   let activeContextKey = contextKey();
+  const researchIntentPattern = /(跨书|其他书|异曲同工|支持.{0,6}反驳|反驳|对照|比较|思想关联|公开资料|查证|证据|深入分析)/;
+
+  function updateResearchSuggestion() {
+    if (!researchSuggestion) return;
+    const question = String(chatInput?.value || "").trim();
+    researchSuggestion.hidden = question.length < 6 || !researchIntentPattern.test(question);
+  }
 
   function resetResearchContext() {
     const nextContextKey = contextKey();
@@ -1171,10 +1181,6 @@
     }
     mode = normalizedMode;
     const researching = mode === "research";
-    dailyBtn.classList.toggle("is-active", !researching);
-    researchBtn.classList.toggle("is-active", researching);
-    dailyBtn.setAttribute("aria-selected", String(!researching));
-    researchBtn.setAttribute("aria-selected", String(researching));
     dailyParts.forEach((item) => {
       if (researching) {
         dailyHiddenState.set(item, item.hidden);
@@ -1191,7 +1197,17 @@
       loadHistory();
       loadCapability();
       if (focusInput) questionInput?.focus({ preventScroll: true });
+    } else {
+      chatInput?.focus({ preventScroll: true });
+      updateResearchSuggestion();
     }
+  }
+
+  function upgradeToResearch() {
+    const question = String(chatInput?.value || "").trim();
+    if (questionInput && question) questionInput.value = question;
+    if (researchSuggestion) researchSuggestion.hidden = true;
+    setMode("research", true);
   }
 
   async function loadCapability() {
@@ -1249,10 +1265,12 @@
     const proposals = Array.isArray(result.proposals) ? result.proposals : [];
     resultBox.innerHTML = `
       <article><h3>研究结论</h3><p>${esc(result.summary || "暂无结论")}</p></article>
+      ${result.noveltyWarning ? `<p class="research-novelty-warning" role="status">${esc(result.noveltyWarning)}</p>` : ""}
       <article><h3>证据地图</h3><ul class="research-evidence-list">${evidence.map((item) => `<li class="research-evidence-item"><span class="research-relation">${esc(relationLabel[item.relation] || item.relation || "证据")}</span><strong>${esc(item.claim || "")}</strong><div class="research-evidence-reason">${esc(item.reason || "")} · ${esc((item.evidenceIds || []).join("、"))}</div></li>`).join("") || "<li>暂无可核验的证据。</li>"}</ul>${result.evidenceWarning ? `<p class="research-evidence-reason">${esc(result.evidenceWarning)}</p>` : ""}</article>
       ${webEvidence.length ? `<article><h3>公开网络资料</h3><p class="research-web-disclosure">这些资料来自本次联网检索，不属于你的个人摘抄。</p><ul class="research-evidence-list">${webEvidence.map((item) => `<li class="research-evidence-item research-web-evidence"><a href="${esc(item.url || "")}" target="_blank" rel="noopener noreferrer">${esc(item.title || item.url || "公开资料")}</a><div class="research-evidence-reason">${esc(item.snippet || "")}</div></li>`).join("")}</ul></article>` : ""}
       <article><h3>值得继续追问</h3><ul class="research-question-list">${questions.map((item) => `<li>${esc(item)}</li>`).join("") || "<li>暂无。</li>"}</ul></article>
-      ${proposals.length ? `<article><h3>待确认的沉淀建议</h3><ul class="research-proposal-list">${proposals.map((item) => `<li class="research-proposal-item"><strong>${esc(proposalLabel[item.type] || "阅读建议")}</strong><p>${esc(item.reason || "")}</p><span class="research-evidence-reason">依据 ${esc((item.evidenceIds || []).join("、") || "未标注")}</span>${item.action?.id && ["PENDING_APPROVAL", "FAILED"].includes(item.action.status) ? `<div class="research-proposal-actions" data-research-action="${esc(item.action.id)}"><button class="button button-primary button-small" type="button" data-research-approve>${item.action.status === "FAILED" ? "重试保存" : "确认保存"}</button><button class="button button-ghost button-small" type="button" data-research-reject>忽略</button></div>` : `<div class="research-evidence-reason">${esc(item.error || ({ EXECUTED: "已保存到阅读记录", REJECTED: "已忽略" }[item.action?.status] || "此建议不能执行"))}</div>`}</li>`).join("")}</ul></article>` : ""}`;
+      ${proposals.length ? `<article><h3>待确认的沉淀建议</h3><ul class="research-proposal-list">${proposals.map((item) => `<li class="research-proposal-item"><strong>${esc(proposalLabel[item.type] || "阅读建议")}</strong><p>${esc(item.reason || "")}</p><span class="research-evidence-reason">依据 ${esc((item.evidenceIds || []).join("、") || "未标注")}</span>${item.action?.id && ["PENDING_APPROVAL", "FAILED"].includes(item.action.status) ? `<div class="research-proposal-actions" data-research-action="${esc(item.action.id)}"><button class="button button-primary button-small" type="button" data-research-approve>${item.action.status === "FAILED" ? "重试保存" : "确认保存"}</button><button class="button button-ghost button-small" type="button" data-research-reject>忽略</button></div>` : `<div class="research-evidence-reason">${esc(item.error || ({ EXECUTED: "已保存到阅读记录", REJECTED: "已忽略" }[item.action?.status] || "此建议不能执行"))}</div>`}</li>`).join("")}</ul></article>` : ""}
+      <button class="button button-ghost research-continue-chat" type="button" data-research-continue>回到探讨继续聊</button>`;
   }
 
   async function loadRun(runId, revision = researchContextRevision) {
@@ -1299,7 +1317,9 @@
   }
 
   dailyBtn.addEventListener("click", () => setMode("daily"));
-  researchBtn.addEventListener("click", () => setMode("research"));
+  researchBtn.addEventListener("click", upgradeToResearch);
+  researchSuggestionBtn?.addEventListener("click", upgradeToResearch);
+  chatInput?.addEventListener("input", updateResearchSuggestion);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!window.paperReadingApp?.requireAuth?.("使用深度共读")) return;
@@ -1347,6 +1367,19 @@
     }
   });
   resultBox?.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-research-continue]")) {
+      setMode("daily");
+      const summary = String(activeRun?.result?.summary || "").trim();
+      const researchedQuestion = String(activeRun?.question || questionInput?.value || "").trim();
+      const dailyDraft = String(chatInput?.value || "").trim();
+      if (chatInput && summary && (!dailyDraft || dailyDraft === researchedQuestion)) {
+        const conciseSummary = summary.length > 120 ? `${summary.slice(0, 120)}…` : summary;
+        chatInput.value = `基于刚才的研究结论「${conciseSummary}」，我还想追问：`;
+      }
+      updateResearchSuggestion();
+      chatInput?.focus({ preventScroll: true });
+      return;
+    }
     const actions = event.target.closest("[data-research-action]");
     if (!actions) return;
     const actionId = actions.dataset.researchAction;
@@ -1384,6 +1417,10 @@
     renderStatus(null);
     renderResult(null);
     if (mode === "research") { loadHistory(); loadCapability(); }
+  });
+
+  document.querySelector("#chatPromptChips")?.addEventListener("click", () => {
+    setTimeout(updateResearchSuggestion, 0);
   });
 
   window.paperReadingApp.switchChatToDeepResearch = ({ bookId = "", quoteId = "", question = "" } = {}) => {

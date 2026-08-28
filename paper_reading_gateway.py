@@ -393,13 +393,20 @@ def get_reading_context(ctx: Context) -> dict[str, Any]:
 
 
 @mcp.tool()
-def search_quotes(query: str = "", relation_scope: str = "all", limit: int = 20, ctx: Context = None) -> list[dict[str, Any]]:
-    """在当前用户的摘抄中检索证据；可限定当前书或跨书检索，最多 50 条。"""
+def search_quotes(
+    query: str = "", relation_scope: str = "all", limit: int = 20,
+    exclude_current_book: bool = False, book_ids: list[str] | None = None,
+    ctx: Context = None,
+) -> list[dict[str, Any]]:
+    """检索个人摘抄；可排除当前书或限定目标书，最多返回 50 条。"""
     run = _bound_run(ctx)
     state = _state(run)
     needle = str(query or "").strip().lower()
     terms = [term for term in re.split(r"[\s,，。；;、|/]+", needle) if term]
     scope = "book" if str(relation_scope or "").strip().lower() == "book" else "all"
+    selected_book_ids = {
+        str(book_id) for book_id in (book_ids or [])[:12] if str(book_id).strip()
+    }
     items = []
     for index, quote in enumerate(state.get("quotes", [])):
         book = _book(state, str(quote.get("bookId") or "")) or {}
@@ -408,8 +415,13 @@ def search_quotes(query: str = "", relation_scope: str = "all", limit: int = 20,
             str(book.get("title") or ""),
             str(book.get("author") or ""),
         ]).lower()
-        same_book = not run["book_id"] or str(quote.get("bookId")) == run["book_id"]
-        if scope == "book" and not same_book:
+        current_book_id = str(run["book_id"] or "")
+        same_book = bool(current_book_id) and str(quote.get("bookId")) == current_book_id
+        if scope == "book" and current_book_id and not same_book:
+            continue
+        if exclude_current_book and same_book:
+            continue
+        if selected_book_ids and str(quote.get("bookId")) not in selected_book_ids:
             continue
         matched_terms = sum(term in text for term in terms)
         if terms and not matched_terms:
@@ -421,7 +433,11 @@ def search_quotes(query: str = "", relation_scope: str = "all", limit: int = 20,
     result = [item[-1] for item in items[: max(1, min(int(limit or 20), 50))]]
     store.progress(
         run["run_id"], "search", f"已找到 {len(result)} 条候选摘抄", "QUOTE_SEARCH_COMPLETED",
-        {"query": str(query)[:120], "relationScope": scope, "count": len(result)},
+        {
+            "query": str(query)[:120], "relationScope": scope,
+            "excludeCurrentBook": bool(exclude_current_book),
+            "bookIds": sorted(selected_book_ids), "count": len(result),
+        },
     )
     return result
 

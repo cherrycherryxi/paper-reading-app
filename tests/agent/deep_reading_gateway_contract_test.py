@@ -175,6 +175,18 @@ class DeepReadingGatewayContractTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     [item["id"] for item in paper_reading_gateway.search_quotes(
+                        "", exclude_current_book=True, ctx=ctx,
+                    )],
+                    ["q2"],
+                )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes(
+                        "", book_ids=["b2"], ctx=ctx,
+                    )],
+                    ["q2"],
+                )
+                self.assertEqual(
+                    [item["id"] for item in paper_reading_gateway.search_quotes(
                         "荒野 动物", relation_scope="book", ctx=ctx,
                     )],
                     ["q1"],

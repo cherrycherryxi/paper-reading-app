@@ -407,8 +407,12 @@ quoteId：{context['quoteId']}
 0. {web_instruction}
 1. 最终回答前必须通过原生 function calling 调用 `mcp__paper-reading__get_reading_context`，参数使用上面的 contextType、bookId、quoteId。不得把 `<tool_calls>`、`<invoke>` 或工具参数写进普通文本。
 2. 随后必须至少调用一次 `mcp__paper-reading__search_quotes`；需要扩展取证时再调用 list_books、get_connections、get_confirmed_memories 或 get_reading_timeline。
+   - 如果问题要求跨书比较、异曲同工、反驳或其他书的观点，首次检索必须传 `exclude_current_book=true`，不得用当前书证据冒充跨书发现。
+   - 关键词零命中时，不得退化为 `query=""` 后读取全书架前 50 条。先用 `list_books` 找可能相关的目标书，再把真实 bookId 传给 `search_quotes.book_ids` 做定向宽召回；仍无证据就明确报告未找到。
+   - 跨书任务应尽量覆盖至少 2 本其他书，并同时寻找支持、反驳、延伸三种关系；证据不够时如实缺省，不凑数。
 3. 只要工具返回了摘抄，就必须在 evidenceMap 中引用其真实 id。工具没有返回证据时，不得给出实质性研究结论，只能说明证据不足。
 4. 明确区分“用户原始记录”与“你的推断”，不得虚构书中内容。
+   若最终证据全部来自当前书，summary 必须明确写出“本次没有形成跨书发现”，不得把同书归纳包装成跨书深度研究。
 5. 最终只输出 JSON，不要 Markdown，顶层结构为：
 {{"summary":"结论", "evidenceMap":[{{"relation":"support|challenge|extend", "claim":"判断", "evidenceIds":["个人证据ID"], "reason":"解释"}}], "webEvidence":[{{"title":"网页标题", "url":"https://...", "snippet":"摘要", "retrievedAt":"时间"}}], "openQuestions":["待追问"], "proposals":[]}}
 6. evidenceMap 中每项至少包含一个真实证据 ID；proposals 最多 3 条，只是待用户审批的建议，不能自行写入。

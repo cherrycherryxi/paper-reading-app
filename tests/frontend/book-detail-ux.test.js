@@ -112,7 +112,7 @@ test("OPT-049 ③: a note (kind=note) is listed in the related section with a �
   assert.match(html, /笔记/, "the card meta must label it as 笔记 (justifying the 摘抄/笔记 heading)");
 });
 
-test("OPT-136: book detail shows the five most recent reading sessions and a complete summary", () => {
+test("记录页下线后，书籍详情显示全部阅读记录和完整汇总", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1" });
   h.setState({
@@ -131,10 +131,10 @@ test("OPT-136: book detail shows the five most recent reading sessions and a com
 
   h.openBookDetailDialog("b1");
 
-  assert.equal(h.els.bookDetailSessions.innerHTML.match(/class="book-detail-session"/g)?.length, 5);
+  assert.equal(h.els.bookDetailSessions.innerHTML.match(/class="book-detail-session"/g)?.length, 6);
   assert.match(h.els.bookDetailSessions.innerHTML, /第 101–120 页 · 5 分钟/, "newest session is first");
-  assert.doesNotMatch(h.els.bookDetailSessions.innerHTML, /第 1–20 页/, "oldest session is outside the preview");
-  assert.match(h.els.bookDetailSessions.innerHTML, /查看全部 6 条记录/);
+  assert.match(h.els.bookDetailSessions.innerHTML, /第 1–20 页/, "oldest session remains accessible in book detail");
+  assert.doesNotMatch(h.els.bookDetailSessions.innerHTML, /查看全部 6 条记录/);
   assert.equal(h.els.bookDetailSessionsSummary.textContent, "6 次 · 共 105 分钟");
 
   h.setState({
