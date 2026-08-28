@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T07:02:47.699Z
-> Files: 380 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T08:20:54.540Z
+> Files: 396 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -82,6 +82,39 @@
 ## ../../../../private/tmp/deepseek-harness-runtime-build/python/sdk-runtime/
 
 - `package.json` — Node.js package manifest (~1730 tok)
+
+## ../../../../private/tmp/paper-dsh-upgrade.vxsavE/
+
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~82924 tok)
+- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~16010 tok)
+- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~6911 tok)
+- `index.html` — 🐛 又买了一本书 (~14005 tok)
+- `paper_reading_gateway.py` — Read-only MCP Gateway with controlled Tavily Search/Extract for the DeepSeek Harness sidecar. (~5350 tok)
+- `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~29289 tok)
+
+## ../../../../private/tmp/paper-dsh-upgrade.vxsavE/.wolf/
+
+- `anatomy.md` — anatomy.md (~8497 tok)
+- `memory.md` — Memory (~104021 tok)
+
+## ../../../../private/tmp/paper-dsh-upgrade.vxsavE/docs/
+
+- `deepseek-harness-deep-reading-workbench.md` — DeepSeek Harness 深度共读工作台设计方案 (~3958 tok)
+
+## ../../../../private/tmp/paper-dsh-upgrade.vxsavE/experiments/dsh-paper-reading/
+
+- `cordis.yml` — Sidecar-only dsh composition.  It intentionally omits filesystem, shell, (~773 tok)
+
+## ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/agent/
+
+- `deep_reading_api_test.py` — _Runner: start, cancel, start, setUp + 14 more (~4340 tok)
+- `deep_reading_cordis_contract_test.py` — DeepReadingCordisContractTests: test_sdk_upgrade_is_exactly_pinned, test_gateway_tools_share_the_roo (~474 tok)
+- `deep_reading_web_test.py` — DeepReadingWebTests: setUp, tearDown, context, test_server_switch_defaults_off + 8 more (~1900 tok)
+
+## ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/frontend/
+
+- `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1436 tok)
 
 ## ../../../../private/tmp/paper-opt148/
 
@@ -250,14 +283,14 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~81360 tok)
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~83334 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~76695 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15683 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15572 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
-- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~5382 tok)
+- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~6871 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
 - `index.html` — 🐛 又买了一本书 (~13931 tok)
@@ -265,13 +298,13 @@
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
 - `mcp.log` — Declares ListToolsRequest (~240544 tok)
-- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~2517 tok)
+- `paper_reading_gateway.py` — Read-only MCP Gateway with controlled Tavily Search/Extract for the DeepSeek Harness sidecar. (~5350 tok)
 - `privacy.html` — 隐私政策 · 又买了一本书 (~934 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
 - `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~29089 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~29376 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -385,6 +418,9 @@
 ## Current planning state (2026-08-25 Explore)
 
 
+## Deep reading controlled web research (2026-08-28)
+
+
 ## assets/
 
 - `.DS_Store` (~1640 tok)
@@ -398,7 +434,7 @@
 
 - `codex-cloud-scheduled-migration.md` — Codex Cloud Scheduled 夜间 Agent (~527 tok)
 - `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1991 tok)
-- `deepseek-harness-deep-reading-workbench.md` — DeepSeek Harness 深度共读工作台设计方案 (~3809 tok)
+- `deepseek-harness-deep-reading-workbench.md` — DeepSeek Harness 深度共读工作台设计方案 (~3991 tok)
 - `product-agent-context-and-control-analysis.md` — 产品 Agent：动态上下文管理与可控性分析 (~978 tok)
 
 ## docs/releases/
@@ -408,7 +444,7 @@
 
 ## experiments/dsh-paper-reading/
 
-- `cordis.yml` — Sidecar-only dsh composition.  It intentionally omits filesystem, shell, (~742 tok)
+- `cordis.yml` — Sidecar-only dsh composition.  It intentionally omits filesystem, shell, (~801 tok)
 - `README.md` — Project documentation (~293 tok)
 
 ## optimization/
@@ -522,6 +558,7 @@
 - `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~4996 tok)
 - `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~920 tok)
 - `deep_reading_store_test.py` — DeepReadingStoreTests: setUp, tearDown, test_run_token_binds_gateway_to_server_side_user, test_conte (~1001 tok)
+- `deep_reading_web_test.py` — DeepReadingWebTests: setUp, tearDown, context, test_server_switch_defaults_off + 10 more (~2347 tok)
 - `deepseek_retry_test.py` — DeepseekRetryTest: test_success_no_retry, test_uses_model_from_environment_configuration, test_retri (~5517 tok)
 - `deployment_config_test.py` — Regression tests for production deployment configuration (P3 commercialization). (~1379 tok)
 - `gc_thread_test.py` — Tests for the GC background thread wired up in main() (OPT-010). (~1367 tok)
@@ -577,7 +614,7 @@
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1544 tok)
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
-- `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1337 tok)
+- `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1522 tok)
 - `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1305 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~3156 tok)
 - `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1695 tok)
@@ -625,20 +662,20 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -646,30 +683,30 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)

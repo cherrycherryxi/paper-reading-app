@@ -5618,3 +5618,91 @@
 | 14:59 | Session end: 3 writes across 3 files (app.js, styles.css, quote-card-image-thumb.test.js) | 0 reads | ~107675 tok |
 | 15:02 | Session end: 3 writes across 3 files (app.js, styles.css, quote-card-image-thumb.test.js) | 0 reads | ~107675 tok |
 | 15:02 | Created ../../.claude/paper-loop/today-pick.md | — | ~50 |
+| 15:04 | Session end: 4 writes across 4 files (app.js, styles.css, quote-card-image-thumb.test.js, today-pick.md) | 0 reads | ~107729 tok |
+| 15:05 | Session end: 4 writes across 4 files (app.js, styles.css, quote-card-image-thumb.test.js, today-pick.md) | 0 reads | ~107729 tok |
+
+## Session: 2026-08-28 15:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:08 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/deep_reading.py | — | ~6833 |
+| 15:08 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/requirements-dsh.txt | — | ~31 |
+| 15:09 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/paper_reading_gateway.py | — | ~4147 |
+| 15:10 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/paper_reading_gateway.py | — | ~4174 |
+| 15:10 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/app_server.py | — | ~82482 |
+| 15:10 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/app_server.py | — | ~82710 |
+| 15:12 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/index.html | — | ~14004 |
+| 15:12 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/chat.js | — | ~16010 |
+| 15:12 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/styles.css | — | ~29289 |
+| 15:12 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/app_server.py | — | ~82924 |
+| 15:12 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/deep_reading.py | — | ~6845 |
+| 15:12 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/experiments/dsh-paper-reading/cordis.yml | — | ~773 |
+| 15:13 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/docs/deepseek-harness-deep-reading-workbench.md | — | ~4039 |
+| 15:13 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/docs/deepseek-harness-deep-reading-workbench.md | — | ~4162 |
+| 15:14 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/agent/deep_reading_web_test.py | — | ~1344 |
+| 15:14 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/frontend/deep-reading-workbench.test.js | — | ~1436 |
+| 15:14 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/agent/deep_reading_cordis_contract_test.py | — | ~419 |
+| 15:15 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/paper_reading_gateway.py | — | ~4221 |
+| 15:15 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/agent/deep_reading_api_test.py | — | ~4340 |
+| 15:15 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/agent/deep_reading_cordis_contract_test.py | — | ~474 |
+| 15:19 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/paper_reading_gateway.py | — | ~4401 |
+| 15:20 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/tests/agent/deep_reading_web_test.py | — | ~1900 |
+| 15:20 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/docs/deepseek-harness-deep-reading-workbench.md | — | ~4215 |
+| 15:20 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/index.html | — | ~14005 |
+| 15:20 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/paper_reading_gateway.py | — | ~4397 |
+| 15:29 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/.wolf/anatomy.md | — | ~9064 |
+| 15:29 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/.wolf/memory.md | — | ~110956 |
+| 15:29 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/docs/deepseek-harness-deep-reading-workbench.md | — | ~4222 |
+| 15:30 | Created ../../../../private/tmp/paper-dsh-upgrade.vxsavE/deep_reading.py | — | ~6911 |
+
+## Session: 2026-08-28 DeepSeek Harness controlled-web upgrade
+
+- SDK 从 `0.1.0rc6` 精确升级到 `0.1.1rc1`；Intel macOS 没有官方 runtime wheel，需用同版本 tag 构建外置 runtime，并通过 `DSH_RUNTIME_BIN` 配置，不能让 SDK 与 rc6 runtime 混用。
+- 联网采用双层授权：服务端 `DEEP_READING_WEB_ENABLED` 默认关闭，任务 `webEnabled` 每次默认 false 且前端不记忆。
+- 不加载 Harness 的通用 WebFetch、shell 或文件工具；联网只经过应用自有 `search_public_web`，固定 HTTPS 搜索端点，固定连接预解析公网 IP，拒绝重定向、私网地址、长摘抄查询、超时和超限响应。
+- 网络证据保存在 `webEvidence`，个人记录仍使用 `evidenceMap`；联网失败不能破坏个人证据研究，所有写入仍必须进入既有 proposal 审批状态机。
+- `research_web_requests` 记录 run/user/query/端点主机/状态/结果数，并纳入账户导出与删除。
+| 15:32 | Session end: 29 writes across 15 files (deep_reading.py, requirements-dsh.txt, paper_reading_gateway.py, app_server.py, index.html) | 0 reads | ~522493 tok |
+| 15:37 | Session end: 29 writes across 15 files (deep_reading.py, requirements-dsh.txt, paper_reading_gateway.py, app_server.py, index.html) | 0 reads | ~522493 tok |
+| 15:39 | Session end: 29 writes across 15 files (deep_reading.py, requirements-dsh.txt, paper_reading_gateway.py, app_server.py, index.html) | 0 reads | ~522493 tok |
+| 15:41 | Session end: 29 writes across 15 files (deep_reading.py, requirements-dsh.txt, paper_reading_gateway.py, app_server.py, index.html) | 0 reads | ~522493 tok |
+| 15:53 | Session end: 29 writes across 15 files (deep_reading.py, requirements-dsh.txt, paper_reading_gateway.py, app_server.py, index.html) | 0 reads | ~522493 tok |
+
+## Session: 2026-08-28 15:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:02 | Created deep_reading.py | — | ~6871 |
+| 16:02 | Created app_server.py | — | ~83190 |
+| 16:02 | Created experiments/dsh-paper-reading/cordis.yml | — | ~801 |
+| 16:03 | Created paper_reading_gateway.py | — | ~5180 |
+| 16:04 | Created paper_reading_gateway.py | — | ~5326 |
+| 16:04 | Created tests/agent/deep_reading_web_test.py | — | ~2322 |
+| 16:05 | Created paper_reading_gateway.py | — | ~5352 |
+| 16:05 | Created tests/agent/deep_reading_web_test.py | — | ~2347 |
+
+## Session: 2026-08-28 Tavily controlled-web integration
+
+- 全局仅安装 Tavily 官方 `tavily-best-practices`、`tavily-search`、`tavily-extract` 三个 Skills；CLI OAuth 与应用凭据分离。
+- 深度共读联网改为固定 `api.tavily.com` 的 Search → 筛选 → Extract 两阶段流程，不再需要自建 SearXNG/Docker 或可配置任意端点。
+- `DEEP_READING_WEB_ENABLED` 与每次任务 `webEnabled` 继续双重默认关闭；可选 `TAVILY_API_KEY`，缺省走 keyless，但可能遇到共享 429 限流。
+- Extract 只接受同一 research run 已登记的搜索结果 URL，每次最多 3 个来源、每个来源 2 个相关片段；网络证据继续与个人摘抄证据隔离。
+- Tavily 主机是代码常量，TLS 仍校验且不跟随重定向；允许 Clash/VPN fake-IP DNS，搜索结果仍拒绝 localhost、`.local` 和字面量非公网 IP。
+
+## Session: 2026-08-28 Deep-reading web checkbox feedback fix
+
+- “本次允许联网”复选框能改变 checked 状态但没有视觉反馈，根因是全局 `input` 的 `appearance:none` 与文本框 padding 覆盖了原生 checkbox；此前 terms/shelf OCR 已有同类修复，但新控件未复用。
+- `.research-web-option input[type="checkbox"]` 现在显式恢复 `appearance:auto`、`-webkit-appearance:checkbox`、`padding:0` 和 20px 固定尺寸，并补 `:focus-visible` 键盘焦点环。
+- 回归测试直接读取真实 `styles.css` 约束 appearance/padding；Chrome computed style 验证为 `appearance=checkbox`、20×20px、padding 0。
+| 16:07 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4256 |
+| 16:07 | Created app_server.py | — | ~83334 |
+| 16:07 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4257 |
+| 16:10 | Session end: 11 writes across 6 files (deep_reading.py, app_server.py, cordis.yml, paper_reading_gateway.py, deep_reading_web_test.py) | 0 reads | ~203844 tok |
+
+## Session: 2026-08-28 16:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:20 | Created styles.css | — | ~29376 |
+| 16:20 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1522 |
+| 16:23 | Session end: 2 writes across 2 files (styles.css, deep-reading-workbench.test.js) | 0 reads | ~30898 tok |
