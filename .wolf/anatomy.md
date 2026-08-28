@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T15:20:27.308Z
-> Files: 414 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T23:06:15.481Z
+> Files: 419 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -69,6 +69,8 @@
 
 ## ../../../../private/tmp/
 
+- `big-breasts-wide-hips-review.md` — 读《丰乳肥臀》，我看到历史怎样落在人身上 (~601 tok)
+- `build_moon_tiger_docx.py` — set_run_font, add_page_number (~1522 tok)
 - `dsh-runtime-smoke-cordis.yml` (~182 tok)
 - `moon-tiger-review.md` — 我忘了读过《月亮虎》，却因此记住了它 (~549 tok)
 
@@ -220,6 +222,11 @@
 
 - `deep_reading_api_test.py` — _Runner: start, cancel, start, setUp + 15 more (~3983 tok)
 
+## ../../../../tmp/paper-pr136-review.2gjcP3/optimization/
+
+- `backlog.md` — Optimization Backlog (~46041 tok)
+- `triage.md` — Triage (~2255 tok)
+
 ## ../../../../tmp/paper-reconcile-20260823.q12Isg/optimization/
 
 - `backlog.md` — Optimization Backlog (~44464 tok)
@@ -271,6 +278,7 @@
 - `review-2026-08-26.md` (~2 tok)
 - `review-2026-08-27.md` (~2 tok)
 - `review-2026-08-28.md` (~2 tok)
+- `review-2026-08-29.md` — paper-reading-app 夜间 PR 审查汇总（2026-08-29） (~179 tok)
 - `today-pick.md` — 卡片① (~47 tok)
 
 ## ../../.claude/scripts/configs/
@@ -667,38 +675,38 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第10篇-词语活得更久/
 
-- `文案.md` — 标题三选一 (~149 tok)
 - `material.md` — 真实素材 (~21 tok)
 - `vars.sh` (~42 tok)
+- `文案.md` — 标题三选一 (~149 tok)
 
 ## 小红书物料/第11篇-现在的书架/
 
-- `文案.md` — 标题三选一 (~161 tok)
 - `material.md` — 真实素材 (~30 tok)
 - `vars.sh` (~34 tok)
+- `文案.md` — 标题三选一 (~161 tok)
 
 ## 小红书物料/第12篇-时间是谁写出来的/
 
-- `文案.md` — 标题三选一 (~173 tok)
 - `material.md` — 真实素材 (~107 tok)
 - `vars.sh` (~44 tok)
+- `文案.md` — 标题三选一 (~173 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -706,33 +714,33 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 
 ## 小红书物料/第8篇-老了才要回时间/
 
@@ -740,6 +748,6 @@
 
 ## 小红书物料/第9篇-两种英式幽默/
 
-- `文案.md` — 标题三选一 (~169 tok)
 - `material.md` — 真实素材 (~37 tok)
 - `vars.sh` (~46 tok)
+- `文案.md` — 标题三选一 (~169 tok)
