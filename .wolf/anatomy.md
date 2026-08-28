@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T08:20:54.540Z
-> Files: 396 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T14:31:23.706Z
+> Files: 413 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -283,28 +283,29 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~228 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~83334 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~76695 tok)
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~84376 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~81161 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
-- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15683 tok)
+- `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~16534 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15572 tok)
 - `CLAUDE.md` — OpenWolf (~1489 tok)
-- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~6871 tok)
+- `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~6966 tok)
+- `designqc-reading-insights.html` (~0 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~13931 tok)
+- `index.html` — 🐛 又买了一本书 (~13818 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
 - `mcp.log` — Declares ListToolsRequest (~240544 tok)
-- `paper_reading_gateway.py` — Read-only MCP Gateway with controlled Tavily Search/Extract for the DeepSeek Harness sidecar. (~5350 tok)
+- `paper_reading_gateway.py` — Read-only MCP Gateway for the DeepSeek Harness research sidecar. (~5518 tok)
 - `privacy.html` — 隐私政策 · 又买了一本书 (~934 tok)
 - `reading_mcp_server.py` — _StateVersionConflict: add_note, add_book, summary (~4890 tok)
 - `README.md` — Project documentation (~1455 tok)
 - `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~29376 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~30993 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -434,7 +435,7 @@
 
 - `codex-cloud-scheduled-migration.md` — Codex Cloud Scheduled 夜间 Agent (~527 tok)
 - `codex-project-migration.md` — Codex Project Migration: paper-reading-app (~1991 tok)
-- `deepseek-harness-deep-reading-workbench.md` — DeepSeek Harness 深度共读工作台设计方案 (~3991 tok)
+- `deepseek-harness-deep-reading-workbench.md` — DeepSeek Harness 深度共读工作台设计方案 (~4016 tok)
 - `product-agent-context-and-control-analysis.md` — 产品 Agent：动态上下文管理与可控性分析 (~978 tok)
 
 ## docs/releases/
@@ -553,9 +554,9 @@
 - `db_index_test.py` — Tests for secondary indexes on the observability tables (OPT-017 / OPT-025). (~1153 tok)
 - `debug_overview_test.py` — P2 增长总览 /debug/overview 回归锁。 (~1669 tok)
 - `debug_xss_test.py` — Regression tests for OPT-034: stored XSS in /debug/logs and /debug/agent-dashboard. (~1410 tok)
-- `deep_reading_api_test.py` — _Runner: start, setUp, tearDown, request + 3 more (~1505 tok)
+- `deep_reading_api_test.py` — _Runner: start, cancel, start, setUp + 15 more (~4498 tok)
 - `deep_reading_cordis_contract_test.py` — DeepReadingCordisContractTests: test_gateway_tools_share_the_root_registry_and_are_strictly_ordered, (~409 tok)
-- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~4996 tok)
+- `deep_reading_gateway_contract_test.py` — DeepReadingGatewayContractTests: test_gateway_exposes_only_read_tools_without_identity_argument, tes (~5136 tok)
 - `deep_reading_runtime_test.py` — DeepReadingRuntimeTests: test_capability_is_explicitly_opt_in, test_external_runtime_prefers_single_ (~920 tok)
 - `deep_reading_store_test.py` — DeepReadingStoreTests: setUp, tearDown, test_run_token_binds_gateway_to_server_side_user, test_conte (~1001 tok)
 - `deep_reading_web_test.py` — DeepReadingWebTests: setUp, tearDown, context, test_server_switch_defaults_off + 10 more (~2347 tok)
@@ -575,6 +576,7 @@
 - `prompt_builder_recent_quotes_test.py` — Tests: book_with_more_than_20_quotes_sends_newest_20, book_with_20_or_fewer_quotes_sends_all, quotes_are_ordered_newest_first (~968 tok)
 - `quote_ocr_engine_test.py` — _FakeResp: read, test_returns_normalized_text_from_stdout, test_default_langs_excludes_eng, test_mis (~5030 tok)
 - `rate_limit_test.py` — Regression tests for AI endpoint rate limiting (P0 commercialization). (~2412 tok)
+- `reading_insights_test.py` — ReadingInsightsTests: setUp, tearDown, request, test_parser_accepts_fenced_json_and_bounds_copy + 3 (~991 tok)
 - `reading_mcp_server_tools_test.py` — Tests: add_note_writes_note_to_quotes_head, add_note_rejects_empty_content_without_writing, add_book_creates_wishlist_book_and_skips_duplicate, add... (~5530 tok)
 - `recompress_originals_test.py` — OPT-085 历史大图清理脚本的目标选择/参数解析回归锁。 (~982 tok)
 - `register_ensure_state_utc_ts_test.py` — Regression tests for OPT-038: user registration and ensure_user_state() must (~1449 tok)
@@ -598,7 +600,7 @@
 - `api-fetch-interrupted.test.js` — 真机事故（2026-07-17）：拍完书架切到别的 App，回来显示「无法连接后端服务， (~1172 tok)
 - `book-card-hierarchy.test.js` — OPT-146：书单卡片只保留扫读所需的信息；完整元信息仍在详情页可达。 (~1448 tok)
 - `book-cover-thumbnail-lazy.test.js` — 书单封面「缩略图 + 懒加载」优化：书单原来一次性拉 28MB 原图封面，改为用 (~1084 tok)
-- `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~2512 tok)
+- `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~2497 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~2092 tok)
 - `book-filter-clear-all.test.js` — OPT-107 书单三个筛选维度（搜索词 / 状态 chip / 标签 chip）的「清除全部筛选」入口。 (~2476 tok)
 - `book-list-ordering-fix.test.js` — test: createElementStub, innerHTML, innerHTML + 5 more (~4598 tok)
@@ -607,14 +609,14 @@
 - `book-review-rating.test.js` — OPT-098: AI 读后感生成 + 星级评分（E159 + E160 合并 PR） (~3049 tok)
 - `book-tag-filter-more.test.js` — OPT-145：标签筛选首屏只展示常用项，并提供可搜索的完整标签面板。 (~1471 tok)
 - `chat-agent-approval.test.js` — test: createElementStub, innerHTML, innerHTML + 4 more (~6960 tok)
-- `clear-filters.test.js` — 「一键清除全部筛选」从书单页扩展到 记录 / 摘抄 / 关联 三页（呼应 07-11 signal）。 (~1551 tok)
+- `clear-filters.test.js` — 「一键清除全部筛选」从书单页扩展到 记录 / 摘抄 / 关联 三页（呼应 07-11 signal）。 (~1496 tok)
 - `combobox-position-and-label.test.js` — bug-415: 关联对话框书籍 combobox 两个问题 (~1472 tok)
 - `combobox-single-open.test.js` — bug-406: 关联对话框「在目标摘抄框输入，却弹出并显示来源那一侧的下拉」。 (~1391 tok)
 - `connection-crud.test.js` — OPT-045: regression coverage for the 关联 (Connection) Tab — the app's (~4355 tok)
 - `connection-entry-ux.test.js` — OPT-079 + OPT-080: 关联体验双修回归覆盖。 (~1544 tok)
 - `connection-target-default.test.js` — OPT-140: 建立关联弹窗，来源为摘抄时目标类型应默认「摘抄」而非「书籍」。 (~1297 tok)
 - `custom-quote-tags-sync.test.js` — OPT-078: 自定义摘抄标签跨设备同步回归覆盖。 (~2033 tok)
-- `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1522 tok)
+- `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1761 tok)
 - `deep-reading-workbench.test.js` — API routes: GET (1 endpoints) (~1305 tok)
 - `dialog-escape-cleanup.test.js` — OPT-062: confirm dialogs must clean up event listeners when the Escape key (~3156 tok)
 - `douban-import.test.js` — OPT-105 豆瓣导入：从豆瓣「读过」CSV 回填已有书的空缺字段（评分/读完日期/读后感）， (~1695 tok)
@@ -636,15 +638,17 @@
 - `quote-page-prefill.test.js` — OPT-095: 新建摘抄对话框的页码字段应预填 book.currentPage（正在读的这一页）， (~1475 tok)
 - `quote-search-card-image.test.js` — OPT-070: buildQuoteSearchCard() must fill quote.imageUrl in the cover like the (~1294 tok)
 - `quote-tag-picker-persist.test.js` — 摘抄标签 picker 的来源 = 默认标签 + 用户经输入框「手动敲过」的自定义标签(localStorage)。 (~1664 tok)
+- `reading-insights-dashboard.test.js` — Declares test (~610 tok)
+- `record-page-removal.test.js` — Declares test (~294 tok)
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20729 tok)
 - `resolve-connection-side-ocr.test.js` — OPT-127: resolveConnectionSide() 的 quote 分支仅读 content，OCR 摘抄（content 为空、 (~1646 tok)
-- `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2729 tok)
+- `sample-onboarding.test.js` — 新用户 onboarding：注册即种入示例内容（isSample 标记），前端顶部「一键清除」横幅， (~2719 tok)
 - `search-field-bundle.test.js` — OPT-092 + OPT-083 + OPT-056 + OPT-088 + OPT-096 + OPT-097 + OPT-116 (~4149 tok)
 - `session-crud.test.js` — OPT-045: regression coverage for the 记录 (Session) Tab, which had no (~4540 tok)
 - `session-date-prefill.test.js` — OPT-059: openNewSessionForBook() date pre-fill must use local timezone (not UTC). (~2153 tok)
 - `session-stats-always.test.js` — OPT-053: renderTimeline session stats bar shows during normal browsing (~2182 tok)
 - `share-card-dark.test.js` — OPT-104 深色模式分享卡回归锁：驱动 app.js 真实的 activeShareCard / renderQuoteShareCard， (~1473 tok)
-- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4078 tok)
+- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4374 tok)
 - `shelf-ocr.test.js` — OPT-118 拍书架批量加书：执行真实 app.js 的 runShelfOcr / confirmShelfOcr。 (~4803 tok)
 - `state-optimistic-lock.test.js` — OPT-029 Layer B / E35: syncState() must echo the loaded state version on PUT (~1665 tok)
 - `timeline-date-search.test.js` — OPT-112: renderTimeline search haystack includes the session date (~1948 tok)
@@ -668,6 +672,24 @@
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+
+## 小红书物料/第10篇-词语活得更久/
+
+- `文案.md` — 标题三选一 (~149 tok)
+- `material.md` — 真实素材 (~21 tok)
+- `vars.sh` (~42 tok)
+
+## 小红书物料/第11篇-现在的书架/
+
+- `文案.md` — 标题三选一 (~161 tok)
+- `material.md` — 真实素材 (~30 tok)
+- `vars.sh` (~34 tok)
+
+## 小红书物料/第12篇-时间是谁写出来的/
+
+- `文案.md` — 标题三选一 (~173 tok)
+- `material.md` — 真实素材 (~107 tok)
+- `vars.sh` (~44 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
@@ -710,3 +732,13 @@
 - `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+
+## 小红书物料/第8篇-老了才要回时间/
+
+- `文案.md` — 标题三选一 (~172 tok)
+
+## 小红书物料/第9篇-两种英式幽默/
+
+- `文案.md` — 标题三选一 (~169 tok)
+- `material.md` — 真实素材 (~37 tok)
+- `vars.sh` (~46 tok)

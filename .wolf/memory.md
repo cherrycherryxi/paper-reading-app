@@ -5706,3 +5706,107 @@
 | 16:20 | Created styles.css | — | ~29376 |
 | 16:20 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1522 |
 | 16:23 | Session end: 2 writes across 2 files (styles.css, deep-reading-workbench.test.js) | 0 reads | ~30898 tok |
+| 16:30 | Session end: 2 writes across 2 files (styles.css, deep-reading-workbench.test.js) | 0 reads | ~30898 tok |
+| 16:38 | Session end: 2 writes across 2 files (styles.css, deep-reading-workbench.test.js) | 0 reads | ~30898 tok |
+| 16:47 | Session end: 2 writes across 2 files (styles.css, deep-reading-workbench.test.js) | 0 reads | ~30898 tok |
+| 16:57 | Created paper_reading_gateway.py | — | ~5496 |
+| 16:57 | Created deep_reading.py | — | ~6966 |
+| 16:57 | Created tests/agent/deep_reading_gateway_contract_test.py | — | ~5136 |
+| 16:57 | Created app_server.py | — | ~83644 |
+| 16:58 | Created tests/agent/deep_reading_api_test.py | — | ~4498 |
+| 16:58 | Created index.html | — | ~14072 |
+| 16:59 | Created chat.js | — | ~16333 |
+
+## Session: 2026-08-28 17:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:01 | Created chat.js | — | ~16483 |
+| 17:01 | Created index.html | — | ~14072 |
+| 17:01 | Created styles.css | — | ~29606 |
+| 17:01 | Created styles.css | — | ~29678 |
+| 17:01 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1744 |
+| 17:01 | Created paper_reading_gateway.py | — | ~5518 |
+
+## 2026-08-28 · 探讨内升级为深入研究
+
+- 日常探讨保持唯一主入口；深入研究改为输入区中的显式升级动作。研究型措辞只显示建议，绝不自动启动任务，并保留当前问题及书籍/摘抄上下文。
+- 研究完成后可以携带结论摘要返回普通探讨继续追问，避免把长任务做成与日常对话割裂的独立产品。
+- 跨书问题首次召回排除当前书；关键词零命中后通过 `list_books` 与 `book_ids` 定向宽召回，不再用全书架空查询碰运气。落库时统计引用书籍，只有当前书证据时明确披露“本次没有形成跨书发现”。
+
+## 2026-08-28 · 独立记录页下线
+
+- 移除「记录」一级页面与底部导航，移动端主导航由六项收敛为书单、摘抄、探讨、关联、我的五项。
+- `sessions` 数据模型、导入导出、进度计算和新增/编辑/删除能力全部保留；书籍详情改为展示该书全部阅读记录，避免页面下线后旧记录不可达。
+- `renderTimeline()` 在独立容器不存在时安全退出，历史行为测试仍保留，防止底层记录能力被误删。
+
+## 2026-08-28 · 我的页面 AI 阅读洞察
+
+- 「我的」顶部四张计数卡改为阅读动力、阅读结构、兴趣图谱、知识沉淀四类分析图；手机单列、桌面双列，图表同时提供文字与 `role=img` 可访问名称。
+- 所有数值和图形由本地状态确定性计算；AI 仅接收八周分钟数、书单状态数量、主题及漏斗计数等聚合数据，返回四条受限解释，不能生成或改写数字。
+- AI 解读按用户与数据签名缓存在本机，数据变化后旧解读不会套用；接口失败时保留本地分析并明确降级，不阻断「我的」页面。
+- 阅读洞察使用独立限流桶，不占用日常探讨额度。真实 375px DesignQC 验收确认单列卡片、图表标签与 44px 重新分析按钮可达。
+- AI 阅读洞察分享图复用书籍、摘抄和关联分享卡的 `SHARE_CARD` / `SHARE_CARD_DARK`、品牌头、宋体标题、二维码页脚与通用预览下载弹窗；海报固定呈现四类聚合图和当前有效解读，不发送新的模型请求。手机端“分享 / 重新分析”并排且均保持 44px 触控高度。
+| 17:02 | Created docs/deepseek-harness-deep-reading-workbench.md | — | ~4283 |
+| 17:05 | designqc: captured 2 screenshots (82KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 17:05 | designqc: captured 2 screenshots (79KB, ~5000 tok) | /app#chat | ready for eval | ~0 |
+| 17:06 | Created chat.js | — | ~16534 |
+| 17:06 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1761 |
+| 17:06 | Session end: 9 writes across 6 files (chat.js, index.html, styles.css, deep-reading-workbench.test.js, paper_reading_gateway.py) | 0 reads | ~120990 tok |
+| 20:06 | Created index.html | — | ~13708 |
+| 20:07 | Created app.js | — | ~76502 |
+| 20:07 | Created tests/frontend/deep-reading-workbench.test.js | — | ~1761 |
+| 20:07 | Created tests/frontend/record-page-removal.test.js | — | ~294 |
+| 20:07 | Created tests/frontend/book-detail-ux.test.js | — | ~2497 |
+| 20:07 | Created tests/frontend/clear-filters.test.js | — | ~1496 |
+| 20:08 | Created tests/frontend/sample-onboarding.test.js | — | ~2719 |
+| 20:08 | designqc: captured 2 screenshots (81KB, ~5000 tok) | /app | ready for eval | ~0 |
+| 20:09 | Session end: 16 writes across 11 files (chat.js, index.html, styles.css, deep-reading-workbench.test.js, paper_reading_gateway.py) | 0 reads | ~220946 tok |
+| 20:13 | Session end: 16 writes across 11 files (chat.js, index.html, styles.css, deep-reading-workbench.test.js, paper_reading_gateway.py) | 0 reads | ~220946 tok |
+| 20:17 | Created index.html | — | ~13766 |
+| 20:18 | Created app.js | — | ~79099 |
+| 20:18 | Created app.js | — | ~79151 |
+| 20:19 | Created styles.css | — | ~30955 |
+| 20:19 | Created app_server.py | — | ~83912 |
+| 20:19 | Created app_server.py | — | ~84340 |
+| 20:20 | Created tests/agent/reading_insights_test.py | — | ~991 |
+| 20:20 | Created tests/frontend/reading-insights-dashboard.test.js | — | ~449 |
+| 20:21 | Created app.js | — | ~79265 |
+| 20:21 | Created app_server.py | — | ~84376 |
+| 20:23 | Created designqc-reading-insights.html | — | ~750 |
+| 20:23 | designqc: captured 2 screenshots (14KB, ~5000 tok) | /designqc-reading-insights.html | ready for eval | ~0 |
+| 20:23 | designqc: captured 2 screenshots (66KB, ~5000 tok) | /designqc-reading-insights.html | ready for eval | ~0 |
+| 20:24 | Created designqc-reading-insights.html | — | ~0 |
+| 20:24 | Created app.js | — | ~79289 |
+| 22:16 | Session end: 29 writes across 15 files (chat.js, index.html, styles.css, deep-reading-workbench.test.js, paper_reading_gateway.py) | 0 reads | ~838326 tok |
+| 22:21 | Created index.html | — | ~13818 |
+| 22:21 | Created app.js | — | ~79336 |
+| 22:21 | Created styles.css | — | ~31009 |
+| 22:22 | Created app.js | — | ~81150 |
+| 22:22 | Created app.js | — | ~81161 |
+| 22:22 | Created tests/frontend/reading-insights-dashboard.test.js | — | ~610 |
+| 22:23 | Created tests/frontend/share-card.test.js | — | ~4348 |
+
+## Session: 2026-08-28 22:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:23 | Created tests/frontend/share-card.test.js | — | ~4374 |
+| 22:24 | Created styles.css | — | ~30993 |
+| 22:24 | Created app.js | — | ~81161 |
+| 22:24 | Session end: 3 writes across 3 files (share-card.test.js, styles.css, app.js) | 0 reads | ~116528 tok |
+| 22:25 | Created 小红书物料/第8篇-老了才要回时间/文案.md | — | ~183 |
+| 22:25 | Created 小红书物料/第9篇-两种英式幽默/material.md | — | ~40 |
+| 22:25 | Created 小红书物料/第9篇-两种英式幽默/vars.sh | — | ~46 |
+| 22:25 | Created 小红书物料/第9篇-两种英式幽默/文案.md | — | ~181 |
+| 22:25 | Created 小红书物料/第10篇-词语活得更久/material.md | — | ~23 |
+| 22:25 | Created 小红书物料/第10篇-词语活得更久/vars.sh | — | ~42 |
+| 22:25 | Created 小红书物料/第10篇-词语活得更久/文案.md | — | ~159 |
+| 22:25 | Created 小红书物料/第11篇-现在的书架/material.md | — | ~32 |
+| 22:25 | Created 小红书物料/第11篇-现在的书架/vars.sh | — | ~34 |
+| 22:25 | Created 小红书物料/第11篇-现在的书架/文案.md | — | ~172 |
+| 22:25 | Created 小红书物料/第12篇-时间是谁写出来的/material.md | — | ~114 |
+| 22:25 | Created 小红书物料/第12篇-时间是谁写出来的/vars.sh | — | ~44 |
+| 22:25 | Created 小红书物料/第12篇-时间是谁写出来的/文案.md | — | ~185 |
+| 22:31 | Created 小红书物料/第11篇-现在的书架/文案.md | — | ~172 |
+| 22:31 | Session end: 17 writes across 6 files (share-card.test.js, styles.css, app.js, 文案.md, material.md) | 0 reads | ~118053 tok |
