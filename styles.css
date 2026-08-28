@@ -1288,9 +1288,7 @@ textarea {
 
 .quote-cover-art {
   isolation: isolate;
-  background:
-    radial-gradient(circle at 78% 22%, var(--color-accent) 0 2px, transparent 3px),
-    linear-gradient(135deg, var(--color-surface-alt), var(--color-accent-soft));
+  background: linear-gradient(135deg, var(--color-surface-alt), var(--color-accent-soft));
 }
 
 .quote-cover-art::after {
@@ -1298,8 +1296,45 @@ textarea {
   position: absolute;
   inset: 0;
   z-index: 0;
-  opacity: 0.28;
-  background: repeating-linear-gradient(115deg, transparent 0 18px, var(--color-border) 19px 20px);
+  border-left: 6px solid var(--color-accent);
+  background:
+    radial-gradient(circle at 78% 22%, var(--color-accent) 0 2px, transparent 3px),
+    repeating-linear-gradient(115deg, transparent 0 18px, var(--color-border) 19px 20px);
+  opacity: 0.46;
+}
+
+.quote-cover-art--note {
+  background: var(--color-surface-alt);
+}
+
+.quote-cover-art--note::after {
+  left: 28px;
+  border-left: 2px solid var(--status-paused-border);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 18px,
+    var(--color-border-strong) 19px 20px
+  );
+  opacity: 0.72;
+}
+
+.quote-cover-label {
+  position: absolute;
+  z-index: 1;
+  left: 18px;
+  bottom: 14px;
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: clamp(17px, 4.5vw, 22px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.quote-cover-art--note .quote-cover-label {
+  left: 44px;
+  font-family: var(--font-sans);
+  letter-spacing: 0.04em;
 }
 
 .quote-cover-mark {
@@ -1317,6 +1352,7 @@ textarea {
 }
 
 .quote-cover-art--note .quote-cover-mark {
+  color: var(--status-paused-fg);
   font-size: clamp(28px, 6vw, 42px);
 }
 
