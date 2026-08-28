@@ -1637,3 +1637,13 @@ Format per item:
 - description: 已完成。`renderQuotes()` 按 kind 输出“原文摘抄”/“我的笔记”/“我的问题”直白标签；笔记采用横线纸版式与独立文字布局，摘抄保留引号和强调边线，不再只靠小型类型 chip 区分。
 - why: 这是当前 Theme 3「积累可信」下的高置信 owner signal；PR #135 已把 owner 选定后的视觉方向落到当前代码，不能继续列为待办。
 - how: 已由 `fe6173c` 落地于 `app.js`、`styles.css` 与 `tests/frontend/quote-card-image-thumb.test.js`；2026-08-29 triage 实跑该测试文件及关联 CRUD 专项合计 20 项通过。
+
+### OPT-174 — “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 — 由 explore E304 提拔 [2026-08-29]
+- status: new
+- area: frontend / ux / analytics
+- priority: P1
+- size: M
+- northstar: 强——让最新“我的 / 阅读洞察”忠实反映 owner 实际采用的摘抄式阅读路径，避免首张回顾卡把持续使用误报为零。
+- description: `readingInsightMetrics()` 的八周趋势只累计 `state.sessions[].minutes`；独立记录页已下线，且 owner 明确很少手工记 session，因此有当周摘抄和阅读痕迹的用户仍会看到“0 分钟/本周”与“阅读记录不足”。
+- why: 产品已经选择降低手工记录负担，洞察不能继续把 session 当作阅读发生的唯一证据。没有分钟数据时也不能从摘抄臆造分钟，应改用诚实的可观测代理，如活跃阅读天数或新增摘抄趋势，并同步解释与分享卡口径。
+- how: 为“阅读动力”定义双口径：有 session 时展示分钟趋势；无 session 但有摘抄活动时展示活跃天数/新增摘抄，明确指标名称。同步 `readingInsightMetrics()`、默认/AI 聚合字段、卡片、分享图与行为测试。Touch: `app.js:1376-1478,3892-3920`、`index.html:248-260`、`tests/frontend/reading-insights-dashboard.test.js`。

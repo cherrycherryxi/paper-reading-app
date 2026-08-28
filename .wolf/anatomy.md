@@ -748,3 +748,4 @@
 
 - `optimization/triage.md` — OPT-171 is the single P1/S nightly Next up; seven-day `auto/` budget is 7/8.
 - `optimization/backlog.md` — OPT-173 reconciled done via PR #135 / `fe6173c`; all unsupported unfinished items remain P3 parked or blocked.
+- `optimization/explore.md` — 2026-08-29 Explore adds E304–E307 around reading-insight metric fidelity, connection-theme counting, stale async feedback, and aggregate schema validation; E304 is promoted as OPT-174 (`status: new`).
