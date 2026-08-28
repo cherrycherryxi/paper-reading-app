@@ -77,7 +77,7 @@ showToast = function (message) { __captureToast(message); };
 render = function () {};
 activateTab = function () {};
 globalThis.__hooks = {
-  addConnection, deleteConnection, renderConnections, els,
+  addConnection, deleteConnection, renderConnections, normalizeStateShape, els,
   setState(v) { state = v; },
   setCurrentUser(v) { currentUser = v; },
   setAuth(v) { authToken = v; },
@@ -336,4 +336,40 @@ test("OPT-045: renderConnections filters by kind", () => {
   h.setKindFilter("对比");
   h.renderConnections();
   assert.equal(countCards(h.els.connectionsList.innerHTML), 1, "only 对比 connections show");
+});
+
+test("OPT-171: malformed connections are isolated while valid compatible fields survive", () => {
+  const h = createHarness();
+  const normalized = h.normalizeStateShape({
+    ...emptyState(), books: twoBooks(),
+    connections: [
+      null,
+      "broken",
+      { id: "", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2" },
+      { id: "bad-type", sourceType: "person", sourceId: "p1", targetType: "book", targetId: "b2" },
+      { id: 17, sourceType: "book", sourceId: 1, targetType: "book", targetId: 2, kind: 3, thought: 4, tags: ["  互文  ", "", 5], createdAt: 6, isSample: true },
+      { id: "string-tags", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2", kind: "对比", thought: "仍应显示", tags: "互文" },
+    ],
+  });
+
+  assert.equal(normalized.connections.length, 2);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.connections[0])), {
+    id: "17", sourceType: "book", sourceId: "1", targetType: "book", targetId: "2",
+    kind: "3", thought: "4", tags: ["互文"], createdAt: "6", isSample: true,
+  });
+  loggedIn(h, normalized);
+  assert.doesNotThrow(() => h.renderConnections());
+  assert.equal(countCards(h.els.connectionsList.innerHTML), 2, "valid records still render");
+  assert.match(h.els.connectionsList.innerHTML, /仍应显示/);
+});
+
+test("OPT-171: rendering defensively ignores string tags in an unnormalized state", () => {
+  const h = createHarness();
+  loggedIn(h, {
+    ...emptyState(), books: twoBooks(),
+    connections: [{ id: "c1", sourceType: "book", sourceId: "b1", targetType: "book", targetId: "b2", kind: "对比", thought: "其余内容可见", tags: "坏标签" }],
+  });
+  h.els.connectionSearch.value = "坏标签";
+  assert.doesNotThrow(() => h.renderConnections());
+  assert.match(h.els.connectionsList.innerHTML, /当前筛选条件下没有关联/);
 });

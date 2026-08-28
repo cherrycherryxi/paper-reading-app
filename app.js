@@ -423,6 +423,25 @@ function normalizeChatState(rawState = {}) {
   return { chatHistories, chatContexts };
 }
 
+function normalizeConnection(item) {
+  if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+  const id = String(item.id || "").trim();
+  const sourceType = String(item.sourceType || "").trim();
+  const targetType = String(item.targetType || "").trim();
+  const sourceId = String(item.sourceId || "").trim();
+  const targetId = String(item.targetId || "").trim();
+  if (!id || !["book", "quote"].includes(sourceType) || !["book", "quote"].includes(targetType) || !sourceId || !targetId) return null;
+  const connection = {
+    id, sourceType, sourceId, targetType, targetId,
+    kind: String(item.kind || ""),
+    thought: String(item.thought || ""),
+    tags: Array.isArray(item.tags) ? item.tags.filter((tag) => typeof tag === "string" && tag.trim()).map((tag) => tag.trim()) : [],
+    createdAt: String(item.createdAt || ""),
+  };
+  if (Object.prototype.hasOwnProperty.call(item, "isSample")) connection.isSample = Boolean(item.isSample);
+  return connection;
+}
+
 function normalizeStateShape(rawState) {
   const base = rawState || structuredClone(initialState);
   const chat = normalizeChatState(base);
@@ -431,7 +450,7 @@ function normalizeStateShape(rawState) {
     books: Array.isArray(base.books) ? base.books.map(repairBookReadingDates) : [],
     sessions: Array.isArray(base.sessions) ? base.sessions : [],
     quotes: Array.isArray(base.quotes) ? base.quotes : [],
-    connections: Array.isArray(base.connections) ? base.connections : [],
+    connections: Array.isArray(base.connections) ? base.connections.map(normalizeConnection).filter(Boolean) : [],
     chatHistories: chat.chatHistories,
     chatContexts: chat.chatContexts,
     customQuoteTags: Array.isArray(base.customQuoteTags) ? base.customQuoteTags : [],
@@ -1050,7 +1069,7 @@ function buildConnectionCard(conn) {
   const src = resolveConnectionSide(conn.sourceType, conn.sourceId);
   const tgt = resolveConnectionSide(conn.targetType, conn.targetId);
   const kindLabel = KIND_LABELS[conn.kind] || conn.kind;
-  const tagsHtml = (conn.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+  const tagsHtml = (Array.isArray(conn.tags) ? conn.tags : []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
   return `<div class="connection-card" data-conn-id="${escapeHtml(conn.id)}">
     <div class="connection-card-header">
       <span class="connection-kind-badge" data-kind="${escapeHtml(conn.kind)}">${escapeHtml(kindLabel)}</span>
@@ -1114,7 +1133,7 @@ function renderConnections() {
         getSearchLabel(c.sourceType, c.sourceId),
         getSearchLabel(c.targetType, c.targetId),
         c.thought || "",
-        ...(c.tags || []),
+        ...(Array.isArray(c.tags) ? c.tags : []),
       ].join(" ").toLowerCase();
       return haystack.includes(searchRaw);
     });

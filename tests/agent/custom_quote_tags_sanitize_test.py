@@ -55,6 +55,32 @@ class CustomQuoteTagsSanitizeTests(unittest.TestCase):
         for k in ("books", "sessions", "quotes", "chatHistories", "chatContexts", "connections"):
             self.assertIn(k, out)
 
+    def test_opt171_sanitizes_connections_and_preserves_compatible_fields(self):
+        out = app_server.sanitize_state({"connections": [
+            None,
+            "broken",
+            {"id": "", "sourceType": "book", "sourceId": "b1", "targetType": "book", "targetId": "b2"},
+            {"id": "bad-type", "sourceType": "person", "sourceId": "p1", "targetType": "book", "targetId": "b2"},
+            {
+                "id": 17, "sourceType": "book", "sourceId": 1,
+                "targetType": "quote", "targetId": 2, "kind": 3, "thought": 4,
+                "tags": ["  互文  ", "", 5], "createdAt": 6, "isSample": True,
+                "unknown": "discarded",
+            },
+            {
+                "id": "string-tags", "sourceType": "book", "sourceId": "b1",
+                "targetType": "book", "targetId": "b2", "tags": "互文",
+            },
+        ]})
+
+        self.assertEqual(len(out["connections"]), 2)
+        self.assertEqual(out["connections"][0], {
+            "id": "17", "sourceType": "book", "sourceId": "1",
+            "targetType": "quote", "targetId": "2", "kind": "3", "thought": "4",
+            "tags": ["互文"], "createdAt": "6", "isSample": True,
+        })
+        self.assertEqual(out["connections"][1]["tags"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
