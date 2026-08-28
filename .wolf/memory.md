@@ -5836,3 +5836,16 @@
 | 07:03 | Created ../../../../tmp/paper-pr136-review.2gjcP3/optimization/backlog.md | — | ~49111 |
 | 07:03 | Created ../../../../tmp/paper-pr136-review.2gjcP3/optimization/triage.md | — | ~2405 |
 | 07:06 | Created ../../.claude/paper-loop/review-2026-08-29.md | — | ~191 |
+
+## Planning update: 2026-08-29 nightly triage
+
+- 外层一次性统计最近 7 天 `auto/` 实现 PR 为 7/8；未调用 `gh` 或 GitHub API。
+- OPT-173 已由 PR #135 / `fe6173c` 合入。当前代码提供“原文摘抄”与“我的笔记”直白标签、独立封面版式，源码专项测试已验证，因此 backlog 与 triage 同步标 done。
+- OPT-171 仍可由当前代码稳定核实：后端和前端只约束 `connections` 外层数组，`buildConnectionCard()` 对字符串 `tags` 调用 `.map()` 会拖垮整个关联页。该项为 P1/S、Theme 3 强贡献、验收封闭且无需 owner 取舍，作为 2026-08-29 唯一夜间 Next up。
+- 其余未完成项逐项维持：11 个 P3/S、OPT-081=P3/M、OPT-117=P3/L blocked；均缺当前 Theme 与真实 signal 的合理北极星贡献，不因预算有余量而指派。
+
+## 2026-08-29 · Nightly Explore 阅读洞察口径核对
+
+- 新上线“阅读动力”只累计 `state.sessions[].minutes`；同批改动已移除独立记录页，owner 也有“几乎不手工新增记录”的直接 signal，因此持续摘抄仍可能显示本周 0 分钟。探索项 E304 提拔为 OPT-174，后续应采用“有 session 显示分钟、无 session 但有摘抄活动则显示活跃天数/新增摘抄”的诚实双口径，不能用摘抄时间臆造分钟。
+- E305–E307 分别记录兴趣图谱只计算 connection 来源端、旧洞察响应产生假成功状态、服务端未校验固定 metrics schema；因缺直接 signal 暂不提拔。
+- 隔离 clone 的 `HEAD` 与现存 `origin/feature/agent` 均为 `6a6268a`，本地最大编号 OPT-173；`.git/FETCH_HEAD` 只读且 GitHub DNS 不可用，无法实时刷新远端，因此 OPT-174 需在后续 triage 前重新确认编号。用户明确禁止 commit/push/PR，本轮只保留允许文件的工作区修改。

@@ -5345,3 +5345,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——长期保护摘抄回顾性能，但当前没有性能或卡顿 signal，不提拔。
 
 > 本次 run 新发现 4 条：E300（筛选零结果误报为无积累，S，UX/error feedback）、E301（摘抄卡详情入口不可键盘访问，S，accessibility）、E302（类型筛选状态不向辅助技术暴露，S，accessibility）、E303（摘抄墙无分页且整页重建，M，performance/code health）。四项均由当前文件逐行核实并排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。最新真实 signal 已由 OPT-173 完整登记，而本轮相邻缺口缺少同等强度的直接证据，因此不修改 backlog、不占用 OPT 编号。
+
+## 2026-08-29
+
+> 扫描焦点：核对 2026-08-28 新上线的“我的 / AI 阅读洞察”是否与同批移除独立记录页后的真实使用口径一致，并检查跨书主题、异步刷新与服务端数据边界。隔离 clone 当前 `HEAD` 与现存 `origin/feature/agent` 引用均为 `6a6268a`，最大编号为 OPT-173；`git fetch origin feature/agent` 因 `.git/FETCH_HEAD` 只读失败，`git ls-remote` / `gh pr list` 又因 github.com 无法解析而失败。按用户提供的 open PR #136 核对后，以下方向均不重复其 OPT-171 畸形关联隔离范围，也不重复 backlog、已合并代码或旧 E001–303。
+
+### E304 — “阅读动力”只统计手工记录，移除记录页后持续摘抄仍会显示本周 0 分钟 (M)
+
+**What:** “阅读动力”八周柱状图只遍历 `state.sessions` 并累计 `minutes`。同一批改动已经移除独立记录页，而 owner 也明确表示几乎不手工新增记录；因此用户本周即使持续拍照摘抄、留下带时间和页码的真实阅读痕迹，只要没有另行填写 session，洞察仍显示“0 分钟/本周”并判断阅读记录不足。
+
+**Evidence:** `readingInsightMetrics()` 的周数据来源只有 `state.sessions`（`app.js:1382-1398`），卡片主数值直接展示 `metrics.thisWeekMinutes`（`app.js:1459-1462`）；默认解释又以八周分钟是否大于 0 判断活跃周（`app.js:1428-1437`）。独立记录页已从一级导航移除，当前“我的”主页面把该指标放在首张洞察卡（`index.html:248-260`）。真实 signal 已记录“记录功能几乎很少使用，因为手动新增记录太麻烦；考虑取消记录页面”（`optimization/signals.md:68-74`）。旧 E192 讨论以摘抄重建时间线，本项是已上线洞察在记录页下线后的确定性口径错配。
+
+**Why:** 首张个人洞察若把“没有手工填分钟”说成“没有阅读动力”，会惩罚产品已经选择的低负担采集路径，也让可分享洞察失真。可先定义诚实口径：有 session 时展示分钟趋势；没有 session 但存在当周摘抄时改为“活跃阅读天数 / 新增摘抄”趋势，不能用摘抄时间臆造分钟。需要同步调整本地叙述、分享卡和测试，故评为 M。
+
+**Size:** M
+
+**Files:** `app.js:1376-1438,1458-1478,3892-3920`; `index.html:248-260`; `optimization/signals.md:68-74`; `tests/frontend/reading-insights-dashboard.test.js:11-47`
+
+**Northstar:** 强——直接让最新洞察忠实反映 owner 实际采用的摘抄式阅读路径，避免回顾入口把真实使用误报为零。→ **promoted to OPT-174**
+
+### E305 — “跨书主题”只把关联标签计入来源书，书与书的关联仍被算成单书主题 (S)
+
+**What:** 兴趣图谱把书籍、摘抄和关联标签聚合成“跨书主题”，但处理 connection 时只解析来源端所属书，从不解析目标端。同一个标签若只存在于一条书 A→书 B 或摘抄 A→摘抄 B 的关联上，`bookCount` 仍为 1，无法成为真实的跨书主题。
+
+**Evidence:** `addTheme()` 用 `Set` 统计 book id（`app.js:1400-1406`）；书籍与摘抄标签分别计入自身所属书，但 connection 分支只查 `connection.sourceId`，随后只添加来源书（`app.js:1407-1412`）。UI 将结果明确命名为“跨书主题 / 兴趣图谱”并展示“n 本”（`app.js:1469-1472`）。当前测试只以源码正则确认四类洞察、接口与布局，没有构造双端关联来断言主题计数（`tests/frontend/reading-insights-dashboard.test.js:11-36`）。
+
+**Why:** 关联正是用户显式表达“两本书共享某个主题”的数据；只计来源端会系统性低估知识网络。可复用连接实体解析逻辑，把 source/target 两侧落到各自 bookId 后都加入 Set，同时过滤悬空实体。
+
+**Size:** S
+
+**Files:** `app.js:1400-1416,1469-1472`; `tests/frontend/reading-insights-dashboard.test.js:11-36`
+
+**Northstar:** 中强——修正“兴趣图谱”对既有跨书关联资产的解释，服务 Theme 3「积累可信」；但暂无 owner 对该图计数的直接反馈，暂不提拔。
+
+### E306 — 洞察请求期间数据变化时，旧响应会留下“AI 已结合当前数据”的假成功状态 (S)
+
+**What:** 请求发出后若用户在另一入口新增/编辑阅读数据，回包仍保存旧指标签名并调用 `renderSummary()`；新状态因签名不同会正确回落本地叙述，但状态栏无条件宣称 AI 已结合“当前数据”。数值没有被旧响应覆盖，反馈文案却把未展示的旧解读报成当前成功。
+
+**Evidence:** 请求前固定捕获 `metrics/cacheKey`（`app.js:1498-1502`）；回包后无论当前 state 是否仍匹配，都写全局 narrative/key、重绘，并写成功文案（`app.js:1519-1526`）。`renderSummary()` 只有 narrative key 等于重新计算的当前 key 才合并 AI 文案（`app.js:1441-1445`），证明数据变化时旧回包实际不会显示。现有测试仅检查“按数据签名缓存”和降级文案，没有覆盖请求中 state 变化（`tests/frontend/reading-insights-dashboard.test.js:26-31`）。
+
+**Why:** 最小修复是在应用响应前重算 key；已过期则丢弃并按最新状态重新分析或明确提示数据已变化。这样状态栏、实际卡片与缓存三者保持同一版本。
+
+**Size:** S
+
+**Files:** `app.js:1441-1445,1491-1535`; `tests/frontend/reading-insights-dashboard.test.js:26-31`
+
+**Northstar:** 中——避免最新回顾入口出现“状态说已分析、卡片实际未使用”的反馈错位，但触发窗口短且无真实 signal，不提拔。
+
+### E307 — 阅读洞察服务端不核验指标结构，客户端可把任意聚合 JSON 送入模型并生成可分享解读 (M)
+
+**What:** 接口只确认 `metrics` 是非空 dict 且序列化后不超过 8000 字符，不验证 weeks 长度/数值、结构计数、theme 字段或漏斗口径。已登录客户端可绕过本地确定性计算，直接提交任意 JSON；模型会把它当“聚合统计”解释，而前端分享图又以“数字来自阅读记录”标注，服务端无法证明该语义。
+
+**Evidence:** `/api/reading-insights` 的唯一 payload 校验是 dict、非空和长度（`app_server.py:5151-5165`），之后原样拼进 prompt（`app_server.py:5168-5177`）。端点测试也只证明任意小型 `weeks/themes` dict 会被转发，并未锁定完整 schema（`tests/agent/reading_insights_test.py:58-79`）。前端正常路径确实由 `readingInsightMetrics()` 生成固定结构（`app.js:1376-1425`），分享图则写“数字来自阅读记录，AI 只解释趋势”（`app.js:3907-3917`）。
+
+**Why:** 当前风险主要是口径与成本边界，不是越权读取，因为回包不落库且有限流。可选择服务端从用户 state 重算指标，或至少严格校验固定 schema、数值范围与数组长度；前者可信度更强但会重复计算逻辑，因此评为 M。
+
+**Size:** M
+
+**Files:** `app_server.py:5151-5181`; `app.js:1376-1425,3907-3917`; `tests/agent/reading_insights_test.py:58-79`
+
+**Northstar:** 中——保护可分享个人洞察的来源声明与模型调用边界，但正常 UI 不会触发且无滥用 signal，暂不提拔。
+
+> 本次 run 新发现 4 条：E304（阅读动力与已下线记录页口径冲突，M，correctness/UX）、E305（跨书主题漏算关联目标端，S，correctness）、E306（旧 AI 响应产生假成功状态，S，error feedback）、E307（服务端不校验聚合指标结构，M，trust boundary/code health）。仅 E304 同时具备当前新功能、owner 直接 signal 与强北极星贡献，提拔为 OPT-174；其余留探索池。受隔离环境限制未刷新远端，编号依据现存 `origin/feature/agent` 最大 OPT-173；若远端已前移，后续 triage 必须先重新编号。

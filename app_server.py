@@ -836,6 +836,46 @@ def chat_context_book_id(context: dict | None) -> str:
     return str(normalized.get("bookId", "")).strip()
 
 
+def sanitize_connections(raw_connections: object) -> list[dict]:
+    """隔离畸形关联，避免一条坏记录拖垮整个关联页。"""
+    sanitized: list[dict] = []
+    if not isinstance(raw_connections, list):
+        return sanitized
+    for item in raw_connections:
+        if not isinstance(item, dict):
+            continue
+        connection_id = str(item.get("id") or "").strip()
+        source_type = str(item.get("sourceType") or "").strip()
+        target_type = str(item.get("targetType") or "").strip()
+        source_id = str(item.get("sourceId") or "").strip()
+        target_id = str(item.get("targetId") or "").strip()
+        if (
+            not connection_id
+            or source_type not in {"book", "quote"}
+            or target_type not in {"book", "quote"}
+            or not source_id
+            or not target_id
+        ):
+            continue
+        tags = [tag.strip() for tag in item.get("tags", []) if isinstance(tag, str) and tag.strip()] \
+            if isinstance(item.get("tags"), list) else []
+        connection = {
+            "id": connection_id,
+            "sourceType": source_type,
+            "sourceId": source_id,
+            "targetType": target_type,
+            "targetId": target_id,
+            "kind": str(item.get("kind") or ""),
+            "thought": str(item.get("thought") or ""),
+            "tags": tags,
+            "createdAt": str(item.get("createdAt") or ""),
+        }
+        if "isSample" in item:
+            connection["isSample"] = bool(item["isSample"])
+        sanitized.append(connection)
+    return sanitized
+
+
 def sanitize_state(payload: dict | None) -> dict:
     payload = payload or {}
     chat_histories = payload.get("chatHistories")
@@ -904,7 +944,7 @@ def sanitize_state(payload: dict | None) -> dict:
         "quotes": payload.get("quotes") if isinstance(payload.get("quotes"), list) else [],
         "chatHistories": migrated_histories,
         "chatContexts": migrated_contexts,
-        "connections": payload.get("connections") if isinstance(payload.get("connections"), list) else [],
+        "connections": sanitize_connections(payload.get("connections")),
         "customQuoteTags": custom_quote_tags,
         "memories": memories[:200],
     }
