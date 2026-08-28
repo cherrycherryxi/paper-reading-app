@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T14:31:23.706Z
-> Files: 413 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T15:20:27.308Z
+> Files: 414 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -70,6 +70,7 @@
 ## ../../../../private/tmp/
 
 - `dsh-runtime-smoke-cordis.yml` (~182 tok)
+- `moon-tiger-review.md` — 我忘了读过《月亮虎》，却因此记住了它 (~549 tok)
 
 ## ../../../../private/tmp/deepseek-harness-official/python/sdk-runtime/
 
