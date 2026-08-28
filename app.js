@@ -49,6 +49,12 @@ const quoteCoverMarkMap = {
   question: "?",
 };
 
+const quoteCoverLabelMap = {
+  quote: "原文摘抄",
+  note: "我的笔记",
+  question: "我的问题",
+};
+
 const els = {
   bookForm: document.querySelector("#bookForm"),
   sessionForm: document.querySelector("#sessionForm"),
@@ -2127,8 +2133,8 @@ function renderQuotes() {
             <li class="menu-item-danger"><button type="button" data-quote-menu="delete">删除</button></li>
           </ul>
           <div class="entry-card-cover quote-cover-art quote-cover-art--${quoteCoverMarkMap[quote.kind] ? quote.kind : "quote"}">
+            <span class="quote-cover-label">${escapeHtml(quoteCoverLabelMap[quote.kind] || quoteCoverLabelMap.quote)}</span>
             <span class="quote-cover-mark" aria-hidden="true">${quoteCoverMarkMap[quote.kind] || quoteCoverMarkMap.quote}</span>
-            <span class="entry-type-chip entry-type-chip-overlay">${escapeHtml(quoteKindMap[quote.kind] || "卡片")}</span>
           </div>
           <div class="entry-card-body">
             <h3>${book ? formatBookTitle(book.title) : "未知书籍"}${ocrBadge}</h3>

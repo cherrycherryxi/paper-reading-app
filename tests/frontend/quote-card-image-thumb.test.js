@@ -152,6 +152,31 @@ test("OPT-158: note cover remains visually distinguishable from a quote", () => 
   assert.ok(html.includes('aria-hidden="true">✎</span>'), "笔记符号应只作装饰");
 });
 
+test("OPT-173: quote and note covers expose distinct plain-language labels", () => {
+  const h = createHarness();
+  h.setCurrentUser({ id: "u1", username: "tester" });
+  h.setState({
+    ...BASE_STATE,
+    quotes: [
+      {
+        id: "q-quote", bookId: "b1", content: "书中的原句", kind: "quote",
+        page: 1, tags: [], reflection: "", imageUrl: "",
+        createdAt: "2026-01-02T00:00:00.000Z",
+      },
+      {
+        id: "q-note", bookId: "b1", content: "我自己的想法", kind: "note",
+        page: 2, tags: [], reflection: "", imageUrl: "",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
+  });
+  h.renderQuotes();
+  const html = h.getQuotesListMarkup();
+  assert.ok(html.includes('<span class="quote-cover-label">原文摘抄</span>'));
+  assert.ok(html.includes('<span class="quote-cover-label">我的笔记</span>'));
+  assert.ok(!html.includes("entry-type-chip-overlay"), "封面不应继续依赖难以扫读的小型标签");
+});
+
 test("OPT-158: cards with and without source images share one cover language", () => {
   const h = createHarness();
   h.setCurrentUser({ id: "u1", username: "tester" });
