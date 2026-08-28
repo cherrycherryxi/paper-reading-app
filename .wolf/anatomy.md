@@ -743,3 +743,8 @@
 - `文案.md` — 标题三选一 (~169 tok)
 - `material.md` — 真实素材 (~37 tok)
 - `vars.sh` (~46 tok)
+
+## Current planning state (2026-08-29)
+
+- `optimization/triage.md` — OPT-171 is the single P1/S nightly Next up; seven-day `auto/` budget is 7/8.
+- `optimization/backlog.md` — OPT-173 reconciled done via PR #135 / `fe6173c`; all unsupported unfinished items remain P3 parked or blocked.

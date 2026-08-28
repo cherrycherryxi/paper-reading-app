@@ -2,29 +2,29 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-28
+Last triaged: 2026-08-29
 
 ## Next up
 
-**无符合夜间条件的任务**
+**OPT-171 — 畸形关联字段可穿过 state 归一化并拖垮整个关联页**
 
-**状态：不指派**
+**状态：已指派（P1 / S）**
 
-**理由：** 外层一次性统计最近 7 天 `auto/` 实现 PR 为 **8**，已达到每 7 天最多 8 个的上限；预算耗尽，不能指派。OPT-171 是当前唯一同时具备当前 Theme、明确北极星贡献、S 复杂度与封闭验收边界的未完成项。**夜间适配：是**——它只需为 `connections` 增加专用清洗与渲染防御，验收限定为“一条畸形记录不拖垮其余关联、合法字段不丢”，无需 owner 在信息架构、导航或视觉方案间取舍；但预算规则优先，本轮仍不写入 Next up。新增 OPT-173 有 owner 真实 signal 与北极星贡献，重评为 P1/M；但其视觉差异方案需要 owner 在配色、版式、标签或图形之间取舍，只留给 07:00 晨间候选卡。其余 11 个 P3/S 缺当前 Theme / 真实 signal 支撑，OPT-081 为 M，OPT-117 为 L blocked，均不指派。
+**理由：** OPT-171 是当前唯一同时具备当前 Theme、明确北极星贡献、S 复杂度与封闭验收边界的未完成项。当前后端只保证 `connections` 外层为数组，前端仍直接对 `conn.tags` 调用 `.map()`；一条字符串 tags 即可中断整个关联页。**夜间适配：是**——范围仅为 connection 专用清洗、前端防御与对应回归；验收限定为“畸形成员被隔离、其余关联仍可渲染、合法兼容字段不丢”，无需 owner 在信息架构、导航或视觉方案间取舍。外层统计最近 7 天 `auto/` 实现 PR 为 **7**，未达到 8 个上限，允许指派一个任务。
 
-**关键文件：** `optimization/backlog.md`（OPT-032/035/036/044/046/048/050/051/081/089/117/124/144/171/173）；`app_server.py:794-865`；`app.js:414-427,1037-1042,1076-1116`；`app.js` 的 `quoteCoverMarkMap` / `renderQuotes`；`styles.css` 的 `.quote-cover-art--quote` / `.quote-cover-art--note`；`tests/frontend/connection-crud.test.js`；`tests/frontend/quote-card-image-thumb.test.js`。
+**关键文件：** `app_server.py:839-907`；`app.js:426-439,1049-1054,1088-1128`；`tests/agent/custom_quote_tags_sanitize_test.py`（可沿用 sanitizer 测试模式）；`tests/frontend/connection-crud.test.js`。
 
-**signal / Theme：** 当前 Theme 3「积累可信」要求已有摘抄与关联可恢复、可回顾；2026-08-24、08-25 两条 owner signal 指向跨书关联的选择、检索与误操作，2026-08-27 新 signal 指出摘抄与笔记卡片仍难区分。OPT-170/172 已修复普通保存失败回滚与跨书检索，OPT-171 封住单条脏关联拖垮整页的剩余可信性缺口；OPT-173 则记录真实存在但需 owner 选视觉方案的回顾摩擦。最新北极星仍是 2026-08-23 的使用 2 天 / 新增摘抄 5 / 回顾操作 6，不能据此宣称增长。
+**signal / Theme：** 当前 Theme 3「积累可信」要求已有摘抄与关联可恢复、可回顾；2026-08-24、08-25 两条 owner signal 证明关联是正在真实使用的回顾路径。OPT-170/172 已修复保存失败回滚与跨书检索，OPT-171 继续封住单条脏关联拖垮整页的可信性缺口。最新北极星仍是 2026-08-23 的使用 2 天 / 新增摘抄 5 / 回顾操作 6，只能支持优先保护回顾资产，不能宣称增长。
 
-**预算状态（2026-08-28）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **8**，上限 **8**，剩余 **0**；预算耗尽，本次不指派。未调用 `gh` 或 GitHub API；外层“最近 50 个 feature/agent PR”列表为空，不用缺失的 PR 元数据补推结论。
+**预算状态（2026-08-29）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **7**，上限 **8**，剩余 **1**；本次至多指派一个并已用于 OPT-171。未调用 `gh` 或 GitHub API；外层“最近 50 个 feature/agent PR”列表为空，不用缺失的 PR 元数据补推结论。
 
 **本次证据核对：**
-- `44ba6f3` 只向 `optimization/signals.md` 与 `.wolf/` 记录 2026-08-27 的卡片区分反馈，没有修改应用代码；当前 `renderQuotes()` 和 `quote-card-image-thumb.test.js` 虽已有 quote/note 两种 class 与符号，真实反馈证明视觉差异仍不足。因此新增 OPT-173=P1/M，不臆断为 done，也不交夜间自主选视觉方案。
+- OPT-173 已由 PR #135 / `fe6173c` 合入：`renderQuotes()` 新增“原文摘抄”/“我的笔记”直白标签，`styles.css` 为笔记加入横线纸版式与独立布局，真实源码测试锁定两类标签且不再依赖小型 overlay chip；故 backlog 与 triage 均标 done。
 - `783a4bf` 已落地 OPT-170 与 OPT-172：当前 `app.js` 的关联增删改普通失败会恢复操作前快照，目标摘抄选择器支持中文多词、跨书优先与书籍范围；对应普通失败回滚、检索范围和清除误选测试仍在树中，故 backlog 与 triage 均标 done。
 - `bb7dae9` 继续修复 iPhone 关联选择器：候选列表在触屏端进入文档流、滑动不在 `touchstart` 误选、键盘完成键不提交表单，相关回归测试仍在树中。这是 OPT-172 落地后的真实体验收口，不新增重复 backlog 项。
 - `81ca03b` 已恢复深度共读跨书摘抄检索：Gateway 的 `search_quotes()` 支持多词匹配与 book/relation scope，契约测试覆盖书名、作者、多词、范围与用户隔离；它不对应现存未完成 backlog 项，故不凭提交标题新增 done。
-- 本次实跑关联专项 Node 测试 35 项全部通过（`connection-crud`、`quote-combobox-ocr-label`、`connection-entry-ux`）。隔离 clone 缺少项目要求的 `.venv/bin/python`，因此未用全局 Python 替代，后端契约仅按当前代码与树中测试核对，不宣称本次执行通过。
-- OPT-171 仍未完成：`sanitize_state()` 与 `normalizeStateShape()` 只校验 `connections` 外层为数组，`buildConnectionCard()` 仍直接对 `(conn.tags || []).map(...)`，字符串 tags 会抛错并中断 `renderConnections()` 整体渲染。重评为 P1/S、Theme 3 强贡献、夜间适配，但因 8/8 预算不指派。
+- 本次实跑 `quote-card-image-thumb` 与 `connection-crud` 两个源码专项，Node **20 项全部通过**；前者验证 OPT-173 当前实现，后者确认 OPT-171 尚无畸形 tags 回归。规划维护未执行全量套件，也不宣称全量通过。
+- OPT-171 仍未完成：`sanitize_state()` 与 `normalizeStateShape()` 只校验 `connections` 外层为数组，`buildConnectionCard()` 仍直接对 `(conn.tags || []).map(...)`，字符串 tags 会抛错并中断 `renderConnections()` 整体渲染。重评为 P1/S、Theme 3 强贡献、夜间适配；预算 7/8，已指派为 Next up。
 - 最近 8 日提交中，`7504173` 明确为 PR #134 的 OPT-169 合入提交；当前 `app.js` 已让 `syncState()` 返回保存结果，关联新增/编辑/删除遇冲突后停止关闭弹窗或播报成功；`tests/frontend/state-optimistic-lock.test.js` 锁定结构化返回，`tests/frontend/connection-crud.test.js` 覆盖三条 409 回归，故 backlog 与 triage 均标 done。本次给出的“最近 50 个 feature/agent PR”清单为空，未凭描述新增其他 done 判断。
 - OPT-159、160、161 的完成证据仍分别是 `c0e9b2a`、`a086b9e`、`ad85cd5`；当前树中保留对应启动失败收口、取消竞态和重启恢复代码及测试。
 - OPT-163 已由 PR #127 squash 合入 `feature/agent`（`e13f25d`）；Gateway 已返回并检索真实 `reflection`，契约测试覆盖聚焦摘抄、关键词命中与用户隔离；2026-08-26 triage 留存的全量结果为 Python `492 passed, 26 subtests passed`、Node `508 passed, 0 failed`。
@@ -34,14 +34,14 @@ Last triaged: 2026-08-28
 - OPT-167 已由 PR #131 squash 合入 `feature/agent`（`fa76724`）；非对象建议会在持久化前被过滤并留下 warning，合法建议继续进入既有审批状态机；合入审查留存结果为 Python `500 passed, 26 subtests passed`、Node `508 passed, 0 failed`。
 - OPT-168 已由 PR #133 squash 合入 `feature/agent`（`46ce38b`）；上下文 revision 隔离旧查询、启动、取消及异常响应，切换时复位任务、状态、结果、历史与运行控件；合入审查留存结果为 Python `505 passed, 26 subtests passed`、Node `510 passed, 0 failed`。
 - OPT-169 已由 PR #134 squash 合入 `feature/agent`（`7504173`）；结构化冲突结果与关联增删改失败提示已落地，当前树保留三条 409 UI 回归。
-- 其余未完成项逐项重评：OPT-171=P1/S/Theme 3 强贡献（夜间适配，但预算耗尽不指派）；OPT-173=P1/M/Theme 3 强贡献（owner 视觉判断，留给 07:00 晨间候选卡）；P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。后 13 项缺当前 Theme / 真实 signal 的合理北极星贡献或超出夜间 S 边界，维持 parked/blocked。
+- 其余未完成项逐项重评：OPT-171=P1/S/Theme 3 强贡献并符合夜间边界；P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。后 13 项均缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不因预算尚有空间而填充指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | triaged | 夜间适配：是；Theme 3 强贡献、验收封闭，但 2026-08-28 预算 8/8，本轮不指派 |
-| OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | triaged | owner 2026-08-27 真实 signal；需视觉方案取舍，留给 07:00 晨间候选卡，夜间不指派 |
+| OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | triaged | **Next up**；夜间适配：是，Theme 3 强贡献、验收封闭，预算 7/8 |
+| OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | **done** | ✅ PR #135 / `fe6173c` 已合入 [2026-08-28]；直白标签、独立版式与源码回归已落地 |
 | OPT-172 | 关联摘抄支持跨书多词检索与目标书范围 | **P1** | M | **done** | ✅ `783a4bf` 已落地 [2026-08-26]；多词召回、跨书排序、范围与清除误选测试在树中 |
 | OPT-170 | 关联普通保存失败后未回滚本地变更 | **P1** | S | **done** | ✅ `783a4bf` 已落地 [2026-08-26]；增删改普通失败快照回滚测试在树中 |
 | OPT-169 | 关联写入遇到状态冲突仍播报保存/删除成功 | **P1** | S | **done** | ✅ PR #134 / `7504173` 已合入 [2026-08-25]；结构化冲突结果与关联增删改 409 回归已落地 |
@@ -86,7 +86,7 @@ Last triaged: 2026-08-28
 
 ## Recently reconciled done
 
-OPT-172、OPT-170、OPT-169、OPT-168、OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-173、OPT-172、OPT-170、OPT-169、OPT-168、OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 

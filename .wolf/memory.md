@@ -5817,3 +5817,10 @@
 |------|--------|---------|---------|--------|
 | 23:20 | Created ../../../../private/tmp/moon-tiger-review.md | — | ~586 |
 | 23:21 | Session end: 1 writes across 1 files (moon-tiger-review.md) | 0 reads | ~627 tok |
+
+## Planning update: 2026-08-29 nightly triage
+
+- 外层一次性统计最近 7 天 `auto/` 实现 PR 为 7/8；未调用 `gh` 或 GitHub API。
+- OPT-173 已由 PR #135 / `fe6173c` 合入。当前代码提供“原文摘抄”与“我的笔记”直白标签、独立封面版式，源码专项测试已验证，因此 backlog 与 triage 同步标 done。
+- OPT-171 仍可由当前代码稳定核实：后端和前端只约束 `connections` 外层数组，`buildConnectionCard()` 对字符串 `tags` 调用 `.map()` 会拖垮整个关联页。该项为 P1/S、Theme 3 强贡献、验收封闭且无需 owner 取舍，作为 2026-08-29 唯一夜间 Next up。
+- 其余未完成项逐项维持：11 个 P3/S、OPT-081=P3/M、OPT-117=P3/L blocked；均缺当前 Theme 与真实 signal 的合理北极星贡献，不因预算有余量而指派。
