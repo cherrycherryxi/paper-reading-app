@@ -31,6 +31,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Local reading drafts; keep tracked Markdown docs and generated release notes
+/docs/*.docx
+
 # Build / dist
 dist/
 build/
