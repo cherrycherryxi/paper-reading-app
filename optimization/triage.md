@@ -2,44 +2,29 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-29
+Last triaged: 2026-08-30
 
 ## Next up
 
-**OPT-171 — 畸形关联字段可穿过 state 归一化并拖垮整个关联页**
+**夜间无可指派任务（预算耗尽 + 无 S 级合格项）**
 
-**状态：done（P1 / S）— PR #136 / `93ed07b` 已合入**
+**状态：无（详见下）**
 
-**完成证据：** PR #136 已于 2026-08-29 squash 合入 `feature/agent`，合并提交 `93ed07b`。后端 `sanitize_connections()` 与前端 `normalizeConnection()` 已隔离畸形成员并保留明确兼容字段，关联页渲染和搜索对非数组 tags 防御性回落；合入闸门实跑 Python **523 passed, 26 subtests passed**，Node **539 passed, 0 failed**。
+**完成证据：** 唯一新增未完成项 OPT-174 已由 PR #137 / `a69a67b` + 审查收口 `37b92d9` 合入，达成 done（见下）。其余未完成项全部为 P3 parked / blocked，无当前 Theme 或真实 signal 支撑的北极星贡献，且复杂度均非夜间 S 级。
 
-**关键文件：** `app_server.py:839-907`；`app.js:426-439,1049-1054,1088-1128`；`tests/agent/custom_quote_tags_sanitize_test.py`（可沿用 sanitizer 测试模式）；`tests/frontend/connection-crud.test.js`。
+**预算状态（2026-08-30）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **8**，已达上限 **8**，预算耗尽，本次不指派任何实现。未调用 `gh` 或 GitHub API。**夜间适配：否。**
 
-**signal / Theme：** 当前 Theme 3「积累可信」要求已有摘抄与关联可恢复、可回顾；2026-08-24、08-25 两条 owner signal 证明关联是正在真实使用的回顾路径。OPT-170/172 已修复保存失败回滚与跨书检索，OPT-171 继续封住单条脏关联拖垮整页的可信性缺口。最新北极星仍是 2026-08-23 的使用 2 天 / 新增摘抄 5 / 回顾操作 6，只能支持优先保护回顾资产，不能宣称增长。
-
-**预算状态（2026-08-29）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **7**，上限 **8**，剩余 **1**；本次至多指派一个并已用于 OPT-171。未调用 `gh` 或 GitHub API；外层“最近 50 个 feature/agent PR”列表为空，不用缺失的 PR 元数据补推结论。
+**夜间适配否决（OPT-174）：** OPT-174 虽为 P1，但 size=M，需产品/设计判断——定义"分钟 vs 活跃天数/新增摘抄"双口径指标名称、卡片与分享图口径（`renderSummary` / `renderReadingInsightsShareCard` / 默认与 AI 叙事同步）。按夜间轨边界（仅 S、验收边界清楚、无需 owner 取舍），不写入 Next up；且其本身已随 PR #137 合入 done。
 
 **本次证据核对：**
-- OPT-173 已由 PR #135 / `fe6173c` 合入：`renderQuotes()` 新增“原文摘抄”/“我的笔记”直白标签，`styles.css` 为笔记加入横线纸版式与独立布局，真实源码测试锁定两类标签且不再依赖小型 overlay chip；故 backlog 与 triage 均标 done。
-- `783a4bf` 已落地 OPT-170 与 OPT-172：当前 `app.js` 的关联增删改普通失败会恢复操作前快照，目标摘抄选择器支持中文多词、跨书优先与书籍范围；对应普通失败回滚、检索范围和清除误选测试仍在树中，故 backlog 与 triage 均标 done。
-- `bb7dae9` 继续修复 iPhone 关联选择器：候选列表在触屏端进入文档流、滑动不在 `touchstart` 误选、键盘完成键不提交表单，相关回归测试仍在树中。这是 OPT-172 落地后的真实体验收口，不新增重复 backlog 项。
-- `81ca03b` 已恢复深度共读跨书摘抄检索：Gateway 的 `search_quotes()` 支持多词匹配与 book/relation scope，契约测试覆盖书名、作者、多词、范围与用户隔离；它不对应现存未完成 backlog 项，故不凭提交标题新增 done。
-- 本次实跑 `quote-card-image-thumb` 与 `connection-crud` 两个源码专项，Node **20 项全部通过**；前者验证 OPT-173 当前实现，后者确认 OPT-171 尚无畸形 tags 回归。规划维护未执行全量套件，也不宣称全量通过。
-- OPT-171 已由 PR #136 / `93ed07b` 合入：`sanitize_connections()` 与 `normalizeConnection()` 过滤畸形成员、规范合法字段，关联页渲染和搜索对非数组 tags 回落；后端与前端回归均在当前树中，故 backlog 与 triage 标为 done。
-- 最近 8 日提交中，`7504173` 明确为 PR #134 的 OPT-169 合入提交；当前 `app.js` 已让 `syncState()` 返回保存结果，关联新增/编辑/删除遇冲突后停止关闭弹窗或播报成功；`tests/frontend/state-optimistic-lock.test.js` 锁定结构化返回，`tests/frontend/connection-crud.test.js` 覆盖三条 409 回归，故 backlog 与 triage 均标 done。本次给出的“最近 50 个 feature/agent PR”清单为空，未凭描述新增其他 done 判断。
-- OPT-159、160、161 的完成证据仍分别是 `c0e9b2a`、`a086b9e`、`ad85cd5`；当前树中保留对应启动失败收口、取消竞态和重启恢复代码及测试。
-- OPT-163 已由 PR #127 squash 合入 `feature/agent`（`e13f25d`）；Gateway 已返回并检索真实 `reflection`，契约测试覆盖聚焦摘抄、关键词命中与用户隔离；2026-08-26 triage 留存的全量结果为 Python `492 passed, 26 subtests passed`、Node `508 passed, 0 failed`。
-- OPT-164 已由 PR #129 squash 合并至 `feature/agent`（`b33d3af`）；Gateway 已支持按所属书名和作者检索摘抄，契约测试仍在树中。
-- OPT-165 已由 PR #132 合入（`31dee7b`）；两端实体摘要、字段白名单与孤儿关联跳过均有当前代码和测试证据。
-- OPT-166 已由 PR #130 squash 合入 `feature/agent`（`cf1f9b6`）；全部无效证据时降级结论、部分有效与原本无证据边界回归已落地。
-- OPT-167 已由 PR #131 squash 合入 `feature/agent`（`fa76724`）；非对象建议会在持久化前被过滤并留下 warning，合法建议继续进入既有审批状态机；合入审查留存结果为 Python `500 passed, 26 subtests passed`、Node `508 passed, 0 failed`。
-- OPT-168 已由 PR #133 squash 合入 `feature/agent`（`46ce38b`）；上下文 revision 隔离旧查询、启动、取消及异常响应，切换时复位任务、状态、结果、历史与运行控件；合入审查留存结果为 Python `505 passed, 26 subtests passed`、Node `510 passed, 0 failed`。
-- OPT-169 已由 PR #134 squash 合入 `feature/agent`（`7504173`）；结构化冲突结果与关联增删改失败提示已落地，当前树保留三条 409 UI 回归。
+- OPT-174 已由 PR #137 / `a69a67b`（2026-08-29）合入：`readingInsightMetrics()` 八周趋势新增 `quoteCount` + `activeDays`，`useQuoteActivity` 在无 session 分钟但有摘抄活动时切到"新增摘抄/活跃天数"口径，头部"天活跃/本周"；默认/AI 叙事、卡片与分享图（"数字来自阅读记录与摘抄"）同步。`37b92d9` 按 Codex 审查补齐边界与 39 行回归。当前树保留 `useQuoteActivity`/`quoteCount`/`activeDays`/`天活跃`/`条摘抄` 与 `tests/frontend/reading-insights-dashboard.test.js`、`share-card.test.js`；本次实跑两文件 Node **25 项全部通过**，故 backlog 与 triage 均标 done。
 - 其余未完成项逐项重评：P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。以上 13 项均缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不因预算尚有空间而填充指派。
 
 ## Prioritized backlog
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-174 | “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 | **P1** | M | **done** | ✅ PR #137 / `a69a67b` + `37b92d9` 已合入 [2026-08-29]；无 session 分钟时切活跃天数/新增摘抄口径，卡片与分享图同步 |
 | OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | **done** | ✅ PR #136 / `93ed07b` 已合入 [2026-08-29]；两端清洗、渲染防御与畸形数据回归已落地 |
 | OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | **done** | ✅ PR #135 / `fe6173c` 已合入 [2026-08-28]；直白标签、独立版式与源码回归已落地 |
 | OPT-172 | 关联摘抄支持跨书多词检索与目标书范围 | **P1** | M | **done** | ✅ `783a4bf` 已落地 [2026-08-26]；多词召回、跨书排序、范围与清除误选测试在树中 |
@@ -86,7 +71,7 @@ Last triaged: 2026-08-29
 
 ## Recently reconciled done
 
-OPT-173、OPT-172、OPT-170、OPT-169、OPT-168、OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
+OPT-174、OPT-173、OPT-172、OPT-170、OPT-169、OPT-168、OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 
 ## Legend
 
