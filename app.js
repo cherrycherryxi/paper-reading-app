@@ -1414,7 +1414,7 @@ function readingInsightMetrics() {
     const index = Math.floor((time - weeks[0].start.getTime()) / (7 * 86400000));
     if (index >= 0 && index < weeks.length) weeks[index].minutes += Math.max(0, Number(session.minutes || 0));
   });
-  state.quotes.filter(isRegularQuote).forEach((quote) => {
+  state.quotes.filter((quote) => isRegularQuote(quote) && quote.kind !== "note").forEach((quote) => {
     const time = Date.parse(quote.createdAt || "");
     if (!Number.isFinite(time)) return;
     const index = Math.floor((time - weeks[0].start.getTime()) / (7 * 86400000));
@@ -1426,7 +1426,7 @@ function readingInsightMetrics() {
   const hasMinuteData = weeks.some((item) => item.minutes > 0);
   const useQuoteActivity = !hasMinuteData || (weeks[7].minutes === 0 && weeks[7].quoteCount > 0);
   const momentumWeeks = weeks.map((item) => useQuoteActivity ? item.quoteCount : item.minutes);
-  const previousAverage = Math.round(momentumWeeks.slice(3, 7).reduce((sum, value) => sum + value, 0) / 4);
+  const previousAverage = momentumWeeks.slice(3, 7).reduce((sum, value) => sum + value, 0) / 4;
   const thisWeekValue = momentumWeeks[7];
   const trend = previousAverage ? Math.round(((thisWeekValue - previousAverage) / previousAverage) * 100) : null;
   const momentum = {
