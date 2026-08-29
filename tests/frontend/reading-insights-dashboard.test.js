@@ -18,6 +18,9 @@ test("我的页面用四类阅读洞察替代四张计数卡", () => {
 test("图表数字由本地确定性计算且包含文字可访问名称", () => {
   assert.match(app, /function readingInsightMetrics\(\)/);
   assert.match(app, /最近八周阅读分钟数/);
+  assert.match(app, /最近八周新增摘抄数/);
+  assert.match(app, /天活跃\/本周/);
+  assert.match(app, /weeks\[7\]\.minutes === 0 && weeks\[7\]\.quoteCount > 0/);
   assert.match(app, /在读 \$\{structure\.readingBooks\} 本/);
   assert.match(app, /摘抄 \$\{metrics\.funnel\.quoteCount\}/);
   assert.match(app, /role="img"/);
