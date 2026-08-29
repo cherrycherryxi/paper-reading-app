@@ -1647,3 +1647,13 @@ Format per item:
 - description: 已完成。`readingInsightMetrics()` 为八周趋势新增 `quoteCount` 与 `activeDays` 双轨，`useQuoteActivity` 在无 session 分钟但有摘抄活动时切到”新增摘抄/活跃天数”口径，头部显示”天活跃/本周”，默认/AI 叙事、`renderSummary()` 卡片与分享图（”数字来自阅读记录与摘抄，AI 只解释趋势。”）同步切口径，不再把持续摘抄式阅读误报为”0 分钟/本周”。
 - why: 产品已经选择降低手工记录负担，洞察不能继续把 session 当作阅读发生的唯一证据。没有分钟数据时也不能从摘抄臆造分钟，应改用诚实的可观测代理（活跃阅读天数/新增摘抄），并同步解释与分享卡口径。
 - how: 已由 `a69a67b` + `37b92d9` 落地于 `app.js`（`readingInsightMetrics` / `defaultReadingInsightNarratives` / `renderSummary` / `renderReadingInsightsShareCard`）与 `tests/frontend/reading-insights-dashboard.test.js`、`tests/frontend/share-card.test.js`；2026-08-30 triage 实跑两文件 **25 项全部通过**。`index.html` 的洞察卡由 `renderSummary()` 动态渲染，无残留硬编码”0 分钟”。
+
+### OPT-175 — 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 `prompt` → iPhone 上永远无法注销 — 由 explore E308 提拔 [2026-08-30]
+- status: new
+- area: frontend / error handling / platform
+- priority: P1
+- size: S
+- northstar: 强——完整账号注销是 P0/GDPR/PIPL 数据权利要求；iOS Safari 不支持 `window.prompt`（恒返 null），主平台 iPhone 上用户永远无法完成注销。
+- description: `deleteAccount()` 用 `showConfirmDialog` 弹出确认后，再调原生 `window.prompt(...)` 让用户输入用户名（`app.js:4968`）。iOS Safari（含 iPhone 上所有浏览器，均强制 WebKit）不实现 `window.prompt`，调用恒返回 `null`，于是 `typed !== expected` 恒真、永远走「用户名不匹配，已取消」（`app.js:4969-4972`）。账号注销入口在账号抽屉 `#deleteAccountBtn`（`app.js:109,6881`）可达；服务端 `/api/account` DELETE 需 `confirmUsername`（`app.js:4977`），前端拿不到匹配输入就无法触发。当前无针对 `window.prompt` 的兼容分支或测试。
+- why: 商业化基线明确要求数据导出+删除权利（P0/GDPR/PIPL，cerebrum 已列）。数据权利在唯一主平台失效是确定性缺陷而非偶发；`prompt` 是已知 WebKit 不支持 API。旧 OPT-062 只覆盖 6 处删除入口的 Escape 清理，未覆盖此平台兼容缺口。
+- how: 把用户名二次确认改用项目内既有确认对话框样式（如给 `showConfirmDialog` 加可选文本输入槽），或改为弹窗内输入框 + 校验，替换原生 `prompt`。需在 iOS 真机与前端回归测试中验证注销能完成、用户名不匹配时能取消。Touch: `app.js:4962-4990`；`index.html`（账号抽屉）；`tests/frontend/regression-fixed-bugs.test.js`。

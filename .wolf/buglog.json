@@ -9941,6 +9941,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-29T17:01:44.366Z"
+    },
+    {
+      "id": "auto-009",
+      "timestamp": "2026-08-29T21:03:50.267Z",
+      "error_message": "Missing guard clause",
+      "file": "optimization/explore.md",
+      "root_cause": "No early return/throw for edge case: typed !== expected",
+      "fix": "Added guard clause: if (typed !== expected)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:03:50.267Z"
     }
   ]
 }

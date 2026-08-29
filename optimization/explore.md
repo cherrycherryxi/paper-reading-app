@@ -5407,3 +5407,79 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——保护可分享个人洞察的来源声明与模型调用边界，但正常 UI 不会触发且无滥用 signal，暂不提拔。
 
 > 本次 run 新发现 4 条：E304（阅读动力与已下线记录页口径冲突，M，correctness/UX）、E305（跨书主题漏算关联目标端，S，correctness）、E306（旧 AI 响应产生假成功状态，S，error feedback）、E307（服务端不校验聚合指标结构，M，trust boundary/code health）。仅 E304 同时具备当前新功能、owner 直接 signal 与强北极星贡献，提拔为 OPT-174；其余留探索池。受隔离环境限制未刷新远端，编号依据现存 `origin/feature/agent` 最大 OPT-173；若远端已前移，后续 triage 必须先重新编号。
+
+## 2026-08-30
+
+> 扫描焦点：核对账号数据生命周期（注销/删除）、阅读足迹是否仍可达（记录页下线后）、以及长期增长后的代码健康。隔离 clone 当前 `HEAD` 为 `29792ba`，本地 backlog 现存最大 OPT 编号为 **OPT-174**；`gh`/`git ls-remote` 因网络不可用失败，open PR 状态未知，未据此推断。以下方向均已用当前文件逐行核实，并排除 backlog、已合并代码、旧 E001–307 重复。
+
+### E308 — 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 `prompt` → iPhone 上永远无法注销 (S)
+
+**What:** 注销账号的二次确认用 `window.prompt(...)` 让用户输入用户名。iOS Safari 不实现 `window.prompt`，调用恒返回 `null`，于是 `typed !== expected` 恒为真，永远走「用户名不匹配，已取消」。iPhone（本项目主平台）上的用户**无法完成账号注销**。
+
+**Evidence:** `deleteAccount()` 先弹自定义 `showConfirmDialog`（`app.js:4962-4967`），确认后再调用原生 `window.prompt`（`app.js:4968`），随后 `if (typed !== expected) { showToast("用户名不匹配，已取消"); return; }`（`app.js:4969-4972`）——没有 iOS fallback。入口在账号抽屉 `#deleteAccountBtn`（`app.js:109`、`app.js:6881`）可达。`/api/account` DELETE 端点要求 `confirmUsername`（`app.js:4977`），服务端校验也需要前端先拿到匹配的用户名。旧 OPT-062 只覆盖 6 处删除入口的 Escape 清理，未覆盖 `window.prompt` 的平台兼容；当前没有任何针对 `window.prompt` 的测试或分支。
+
+**Why:** 完整账号导出/删除是商业化路线的 P0/GDPR/PIPL 要求（cerebrum 有明确约定）；数据权利在唯一主平台失效是确定性缺陷，且 `prompt` 属已知 WebKit 不支持 API。最小修复：把用户名输入改用项目内已有确认对话框样式（如给 `showConfirmDialog` 加一个可选文本输入槽），或提供输入框 + 校验，替换原生 prompt，并在 iOS 真机与测试中验证。
+
+**Size:** S
+
+**Files:** `app.js:4962-4990,109,6881`; `index.html`(账号抽屉 `#deleteAccountBtn`); `tests/frontend/regression-fixed-bugs.test.js`
+
+**Northstar:** 强——修复主平台无法行使的数据权利（账号注销），属 Theme 3「积累可信」与合规基线的确定性缺口，无 owner 决策分歧。→ **promoted to OPT-175**
+
+### E309 — `app.js`(7180 行)与 `app_server.py`(6807 行)双双超过 roadmap §3 的 6500 行拆分闸门 (M)
+
+**What:** roadmap §3「架构守门人」规则写明 `app_server.py` **超 6500 行**或单函数超 150 行才拆；两个主文件当前都已越线，且无拆分计划跟进。
+
+**Evidence:** `wc -l` 实测 `app.js` = 7180 行、`app_server.py` = 6807 行（均 > 6500）。`app.js` 含 ~289 个函数声明（`grep -c "^function"`），`app_server.py` 单文件承载 agent 管线、OCR、billing、auth、GC 等全部后端职责。triage/backlog 中与「拆分」相关的既有项（OPT-032/035/036/044/124 等）都指向 GC/时间戳/内部运营，没有一条是「按架构闸门拆文件」的跟进项。
+
+**Why:** 两文件持续增长会让新功能改动冲突面与 review 成本上升；架构守门人规则既已写明闸门，越线后应至少登记一个显式的拆分候选（如先把 `app_server.py` 的 billing/auth 或 agent 管线拆出），避免闸门形同虚设。
+
+**Size:** M（拆分本身 L，登记候选为 M）
+
+**Files:** `app.js`; `app_server.py`; `optimization/roadmap.md:89`(闸门规则)
+
+**Northstar:** 弱——纯代码健康，对北极星与 owner 真实使用无直接贡献，不提拔。
+
+### E310 — 记录页下线后，跨书的整条阅读历史时间线不再可达，`renderTimeline` 沦为死代码 (M)
+
+**What:** 「记录」页已从一级导航移除（信号 8/13「评估移除记录页面」），而移动端 Tab 现在只剩 书单/摘抄/探讨/关联/我的。曾作为「回顾」主面的整条阅读时间线（OPT-077 里程碑 + OPT-076 加载更多 + OPT-112 日期搜索）失去所有用户入口，仅每本书详情内仍可见单书 session。
+
+**Evidence:** 移动 Tab 导航 `index.html:884-903` 只有 `books/quote/chat/connections/me`，无 timeline/records。`renderTimeline()` 以 `if (!els.timeline) return;` 早退（`app.js:2110-2112`），而 `#timeline` 元素在 `index.html` 已不存在（`grep timeline index.html` 零命中），`els.timeline = document.querySelector("#timeline")`（`app.js:113`）恒为 null——于是 4 处 `renderTimeline()` 调用（`app.js:1999,2252,2601,4207`）全部空转。OPT-174 只补了聚合洞察，未恢复逐条历史浏览。
+
+**Why:** 这是「记录页移除」与「时间线曾深度投入」之间的产品张力：数据未丢（书详情、洞察仍在），但 110 本导入书的 `finishedAt` 里程碑不再有全局浏览入口，Theme 2「回顾有价值」的承接面收窄。需 owner 决策是否接受，或把时间线作为摘抄/书的嵌入式视图恢复；当前以死代码形式保留渲染器不划算。
+
+**Size:** M
+
+**Files:** `app.js:113,1999,2110-2197,2252,2601,4207`; `index.html:884-903`; `optimization/signals.md:68-74`(8/13 记录页信号)
+
+**Northstar:** 中——涉及回顾主面是否保留，但本质是产品取舍且数据未丢，缺 owner 明确决策，不提拔。
+
+### E311 — 书单主搜索框只搜书，无法按内容命中摘抄 (S)
+
+**What:** 首页书单的搜索框（`#booksSearchInput`）触发 `globalSearch()`，后者只调 `matchBooks()` 渲染书结果，不搜摘抄正文/标签/我的理解。用户想按一句话找回摘抄，必须切到「摘抄」页再用那里的搜索，主搜索框给不出跨书内容命中。
+
+**Evidence:** `#booksSearchInput` 的 `input` 事件 200ms 防抖后调 `globalSearch(event.target.value)`（`app.js:6947-6952`）；`globalSearch()` 只执行 `renderSearchResults(matchBooks(normalized))`（`app.js:2024-2042`），没有合并 quotes 结果。`app.js:1760` 注释明确「Intentionally NOT wired into globalSearch()」说明这是有意的克制，但这也意味着用户在主搜索框无法通过正文找到摘抄。旧 OPT-092/083/088/096/097 是摘抄/关联**页内**搜索，非主搜索框的跨类型召回。
+
+**Why:** Theme 2「回顾有价值」核心是「按内容找回旧摘抄」；主搜索框只覆盖书，跨书按摘抄内容检索的唯一入口藏在摘抄页，发现成本高。可评估主搜索下拉合并书籍+摘抄两类结果，或至少在空书结果时提示「去摘抄页按正文搜索」。
+
+**Size:** S
+
+**Files:** `app.js:2024-2042,6947-6952,1760`; `tests/frontend/global-search.test.js`
+
+**Northstar:** 中——提升回顾检索发现度，但「主搜索是否跨类型」属交互设计选择且当前各页已有独立搜索，缺直接 signal，不提拔。
+
+### E312 — 关联弹窗的书籍 combobox 没有清除按钮，误选来源书后无法一键取消 (S)
+
+**What:** 摘抄下拉（`initQuoteCombobox`）有显式的 `.quote-combobox-clear` 清除按钮（选中后出现、点击清空），而书籍下拉（`initBookCombobox`）没有对应的清除入口。用户误选来源/目标书后，只能重打关键字或接受错误选择，不能一键取消。
+
+**Evidence:** `initQuoteCombobox` 查询并绑定 `clearButton = wrapperEl.querySelector(".quote-combobox-clear")`，`pick()` 时显示、点击清除（`app.js:6148,6276,6338-6342`）；`initBookCombobox`（`app.js:6029-6143`）只查询 `.book-combobox-input/.list`，无 `clearButton` 逻辑。8/24 signal「误选其他摘抄后又很难删除」同源的「误选后取消」摩擦，在书的一侧仍无显式出口（键入会清空 hiddenInput，但无可见清除控件）。旧 E290/E295 覆盖「候选排除已选来源」与「类型切换清空」，未覆盖书下拉的清除控件。
+
+**Why:** 关联录入是 8/24/8/25 信号集中指向的摩擦面；书侧缺清除按钮让「改选/放弃」成本高于摘抄侧。最小修复是给 `initBookCombobox` 补与 quote 一致的可选 clear 按钮。
+
+**Size:** S
+
+**Files:** `app.js:6029-6143,6148,6276,6338-6342`; `index.html`(关联弹窗 combobox 模板); `tests/frontend/combobox-single-open.test.js`; `tests/frontend/connection-entry-ux.test.js`
+
+**Northstar:** 弱中——改善关联录入误选恢复，但已有键入清空的隐式路径，缺 owner 对该具体控件的反馈，暂不提拔。
+
+> 本次 run 新发现 5 条：E308（注销账号用原生 prompt，iOS Safari 不支持 → iPhone 上无法注销，S，platform/error handling）、E309（app.js/app_server.py 双双超 6500 行架构闸门，M，code health）、E310（记录页下线后整条阅读时间线不可达，renderTimeline 死代码，M，UX/product tension）、E311（主搜索框只搜书不搜摘抄正文，S，retrieval/UX）、E312（关联书下拉缺清除按钮，S，UX）。五项均由当前文件逐行核实并排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。仅 E308 具备主平台确定性缺陷 + GDPR/PIPL 数据权利 + 强北极星贡献，提拔为 OPT-175；其余留探索池。

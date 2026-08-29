@@ -5914,3 +5914,11 @@
 | 01:01 | Edited optimization/triage.md | inline fix | ~136 |
 | 01:30 | night triage 2026-08-30: reconcile OPT-174 done via PR #137/37b92d9; budget auto/ 8/8 exhausted; no night-eligible S task assigned | optimization/backlog.md optimization/triage.md | OPT-174 marked done in backlog+triage; Next up records no assignment | ~9k |
 | 01:02 | Edited optimization/triage.md | removed 25 lines | ~6 |
+
+## Session: 2026-08-29 05:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 05:03 | Edited optimization/explore.md | added 2 condition(s) | ~1503 |
+| 05:04 | Edited optimization/backlog.md | expanded (+10 lines) | ~380 |
+| 05:40 | 2026-08-30 Agent3 explore: E308-E312 新方向 5 条，提拔 OPT-175（注销用原生 window.prompt，iOS Safari 不支持致 iPhone 无法注销） | optimization/explore.md optimization/backlog.md .wolf/memory.md | explore 追加小节 + backlog 登记 OPT-175 status:new | ~1800 |
