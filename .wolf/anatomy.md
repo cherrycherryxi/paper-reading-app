@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T23:06:15.481Z
-> Files: 419 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-29T01:44:15.898Z
+> Files: 424 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -170,6 +170,7 @@
 - `opt143-pr-body.md` — 动机 (~189 tok)
 - `opt156-pr.md` — 动机 (~208 tok)
 - `opt169-pr-body.md` — 动机 (~160 tok)
+- `opt174-pr-body.md` — 动机 (~217 tok)
 
 ## ../../../../tmp/paper-opt-142/
 
@@ -218,6 +219,15 @@
 
 - `regression-fixed-bugs.test.js` — regression-fixed-bugs.test.js (~20740 tok)
 
+## ../../../../tmp/paper-opt174.nUEIAO/
+
+- `app.js` — Declares AUTH_TOKEN_KEY (~81962 tok)
+
+## ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/
+
+- `reading-insights-dashboard.test.js` — Declares test (~652 tok)
+- `share-card.test.js` — OPT-087 摘抄分享图回归锁：驱动 app.js 真实的 renderQuoteShareCard / shareQuoteCard， (~4887 tok)
+
 ## ../../../../tmp/paper-pr131-review.HSca14/tests/agent/
 
 - `deep_reading_api_test.py` — _Runner: start, cancel, start, setUp + 15 more (~3983 tok)
@@ -261,6 +271,7 @@
 - `cards-2026-08-25.md` — 卡片① (~34 tok)
 - `cards-2026-08-26.md` (~1 tok)
 - `cards-2026-08-28.md` — 卡片① (~33 tok)
+- `cards-2026-08-29.md` — 卡片① (~43 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -278,7 +289,7 @@
 - `review-2026-08-26.md` (~2 tok)
 - `review-2026-08-27.md` (~2 tok)
 - `review-2026-08-28.md` (~2 tok)
-- `review-2026-08-29.md` — paper-reading-app 夜间 PR 审查汇总（2026-08-29） (~179 tok)
+- `review-2026-08-29.md` — paper-reading-app 夜间 PR 审查汇总（2026-08-29） (~219 tok)
 - `today-pick.md` — 卡片① (~47 tok)
 
 ## ../../.claude/scripts/configs/
@@ -426,6 +437,9 @@
 
 
 ## Current planning state (2026-08-25 Explore)
+
+
+## Current planning state (2026-08-29)
 
 
 ## Deep reading controlled web research (2026-08-28)
@@ -751,9 +765,3 @@
 - `material.md` — 真实素材 (~37 tok)
 - `vars.sh` (~46 tok)
 - `文案.md` — 标题三选一 (~169 tok)
-
-## Current planning state (2026-08-29)
-
-- `optimization/triage.md` — OPT-171 is the single P1/S nightly Next up; seven-day `auto/` budget is 7/8.
-- `optimization/backlog.md` — OPT-173 reconciled done via PR #135 / `fe6173c`; all unsupported unfinished items remain P3 parked or blocked.
-- `optimization/explore.md` — 2026-08-29 Explore adds E304–E307 around reading-insight metric fidelity, connection-theme counting, stale async feedback, and aggregate schema validation; E304 is promoted as OPT-174 (`status: new`).

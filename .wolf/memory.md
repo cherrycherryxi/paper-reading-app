@@ -5849,3 +5849,26 @@
 - 新上线“阅读动力”只累计 `state.sessions[].minutes`；同批改动已移除独立记录页，owner 也有“几乎不手工新增记录”的直接 signal，因此持续摘抄仍可能显示本周 0 分钟。探索项 E304 提拔为 OPT-174，后续应采用“有 session 显示分钟、无 session 但有摘抄活动则显示活跃天数/新增摘抄”的诚实双口径，不能用摘抄时间臆造分钟。
 - E305–E307 分别记录兴趣图谱只计算 connection 来源端、旧洞察响应产生假成功状态、服务端未校验固定 metrics schema；因缺直接 signal 暂不提拔。
 - 隔离 clone 的 `HEAD` 与现存 `origin/feature/agent` 均为 `6a6268a`，本地最大编号 OPT-173；`.git/FETCH_HEAD` 只读且 GitHub DNS 不可用，无法实时刷新远端，因此 OPT-174 需在后续 triage 前重新确认编号。用户明确禁止 commit/push/PR，本轮只保留允许文件的工作区修改。
+| 07:06 | Created ../../.claude/paper-loop/review-2026-08-29.md | — | ~234 |
+| 07:07 | Session end: 4 writes across 3 files (backlog.md, triage.md, review-2026-08-29.md) | 0 reads | ~55651 tok |
+
+## Session: 2026-08-28 07:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:08 | Created ../../.claude/paper-loop/cards-2026-08-29.md | — | ~46 |
+| 07:08 | Session end: 1 writes across 1 files (cards-2026-08-29.md) | 0 reads | ~49 tok |
+
+## Session: 2026-08-29 09:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:39 | Created ../../../../tmp/paper-opt174.nUEIAO/app.js | — | ~81931 |
+| 09:39 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/reading-insights-dashboard.test.js | — | ~647 |
+| 09:39 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/share-card.test.js | — | ~4724 |
+| 09:40 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/share-card.test.js | — | ~4728 |
+| 09:40 | Created ../../../../tmp/paper-opt174.nUEIAO/app.js | — | ~81932 |
+| 09:41 | Created ../../../../tmp/paper-opt174.nUEIAO/app.js | — | ~81962 |
+| 09:41 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/reading-insights-dashboard.test.js | — | ~652 |
+| 09:41 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/share-card.test.js | — | ~4887 |
+| 09:44 | Created ../../../../tmp/opt174-pr-body.md | — | ~232 |
