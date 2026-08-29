@@ -1405,6 +1405,8 @@ function readingInsightMetrics() {
   const weeks = Array.from({ length: 8 }, (_, index) => ({
     start: new Date(weekStart.getTime() - (7 - index) * 7 * 86400000),
     minutes: 0,
+    quoteCount: 0,
+    activeDays: new Set(),
   }));
   state.sessions.forEach((session) => {
     const time = Date.parse(session.date || session.createdAt || "");
@@ -1412,9 +1414,30 @@ function readingInsightMetrics() {
     const index = Math.floor((time - weeks[0].start.getTime()) / (7 * 86400000));
     if (index >= 0 && index < weeks.length) weeks[index].minutes += Math.max(0, Number(session.minutes || 0));
   });
-  const previousAverage = Math.round(weeks.slice(3, 7).reduce((sum, item) => sum + item.minutes, 0) / 4);
-  const thisWeekMinutes = weeks[7].minutes;
-  const trend = previousAverage ? Math.round(((thisWeekMinutes - previousAverage) / previousAverage) * 100) : null;
+  state.quotes.filter(isRegularQuote).forEach((quote) => {
+    const time = Date.parse(quote.createdAt || "");
+    if (!Number.isFinite(time)) return;
+    const index = Math.floor((time - weeks[0].start.getTime()) / (7 * 86400000));
+    if (index < 0 || index >= weeks.length) return;
+    weeks[index].quoteCount += 1;
+    const day = new Date(time);
+    weeks[index].activeDays.add(`${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`);
+  });
+  const hasMinuteData = weeks.some((item) => item.minutes > 0);
+  const useQuoteActivity = !hasMinuteData || (weeks[7].minutes === 0 && weeks[7].quoteCount > 0);
+  const momentumWeeks = weeks.map((item) => useQuoteActivity ? item.quoteCount : item.minutes);
+  const previousAverage = Math.round(momentumWeeks.slice(3, 7).reduce((sum, value) => sum + value, 0) / 4);
+  const thisWeekValue = momentumWeeks[7];
+  const trend = previousAverage ? Math.round(((thisWeekValue - previousAverage) / previousAverage) * 100) : null;
+  const momentum = {
+    mode: useQuoteActivity ? "quotes" : "minutes",
+    weeks: momentumWeeks,
+    thisWeekValue,
+    thisWeekActiveDays: weeks[7].activeDays.size,
+    thisWeekQuotes: weeks[7].quoteCount,
+    previousAverage,
+    trend,
+  };
 
   const themeBooks = new Map();
   const addTheme = (rawTag, bookId = "") => {
@@ -1437,7 +1460,7 @@ function readingInsightMetrics() {
   const noteCount = state.quotes.filter((item) => item.kind === "note").length;
   const memoryCount = Array.isArray(state.memories) ? state.memories.length : 0;
   return {
-    weeks: weeks.map((item) => item.minutes), thisWeekMinutes, previousAverage, trend,
+    momentum,
     structure: { readingBooks, finishedBooks, wishlistBooks, pausedBooks, totalBooks: state.books.length, completionRate },
     themes,
     funnel: { quoteCount, noteCount, connectionCount: state.connections.length, memoryCount },
@@ -1445,12 +1468,12 @@ function readingInsightMetrics() {
 }
 
 function defaultReadingInsightNarratives(metrics) {
-  const activeWeeks = metrics.weeks.filter((value) => value > 0).length;
+  const activeWeeks = metrics.momentum.weeks.filter((value) => value > 0).length;
   const focus = metrics.structure.readingBooks > 5
     ? `同时在读 ${metrics.structure.readingBooks} 本，注意力可能有些分散。`
     : metrics.structure.readingBooks ? `当前在读 ${metrics.structure.readingBooks} 本，阅读范围相对聚焦。` : "当前没有标记为阅读中的书。";
   return {
-    momentum: activeWeeks < 2 ? "阅读记录还不够多，继续积累后才能判断稳定趋势。" : metrics.trend === null ? "本周开始形成阅读记录，可以先观察连续性。" : metrics.trend >= 20 ? "本周阅读投入明显高于近期平均。" : metrics.trend <= -20 ? "本周阅读投入低于近期平均，可以从一次短阅读重新开始。" : "近期阅读节奏整体稳定。",
+    momentum: activeWeeks < 2 ? "阅读痕迹还不够多，继续积累后才能判断稳定趋势。" : metrics.momentum.trend === null ? "本周开始形成阅读痕迹，可以先观察连续性。" : metrics.momentum.trend >= 20 ? "本周阅读活动明显高于近期平均。" : metrics.momentum.trend <= -20 ? "本周阅读活动低于近期平均，可以从一次短阅读重新开始。" : "近期阅读节奏整体稳定。",
     structure: focus,
     themes: metrics.themes.length ? `目前最常跨书出现的主题是“${metrics.themes[0].name}”。` : "标签和关联还不足，暂时无法形成可靠的兴趣主题。",
     sediment: metrics.funnel.quoteCount && !metrics.funnel.connectionCount ? "已经积累了一批摘抄，下一步可以尝试建立第一条跨书关联。" : metrics.funnel.connectionCount ? `已有 ${metrics.funnel.connectionCount} 条关联，阅读内容正在形成自己的知识网络。` : "继续积累摘抄、笔记和关联后，这里会显示知识沉淀路径。",
@@ -1462,7 +1485,12 @@ function renderSummary() {
   const metricKey = readingInsightsCacheKey(metrics);
   const currentAiNarratives = readingInsightNarrativeKey === metricKey ? readingInsightNarratives : null;
   const narratives = { ...defaultReadingInsightNarratives(metrics), ...(currentAiNarratives || {}) };
-  const maxMinutes = Math.max(1, ...metrics.weeks);
+  const momentum = metrics.momentum;
+  const maxMomentum = Math.max(1, ...momentum.weeks);
+  const momentumValue = momentum.mode === "minutes" ? momentum.thisWeekValue : momentum.thisWeekActiveDays;
+  const momentumUnit = momentum.mode === "minutes" ? "分钟/本周" : "天活跃/本周";
+  const momentumAria = momentum.mode === "minutes" ? "最近八周阅读分钟数" : "最近八周新增摘抄数";
+  const momentumBarUnit = momentum.mode === "minutes" ? "分钟" : "条摘抄";
   const maxThemeBooks = Math.max(1, ...metrics.themes.map((item) => item.bookCount));
   const structure = metrics.structure;
   const structureTotal = Math.max(1, structure.totalBooks);
@@ -1476,8 +1504,8 @@ function renderSummary() {
   ];
   els.meSummary.innerHTML = `
     <article class="reading-insight-card" aria-labelledby="insightMomentumTitle">
-      <header><div><span>最近 8 周</span><h4 id="insightMomentumTitle">阅读动力</h4></div><strong>${metrics.thisWeekMinutes}<small>分钟/本周</small></strong></header>
-      <div class="insight-week-bars" role="img" aria-label="最近八周阅读分钟数：${metrics.weeks.join("、")}">${metrics.weeks.map((minutes, index) => `<span style="--bar:${Math.max(4, Math.round((minutes / maxMinutes) * 100))}%" title="${minutes} 分钟"><i></i><small>${index === 7 ? "本周" : index + 1}</small></span>`).join("")}</div>
+      <header><div><span>最近 8 周 · ${momentum.mode === "minutes" ? "阅读时长" : "新增摘抄"}</span><h4 id="insightMomentumTitle">阅读动力</h4></div><strong>${momentumValue}<small>${momentumUnit}</small></strong></header>
+      <div class="insight-week-bars" role="img" aria-label="${momentumAria}：${momentum.weeks.join("、")}">${momentum.weeks.map((value, index) => `<span style="--bar:${Math.max(4, Math.round((value / maxMomentum) * 100))}%" title="${value} ${momentumBarUnit}"><i></i><small>${index === 7 ? "本周" : index + 1}</small></span>`).join("")}</div>
       <p data-insight-copy="momentum">${escapeHtml(narratives.momentum)}</p>
     </article>
     <article class="reading-insight-card" aria-labelledby="insightStructureTitle">
@@ -3933,14 +3961,17 @@ async function renderReadingInsightsShareCard() {
   y += 62;
   ctx.fillStyle = C.inkMuted;
   ctx.font = `26px ${C.sans}`;
-  ctx.fillText("数字来自阅读记录，AI 只解释趋势。", C.PAD, y);
+  ctx.fillText("数字来自阅读记录与摘抄，AI 只解释趋势。", C.PAD, y);
   y += 58;
 
-  const momentum = drawInsightSharePanel(ctx, C, y, "最近 8 周", "阅读动力", metrics.thisWeekMinutes, "分钟 / 本周");
-  const maxMinutes = Math.max(1, ...metrics.weeks);
+  const momentumMetrics = metrics.momentum;
+  const momentumValue = momentumMetrics.mode === "minutes" ? momentumMetrics.thisWeekValue : momentumMetrics.thisWeekActiveDays;
+  const momentumUnit = momentumMetrics.mode === "minutes" ? "分钟 / 本周" : "天活跃 / 本周";
+  const momentum = drawInsightSharePanel(ctx, C, y, `最近 8 周 · ${momentumMetrics.mode === "minutes" ? "阅读时长" : "新增摘抄"}`, "阅读动力", momentumValue, momentumUnit);
+  const maxMomentum = Math.max(1, ...momentumMetrics.weeks);
   const barGap = 18, barW = 78, chartBase = momentum.contentTop + 80;
-  metrics.weeks.forEach((minutes, index) => {
-    const barH = Math.max(5, Math.round((minutes / maxMinutes) * 72));
+  momentumMetrics.weeks.forEach((value, index) => {
+    const barH = Math.max(5, Math.round((value / maxMomentum) * 72));
     const bx = momentum.x + 38 + index * (barW + barGap);
     ctx.fillStyle = index === 7 ? C.ink : C.accent;
     roundRectPath(ctx, bx, chartBase - barH, barW, barH, 7);
