@@ -96,7 +96,7 @@ function buildContext() {
 showToast = function (m) { __toasts.push(String(m)); };
 globalThis.__hooks = {
   renderQuoteShareCard, renderConnectionShareCard, renderBookShareCard, renderReadingInsightsShareCard,
-  shareQuoteCard, shareConnectionCard, shareBookCard, shareReadingInsightsCard, wrapCanvasText, truncateForShare,
+  shareQuoteCard, shareConnectionCard, shareBookCard, shareReadingInsightsCard, wrapCanvasText, truncateForShare, readingInsightMetrics,
   BOOK_REVIEW_MAX_CHARS, BOOK_REVIEW_TARGET_CHARS,
   setState(v) { state = v; },
   setUser(v) { currentUser = v; authToken = "test-token"; },
@@ -141,6 +141,52 @@ test("AI 阅读洞察分享图复用品牌视觉并绘制四类分析", async ()
     assert.ok(ctx.__draws.texts.includes(text), `分享图应绘制 ${text}`);
   }
   assert.ok(ctx.__draws.texts.some((text) => text.startsWith("AI 阅读洞察 · ")), "分享图应标注 AI 阅读洞察与日期");
+});
+
+test("阅读动力有分钟记录时沿用分钟口径", () => {
+  const { hooks } = buildContext();
+  const now = new Date().toISOString();
+  hooks.setState({
+    books: [], sessions: [{ id: "s1", date: now, minutes: 30 }],
+    quotes: [{ id: "q1", kind: "quote", createdAt: now }], connections: [], memories: [],
+  });
+  const metrics = hooks.readingInsightMetrics();
+  assert.equal(metrics.momentum.mode, "minutes");
+  assert.equal(metrics.momentum.thisWeekValue, 30);
+});
+
+test("无分钟记录时用新增摘抄趋势和活跃天数，不臆造分钟", () => {
+  const { hooks } = buildContext();
+  const now = new Date();
+  const earlierToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8).toISOString();
+  hooks.setState({
+    books: [], sessions: [], connections: [], memories: [],
+    quotes: [
+      { id: "q1", kind: "quote", createdAt: earlierToday },
+      { id: "q2", kind: "quote", createdAt: now.toISOString() },
+      { id: "question1", kind: "question", createdAt: now.toISOString() },
+    ],
+  });
+  const metrics = hooks.readingInsightMetrics();
+  assert.equal(metrics.momentum.mode, "quotes");
+  assert.equal(metrics.momentum.thisWeekValue, 2);
+  assert.equal(metrics.momentum.thisWeekQuotes, 2);
+  assert.equal(metrics.momentum.thisWeekActiveDays, 1);
+});
+
+test("旧分钟记录不应掩盖本周只有摘抄的真实阅读", () => {
+  const { hooks } = buildContext();
+  const now = new Date();
+  const oldSession = new Date(now);
+  oldSession.setDate(oldSession.getDate() - 14);
+  hooks.setState({
+    books: [], connections: [], memories: [],
+    sessions: [{ id: "s1", date: oldSession.toISOString(), minutes: 60 }],
+    quotes: [{ id: "q1", kind: "quote", createdAt: now.toISOString() }],
+  });
+  const metrics = hooks.readingInsightMetrics();
+  assert.equal(metrics.momentum.mode, "quotes");
+  assert.equal(metrics.momentum.thisWeekValue, 1);
 });
 
 test("长正文按宽度折行（wrapCanvasText）", () => {
