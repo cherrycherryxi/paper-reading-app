@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-29T06:19:00.026Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-29T07:34:34.247Z
 > Files: 431 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -308,7 +308,7 @@
 - `.dockerignore` — Docker ignore rules (~103 tok)
 - `.DS_Store` (~2732 tok)
 - `.gitattributes` — Git attributes (~124 tok)
-- `.gitignore` — Git ignore rules (~228 tok)
+- `.gitignore` — Git ignore rules (~252 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~84376 tok)
 - `app.js` — Declares AUTH_TOKEN_KEY (~81970 tok)
