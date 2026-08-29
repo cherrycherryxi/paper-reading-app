@@ -5872,3 +5872,31 @@
 | 09:41 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/reading-insights-dashboard.test.js | — | ~652 |
 | 09:41 | Created ../../../../tmp/paper-opt174.nUEIAO/tests/frontend/share-card.test.js | — | ~4887 |
 | 09:44 | Created ../../../../tmp/opt174-pr-body.md | — | ~232 |
+| 09:47 | Created ../../.claude/paper-loop/today-pick.md | — | ~62 |
+| 09:47 | Session end: 10 writes across 5 files (app.js, reading-insights-dashboard.test.js, share-card.test.js, opt174-pr-body.md, today-pick.md) | 0 reads | ~261777 tok |
+| 13:27 | Created ../../../../private/tmp/build_big_breasts_wide_hips_docx.py | — | ~944 |
+| 13:28 | Session end: 11 writes across 6 files (app.js, reading-insights-dashboard.test.js, share-card.test.js, opt174-pr-body.md, today-pick.md) | 0 reads | ~262721 tok |
+| 13:28 | Created app.js | — | ~81970 |
+| 13:28 | Created tests/frontend/reading-insights-dashboard.test.js | — | ~1143 |
+| 13:28 | Created tests/frontend/reading-insights-dashboard.test.js | — | ~1158 |
+## 2026-08-29 Codex Review follow-up: reading momentum boundaries
+
+- PR #137 review指出两处有效边界：阅读动力的“新增摘抄”不能包含 `kind: "note"`，稀疏摘抄的四周平均值不能在计算趋势前四舍五入。
+- `readingInsightMetrics()` 现在只把非笔记的常规摘抄计入活动，并保留原始小数周均值计算趋势；例如历史四周仅 1 条、本周 1 条时，基线为 0.25，趋势为 +300%。
+- `tests/frontend/reading-insights-dashboard.test.js` 增加行为级回归，覆盖仅有笔记与稀疏摘抄两种场景；完整前端测试 544/544 通过。
+| 13:29 | Session end: 14 writes across 6 files (app.js, reading-insights-dashboard.test.js, share-card.test.js, opt174-pr-body.md, today-pick.md) | 0 reads | ~346992 tok |
+
+## Session: 2026-08-29 13:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:31 | Created ../../../../private/tmp/younger-feet-review.md | — | ~499 |
+| 13:32 | Created ../../../../private/tmp/build_younger_feet_docx.py | — | ~906 |
+| 13:33 | Session end: 2 writes across 2 files (younger-feet-review.md, build_younger_feet_docx.py) | 0 reads | ~1441 tok |
+| 14:14 | Created ../../../../private/tmp/passion-spent-review.md | — | ~440 |
+| 14:15 | Created ../../../../private/tmp/passion-spent-review.md | — | ~436 |
+| 14:15 | Created ../../../../private/tmp/build_passion_spent_docx.py | — | ~903 |
+| 14:16 | Session end: 5 writes across 4 files (younger-feet-review.md, build_younger_feet_docx.py, passion-spent-review.md, build_passion_spent_docx.py) | 0 reads | ~3283 tok |
+| 14:18 | Created ../../../../private/tmp/my-night-review.md | — | ~394 |
+| 14:19 | Created ../../../../private/tmp/build_my_night_docx.py | — | ~868 |
+| 14:19 | Session end: 7 writes across 6 files (younger-feet-review.md, build_younger_feet_docx.py, passion-spent-review.md, build_passion_spent_docx.py, my-night-review.md) | 0 reads | ~4573 tok |
