@@ -5983,3 +5983,11 @@
 | 22:24 | paper_wrapup_runner_migration_test 的 plutil 改为可选(Linux CI 无 plutil, plistlib 兜底) | tests/agent/paper_wrapup_runner_migration_test.py | macOS 上 plutil 路径仍被测试, Linux 跳过; 测试通过 | ~2k |
 | 22:24 | 收尾: buglog 记 bug-604, cerebrum 加 Do-Not-Repeat 条目 | .wolf/buglog.json, .wolf/cerebrum.md | done | ~3k |
 | 22:27 | push 遭 non-fast-forward(远端 Codex 自动提交 85fc862 signals 周记, 零文件交集), rebase 后重跑 pre-push 门禁全绿推送成功 | .githooks/pre-push | 85fc862..e74a964 feature/agent -> feature/agent | ~4k |
+
+## Session: 2026-08-30 01:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:01 | Edited optimization/triage.md | expanded (+8 lines) | ~299 |
+| 01:01 | Edited optimization/triage.md | 2→3 lines | ~112 |
+| 01:01 | Edited optimization/backlog.md | 2→2 lines | ~54 |

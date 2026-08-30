@@ -9976,6 +9976,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-30T22:24:01.011327+08:00"
+    },
+    {
+      "id": "auto-010",
+      "timestamp": "2026-08-30T17:01:00.946Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/triage.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→19 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T17:01:00.946Z"
+    },
+    {
+      "id": "auto-011",
+      "timestamp": "2026-08-30T17:01:04.439Z",
+      "error_message": "Incorrect value in code",
+      "file": "optimization/triage.md",
+      "root_cause": "Had `a69a67b`",
+      "fix": "Changed to `window.prompt`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T17:01:04.439Z"
+    },
+    {
+      "id": "auto-012",
+      "timestamp": "2026-08-30T17:01:12.473Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T17:01:12.473Z"
     }
   ]
 }
