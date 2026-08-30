@@ -74,6 +74,15 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn('fail "deploy-prod.sh 执行失败，且远端没有并发推进。"', source)
         self.assertIn('fail "feature/agent 连续变化，已达到 $MAX_ATTEMPTS 次发布上限。"', source)
 
+    def test_production_deploy_retries_health_checks_after_restart(self):
+        source = (CODEX_DIR / "deploy-prod.sh").read_text()
+        self.assertIn('HEALTH_ATTEMPTS="${PAPER_RELEASE_HEALTH_ATTEMPTS:-15}"', source)
+        self.assertIn("check_http()", source)
+        self.assertIn("while [ \"$attempt\" -le \"$HEALTH_ATTEMPTS\" ]", source)
+        self.assertIn("check_http local_prod_http http://127.0.0.1:8790/", source)
+        self.assertIn("check_http public_http https://read.readjot.com/", source)
+        self.assertNotIn("sleep 2", source)
+
     def test_weekly_production_release_emails_each_terminal_outcome(self):
         source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
         self.assertIn('EMAIL_SCRIPT="${PAPER_RELEASE_EMAIL:-', source)

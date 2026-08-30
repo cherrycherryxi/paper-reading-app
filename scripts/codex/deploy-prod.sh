@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 PROD="/Users/huangnanqi/CursorProjects/paper-reading-app-prod"
 REMOTE="${REMOTE:-origin}"
+HEALTH_ATTEMPTS="${PAPER_RELEASE_HEALTH_ATTEMPTS:-15}"
 YES=0
 FROM_MAIN=0
 
@@ -15,6 +16,25 @@ for arg in "$@"; do
     *) echo "用法: $0 [--yes] [--from-main]" >&2; exit 2 ;;
   esac
 done
+
+case "$HEALTH_ATTEMPTS" in
+  ''|*[!0-9]*|0) echo "PAPER_RELEASE_HEALTH_ATTEMPTS 必须是正整数。" >&2; exit 2 ;;
+esac
+
+check_http() {
+  local label="$1" url="$2" attempt=1 code="000"
+  while [ "$attempt" -le "$HEALTH_ATTEMPTS" ]; do
+    code="$(curl -sS -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)"
+    if [ "$code" = 200 ]; then
+      echo "${label}=200"
+      return 0
+    fi
+    [ "$attempt" -lt "$HEALTH_ATTEMPTS" ] && sleep 1
+    attempt=$((attempt + 1))
+  done
+  echo "${label}=${code:-000}"
+  return 1
+}
 
 cd "$ROOT"
 [ "$(git branch --show-current)" = "feature/agent" ] || {
@@ -86,8 +106,6 @@ fi
 
 git -C "$PROD" pull --ff-only "$REMOTE" main
 launchctl kickstart -k "gui/$(id -u)/com.huangnanqi.paper-backend-prod"
-sleep 2
-
-curl -sS -o /dev/null -w 'local_prod_http=%{http_code}\n' http://127.0.0.1:8790/
-curl -sS -o /dev/null -w 'public_http=%{http_code}\n' https://read.readjot.com/
+check_http local_prod_http http://127.0.0.1:8790/
+check_http public_http https://read.readjot.com/
 echo "生产发布完成：$(git -C "$PROD" rev-parse --short HEAD)"
