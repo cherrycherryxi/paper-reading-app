@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-30T09:30:27.352Z
-> Files: 431 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-30T11:17:42.121Z
+> Files: 432 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -367,7 +367,7 @@
 
 ## .githooks/
 
-- `pre-push` — pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。 (~636 tok)
+- `pre-push` — pre-push —— [1] 拦住误推 main（prod 部署指针）；[2] push 前跑 CI 同款测试，不绿就拦下。 (~706 tok)
 
 ## .github/codex/prompts/
 
@@ -569,7 +569,7 @@
 - `auth_rate_limit_test.py` — Regression tests for OPT-022: per-IP rate limiting on the unauthenticated (~2054 tok)
 - `billing_test.py` — Regression tests for Stripe billing integration (P2 commercialization). (~3752 tok)
 - `book_ocr_endpoint_test.py` — Tests: success_returns_parsed_fields, success_tolerates_markdown_code_fence, missing_image_returns_400, unauthorized_returns_401 + 1 more (~1524 tok)
-- `ci_workflow_contract_test.py` — Regression contracts for the CI and Codex auto-remediation wiring. (~402 tok)
+- `ci_workflow_contract_test.py` — Regression contracts for the CI and Codex auto-remediation wiring. (~511 tok)
 - `codex_cloud_scheduled_test.py` — Contracts for the remote Codex Cloud Scheduled nightly pipeline. (~962 tok)
 - `codex_morning_automation_test.py` — Regression contracts for the Codex morning review and candidate-card flow. (~955 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~6050 tok)
@@ -600,6 +600,7 @@
 - `object_storage_test.py` — Regression tests for S3-compatible object storage (P3 commercialization). (~1596 tok)
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
 - `ocr_recognition_fix_test.py` — Tests: bug_exploration_ocr_should_use_kimi_vision_helper, preservation_chat_route_still_uses_deepseek_chat, preservation_unauthenticated_ocr_return... (~7943 tok)
+- `paper_wrapup_runner_migration_test.py` — Contracts for the formal paper-wrapup provider migration. (~678 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
 - `prompt_builder_connections_test.py` — Tests: global_context_returns_all_connections, book_context_shows_connections_involving_book, book_context_was_previously_returning_empty, book_con... (~2251 tok)

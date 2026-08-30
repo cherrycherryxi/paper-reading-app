@@ -5965,3 +5965,20 @@
 | 17:30 | Created scripts/codex/deploy-prod.sh | — | ~888 |
 | 17:30 | Created tests/agent/codex_weekly_automation_test.py | — | ~2890 |
 - 2026-08-30 重新发布验证发现 `deploy-prod.sh` 在 launchd 重启后仅固定等待 2 秒，服务实际稍后恢复为 200，但脚本先收到 `local_prod_http=000`，造成发布已完成却误报失败。现改为本地与公网端点各最多 15 次、每秒一次的有界健康检查；只有持续失败才返回非零。`codex_weekly_automation_test.py` 新增该契约，聚焦测试 16/16 通过。
+| 17:34 | Session end: 4 writes across 3 files (weekly-prod-release.sh, codex_weekly_automation_test.py, deploy-prod.sh) | 5 reads | ~58140 tok |
+
+## Session: 2026-08-30 18:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:17 | Created .githooks/pre-push | — | ~706 |
+| 19:17 | Created tests/agent/paper_wrapup_runner_migration_test.py | — | ~678 |
+| 19:17 | Created tests/agent/ci_workflow_contract_test.py | — | ~511 |
+
+## Session: 2026-08-30 22:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:24 | 修复 pre-push GIT_DIR 泄漏(bug-604): hook 跑测试前 unset git rev-parse --local-env-vars | .githooks/pre-push, tests/agent/ci_workflow_contract_test.py | 受害者/对照组模拟验证通过; 契约测试 7/7; 全量 agent + 前端 544 测试全绿 | ~8k |
+| 22:24 | paper_wrapup_runner_migration_test 的 plutil 改为可选(Linux CI 无 plutil, plistlib 兜底) | tests/agent/paper_wrapup_runner_migration_test.py | macOS 上 plutil 路径仍被测试, Linux 跳过; 测试通过 | ~2k |
+| 22:24 | 收尾: buglog 记 bug-604, cerebrum 加 Do-Not-Repeat 条目 | .wolf/buglog.json, .wolf/cerebrum.md | done | ~3k |

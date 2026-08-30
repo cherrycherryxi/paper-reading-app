@@ -9957,6 +9957,25 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-29T21:03:50.267Z"
+    },
+    {
+      "id": "bug-604",
+      "timestamp": "2026-08-30T22:24:01.011327+08:00",
+      "error_message": "pre-push hook 内跑测试时，故障注入测试（codex_nightly_automation_test）的 `git -C <临时仓库> config --local core.bare true` 写进了主仓库 config，把主仓库 core.bare 改成 true。",
+      "file": ".githooks/pre-push, tests/agent/ci_workflow_contract_test.py",
+      "root_cause": "git 调用 hook 时向进程注入仓库局部环境变量（GIT_DIR/GIT_WORK_TREE/GIT_PREFIX/GIT_INDEX_FILE 等，`git rev-parse --local-env-vars` 列出），hook 内的测试子进程全盘继承。`git -C <tmp>` 的 --local 写入优先级是 $GIT_DIR/config 而非临时仓库 .git/config，变量泄漏时操作对象变成主仓库。",
+      "fix": "pre-push 在 cd $ROOT 之后、跑测试之前循环 unset `git rev-parse --local-env-vars` 列出的全部变量（ROOT 先算好不受影响）；ci_workflow_contract_test 新增契约断言清理块存在且先于测试执行。已用受害者/对照组模拟验证：清除后故障注入只影响临时仓库，不清除时 victim 仓库 core.bare 被写成 true（原 bug 复现）。",
+      "tags": [
+        "git-hooks",
+        "pre-push",
+        "env-leak",
+        "GIT_DIR",
+        "core.bare",
+        "test-isolation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T22:24:01.011327+08:00"
     }
   ]
 }
