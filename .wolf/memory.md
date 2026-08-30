@@ -5991,3 +5991,11 @@
 | 01:01 | Edited optimization/triage.md | expanded (+8 lines) | ~299 |
 | 01:01 | Edited optimization/triage.md | 2→3 lines | ~112 |
 | 01:01 | Edited optimization/backlog.md | 2→2 lines | ~54 |
+
+## Session: 2026-08-30 05:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 05:05 | Edited optimization/explore.md | added error handling | ~1670 |
+| 05:05 | Edited optimization/backlog.md | expanded (+20 lines) | ~499 |
+| 05:05 | Explore 2026-08-31: 关联选择器跨书可见/来源清除/范围语义 + 摘抄删除回滚 + 标签解析一致性 | optimization/explore.md optimization/backlog.md | append 6 探索项 E313-318, 提拔 OPT-176/177 | ~4k |

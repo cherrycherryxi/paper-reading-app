@@ -10024,6 +10024,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-30T17:01:12.473Z"
+    },
+    {
+      "id": "auto-013",
+      "timestamp": "2026-08-30T21:05:22.890Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/explore.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:05:22.890Z"
+    },
+    {
+      "id": "auto-014",
+      "timestamp": "2026-08-30T21:05:34.561Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/backlog.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:05:34.561Z"
     }
   ]
 }

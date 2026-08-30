@@ -1657,3 +1657,23 @@ Format per item:
 - description: `deleteAccount()` 用 `showConfirmDialog` 弹出确认后，再调原生 `window.prompt(...)` 让用户输入用户名（`app.js:4968`）。iOS Safari（含 iPhone 上所有浏览器，均强制 WebKit）不实现 `window.prompt`，调用恒返回 `null`，于是 `typed !== expected` 恒真、永远走「用户名不匹配，已取消」（`app.js:4969-4972`）。账号注销入口在账号抽屉 `#deleteAccountBtn`（`app.js:109,6881`）可达；服务端 `/api/account` DELETE 需 `confirmUsername`（`app.js:4977`），前端拿不到匹配输入就无法触发。当前无针对 `window.prompt` 的兼容分支或测试。
 - why: 商业化基线明确要求数据导出+删除权利（P0/GDPR/PIPL，cerebrum 已列）。数据权利在唯一主平台失效是确定性缺陷而非偶发；`prompt` 是已知 WebKit 不支持 API。旧 OPT-062 只覆盖 6 处删除入口的 Escape 清理，未覆盖此平台兼容缺口。
 - how: 把用户名二次确认改用项目内既有确认对话框样式（如给 `showConfirmDialog` 加可选文本输入槽），或改为弹窗内输入框 + 校验，替换原生 `prompt`。需在 iOS 真机与前端回归测试中验证注销能完成、用户名不匹配时能取消。Touch: `app.js:4962-4990`；`index.html`（账号抽屉）；`tests/frontend/regression-fixed-bugs.test.js`。
+
+### OPT-176 — 关联目标摘抄检索被单本书挤占，跨书匹配无法浮现 — 由 explore E313 提拔 [2026-08-31]
+- status: new
+- area: frontend / ux / retrieval
+- priority: P1
+- size: M
+- northstar: 强——直接命中 2026-08-25 owner signal「目标选摘抄，出来的全是同一本书的摘抄」在当前代码的最直接复现；OPT-172 已落地跨书多词检索与范围，但“结果跨书可见”仍未兑现。
+- description: `filteredQuotes()` 的排序键只有 `matchedTerms → exact → 非来源书布尔 → index`，随后 `.slice(0,30)`（`app.js:6208-6212`），无按书分组、每书上限或“本书记 N 条”提示。当某本书命中数最高时，30 个槽位可全部来自它，其他匹配书（含用户真正想关联的那本）永不出现。
+- why: 2026-08-25 真实 signal 是建立关联目标难选的直接来源；跨书检索能力已在（OPT-172），但结果排序不保证书间多样性，跨书语义只做了一半。来源在书 A 且范围“其他书”时，书 B 一旦命中最高就独占列表。
+- how: 在 `filteredQuotes()` 对结果按 `item.bookId` 做分组/均衡：可给每本匹配书一个小额保底槽位并显示每书命中数标题，或在按匹配强度排序后按书间轮流插入，确保命中多书时用户能看到不止一本的匹配。需配套前端回归断言跨书场景下多本书的摘抄都能出现在目标列表。Touch: `app.js:6208-6253`；`tests/frontend/quote-combobox-ocr-label.test.js`。
+
+### OPT-177 — deleteQuote/deleteSession 失败不回滚，与 deleteConnection 语义不一致 — 由 explore E317 提拔 [2026-08-31]
+- status: new
+- area: frontend / data safety / consistency
+- priority: P1
+- size: M
+- northstar: 强——删除失败后果从“静默丢数据”修正为“保留原状并可重试”，与 OPT-170 为关联建立的回滚先例一致，属 Theme 3「积累可信」且无 owner 产品取舍分歧。
+- description: `deleteQuote`/`deleteSession` 先在内存把目标项 filter 出 `state`（`app.js:4202,4222-4223`）再 `syncState()`；非冲突失败时 catch 只 `showToast(error.message)`（`app.js:4209-4211,4228-4230`），不回滚。此后任意一次成功全量同步会把这次“被告知失败”的删除真正落库。`deleteConnection` 同场景用 `connectionsBefore` 快照回滚（`app.js:6442,6478-6479,6488-6491`）。
+- why: 删除是不可逆操作，失败不应与“已删除”混同；确认对话框已存在（`app.js:4198-4221`），缺口在失败语义一致性而非确认。
+- how: 仿 `deleteConnection`，在 mutate 前对 `state.quotes`/`state.sessions`（及联带清理的关联）做快照，catch 里恢复快照并重渲染，toast 明确“删除失败，已保留”。需前端回归覆盖非冲突失败路径下项目仍留在列表。Touch: `app.js:4196-4233,6478-6491`；摘抄/记录删除相关测试。
