@@ -5953,3 +5953,12 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 17:20 | Created scripts/codex/weekly-prod-release.sh | — | ~1380 |
+| 17:20 | Created tests/agent/codex_weekly_automation_test.py | — | ~2730 |
+## 2026-08-30 周日 Prod 自动发布并发竞态修复
+
+- 17:00 自动发布在隔离 clone 完成全量测试期间，`feature/agent` 被其他自动化推进，旧 clone 生成 release note 后 push 遭 non-fast-forward；测试本身通过，Prod 保持旧版本且健康。
+- `scripts/codex/weekly-prod-release.sh` 增加默认最多 3 次有界重试：每次都重新 clone，并在完整 Python/前端测试后刷新远端 SHA；被测 SHA 过期时丢弃结果并对最新 SHA 重跑全部测试，绝不 rebase 后复用旧测试。
+- 最终 push 窗口若再发生远端推进同样重试；非并发的 deploy/test 失败统一走 `fail()`，以正确保留失败现场并发送失败通知。
+- `tests/agent/codex_weekly_automation_test.py` 新增测试后漂移与最终发布竞态契约。聚焦测试 15/15 通过；完整 Agent 测试 532 项直接通过，9 项回环端口测试在允许绑定后全部通过。
+| 17:22 | Session end: 2 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 5 reads | ~54298 tok |
