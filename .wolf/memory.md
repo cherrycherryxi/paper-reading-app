@@ -5982,3 +5982,4 @@
 | 22:24 | 修复 pre-push GIT_DIR 泄漏(bug-604): hook 跑测试前 unset git rev-parse --local-env-vars | .githooks/pre-push, tests/agent/ci_workflow_contract_test.py | 受害者/对照组模拟验证通过; 契约测试 7/7; 全量 agent + 前端 544 测试全绿 | ~8k |
 | 22:24 | paper_wrapup_runner_migration_test 的 plutil 改为可选(Linux CI 无 plutil, plistlib 兜底) | tests/agent/paper_wrapup_runner_migration_test.py | macOS 上 plutil 路径仍被测试, Linux 跳过; 测试通过 | ~2k |
 | 22:24 | 收尾: buglog 记 bug-604, cerebrum 加 Do-Not-Repeat 条目 | .wolf/buglog.json, .wolf/cerebrum.md | done | ~3k |
+| 22:27 | push 遭 non-fast-forward(远端 Codex 自动提交 85fc862 signals 周记, 零文件交集), rebase 后重跑 pre-push 门禁全绿推送成功 | .githooks/pre-push | 85fc862..e74a964 feature/agent -> feature/agent | ~4k |
