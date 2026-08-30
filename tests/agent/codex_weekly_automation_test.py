@@ -57,6 +57,23 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn("PAPER_RELEASE_DRY_RUN", source)
         self.assertNotIn('cd "$REPO"\n[ "$(date +%w)"', source)
 
+    def test_weekly_production_release_retests_when_remote_moves(self):
+        source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
+        self.assertIn('MAX_ATTEMPTS="${PAPER_RELEASE_MAX_ATTEMPTS:-3}"', source)
+        self.assertIn('LATEST_TARGET=$(git rev-parse origin/feature/agent)', source)
+        self.assertIn('if [ "$LATEST_TARGET" != "$TESTED_TARGET" ]', source)
+        self.assertIn("测试期间 feature/agent 已从", source)
+        self.assertIn('ATTEMPT=$((ATTEMPT + 1))', source)
+        self.assertLess(source.index('node --test tests/frontend/*.test.js'), source.index('if [ "$LATEST_TARGET" != "$TESTED_TARGET" ]'))
+
+    def test_weekly_production_release_distinguishes_push_race_from_real_failure(self):
+        source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
+        self.assertIn('if bash scripts/codex/deploy-prod.sh --yes', source)
+        self.assertIn('DEPLOY_HEAD=$(git rev-parse HEAD)', source)
+        self.assertIn('if [ "$LATEST_TARGET" != "$DEPLOY_HEAD" ]', source)
+        self.assertIn('fail "deploy-prod.sh 执行失败，且远端没有并发推进。"', source)
+        self.assertIn('fail "feature/agent 连续变化，已达到 $MAX_ATTEMPTS 次发布上限。"', source)
+
     def test_weekly_production_release_emails_each_terminal_outcome(self):
         source = (CODEX_DIR / "weekly-prod-release.sh").read_text()
         self.assertIn('EMAIL_SCRIPT="${PAPER_RELEASE_EMAIL:-', source)

@@ -8,6 +8,7 @@ LOCK_DIR="${PAPER_RELEASE_LOCK_DIR:-$HOME/.claude/.codex-weekly-prod-release.loc
 DRY_RUN="${PAPER_RELEASE_DRY_RUN:-0}"
 EMAIL_SCRIPT="${PAPER_RELEASE_EMAIL:-$HOME/.claude/scripts/send-email.py}"
 PROD_REPO="${PAPER_RELEASE_PROD_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app-prod}"
+MAX_ATTEMPTS="${PAPER_RELEASE_MAX_ATTEMPTS:-3}"
 TMP_ROOT=""
 RELEASE_REPO=""
 RUN_FAILED=0
@@ -52,43 +53,86 @@ echo "[$(date)] weekly prod release starting" >> "$LOG"
 
 SOURCE="${PAPER_RELEASE_SOURCE:-$(git -C "$REPO" remote get-url origin)}"
 TEST_PYTHON="${PAPER_RELEASE_PYTHON:-$REPO/.venv/bin/python}"
-TMP_ROOT=$(mktemp -d) || fail "无法创建隔离发布目录。"
-RELEASE_REPO="$TMP_ROOT/repo"
-git clone --quiet --branch feature/agent --single-branch --no-local "$SOURCE" "$RELEASE_REPO" >> "$LOG" 2>&1 \
-  || fail "无法创建 feature/agent 隔离 clone。"
-git -C "$RELEASE_REPO" config --local core.hooksPath /dev/null
 [ -x "$TEST_PYTHON" ] || fail "开发环境 Python 不可用，拒绝发布。"
-cd "$RELEASE_REPO"
+case "$MAX_ATTEMPTS" in
+  ''|*[!0-9]*|0) fail "PAPER_RELEASE_MAX_ATTEMPTS 必须是正整数。" ;;
+esac
 
-[ "$(git branch --show-current)" = feature/agent ] || fail "隔离 clone 非 feature/agent，拒绝发布。"
-[ -z "$(git status --porcelain)" ] || fail "隔离 clone 工作树不干净，拒绝发布。"
-git fetch origin feature/agent:refs/remotes/origin/feature/agent main:refs/remotes/origin/main >> "$LOG" 2>&1 \
-  || fail "无法获取最新 feature/agent/main。"
-[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/feature/agent)" ] || fail "隔离 clone 不是最新 feature/agent，拒绝发布。"
-if [ "$(git rev-parse origin/main)" = "$(git rev-parse origin/feature/agent)" ]; then
-  echo "[$(date)] 无待发布提交。" >> "$LOG"
-  notify "ℹ️ Prod 本周无需发布 · $(date +%F)" \
-    "feature/agent 与 main 已一致，本周没有待发布提交。生产环境未执行更新。"
-  exit 0
-fi
+ATTEMPT=1
+DEPLOYED=0
+while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+  TMP_ROOT=$(mktemp -d) || fail "无法创建隔离发布目录。"
+  RELEASE_REPO="$TMP_ROOT/repo"
+  echo "[$(date)] 发布尝试 $ATTEMPT/$MAX_ATTEMPTS。" >> "$LOG"
+  git clone --quiet --branch feature/agent --single-branch --no-local "$SOURCE" "$RELEASE_REPO" >> "$LOG" 2>&1 \
+    || fail "无法创建 feature/agent 隔离 clone。"
+  git -C "$RELEASE_REPO" config --local core.hooksPath /dev/null
+  cd "$RELEASE_REPO"
 
-if [ "$DRY_RUN" = 1 ]; then
-  echo "[$(date)] dry-run：隔离 clone 与远端分支校验通过，跳过测试和生产发布。" >> "$LOG"
-  exit 0
-fi
+  [ "$(git branch --show-current)" = feature/agent ] || fail "隔离 clone 非 feature/agent，拒绝发布。"
+  [ -z "$(git status --porcelain)" ] || fail "隔离 clone 工作树不干净，拒绝发布。"
+  git fetch origin feature/agent:refs/remotes/origin/feature/agent main:refs/remotes/origin/main >> "$LOG" 2>&1 \
+    || fail "无法获取最新 feature/agent/main。"
+  TESTED_TARGET=$(git rev-parse HEAD)
+  [ "$TESTED_TARGET" = "$(git rev-parse origin/feature/agent)" ] || fail "隔离 clone 不是最新 feature/agent，拒绝发布。"
+  if [ "$(git rev-parse origin/main)" = "$TESTED_TARGET" ]; then
+    echo "[$(date)] 无待发布提交。" >> "$LOG"
+    notify "ℹ️ Prod 本周无需发布 · $(date +%F)" \
+      "feature/agent 与 main 已一致，本周没有待发布提交。生产环境未执行更新。"
+    exit 0
+  fi
 
-if ! "$TEST_PYTHON" -m pytest tests/ -v >> "$LOG" 2>&1; then
-  echo "[$(date)] Python 测试失败，拒绝发布。" >> "$LOG"
-  exit 1
-fi
-if ! node --test tests/frontend/*.test.js >> "$LOG" 2>&1; then
-  echo "[$(date)] 前端测试失败，拒绝发布。" >> "$LOG"
-  exit 1
-fi
+  if [ "$DRY_RUN" = 1 ]; then
+    echo "[$(date)] dry-run：隔离 clone 与远端分支校验通过，跳过测试和生产发布。" >> "$LOG"
+    exit 0
+  fi
 
-PRE_DEPLOY_TARGET=$(git rev-parse HEAD)
-RELEASE_NOTES="docs/releases/$(date +%F)-${PRE_DEPLOY_TARGET:0:8}.md"
-bash scripts/codex/deploy-prod.sh --yes >> "$LOG" 2>&1
+  if ! "$TEST_PYTHON" -m pytest tests/ -v >> "$LOG" 2>&1; then
+    fail "Python 测试失败，拒绝发布。"
+  fi
+  if ! node --test tests/frontend/*.test.js >> "$LOG" 2>&1; then
+    fail "前端测试失败，拒绝发布。"
+  fi
+
+  # 全量测试耗时较长。发布前必须重新确认被测 SHA 仍是远端最新值；
+  # 若有自动化在测试期间推进 feature/agent，就基于新 SHA 重新跑完整测试。
+  git fetch origin feature/agent:refs/remotes/origin/feature/agent main:refs/remotes/origin/main >> "$LOG" 2>&1 \
+    || fail "测试后无法刷新 feature/agent/main。"
+  LATEST_TARGET=$(git rev-parse origin/feature/agent)
+  if [ "$LATEST_TARGET" != "$TESTED_TARGET" ]; then
+    echo "[$(date)] 测试期间 feature/agent 已从 $TESTED_TARGET 前进到 $LATEST_TARGET，丢弃旧结果并重试。" >> "$LOG"
+    cd "$REPO"
+    rm -rf "$TMP_ROOT"
+    TMP_ROOT=""
+    ATTEMPT=$((ATTEMPT + 1))
+    continue
+  fi
+
+  PRE_DEPLOY_TARGET="$TESTED_TARGET"
+  RELEASE_NOTES="docs/releases/$(date +%F)-${PRE_DEPLOY_TARGET:0:8}.md"
+  if bash scripts/codex/deploy-prod.sh --yes >> "$LOG" 2>&1; then
+    DEPLOYED=1
+    break
+  fi
+
+  # 仍可能在最终检查与 push 之间发生极短竞态。只有确认远端已被别的
+  # 提交推进时才重试；其他发布错误必须保留现场并按真实失败上报。
+  DEPLOY_HEAD=$(git rev-parse HEAD)
+  git fetch origin feature/agent:refs/remotes/origin/feature/agent main:refs/remotes/origin/main >> "$LOG" 2>&1 \
+    || fail "发布失败后无法刷新远端状态。"
+  LATEST_TARGET=$(git rev-parse origin/feature/agent)
+  if [ "$LATEST_TARGET" != "$DEPLOY_HEAD" ]; then
+    echo "[$(date)] 最终发布窗口内 feature/agent 再次前进，丢弃旧 release commit 并重试。" >> "$LOG"
+    cd "$REPO"
+    rm -rf "$TMP_ROOT"
+    TMP_ROOT=""
+    ATTEMPT=$((ATTEMPT + 1))
+    continue
+  fi
+  fail "deploy-prod.sh 执行失败，且远端没有并发推进。"
+done
+
+[ "$DEPLOYED" = 1 ] || fail "feature/agent 连续变化，已达到 $MAX_ATTEMPTS 次发布上限。"
 PROD_SHA=$(git -C "$PROD_REPO" rev-parse HEAD)
 if [ -f "$RELEASE_NOTES" ]; then
   RELEASE_CONTENT=$(cat "$RELEASE_NOTES")
