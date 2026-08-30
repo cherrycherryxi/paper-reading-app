@@ -11,7 +11,7 @@ class DeepseekCostGateContractTests(unittest.TestCase):
         gate = source.index("TRIAGE_DATE=")
         model = source.index('run_codex_implement "$PROMPT"')
         self.assertLess(gate, model)
-        self.assertIn("确定性预检跳过，未调用模型", source)
+        self.assertIn("正常跳过，未调用模型", source)
         self.assertIn("无可指派", source)
 
     def test_morning_skips_empty_pr_list_before_model(self):

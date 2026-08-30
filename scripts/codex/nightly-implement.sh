@@ -68,14 +68,18 @@ nightly_create_clone || fail "创建或校验隔离 clone"
 
 # 先用确定性文本状态判断是否值得启动 Pro。证据不明确时继续交给模型，避免误跳过。
 TRIAGE_FILE="$WT/optimization/triage.md"
-TRIAGE_DATE=$(sed -n 's/^Last triaged: //p' "$TRIAGE_FILE" | head -1)
-NEXT_UP=$(awk '/^## Next up/{found=1; next} found && /^## /{exit} found{print}' "$TRIAGE_FILE")
-if [ "$TRIAGE_DATE" != "$TODAY" ] \
-   || printf '%s\n' "$NEXT_UP" | grep -Eiq '预算耗尽|无符合夜间条件|无可指派|\*\*状态：.*(done|完成)'; then
+TRIAGE_DATE=""
+NEXT_UP=""
+if [ -f "$TRIAGE_FILE" ]; then
+  TRIAGE_DATE=$(sed -n 's/^Last triaged: //p' "$TRIAGE_FILE" | head -1)
+  NEXT_UP=$(awk '/^## Next up/{found=1; next} found && /^## /{exit} found{print}' "$TRIAGE_FILE")
+fi
+if [ -f "$TRIAGE_FILE" ] && { [ "$TRIAGE_DATE" != "$TODAY" ] \
+   || printf '%s\n' "$NEXT_UP" | grep -Eiq '预算耗尽|无符合夜间条件|无可指派|\*\*状态：.*(done|完成)'; }; then
   if [ "$DRY_RUN" != 1 ]; then
     printf '%s\n' "SKIP：确定性预检确认当天无可实现指派。" > "$DONE_MARK"
   fi
-  echo "[$(date)] implement 确定性预检跳过，未调用模型。" >> "$LOG"
+  echo "[$(date)] implement 确定性预检确认无任务，正常跳过，未调用模型。" >> "$LOG"
   exit 0
 fi
 if [ "$DRY_RUN" != 1 ]; then require_gh_auth; fi
