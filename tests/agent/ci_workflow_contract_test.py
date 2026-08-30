@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CI = ROOT / ".github" / "workflows" / "ci.yml"
 PROMPT = ROOT / ".github" / "codex" / "prompts" / "ci-autofix.md"
+PRE_PUSH = ROOT / ".githooks" / "pre-push"
 
 
 class CiWorkflowContractTests(unittest.TestCase):
@@ -29,6 +30,12 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("目标为 `feature/agent` 的 PR", source)
         self.assertIn(".venv/bin/python -m pytest tests/agent/ -q", source)
         self.assertIn("node --test tests/frontend/*.test.js", source)
+
+    def test_pre_push_clears_inherited_git_repository_environment_before_tests(self):
+        source = PRE_PUSH.read_text()
+        self.assertIn("git rev-parse --local-env-vars", source)
+        self.assertIn('unset "$git_var"', source)
+        self.assertLess(source.index("git rev-parse --local-env-vars"), source.index("node --test"))
 
 
 if __name__ == "__main__":

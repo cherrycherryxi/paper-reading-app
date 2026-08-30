@@ -1,6 +1,7 @@
 """Contracts for the formal paper-wrapup provider migration."""
 
 import plistlib
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -39,8 +40,12 @@ class PaperWrapupRunnerMigrationTests(unittest.TestCase):
     def test_shell_and_plist_parse(self):
         shell = subprocess.run(["bash", "-n", str(SCRIPT)], capture_output=True, text=True)
         self.assertEqual(shell.returncode, 0, shell.stderr)
-        plist = subprocess.run(["plutil", "-lint", str(PLIST)], capture_output=True, text=True)
-        self.assertEqual(plist.returncode, 0, plist.stderr)
+        # plistlib above is the cross-platform parser used in Linux CI. On macOS,
+        # retain plutil as an additional platform-native lint rather than a hard dependency.
+        plutil = shutil.which("plutil")
+        if plutil:
+            plist = subprocess.run([plutil, "-lint", str(PLIST)], capture_output=True, text=True)
+            self.assertEqual(plist.returncode, 0, plist.stderr)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,13 @@ set -uo pipefail
 ROOT="$(git rev-parse --show-toplevel)" || exit 0
 cd "$ROOT" || exit 0
 
+# Git 会把 GIT_DIR/GIT_WORK_TREE 等仓库环境变量传给 hook。若测试内部再创建
+# 临时仓库，这些变量会压过 `git -C <temp>`，曾导致故障注入测试把主仓库
+# core.bare 改成 true。保留 ROOT 后清掉所有仓库局部变量，让测试真正隔离。
+while IFS= read -r git_var; do
+  [ -n "$git_var" ] && unset "$git_var"
+done < <(git rev-parse --local-env-vars)
+
 # [0/2] main 保护 —— main 只是 prod 部署指针，日常开发一律走 feature/agent。
 # 发版（push feature/agent:main）请显式声明意图：ALLOW_MAIN_PUSH=1 git push origin feature/agent:main
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
