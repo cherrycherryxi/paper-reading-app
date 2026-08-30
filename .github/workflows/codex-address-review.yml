@@ -11,13 +11,16 @@ concurrency:
 jobs:
   request-fix:
     name: Request a Codex follow-up
+    # Paused during the Codex -> CCDS migration. The bounded implementation is
+    # retained for an explicit future replacement or rollback.
     if: >-
+      ${{ false &&
       github.event.review.user.login == 'chatgpt-codex-connector[bot]' &&
       github.event.pull_request.state == 'open' &&
       github.event.pull_request.base.ref == 'feature/agent' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.review.commit_id == github.event.pull_request.head.sha &&
-      contains(github.event.review.body, 'Codex Review')
+      contains(github.event.review.body, 'Codex Review') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -3,7 +3,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-CODEX="${PAPER_NIGHTLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_NIGHTLY_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_NIGHTLY_IMPLEMENT_MODEL_TIER:-pro}"
+export AGENT_COMPAT_TASK="nightly-implement"
 REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 source "$(cd "$(dirname "$0")" && pwd)/nightly-common.sh"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
@@ -59,15 +61,28 @@ run_codex_implement() {
 }
 
 echo "[$(date)] === Codex nightly implement $TODAY (dry_run=$DRY_RUN) ===" >> "$LOG"
-if [ "$DRY_RUN" != 1 ]; then require_gh_auth; fi
 if [ "$SKIP_FETCH" != 1 ]; then
   git -C "$REPO" fetch origin feature/agent >> "$LOG" 2>&1 || fail "fetch feature/agent"
 fi
 nightly_create_clone || fail "创建或校验隔离 clone"
 
+# 先用确定性文本状态判断是否值得启动 Pro。证据不明确时继续交给模型，避免误跳过。
+TRIAGE_FILE="$WT/optimization/triage.md"
+TRIAGE_DATE=$(sed -n 's/^Last triaged: //p' "$TRIAGE_FILE" | head -1)
+NEXT_UP=$(awk '/^## Next up/{found=1; next} found && /^## /{exit} found{print}' "$TRIAGE_FILE")
+if [ "$TRIAGE_DATE" != "$TODAY" ] \
+   || printf '%s\n' "$NEXT_UP" | grep -Eiq '预算耗尽|无符合夜间条件|无可指派|\*\*状态：.*(done|完成)'; then
+  if [ "$DRY_RUN" != 1 ]; then
+    printf '%s\n' "SKIP：确定性预检确认当天无可实现指派。" > "$DONE_MARK"
+  fi
+  echo "[$(date)] implement 确定性预检跳过，未调用模型。" >> "$LOG"
+  exit 0
+fi
+if [ "$DRY_RUN" != 1 ]; then require_gh_auth; fi
+
 PROMPT="你是 paper-reading-app 夜间 Agent2（Implement）。当前上海日期是 ${TODAY}。当前目录是隔离 clone；只修改文件，不执行 git/gh，不 commit、不 push、不开 PR、不合并、不发布。
 
-完整遵循 AGENTS.md：先读 .wolf/anatomy.md、.wolf/cerebrum.md、.wolf/buglog.json。读取 optimization/triage.md。
+完整遵循 AGENTS.md。先读取 optimization/triage.md 中的 Next up，再按该条目的关键文件定向读取代码和测试；只在定位已知历史问题时用 rg 查询 .wolf，禁止完整读取 .wolf/buglog.json 或 .wolf/memory.md。
 
 新鲜度：如果 Last triaged 不是 ${TODAY}，或 Next up 明确预算耗尽/没有可实现项，不改文件；回复单独三行 <<<NIGHTLY_STATUS>>>、SKIP、<<<NIGHTLY_STATUS_END>>> 后结束。
 

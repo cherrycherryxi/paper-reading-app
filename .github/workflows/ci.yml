@@ -48,9 +48,11 @@ jobs:
   codex-autofix:
     name: Codex auto-fix failed feature push
     needs: test
+    # Paused during the Codex -> CCDS migration. Keep the job definition for a
+    # deliberate future replacement; ordinary CI remains active above.
     if: >-
-      needs.test.result == 'failure' && github.event_name == 'push' &&
-      github.ref == 'refs/heads/feature/agent'
+      ${{ false && needs.test.result == 'failure' && github.event_name == 'push' &&
+      github.ref == 'refs/heads/feature/agent' }}
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

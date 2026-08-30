@@ -6,7 +6,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8   # launchd 默认 C locale，防中文标点被吞进变量名
 
-CODEX="${PAPER_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_IMPLEMENT_MODEL_TIER:-pro}"
+export AGENT_COMPAT_TASK="paper-implement-poll"
 REPO="/Users/huangnanqi/CursorProjects/paper-reading-app"
 STATE_DIR="$HOME/.claude/paper-loop"
 PICK="$STATE_DIR/today-pick.md"
@@ -16,6 +18,16 @@ LOG="$HOME/.claude/codex-paper-implement-poll.log"
 [ -f "$PICK" ] || exit 0
 STATUS=$(grep -m1 '^STATUS:' "$PICK" | awk '{print $2}')
 [ "$STATUS" = "WAITING" ] || exit 0   # 只在等待选择时才干活
+
+# DeepSeek 工作日上海高峰为 09:00-12:00、14:00-18:00。高峰期保留
+# WAITING，不读取/占用选择；下一次低谷轮询会继续，避免 Pro 按高峰价执行。
+WEEKDAY=$(date +%u)
+HOUR=$(date +%H)
+if [ "$WEEKDAY" -le 5 ] && { { [ "$HOUR" -ge 9 ] && [ "$HOUR" -lt 12 ]; } \
+   || { [ "$HOUR" -ge 14 ] && [ "$HOUR" -lt 18 ]; }; }; then
+    echo "[$(date)] DeepSeek 高峰时段，保持 WAITING，延后到低谷执行。" >> "$LOG"
+    exit 0
+fi
 
 CHOICE=$(/usr/bin/python3 "$READER" 2>>"$LOG")
 [ -n "$CHOICE" ] || exit 0            # 还没回信

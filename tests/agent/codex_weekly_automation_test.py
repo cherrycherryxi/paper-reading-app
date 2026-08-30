@@ -79,6 +79,11 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
         self.assertIn("if: env.OPENAI_API_KEY != ''", job)
         self.assertIn("openai-api-key: ${{ env.OPENAI_API_KEY }}", job)
 
+    def test_codex_autofix_job_is_explicitly_paused(self):
+        source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        job = source.split("  codex-autofix:", 1)[1]
+        self.assertIn("${{ false &&", job.split("runs-on:", 1)[0])
+
     def test_product_owner_is_isolated_and_path_guarded(self):
         source = (CODEX_DIR / "product-owner-monday.sh").read_text()
         self.assertIn("worktree add --quiet --detach", source)
@@ -103,7 +108,7 @@ class CodexWeeklyAutomationTests(unittest.TestCase):
     def test_launchd_schedules_and_commands(self):
         cases = {
             "com.huangnanqi.paper-codex-weekly-report.plist": (0, 18, "weekly-report.sh"),
-            "com.huangnanqi.paper-codex-product-owner.plist": (1, 9, "product-owner-monday.sh"),
+            "com.huangnanqi.paper-codex-product-owner.plist": (1, 8, "product-owner-monday.sh"),
             "com.huangnanqi.paper-codex-weekly-prod-release.plist": (0, 17, "weekly-prod-release.sh"),
         }
         for filename, (weekday, hour, script) in cases.items():

@@ -9,9 +9,11 @@ set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8   # launchd 默认 C locale
 
 # 这些可用 PAPER_WRAPUP_* 环境变量覆盖（仅供测试注入 mock；生产默认值不变）。
-CODEX="${PAPER_WRAPUP_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+RUNNER="${PAPER_WRAPUP_RUNNER:-$SCRIPT_DIR/../agent/agent-runner.sh}"
+PROVIDER="${PAPER_WRAPUP_PROVIDER:-claude-deepseek}"
 REPO="${PAPER_WRAPUP_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
-LOG="${PAPER_WRAPUP_LOG:-$HOME/.claude/codex-paper-wrapup.log}"
+LOG="${PAPER_WRAPUP_LOG:-$HOME/.claude/agent-paper-wrapup.log}"
 LOGDIR="${PAPER_WRAPUP_LOGDIR:-$HOME/.claude/daily-logs}"
 EMAIL_SCRIPT="${PAPER_WRAPUP_EMAIL:-$HOME/.claude/scripts/send-email.py}"
 BARK="${PAPER_WRAPUP_BARK:-$HOME/.claude/scripts/bark-push.sh}"
@@ -29,16 +31,29 @@ run_timeout() { perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$@"; }
 # 用法：gen_report <YYYY-MM-DD> <outfile>；写出合格日报→0，模型没产出合格日报→1（调用方告警，不 git 兜底）。
 gen_report() {
     local day="$1" out="$2" raw report
+    local recent_log
+    recent_log=$(git -C "$REPO" log --all --since="${day} 00:00" --until="${day} 23:59" \
+        --pretty='- %h %s' | head -120)
     local prompt="你是 paper-reading-app 的收工助手，请回顾 ${day} 这一天的工作后写一份中文 Markdown 日报。
-先用 Bash 跑：git -C ${REPO} log --all --since='${day} 00:00' --until='${day} 23:59' --pretty='- %h %s'
-看当天所有分支的提交，并结合项目近期进展理解到底做了什么。
+外层确定性脚本已获取当天所有分支的提交，不要调用 Bash：
+${recent_log}
+
+结合这些提交和仓库文件理解到底做了什么。
 日报结构：第一行标题 '# 日报 ${day}'，第二行 '项目：paper-reading-app'，随后三节——
 ① 今日主要工作：每个 bug 修复 / 新功能各写成一个 '### <条目标题>' 小节，每个小节按四点写清（每点用加粗小标题、各占一行，便于阅读）：**存在的问题**（触发的现象或为什么要做）、**目标**（想达到什么）、**实现方法**（怎么做的 + 关键文件/改动）、**最终效果**（做完后可验证的结果）。
 ② 亮点与可改进 ③ 明天可做的 3-5 条具体事项。
 整体写得易读：多用小标题和要点列表，别堆成大段文字。
 硬性要求：把【完整日报】放在各自单独成行的 <<<REPORT_START>>> 与 <<<REPORT_END>>> 两个标记之间，
 输出在你的回复正文里。不要用 Write 或任何工具写文件，只在正文输出，标记之间只放日报本身。"
-    raw=$(run_timeout 600 "$CODEX" exec -C "$REPO" --sandbox read-only --ephemeral "$prompt" 2>>"$LOG")
+    raw=$(run_timeout 600 "$RUNNER" \
+        --provider "$PROVIDER" \
+        --cwd "$REPO" \
+        --mode read-only \
+        --model-tier flash \
+        --effort low \
+        --task paper-wrapup \
+        --allowed-tools "Read,Glob,Grep" \
+        --prompt "$prompt" 2>>"$LOG")
     # 优先取标记之间；模型漏标记时退而取从 '# 日报' 标题到结尾（仍是模型内容，非 git 兜底）。
     report=$(printf '%s\n' "$raw" | awk '/<<<REPORT_START>>>/{f=1;next} /<<<REPORT_END>>>/{f=0;next} f')
     [ -z "$report" ] && report=$(printf '%s\n' "$raw" | sed -n '/# *日报/,$p')

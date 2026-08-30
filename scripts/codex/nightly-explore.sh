@@ -3,7 +3,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-CODEX="${PAPER_NIGHTLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_NIGHTLY_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_NIGHTLY_EXPLORE_MODEL_TIER:-flash}"
+export AGENT_COMPAT_TASK="nightly-explore"
 REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 source "$(cd "$(dirname "$0")" && pwd)/nightly-common.sh"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
@@ -55,7 +57,7 @@ done
 
 PROMPT="你是 paper-reading-app 夜间 Agent3（Explore）。当前上海日期是 ${TODAY}。当前目录是隔离 clone；不要 commit、push、开 PR、合并或发布。
 
-完整遵循 AGENTS.md，先读 .wolf/anatomy.md、.wolf/cerebrum.md、.wolf/buglog.json。读取 optimization/backlog.md、optimization/triage.md、optimization/roadmap.md、optimization/signals.md，并查看最近 git 历史。
+完整遵循 AGENTS.md。读取 optimization/triage.md、optimization/roadmap.md、optimization/signals.md；用 rg 提取 optimization/backlog.md 的标题、状态和相关块，并用标题/文件关键词查询 optimization/explore.md 去重。禁止完整读取 backlog、explore、.wolf/buglog.json 或 .wolf/memory.md；只有命中具体候选时才读取相邻片段。查看最近 git 历史。
 
 当前 open PR（用于避免重复发现）：
 $OPEN_PRS

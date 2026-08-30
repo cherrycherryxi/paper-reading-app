@@ -6,7 +6,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8   # launchd 默认 C locale，防中文标点被吞进变量名
 
-CODEX="${PAPER_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_MORNING_MODEL_TIER:-pro}"
+export AGENT_COMPAT_TASK="paper-morning"
 REPO="/Users/huangnanqi/CursorProjects/paper-reading-app"
 STATE_DIR="$HOME/.claude/paper-loop"
 LOG="$HOME/.claude/codex-paper-morning.log"
@@ -33,7 +35,13 @@ git push origin feature/agent >> "$LOG" 2>&1 || echo "[$(date)] pre-morning .wol
 # --- Phase 1：审查 + 按闸门处置昨晚新 PR ---
 BEFORE_HEAD=$(git rev-parse HEAD)   # 用于 Phase1 后判断是否合入了后端改动（见 paper-dev-reload.sh）
 rm -f "$REVIEW_SUMMARY"
-"$CODEX" exec -C "$REPO" --dangerously-bypass-approvals-and-sandbox --ephemeral "你是 paper-reading-app 的夜间 PR 处理员。处理 base=feature/agent 的 open PR（重点是最近 24h 新建的）。全程只动 feature/agent，绝不 push main、绝不发 prod。
+OPEN_PR_JSON=$(gh pr list --state open --base feature/agent --json number,title,headRefName,createdAt 2>>"$LOG")
+OPEN_PR_STATUS=$?
+if [ "$OPEN_PR_STATUS" -eq 0 ] && [ "$OPEN_PR_JSON" = "[]" ]; then
+    printf '%s\n' "无待处理 PR。Shell 预检确认 base=feature/agent 当前没有 open PR，未调用模型。" > "$REVIEW_SUMMARY"
+    echo "[$(date)] Phase1 空 PR，确定性跳过模型" >> "$LOG"
+else
+    AGENT_COMPAT_MODEL_TIER=pro "$CODEX" exec -C "$REPO" --dangerously-bypass-approvals-and-sandbox --ephemeral "你是 paper-reading-app 的夜间 PR 处理员。处理 base=feature/agent 的 open PR（重点是最近 24h 新建的）。全程只动 feature/agent，绝不 push main、绝不发 prod。
 
 步骤：
 1. git fetch；用 \`gh pr list --state open --base feature/agent --json number,title,headRefName,createdAt\` 列出待处理 PR。若无，把「无待处理 PR」写入 ${REVIEW_SUMMARY} 后结束。
@@ -46,7 +54,8 @@ rm -f "$REVIEW_SUMMARY"
 5. 把每个 PR 的处置结论（编号 / 标题 / 合并|改后合并|留OPEN+原因 / 测试结果）汇总成中文，用 apply_patch 写入 ${REVIEW_SUMMARY}。
 6. 合并完切回 feature/agent，运行 \`bash .wolf/sync-knowledge.sh\` 同步远端（它会确定性合并 .wolf 知识文件：union 合 md、jq 按 .id 去重 buglog.json）。**严禁用 \`git reset --hard\` 或 \`git rebase\` 去解 .wolf 冲突，严禁丢弃任何本地 .wolf 提交**——.wolf 的一切冲突一律交给 sync-knowledge.sh。
 断言任何「已合并 / 测试通过」前必须真实执行核实，不要臆造。" \
-   >> "$LOG" 2>&1
+       >> "$LOG" 2>&1
+fi
 
 echo "[$(date)] Phase1(审查合并) 结束" >> "$LOG"
 
@@ -61,9 +70,9 @@ if [ -f "$PICK" ] && grep -q "^DATE: $TODAY" "$PICK"; then
     echo "[$(date)] 今日卡片已存在，跳过 Phase2 生成" >> "$LOG"
 else
     rm -f "$CARDS"
-    "$CODEX" exec -C "$REPO" --dangerously-bypass-approvals-and-sandbox --ephemeral "开始今天的工作
+    AGENT_COMPAT_MODEL_TIER=flash "$CODEX" exec -C "$REPO" --dangerously-bypass-approvals-and-sandbox --ephemeral "开始今天的工作
 
-候选前的硬性对账：先 \`git fetch origin feature/agent\` 并同步到最新 \`feature/agent\`；读取 \`optimization/roadmap.md\`、\`optimization/triage.md\`、\`optimization/backlog.md\`，并读取 \`$HOME/.claude/product-owner-latest.md\`（若存在）和 \`$HOME/.claude/weekly-reports/\` 下最新一份周报（若存在）。周一焦点、roadmap 与周报是候选优先级的参考：优先选择能推进本周唯一焦点、回应上周待改进点或验证周报信号的条目；在卡片的「价值」中说明这种关联。它们不是完成状态的证据，不能据此复活已完成工作。
+候选前的硬性对账：先 \`git fetch origin feature/agent\` 并同步到最新 \`feature/agent\`；读取 \`optimization/roadmap.md\`、\`optimization/triage.md\`，用 rg 定位 \`optimization/backlog.md\` 中 status 为 new/triaged 的块，禁止完整读取 backlog 历史。并读取 \`$HOME/.claude/product-owner-latest.md\`（若存在）和 \`$HOME/.claude/weekly-reports/\` 下最新一份周报（若存在）。周一焦点、roadmap 与周报是候选优先级的参考：优先选择能推进本周唯一焦点、回应上周待改进点或验证周报信号的条目；在卡片的「价值」中说明这种关联。它们不是完成状态的证据，不能据此复活已完成工作。
 
 再用 \`gh pr list --state all --base feature/agent\` 和最近合并提交核实。候选只能来自当前仍未完成的 \`new\` 或 \`triaged\` 条目。**绝不能**把 \`done\`、\`in-progress\`、已有 open PR、已合并 PR 或当前代码已经实现的条目写入候选卡；文档状态与代码/PR 证据冲突时，以 GitHub 已合并 PR 和当前代码为准并排除该条目。额外读取当天 \`optimization/triage.md\` 的 \`Next up\` 编号：它已被夜间路径认领，即使仍显示 \`triaged\` 也必须从晨间卡排除。晨间优先选择 P1 或 M/L，及涉及信息架构、导航、视觉方案、产品取舍、owner 直接反馈需要确认的任务；不要用夜间无人值守的局部 S 任务凑卡。写卡前逐一复核两个编号均满足这些条件；若只剩一个合格项，只写一张卡，不得用已完成项凑数。
 

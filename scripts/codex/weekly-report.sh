@@ -4,7 +4,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-CODEX="${PAPER_WEEKLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_WEEKLY_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_WEEKLY_MODEL_TIER:-flash}"
+export AGENT_COMPAT_TASK="weekly-report"
 REPO="${PAPER_WEEKLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 LOGDIR="${PAPER_WEEKLY_LOGDIR:-$HOME/.claude/daily-logs}"
 REPORTDIR="${PAPER_WEEKLY_REPORTDIR:-$HOME/.claude/weekly-reports}"

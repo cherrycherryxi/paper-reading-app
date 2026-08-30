@@ -4,7 +4,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-CODEX="${PAPER_NIGHTLY_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_NIGHTLY_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_NIGHTLY_TRIAGE_MODEL_TIER:-flash}"
+export AGENT_COMPAT_TASK="nightly-triage"
 REPO="${PAPER_NIGHTLY_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 source "$(cd "$(dirname "$0")" && pwd)/nightly-common.sh"
 STATE_DIR="${PAPER_NIGHTLY_STATE_DIR:-$HOME/.claude/codex-nightly}"
@@ -70,7 +72,7 @@ fi
 
 PROMPT="你是 paper-reading-app 夜间 Agent1（Triage）。当前上海日期是 ${TODAY}。当前目录是隔离 clone；不要 commit、push、开 PR 或发布。
 
-先完整遵循 AGENTS.md，并按要求读取 .wolf/anatomy.md、.wolf/cerebrum.md；这是规划维护，不写应用代码。读取 optimization/roadmap.md、optimization/signals.md、optimization/backlog.md、optimization/triage.md，并用真实代码和下方证据核实状态。GitHub 数据已经由外层一次性获取，不要再调用 gh 或逐个访问 GitHub API。
+先完整遵循 AGENTS.md；这是规划维护，不写应用代码。读取 optimization/roadmap.md、optimization/signals.md、optimization/triage.md；用 rg 定位 optimization/backlog.md 中未完成条目及最近变更涉及的条目，禁止完整读取 backlog 历史。仅在核实具体约束时定向读取 .wolf/anatomy.md、.wolf/cerebrum.md，禁止完整读取 .wolf/buglog.json 或 .wolf/memory.md。GitHub 数据已经由外层一次性获取，不要再调用 gh 或逐个访问 GitHub API。
 
 最近 8 天提交：
 ${RECENT_LOG}

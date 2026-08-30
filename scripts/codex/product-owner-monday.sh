@@ -4,7 +4,9 @@
 set -uo pipefail
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-CODEX="${PAPER_PRODUCT_CODEX:-/Users/huangnanqi/.npm-global/bin/codex}"
+CODEX="${PAPER_PRODUCT_CODEX:-$(cd "$(dirname "$0")" && pwd)/../agent/codex-exec-compat.sh}"
+export AGENT_COMPAT_MODEL_TIER="${PAPER_PRODUCT_MODEL_TIER:-flash}"
+export AGENT_COMPAT_TASK="product-owner"
 REPO="${PAPER_PRODUCT_REPO:-/Users/huangnanqi/CursorProjects/paper-reading-app}"
 LOG="${PAPER_PRODUCT_LOG:-$HOME/.claude/codex-product-owner.log}"
 SUMMARY="${PAPER_PRODUCT_SUMMARY:-$HOME/.claude/product-owner-latest.md}"

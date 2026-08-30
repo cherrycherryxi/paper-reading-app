@@ -19,6 +19,10 @@ class CodexReviewWorkflowContractTests(unittest.TestCase):
         self.assertIn("head.repo.full_name == github.repository", self.source)
         self.assertIn("review.commit_id == github.event.pull_request.head.sha", self.source)
 
+    def test_cloud_review_followup_is_explicitly_paused(self):
+        job = self.source.split("  request-fix:", 1)[1]
+        self.assertIn("${{ false &&", job.split("runs-on:", 1)[0])
+
     def test_only_actionable_review_comments_are_handed_back(self):
         self.assertIn("listCommentsForReview", self.source)
         self.assertIn("img\\.shields\\.io\\/badge\\/P[0-3]-", self.source)
