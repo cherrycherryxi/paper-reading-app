@@ -5962,3 +5962,6 @@
 - 最终 push 窗口若再发生远端推进同样重试；非并发的 deploy/test 失败统一走 `fail()`，以正确保留失败现场并发送失败通知。
 - `tests/agent/codex_weekly_automation_test.py` 新增测试后漂移与最终发布竞态契约。聚焦测试 15/15 通过；完整 Agent 测试 532 项直接通过，9 项回环端口测试在允许绑定后全部通过。
 | 17:22 | Session end: 2 writes across 2 files (weekly-prod-release.sh, codex_weekly_automation_test.py) | 5 reads | ~54298 tok |
+| 17:30 | Created scripts/codex/deploy-prod.sh | — | ~888 |
+| 17:30 | Created tests/agent/codex_weekly_automation_test.py | — | ~2890 |
+- 2026-08-30 重新发布验证发现 `deploy-prod.sh` 在 launchd 重启后仅固定等待 2 秒，服务实际稍后恢复为 200，但脚本先收到 `local_prod_http=000`，造成发布已完成却误报失败。现改为本地与公网端点各最多 15 次、每秒一次的有界健康检查；只有持续失败才返回非零。`codex_weekly_automation_test.py` 新增该契约，聚焦测试 16/16 通过。

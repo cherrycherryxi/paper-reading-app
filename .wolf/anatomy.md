@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-30T09:20:41.843Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-30T09:30:27.352Z
 > Files: 431 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -512,7 +512,7 @@
 ## scripts/codex/
 
 - `cloud-setup.sh` — Codex Cloud environment setup for paper-reading-app. (~85 tok)
-- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~754 tok)
+- `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~888 tok)
 - `deploy-prod.sh` — 生产发布入口：生成版本说明、推送 feature/agent 和 main、更新并重启 Prod。 (~408 tok)
 - `nightly-common.sh` — Shared isolation helpers for the local Codex nightly tasks. (~448 tok)
 - `nightly-explore.sh` — 每日 05:00，07:00 补偿重试：执行夜间 Agent3（Explore）。 (~1181 tok)
@@ -575,7 +575,7 @@
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~6050 tok)
 - `codex_nightly_automation_test.py` — Contract tests for the Codex triage/implement/explore nightly pipeline. (~2585 tok)
 - `codex_review_workflow_contract_test.py` — Regression contracts for handing Codex review findings back to Codex. (~539 tok)
-- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~2730 tok)
+- `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~2890 tok)
 - `codex_weekly_automation_test.py` — Contract tests for the Codex Sunday/Monday local automations. (~1587 tok)
 - `conn_leak_test.py` — Regression tests for E26: connection-leak safety net in handle_one_request. (~1668 tok)
 - `connection_leak_test.py` — Regression tests for OPT-037 (explore E26): DB connection-leak safety net. (~1846 tok)
