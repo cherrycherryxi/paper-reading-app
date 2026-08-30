@@ -5483,3 +5483,93 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——改善关联录入误选恢复，但已有键入清空的隐式路径，缺 owner 对该具体控件的反馈，暂不提拔。
 
 > 本次 run 新发现 5 条：E308（注销账号用原生 prompt，iOS Safari 不支持 → iPhone 上无法注销，S，platform/error handling）、E309（app.js/app_server.py 双双超 6500 行架构闸门，M，code health）、E310（记录页下线后整条阅读时间线不可达，renderTimeline 死代码，M，UX/product tension）、E311（主搜索框只搜书不搜摘抄正文，S，retrieval/UX）、E312（关联书下拉缺清除按钮，S，UX）。五项均由当前文件逐行核实并排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。仅 E308 具备主平台确定性缺陷 + GDPR/PIPL 数据权利 + 强北极星贡献，提拔为 OPT-175；其余留探索池。
+
+## 2026-08-31
+
+> 扫描焦点：沿 2026-08-24/08-25 owner 建立关联的两条真实 signal（目标/来源摘抄难选、目标结果全同一本书）与当前 Theme 3「积累可信」核对关联选择器、摘抄保存/删除与标签解析的一致性。隔离 clone 当前 `HEAD` 为 `2d96b09`，本地 backlog 现存最大 OPT 编号为 **OPT-175**；`gh`/`git ls-remote` 因网络不可用失败，open PR 状态未知，未据此推断。以下方向均由当前文件逐行核实，并排除 backlog（OPT-169/170/171/172/173/175）、旧 E001–312 与最近合并目标重复。
+
+### E313 — 关联目标摘抄检索结果被单本书挤占，其他书匹配无法浮现 (M)
+
+**What:** 目标选「摘抄」输入关键词后，结果按匹配强度与一个“非来源书”布尔值排序后截断前 30 条，不做按书分组或每书上限。若某本书恰好命中最多的关键词，30 个槽位可能全部来自这一本，用户想关联的另一本书的摘抄始终排不进来。
+
+**Evidence:** `filteredQuotes()` 的排序键只有 `matchedTerms → exact → Number(sourceBookId && bookId!==sourceBookId)（0/1 布尔）→ index`，随后 `.slice(0,30)`（`app.js:6208-6212`）；没有按 `item.bookId` 聚类、每书上限或“本书记 N 条”提示，`buildList()` 平铺渲染（`app.js:6229-6253`），书名只是左侧小标签（`app.js:6236-6240`）。OPT-172（done 8/26）补的是跨书多词检索与目标书范围，未覆盖结果多样性。
+
+**Why:** 这是 2026-08-25 signal「目标选摘抄，出来的全是同一本书的摘抄」在当前代码里的最直接复现：来源在书 A 且范围“其他书”时，只要书 B 命中数最高，30 条全来自书 B，其他匹配书永远不出现。跨书检索能力已落地，但“跨书可见”这一步仍缺失。
+
+**Size:** M
+
+**Files:** `app.js:6208-6212,6219-6253`; `tests/frontend/quote-combobox-ocr-label.test.js`; 可参考书单跨书排序
+
+**Northstar:** 强——直接命中 8/25 真实 signal，修的是 OPT-172 已承诺但未兑现的“跨书”语义。→ **promoted to OPT-176**
+
+### E314 — 关联来源摘抄下拉缺清除按钮，误选来源后只能重打关键词 (S)
+
+**What:** 关联弹窗里只有**目标**摘抄下拉带显式「清除」按钮；**来源**摘抄下拉（到达关联页那一侧）没有对应控件。误选来源后无法一键取消，只能点进字段删字重打，重打又重开候选列表、重冒误选风险。
+
+**Evidence:** 目标侧模板渲染 `.quote-combobox-clear` 清除按钮（`index.html:859-862`），来源侧镜像模板只有 input/`<ul>`/hidden input，无清除按钮（`index.html:821-825`）。`initQuoteCombobox` 抓 `wrapperEl.querySelector(".quote-combobox-clear")`（`app.js:6148`），来源 wrapper 命中 `null`，`pick()`/`_comboboxReset` 均用 `?.` 保护（`app.js:6273-6278,6325-6336`），即来源侧静默零清除能力。E312 只覆盖**书**下拉缺清除按钮，本项是来源**摘抄**下拉的同源缺口。
+
+**Why:** 直接呼应 2026-08-24 signal「误选其他摘抄后又很难删除」。来源侧是用户进入关联页的起点，误选后的纠正成本与目标侧不对等。
+
+**Size:** S
+
+**Files:** `index.html:821-825,859-862`; `app.js:6148,6273-6278,6325-6336`; `tests/frontend/connection-entry-ux.test.js`
+
+**Northstar:** 中——改善关联录入误选恢复，与 8/24 signal 同源，但 E312 已在探索池覆盖相邻的书下拉，来源摘抄一侧缺直接 owner 反馈，暂不提拔。
+
+### E315 — 关联目标「其他书（推荐）」范围在来源为书时静默失效 (S)
+
+**What:** 目标范围「其他书（推荐）」只会在**来源是摘抄**时排除来源书；当用户从**书**（而非摘抄）进入关联并选摘抄为目标时，该排除条件永不触发，“其他书”实际不过滤任何内容，来源书自己的摘抄仍留在列表，而 UI 仍把它标注为“推荐”。
+
+**Evidence:** `sourceQuote()` 只在来源为摘抄时返回实体（`app.js:6185-6188`），来源为书时 `sourceBookId` 为空串（`app.js:6195`）；排除条件是 `scope === "other" && sourceBookId && String(item.bookId) === sourceBookId`（`app.js:6205`），`sourceBookId` 为空时恒不排除。`index.html:855` 将该选项标注为「其他书（推荐）」。
+
+**Why:** 书进入关联（入口 `app.js:1895` 等）是常见路径，UI 承诺的“排除来源书”在书来源时落空，并与 E313 的单书挤占相互放大。
+
+**Size:** S
+
+**Files:** `app.js:6185-6206`; `index.html:855`; `tests/frontend/connection-entry-ux.test.js`
+
+**Northstar:** 中——修正关联范围语义与标签不符的确定性错配，贴近 8/24/8/25 信号面，但缺 owner 对该控件的直接反馈，暂不提拔。
+
+### E316 — 摘抄/OCR 保存失败仍关闭弹窗并清空草稿，OCR 修正文本静默丢失 (L)
+
+**What:** `addQuote` 在真正落库成功**之前**就关闭弹窗、清空草稿（含已 OCR 修正的文字与两张待存图片的 objectURL），随后才 `syncState()`；若网络瞬时失败（非 409），卡片仍因先行 `renderQuotes()` 渲染在列表里，失败只弹底部 toast，草稿已无从恢复，刷新即消失。
+
+**Evidence:** `closeDialog(els.quoteDialog)`（`app.js:4820`）+ `resetQuoteDraft()`（`app.js:4821`，`3057-3061` 清 `pendingQuoteImage`/`pendingQuoteImage2` 并 `revokeObjectURL`、`els.quoteForm.reset()`），随后 `renderQuotes()` + `showToast("保存中…")`（`app.js:4824-4828`）都在 `try { await syncState() }`（`app.js:4830-4843`）之前；`catch` 只 `showToast(error.message)`（`app.js:4850-4852`），无回滚、无重开弹窗、无草稿恢复。全库 grep 无 `navigator.onLine`/pending-write 队列。
+
+**Why:** 当前 Theme 3「积累可信」要求 OCR 核对的修正内容可恢复；瞬时网络错误把用户手工校对过的整份草稿丢弃，是最贴近主题的数据安全缺口。后端 OCR 草稿落库逻辑（`app_server.py:5943-5950,6033-6037`）健壮，前端 review→save 路径不匹配。
+
+**Size:** L
+
+**Files:** `app.js:4768-4853,3056-3068`; `tests/frontend/quote-*` 相关
+
+**Northstar:** 强——直接保护 Theme 3 下最重的积累资产（OCR 修正文本），但改动涉及保存时序/草稿恢复/失败重试，size L 需拆分，本轮不提拔。
+
+### E317 — deleteQuote/deleteSession 失败不回滚，与 deleteConnection 语义不一致 (M)
+
+**What:** `deleteQuote`/`deleteSession` 先在内存里把目标项 filter 出 `state`，再 `syncState()`；非冲突失败时只在 catch 里 toast，不回滚。此后任意一次成功的全量同步会把这次“用户被告知失败”的删除真正落库，结果与提示背离。`deleteConnection` 同场景却会回滚快照。
+
+**Evidence:** `deleteSession` 先 `state.sessions = filter(...)`（`app.js:4202`）再 `syncState()`，catch 仅 `showToast(error.message)`（`app.js:4209-4211`）；`deleteQuote` 先 `state.quotes = filter(...)` 并连带过滤关联（`app.js:4222-4223`），catch 同样只 toast（`app.js:4228-4230`）。对照 `deleteConnection` 用 `connectionsBefore = structuredClone(...)` 并在 catch 里 `state.connections = connectionsBefore; renderConnections();`（`app.js:6442,6478-6479,6488-6491`）。确认对话框已存在（`app.js:4198-4221`，非缺确认问题）。
+
+**Why:** 数据删除是不可逆操作，失败语义不应与“已删除”混同；OPT-170 已为关联建立回滚先例，摘抄/记录未对齐。属 Theme 3「积累可信」的一致性问题，无产品取舍分歧。
+
+**Size:** M
+
+**Files:** `app.js:4196-4233,6442,6478-6491`; `tests/frontend/connection-crud.test.js`; 摘抄删除相关测试
+
+**Northstar:** 强——删除失败后果从“静默丢数据”修正为“保留原状并可重试”，与 OPT-170 先例一致，无 owner 决策分歧。→ **promoted to OPT-177**
+
+### E318 — 标签解析分歧：normalizeTags 仅按逗号，addConnection 另按空格/中文逗号 (S)
+
+**What:** 同一份用户输入在不同表单产生不同标签。书、摘抄、Excel 导入用 `normalizeTags` 只按 ASCII 逗号切分；建立关联用内联正则 `/[,，\s]+/`（逗号+中文逗号+空白）切分。同样写 `哲学 叙事`，摘抄/书表单得到**一个**标签，关联得到**两个**。
+
+**Evidence:** `normalizeTags` 用 `.split(",")`（`app.js:657-662`，用于 `3145,4794,4806,5199,5765`）；`addConnection` 用 `tagsRaw.split(/[,，\s]+/)`（`app.js:6435`）。两者都落进同一 `state.tags` 结构（`app.js:6446,6451`），同一字段跨入口切分规则冲突，且无测试锁定任一行为。
+
+**Why:** 用户在同一数据模型上得到不一致、不可预测的标签语义，属跨入口确定性分歧。最小修正是抽一个共享 `splitTags` 供 `normalizeTags` 与 `addConnection` 共用并定一条规范规则。
+
+**Size:** S
+
+**Files:** `app.js:657-662,6435`; `tests/frontend/`（无 normalizeTags 覆盖）
+
+**Northstar:** 中——修正标签一致性与可预测性，无直接 owner signal，但属低成本的代码健康/正确性统一，暂不提拔。
+
+> 本次 run 新发现 6 条：E313（关联目标摘抄检索被单书挤占，M，retrieval/UX）、E314（来源摘抄下拉缺清除按钮，S，UX）、E315（「其他书（推荐）」范围在书来源时静默失效，S，correctness）、E316（摘抄保存失败即清空 OCR 草稿，L，data-safety）、E317（deleteQuote/deleteSession 失败不回滚，M，data-safety/consistency）、E318（标签解析分歧，S，correctness）。六项均由当前文件逐行核实并排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。沿 8/24/8/25 关联信号，E313 命中「目标结果全同一本书」最直接复现、OPT-172 未兑现的跨书可见，提拔为 OPT-176；E317 与 OPT-170 删除回滚先例一致、Theme 3 数据安全无产品分歧，提拔为 OPT-177；其余（含 size L 的 E316）留探索池待 owner 或更直接证据。

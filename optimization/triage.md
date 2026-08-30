@@ -2,17 +2,25 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-08-30
+Last triaged: 2026-08-31
 
 ## Next up
 
-**夜间无可指派任务（预算耗尽 + 无 S 级合格项）**
+**夜间执行 · 修复 OPT-175（iOS Safari 无法注销账号）**
 
-**状态：无（详见下）**
+**状态：指派（夜间轨唯一 S 级合格项）**
 
-**完成证据：** 唯一新增未完成项 OPT-174 已由 PR #137 / `a69a67b` + 审查收口 `37b92d9` 合入，达成 done（见下）。其余未完成项全部为 P3 parked / blocked，无当前 Theme 或真实 signal 支撑的北极星贡献，且复杂度均非夜间 S 级。
+**指派：** OPT-175。**夜间适配：是**——依据：① 复杂度 S（改动仅 `app.js:4959-4992` 的 `deleteAccount()` + 既有 `showConfirmDialog` 加一个可选文本输入槽 + 一条前端回归）；② 验收边界清楚（iOS 真机能完成注销、用户名不匹配时取消并 toast）；③ 无需 owner 产品/设计判断（平台兼容正确性修复，非信息架构/导航/视觉取舍，复用既有对话框基建）。其余 13 项未完成项均 P3 parked / blocked，无当前 Theme 或真实 signal 支撑且非 S 级，不填充指派。
 
-**预算状态（2026-08-30）：** 外层一次性提供最近 7 天 `auto/` PR 数为 **8**，已达上限 **8**，预算耗尽，本次不指派任何实现。未调用 `gh` 或 GitHub API。**夜间适配：否。**
+**预算状态（2026-08-31）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **7**，上限 **8**，剩余 1 个预算位，本次指派 1 项实现，未达上限。未调用 `gh` 或 GitHub API。
+
+**signal / Theme：** OPT-175 由 explore E308 于 2026-08-30 提拔；northstar 强——完整账号注销是 P0/GDPR/PIPL 数据权利要求，主平台（iPhone/WebKit）上 `window.prompt` 恒返 `null`，`typed !== expected` 恒真，注销永远走「用户名不匹配，已取消」（`app.js:4969-4972`）。对齐当前 Theme 3「积累可信」的数据权利可信度。
+
+**关键文件：** `app.js:4959-4992`（`deleteAccount()`）；`index.html`（账号抽屉）；`tests/frontend/regression-fixed-bugs.test.js`。
+
+**本次证据核对：**
+- 仓库证据：`app.js:4968` 实测 `window.prompt(...)`；`app.js:4977` 服务端 DELETE 需 `confirmUsername`；无 `prompt` 兼容分支或测试。
+- 最近 7 天提交（1201656 起 20 条）均为 hooks / release / signals / DeepSeek 自动化，无映射任何未完成 backlog OPT，无需新对账；OPT-174 已于 08-30 由 PR #137 标 done。
 
 **夜间适配否决（OPT-174）：** OPT-174 虽为 P1，但 size=M，需产品/设计判断——定义"分钟 vs 活跃天数/新增摘抄"双口径指标名称、卡片与分享图口径（`renderSummary` / `renderReadingInsightsShareCard` / 默认与 AI 叙事同步）。按夜间轨边界（仅 S、验收边界清楚、无需 owner 取舍），不写入 Next up；且其本身已随 PR #137 合入 done。
 
@@ -24,6 +32,7 @@ Last triaged: 2026-08-30
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
+| OPT-175 | 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 → iPhone 上永远无法注销 | **P1** | S | **triaged** | 🔜 夜间指派 [2026-08-31]：替换 `window.prompt`（app.js:4968）为 `showConfirmDialog` 文本输入槽，iOS 真机 + 前端回归验收注销闭环 |
 | OPT-174 | “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 | **P1** | M | **done** | ✅ PR #137 / `a69a67b` + `37b92d9` 已合入 [2026-08-29]；无 session 分钟时切活跃天数/新增摘抄口径，卡片与分享图同步 |
 | OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | **done** | ✅ PR #136 / `93ed07b` 已合入 [2026-08-29]；两端清洗、渲染防御与畸形数据回归已落地 |
 | OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | **done** | ✅ PR #135 / `fe6173c` 已合入 [2026-08-28]；直白标签、独立版式与源码回归已落地 |
