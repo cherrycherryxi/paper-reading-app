@@ -5573,3 +5573,93 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——修正标签一致性与可预测性，无直接 owner signal，但属低成本的代码健康/正确性统一，暂不提拔。
 
 > 本次 run 新发现 6 条：E313（关联目标摘抄检索被单书挤占，M，retrieval/UX）、E314（来源摘抄下拉缺清除按钮，S，UX）、E315（「其他书（推荐）」范围在书来源时静默失效，S，correctness）、E316（摘抄保存失败即清空 OCR 草稿，L，data-safety）、E317（deleteQuote/deleteSession 失败不回滚，M，data-safety/consistency）、E318（标签解析分歧，S，correctness）。六项均由当前文件逐行核实并排除 backlog、旧 Explore 与最近合并目标；open PR 状态不可用，未作推断。沿 8/24/8/25 关联信号，E313 命中「目标结果全同一本书」最直接复现、OPT-172 未兑现的跨书可见，提拔为 OPT-176；E317 与 OPT-170 删除回滚先例一致、Theme 3 数据安全无产品分歧，提拔为 OPT-177；其余（含 size L 的 E316）留探索池待 owner 或更直接证据。
+
+## 2026-09-01
+
+> 扫描焦点：沿当前 Theme 3「积累可信」（8/10–9/06）与 2026-08-24/08-25 建立关联的真实 signal，核对服务端写路径的数据完整性（乐观锁是否被绕过）、前端「保存/删除成功」提示与落库结果是否一致、移动端内存生命周期（objectURL 释放）与导入结果透明度。隔离 clone 当前 `HEAD` 为 `69542a4`（08-31 晚到 09-01 晨间 commit），本地 backlog 现存最大 OPT 编号为 **OPT-177**、最大 explore 编号为 **E318**；open PR 为 #138（OPT-175，注册窗内，未映射本批方向）。以下方向均由当前文件逐行核实，并排除 backlog（OPT-169/170/176/177、E48 孤立图片、OPT-133/E213 MCP 锁）、旧 E001–318 与最近合并目标重复。
+
+### E319 — 服务端 OCR 写路径绕过乐观锁整表写 state，与用户并发编辑静默互踩 (L)
+
+**What:** 异步 AI OCR 后台任务与同步快速 OCR 两条路径都以「整份 `state` 全量写回」方式落库，且不携带 `X-State-Version`、不做版本比对——前端 `/api/state` PUT 的 409 乐观锁（`do_PUT` `app_server.py:6645-6665`）在这两条写路径上被整体绕过。`_run_quote_ocr_job` 每次 `load_state(conn, user_id)` 重读当前 state 后 mutate 再无条件 `save_state`（`app_server.py:1824,1843`）；快速路径同样 `save_state`（`app_server.py:5980`）。一次 OCR LLM 调用耗时数十秒，若期间用户在另一标签页/设备编辑了任何摘抄/书，该次编辑会被任务读取到的旧快照整体覆盖，且不产生任何 409 或提示——纯静默丢编辑。
+
+**Evidence:** `_run_quote_ocr_job` 内 `state = load_state(...)`（`app_server.py:1824`）→ 改 `quote["content"]/["tags"]/["ocrStatus"]`（`1827-1842`）→ `save_state(conn, user_id, state)`（`1843`），无版本参数；快速路径 `save_state(conn, user["id"], state)`（`5980`）同样无版本。对照 `do_PUT /api/state` 的 `X-State-Version` 校验（`6645-6665`），OCR 写路径完全不经它。同类的服务端全量写不带锁问题已有两条已知实例：ActionExecutor agent 动作（backlog OPT，`app_server.py:2956-3080` 附近）与 MCP `_save_state`（OPT-133/E213，`reading_mcp_server.py:75-80`），但这两条都不覆盖 OCR job/快速 OCR 路径，本项是新实例。
+
+**Why:** 当前 Theme 3「积累可信」要求并发写不丢编辑；OCR 是高频、长耗时（数十秒）写路径，正是并发冲突的高发窗口，而它恰恰是唯一绕开乐观锁的后端写入口之一。把写路径统一收口到版本校验/冲突返回可消除这一类静默覆盖。
+
+**Size:** L（涉 OCR job 并发语义与写路径统一，需拆分：先在 OCR 写前取版本、冲突时改为写入 `ocrText` 局部字段而非整表覆盖）。
+
+**Files:** `app_server.py:1824-1843,5980`; 对照 `app_server.py:6645-6665`（do_PUT 版本校验）、backlog OPT-133/E213（同类先例）；`tests/agent/ocr_*` 相关
+
+**Northstar:** 强——直接消除 Theme 3 下最贵的静默数据丢失（并发编辑被 OCR 写覆盖、无提示），确定性缺陷、无 owner 产品取舍。→ **promoted to OPT-178**
+
+### E320 — 摘抄/书/记录保存与删除在 state_conflict 时仍播报成功，本地编辑被服务端状态覆盖且无提示（OPT-169 仅覆盖关联） (M)
+
+**What:** `syncState()` 在 409 冲突时采用服务端最新 state、丢弃本地未同步编辑并 toast「数据已在其他设备更新」（`app.js:1184-1197`）。但摘抄/书/记录（session）的保存与删除调用方不看 `syncState()` 的 `{saved:false, reason:"state_conflict"}` 返回值，随后仍 toast 各自的操作成功——冲突提示被成功提示覆盖，用户以为已保存/已删除，实际编辑被静默丢弃。OPT-169 只对**关联**（connections）修了「冲突仍播报成功」；摘抄/书/记录三路未对齐。
+
+**Evidence:** `addQuote` 里 `await syncState()`（`app.js:4843`）忽略返回值，随后 `showToast("摘抄卡片已保存")`（`4849`）；`addBook` 同样 `await syncState()`（`3157`）后 `showToast("书籍已保存")`（`3161`）；`deleteSession`/`deleteQuote` 也忽略返回并 toast 成功/删除完成（`4206,4209` / `4225,4228`）。对照 `addConnection`/`deleteConnection` 检查 `const result = await syncState()` 并据 `saved:false` 分支（`app.js:6458,6481`），即 OPT-169 已覆盖的连接侧会正确区分冲突。
+
+**Why:** Theme 3「积累可信」要求「保存成功」与落库结果一致；冲突是跨设备（手机+桌面）常态，用户在提示「已保存」后刷新发现编辑消失是最伤信任的一类。修法一致、无产品取舍分歧，是 OPT-169 覆盖面的自然补齐。
+
+**Size:** M（同一模式散落摘抄/书/记录多条写路径，需统一一个「检查 `syncState` 冲突返回值」的助手并在失败时不再播报成功）。
+
+**Files:** `app.js:4843-4849,3157-3161,4206-4228`; 对照 `app.js:6458,6481`（OPT-169 已覆盖的 connection 分支）；`tests/frontend/`（状态冲突回归）
+
+**Northstar:** 强——把「保存/删除成功」的误报修正为与真实落库一致，直接命中 Theme 3 数据可信，无 owner 决策分歧，且有 OPT-169 先例。→ **promoted to OPT-179**
+
+### E321 — 书籍编辑封面 objectURL 从不 revoke，每次保存/取消泄漏 blob 内存 (S)
+
+**What:** 「编辑书籍」对话框选择新封面时 `URL.createObjectURL(file)` 建 blob URL（`app.js:7039`），但唯一 revoke 只在「再选一张」时（`7038`）。`resetBookEditDraft()` 只置 `pendingBookEditImage = null`、不调 `URL.revokeObjectURL`（`app.js:4248-4255`），而它是保存（`4346`）/打开（`4261`）/取消关闭路径的清理入口。对照「新增书籍」的 `resetBookDraft` 会 revoke（`app.js:3070-3071`），编辑封面路径漏了对称释放。手机 Safari 上每次编辑封面（含取消）泄漏一份 blob URL，交互多次后累积。
+
+**Evidence:** `els.bookEditImageInput` change 里先 `URL.revokeObjectURL(pendingBookEditImage.objectUrl)`（`app.js:7038`）再 `URL.createObjectURL(file)`（`7039`）；`resetBookEditDraft()` 仅 `pendingBookEditImage = null;`（`app.js:4249`）无 revoke；该函数在 `saveBookEdit`（`4346`）与 `openBookEditDialog`（`4261`）均被调用。
+
+**Why:** 移动端内存泄漏会随编辑/取消累积，主题虽弱，但修法 S、有对称先例，属低成本内存卫生收口。
+
+**Size:** S
+
+**Files:** `app.js:7038-7041,4248-4255,4346,4261,3070-3071`（对照）；`tests/frontend/book-edit*` 相关
+
+**Northstar:** 弱中——移动端内存卫生，无直接 owner signal，暂不提拔。
+
+### E322 — 摘抄对话框取消/Esc 关闭时不 revoke 图片 objectURL，两张图泄漏 (S)
+
+**What:** 摘抄对话框选择图片/第二张图时各建一个 blob URL（`app.js:5675,5699`），释放只在 `resetQuoteDraft()`（`app.js:3056-3060`）。但对话框的取消按钮/Esc 关闭经 `close` 监听只调 `discardProvisionalOcrQuote()`（`app.js:6766`），不调 `resetQuoteDraft`、不 revoke。于是「打开摘抄→选图→取消/Esc」两张 blob URL 一直滞留到下次打开/替换（或永不释放）。
+
+**Evidence:** 图片载入建 `URL.createObjectURL`（`app.js:5675` 第一张、`5699` 第二张）；`els.quoteDialog.addEventListener("close", discardProvisionalOcrQuote)`（`app.js:6766`）；`discardProvisionalOcrQuote` 只清 OCR 临时卡，不含 revoke；`resetQuoteDraft` 才是唯一含 revoke 的清理（`3056-3060`）。保存路径会在 `addQuote` 里调 `resetQuoteDraft`（`4821`），故只有取消路径泄漏。
+
+**Why:** 与 E321 同类的 blob 生命周期缺口；摘抄对话框是高频入口，取消即泄漏，移动端累积。修法与 E321 同族，可一并收口。
+
+**Size:** S
+
+**Files:** `app.js:5675,5699,6766,3056-3060`; `index.html`（摘抄对话框取消按钮 `data-close-dialog="quoteDialog"`）；`tests/frontend/ocr-cancel-cleanup.test.js`、`ocr-multi-image.test.js`
+
+**Northstar:** 弱中——移动端内存卫生，暂不提拔。
+
+### E323 — import 结果弹窗省略「聊天记录/深度共读上下文」，导入内容统计与恢复不一致 (S)
+
+**What:** `importData` 会恢复 `chatHistories` 与 `chatContexts`（`resolveImportedState` `app.js:5011-5017`），但导入成功弹窗 `showImportResult` 的汇总行只列 书籍/摘抄/记录/关联/自定义摘抄标签/长期记忆 六类（`app.js:5041-5048`），既不显示聊天记录（chatHistories）也不显示深度共读上下文（chatContexts）。`stateContentCount` 计了 `chatHistories` 键数（`5031`）却没计 `chatContexts`。结果：导入含聊天历史的备份后，用户从结果弹窗看不到聊天是否恢复，且计数口径（count 含 chatHistory、弹窗不含）前后不一致。
+
+**Evidence:** `showImportResult` 的 `rows` 数组（`app.js:5041-5048`）无 chatHistories/chatContexts 行；`resolveImportedState` 已恢复 `chatHistories`（`5011-5016`）与 `chatContexts`（`5017`）；`stateContentCount` 加 `Object.keys(s.chatHistories||{}).length`（`5031`）但不计 chatContexts。
+
+**Why:** 导入是整体替换的高危操作，结果透明度应覆盖所有恢复的类别；聊天记录是用户在意的数据，弹窗静默不显示会造成「聊天是不是丢了」的不确定。属数据透明性收口，无产品取舍。
+
+**Size:** S
+
+**Files:** `app.js:5041-5048,5011-5017,5024-5035`; `tests/frontend/`（导入结果相关）
+
+**Northstar:** 弱中——导入透明度/口径一致，无直接 owner signal，暂不提拔。
+
+### E324 — 前端测试缺口：无 revokeObjectURL 断言 + 无账号设置/摘抄编辑持久化行为测试 (M)
+
+**What:** 前端测试对 `URL.revokeObjectURL` 一律 stub 为 no-op（如 `ocr-multi-image.test.js:131`、`book-duplicate.test.js:61`、`ocr-cancel-cleanup.test.js:56`），全套件从不断言释放被调用，E321/E322 的泄漏可无限期通过 CI。同时缺少两类用户流的行为测试：摘抄编辑持久化（`addQuote` 编辑分支写回 `content/reflection/tags`，`app.js:4787-4796`，现有 `quote-tag-picker-persist.test.js` 只测标签选择器渲染、`quote-page-prefill.test.js` 只测预填），以及账号设置流（`updateProfile`/改邮箱/改密/`deleteAccount`/`exportAccount`，`app.js:4936,4959`，无前端行为测试，仅 `regression-fixed-bugs.test.js` 静态断言端点存在）。
+
+**Evidence:** 图片测试 stub `revokeObjectURL(){}`（`tests/frontend/ocr-multi-image.test.js:131` 等）；`tests/frontend/quote-tag-picker-persist.test.js` 只断言标签渲染标题（96/112/131/148）；grep `tests/frontend/` 无针对账号设置流/`updateProfile`/`deleteAccount` 提交路径的测试。
+
+**Why:** 与 E321/E322（泄漏）及 OPT-175（注销，正在被 #138 改）相关的回归缺少测试网；摘抄编辑是核心写路径却无持久化断言。属测试覆盖率收口，可随对应修复落地测试。
+
+**Size:** M
+
+**Files:** `tests/frontend/ocr-multi-image.test.js:131`、`book-duplicate.test.js:61`、`ocr-cancel-cleanup.test.js:56`、`quote-tag-picker-persist.test.js`; `app.js:4787-4796,4936,4959`
+
+**Northstar:** 中——提升核心写路径与账号流回归网，间接支撑 Theme 3 与 OPT-175 验收，但本身不产出用户可见价值，暂不提拔。
+
+> 本次 run 新发现 6 条：E319（服务端 OCR 写路径绕过乐观锁静默互踩，L，data-safety/server）、E320（摘抄/书/记录保存与删除在冲突时仍播报成功，M，data-safety/consistency）、E321（书籍编辑封面 objectURL 从不 revoke，S，memory）、E322（摘抄对话框取消不 revoke 图片 objectURL，S，memory）、E323（import 结果弹窗省略聊天记录/上下文统计，S，data-transparency）、E324（前端测试缺口：无 revoke 断言 + 无账号设置/摘抄编辑持久化测试，M，test-coverage）。六项均由当前文件逐行核实并排除 backlog（OPT-169/170/176/177、E48 孤立图片、OPT-133/E213 MCP 锁）、旧 E001–318 与最近合并目标。沿 Theme 3「积累可信」，E319 命中 OCR 长耗时写路径唯一绕开乐观锁、并发编辑静默丢失，提拔为 OPT-178；E320 是 OPT-169（仅关联）覆盖面的自然补齐、无产品分歧，提拔为 OPT-179；E321/E322/E323/E324（含 L 级 E319 已提、其余 S/M）留探索池待 owner 或更直接证据。

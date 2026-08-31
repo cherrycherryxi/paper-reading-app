@@ -1677,3 +1677,23 @@ Format per item:
 - description: `deleteQuote`/`deleteSession` 先在内存把目标项 filter 出 `state`（`app.js:4202,4222-4223`）再 `syncState()`；非冲突失败时 catch 只 `showToast(error.message)`（`app.js:4209-4211,4228-4230`），不回滚。此后任意一次成功全量同步会把这次“被告知失败”的删除真正落库。`deleteConnection` 同场景用 `connectionsBefore` 快照回滚（`app.js:6442,6478-6479,6488-6491`）。
 - why: 删除是不可逆操作，失败不应与“已删除”混同；确认对话框已存在（`app.js:4198-4221`），缺口在失败语义一致性而非确认。
 - how: 仿 `deleteConnection`，在 mutate 前对 `state.quotes`/`state.sessions`（及联带清理的关联）做快照，catch 里恢复快照并重渲染，toast 明确“删除失败，已保留”。需前端回归覆盖非冲突失败路径下项目仍留在列表。Touch: `app.js:4196-4233,6478-6491`；摘抄/记录删除相关测试。
+
+### OPT-178 — 服务端 OCR 写路径绕过乐观锁整表写 state，与用户并发编辑静默互踩 — 由 explore E319 提拔 [2026-09-01]
+- status: new
+- area: backend / data safety / concurrency
+- priority: P1
+- size: L
+- northstar: 强——直接消除 Theme 3「积累可信」下最贵的静默数据丢失：异步 AI OCR 后台任务与同步快速 OCR 都以整份 `state` 全量写回且不带版本，一次数十秒的 OCR 期间用户在另一标签/设备的编辑会被旧快照整体覆盖、无任何 409 或提示。
+- description: `_run_quote_ocr_job` 每次 `load_state(conn,user_id)` 重读 state 后 mutate 再无条件 `save_state`（`app_server.py:1824,1843`）；同步快速 OCR 同样 `save_state`（`app_server.py:5980`）。这两条写路径都不携带 `X-State-Version`、不做版本比对，前端 `/api/state` PUT 的 409 乐观锁（`do_PUT` `app_server.py:6645-6665`）被整体绕过。同类的服务端全量写不带锁已有 ActionExecutor agent 动作（backlog OPT）与 MCP `_save_state`（OPT-133/E213）两条已知实例，但均不覆盖 OCR job/快速 OCR 路径——本项是新实例。
+- why: 并发写不丢编辑是 Theme 3 的验收面；OCR 是高频、长耗时（数十秒）写路径，正是并发冲突高发窗口，却恰是绕开乐观锁的后端写入口之一。把写路径收口到版本校验/冲突返回可消除这类静默覆盖。
+- how: 需拆分：先在 OCR 写前读取并携带 state version，冲突时不再整表覆盖，而是把 OCR 结果只写 `quote["ocrText"]` 等局部字段（或让出、返回冲突让前端重试），保留用户并发编辑。Touch: `app_server.py:1824-1843,5980`；对照 `app_server.py:6645-6665`（do_PUT 版本校验）、OPT-133/E213（同类先例）；`tests/agent/ocr_*` 相关。
+
+### OPT-179 — 摘抄/书/记录保存与删除在 state_conflict 时仍播报成功，本地编辑被覆盖且无提示 — 由 explore E320 提拔 [2026-09-01]
+- status: new
+- area: frontend / data safety / consistency
+- priority: P1
+- size: M
+- northstar: 强——把「保存/删除成功」的误报修正为与真实落库一致；冲突（409）是跨设备常态，用户在提示「已保存」后刷新发现编辑消失最伤信任，属 Theme 3 数据可信且无 owner 决策分歧，有 OPT-169 先例。
+- description: `syncState()` 在 409 冲突时采用服务端最新 state、丢弃本地未同步编辑并 toast「数据已在其他设备更新」（`app.js:1184-1197`）。但摘抄/书/记录（session）的保存与删除调用方不看 `syncState()` 的 `{saved:false, reason:"state_conflict"}` 返回值，随后仍 toast 各自成功（`addQuote` `app.js:4843,4849`；`addBook` `3157,3161`；`deleteSession`/`deleteQuote` `4206,4209`/`4225,4228`）——冲突提示被成功提示覆盖。OPT-169 只修了**关联**（connections，`app.js:6458,6481` 检查 `result.saved`），摘抄/书/记录三路未对齐。
+- why: 保存结果与「已保存」提示必须一致；冲突是手机+桌面并用时的常态路径，静默丢弃编辑并谎报成功是数据可信的确定性缺口。修法统一、无产品取舍。
+- how: 统一一个「检查 `syncState()` 冲突返回值」的助手，当 `{saved:false, reason:"state_conflict"}` 时不再播报「已保存/已删除」（冲突 toast 已由 syncState 弹出），或改为「编辑在其他设备更新未保存，请核对」。需前端回归覆盖冲突路径下摘抄/书/记录不报成功。Touch: `app.js:3157-3161,4206-4228,4843-4849`；对照 `app.js:6458,6481`；`tests/frontend/`（状态冲突回归）。
