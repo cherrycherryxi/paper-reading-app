@@ -6041,3 +6041,5 @@
 |------|--------|---------|---------|--------|
 | 05:04 | Edited optimization/explore.md | modified revokeObjectURL() | ~2151 |
 | 05:04 | Edited optimization/backlog.md | expanded (+20 lines) | ~791 |
+| 07:06 | Edited optimization/triage.md | inline fix | ~68 |
+| 07:06 | Edited optimization/backlog.md | "window.prompt" → "6874095" | ~46 |

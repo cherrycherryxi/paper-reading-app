@@ -10104,6 +10104,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-31T21:04:42.053Z"
+    },
+    {
+      "id": "auto-018",
+      "timestamp": "2026-08-31T23:06:26.270Z",
+      "error_message": "Incorrect value in code",
+      "file": "optimization/triage.md",
+      "root_cause": "Had `window.prompt`",
+      "fix": "Changed to `6874095`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T23:06:26.270Z"
+    },
+    {
+      "id": "auto-019",
+      "timestamp": "2026-08-31T23:06:29.681Z",
+      "error_message": "Incorrect value in code",
+      "file": "optimization/backlog.md",
+      "root_cause": "Had `window.prompt`",
+      "fix": "Changed to `6874095`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T23:06:29.681Z"
     }
   ]
 }
