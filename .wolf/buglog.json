@@ -10056,6 +10056,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-30T21:05:34.561Z"
+    },
+    {
+      "id": "auto-015",
+      "timestamp": "2026-08-31T12:37:40.903Z",
+      "error_message": "Wrong reference: test_preservation_chat_route_still_uses_deepseek_chat should be test_preservation_chat_route_uses_configured_model",
+      "file": "tests/agent/ocr_recognition_fix_test.py",
+      "root_cause": "Used \"test_preservation_chat_route_still_uses_deepseek_chat\" instead of \"test_preservation_chat_route_uses_configured_model\"",
+      "fix": "Changed test_preservation_chat_route_still_uses_deepseek_chat → test_preservation_chat_route_uses_configured_model",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T12:37:40.903Z"
     }
   ]
 }

@@ -6003,3 +6003,18 @@
 | 05:05 | Edited optimization/explore.md | added error handling | ~1670 |
 | 05:05 | Edited optimization/backlog.md | expanded (+20 lines) | ~499 |
 | 05:05 | Explore 2026-08-31: 关联选择器跨书可见/来源清除/范围语义 + 摘抄删除回滚 + 标签解析一致性 | optimization/explore.md optimization/backlog.md | append 6 探索项 E313-318, 提拔 OPT-176/177 | ~4k |
+## Session: 2026-08-30 07:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-31 13:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:37 | Edited README.md | 7→6 lines | ~63 |
+| 20:37 | Edited tests/agent/ocr_recognition_fix_test.py | inline fix | ~19 |
+| 20:37 | Edited tests/agent/ocr_recognition_fix_test.py | inline fix | ~20 |
+| 20:38 | 统一模型为 deepseek-v4-flash（pro 默认值→flash；本地开发不读 .env，.env 仅 compose 路径生效） | app_server.py,docker-compose.yml,deep_reading.py,.env.example,README.md,cordis.yml,tests/agent/* | 91 passed 零残留 | ~30000 |
+| 20:38 | Session end: 3 writes across 2 files (README.md, ocr_recognition_fix_test.py) | 2 reads | ~9505 tok |
+| 20:42 | Session end: 3 writes across 2 files (README.md, ocr_recognition_fix_test.py) | 3 reads | ~9505 tok |

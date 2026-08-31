@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-30T21:05:34.527Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-31T12:37:41.536Z
 > Files: 432 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -599,7 +599,7 @@
 - `metrics_json_guard_test.py` — Tests: valid_rows_still_counted, corrupted_row_no_exception_and_still_counted, all_rows_corrupted_still_aggregates_values, mixed_corruption_degrade... (~1455 tok)
 - `object_storage_test.py` — Regression tests for S3-compatible object storage (P3 commercialization). (~1596 tok)
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
-- `ocr_recognition_fix_test.py` — Tests: bug_exploration_ocr_should_use_kimi_vision_helper, preservation_chat_route_still_uses_deepseek_chat, preservation_unauthenticated_ocr_return... (~7943 tok)
+- `ocr_recognition_fix_test.py` — OCRRecognitionFixTests: setUp, tearDown, request_json, send_response + 19 more (~7949 tok)
 - `paper_wrapup_runner_migration_test.py` — Contracts for the formal paper-wrapup provider migration. (~678 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
@@ -697,38 +697,38 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第10篇-词语活得更久/
 
+- `文案.md` — 标题三选一 (~149 tok)
 - `material.md` — 真实素材 (~21 tok)
 - `vars.sh` (~42 tok)
-- `文案.md` — 标题三选一 (~149 tok)
 
 ## 小红书物料/第11篇-现在的书架/
 
+- `文案.md` — 标题三选一 (~161 tok)
 - `material.md` — 真实素材 (~30 tok)
 - `vars.sh` (~34 tok)
-- `文案.md` — 标题三选一 (~161 tok)
 
 ## 小红书物料/第12篇-时间是谁写出来的/
 
+- `文案.md` — 标题三选一 (~173 tok)
 - `material.md` — 真实素材 (~107 tok)
 - `vars.sh` (~44 tok)
-- `文案.md` — 标题三选一 (~173 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -736,33 +736,33 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 
 ## 小红书物料/第8篇-老了才要回时间/
 
@@ -770,6 +770,6 @@
 
 ## 小红书物料/第9篇-两种英式幽默/
 
+- `文案.md` — 标题三选一 (~169 tok)
 - `material.md` — 真实素材 (~37 tok)
 - `vars.sh` (~46 tok)
-- `文案.md` — 标题三选一 (~169 tok)
