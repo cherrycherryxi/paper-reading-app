@@ -6018,3 +6018,4 @@
 | 20:38 | 统一模型为 deepseek-v4-flash（pro 默认值→flash；本地开发不读 .env，.env 仅 compose 路径生效） | app_server.py,docker-compose.yml,deep_reading.py,.env.example,README.md,cordis.yml,tests/agent/* | 91 passed 零残留 | ~30000 |
 | 20:38 | Session end: 3 writes across 2 files (README.md, ocr_recognition_fix_test.py) | 2 reads | ~9505 tok |
 | 20:42 | Session end: 3 writes across 2 files (README.md, ocr_recognition_fix_test.py) | 3 reads | ~9505 tok |
+| 20:53 | 发版:模型统一 flash 上线(main 650c2f6→6922ac0,10 commits);prod pull+先MCP后backend重启,健康200无ConnectError | prod | 发版成功 | ~3000 |
