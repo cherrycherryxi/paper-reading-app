@@ -204,6 +204,8 @@ const els = {
   confirmDialogMessage: document.querySelector("#confirmDialogMessage"),
   confirmDialogConfirmBtn: document.querySelector("#confirmDialogConfirmBtn"),
   confirmDialogCancelBtn: document.querySelector("#confirmDialogCancelBtn"),
+  confirmDialogInputWrap: document.querySelector("#confirmDialogInputWrap"),
+  confirmDialogInput: document.querySelector("#confirmDialogInput"),
   bookDialog: document.querySelector("#bookDialog"),
   sessionDialog: document.querySelector("#sessionDialog"),
   quoteDialog: document.querySelector("#quoteDialog"),
@@ -4168,15 +4170,29 @@ function editQuote(quoteId) {
   requestAnimationFrame(() => document.getElementById("quoteContent")?.focus?.());
 }
 
-function showConfirmDialog({ message, confirmLabel = "确认删除", onConfirm }) {
+function showConfirmDialog({ message, confirmLabel = "确认删除", onConfirm, inputConfig }) {
   els.confirmDialogMessage.textContent = message;
   els.confirmDialogConfirmBtn.textContent = confirmLabel;
+
+  // OPT-175: 可选文本输入槽。iOS Safari 不支持 window.prompt（恒返 null），
+  // 注销账号这类需用户键入用户名二次确认的流程改用对话框内嵌输入框。
+  const inputWrap = els.confirmDialogInputWrap;
+  const input = els.confirmDialogInput;
+  if (inputConfig) {
+    inputWrap.hidden = false;
+    input.value = "";
+    input.placeholder = inputConfig.placeholder || "";
+    input.focus();
+  } else {
+    inputWrap.hidden = true;
+  }
   els.confirmDialog.showModal();
 
   const handleConfirm = () => {
+    const typed = inputConfig ? input.value : undefined;
     cleanup();
     els.confirmDialog.close();
-    onConfirm();
+    onConfirm(typed);
   };
   const handleCancel = () => {
     cleanup();
@@ -4962,10 +4978,10 @@ function deleteAccount() {
   showConfirmDialog({
     message:
       `注销账号将永久删除你的所有书籍、记录、摘抄、对话和上传图片，且不可恢复。\n` +
-      `请在浏览器弹窗中输入用户名「${expected}」确认。`,
+      `请在下方输入用户名「${expected}」确认。`,
     confirmLabel: "永久注销",
-    onConfirm: async () => {
-      const typed = window.prompt(`再次确认：输入用户名「${expected}」以注销账号`);
+    inputConfig: { placeholder: `输入「${expected}」` },
+    onConfirm: async (typed) => {
       if (typed !== expected) {
         showToast("用户名不匹配，已取消");
         return;

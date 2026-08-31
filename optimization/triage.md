@@ -31,7 +31,7 @@ Last triaged: 2026-09-01
 
 | id | title | priority | complexity | status | notes |
 |----|-------|----------|------------|--------|-------|
-| OPT-175 | 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 → iPhone 上永远无法注销 | **P1** | S | **triaged** | 🔜 夜间指派 [2026-09-01]：替换 `window.prompt`（app.js:4968）为 `showConfirmDialog` 文本输入槽，iOS 真机 + 前端回归验收注销闭环 |
+| OPT-175 | 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 → iPhone 上永远无法注销 | **P1** | S | **in-progress** | Codex nightly PR pending [2026-09-01]：替换 `window.prompt` 为 `showConfirmDialog` 文本输入槽，iOS 真机 + 前端回归验收注销闭环 |
 | OPT-176 | 关联目标摘抄检索被单本书挤占，跨书匹配无法浮现 | **P1** | M | **triaged** | 🔜 晨间候选 [2026-09-01]：M 级且涉检索排序体验取舍（08-25 owner signal 直接来源）；不合夜间 S 边界，留 07:00 候选卡 |
 | OPT-177 | deleteQuote/deleteSession 失败不回滚，与 deleteConnection 语义不一致 | **P1** | M | **triaged** | 🔜 晨间候选 [2026-09-01]：M 级且涉删除失败回滚数据安全语义；不合夜间 S 边界，留 07:00 候选卡 |
 | OPT-174 | “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 | **P1** | M | **done** | ✅ PR #137 / `a69a67b` + `37b92d9` 已合入 [2026-08-29]；无 session 分钟时切活跃天数/新增摘抄口径，卡片与分享图同步 |

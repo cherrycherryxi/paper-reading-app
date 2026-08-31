@@ -781,6 +781,9 @@ textarea {
   margin: 0 0 8px;
   font-weight: 600;
 }
+.confirm-dialog-input-wrap {
+  margin-bottom: 16px;
+}
 .delete-confirm-warning {
   margin: 0 0 20px;
   font-size: 13px;
