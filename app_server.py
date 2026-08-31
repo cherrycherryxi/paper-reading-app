@@ -58,7 +58,7 @@ def static_asset_version() -> str:
 
 # 服务端密钥只从环境变量读取，不要放到前端或提交到仓库。
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro").strip() or "deepseek-v4-pro"
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip() or "deepseek-v4-flash"
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
 MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
 # Cloud OCR for the "快速识别" fast path (OPT-016 mid-term): commercial-grade

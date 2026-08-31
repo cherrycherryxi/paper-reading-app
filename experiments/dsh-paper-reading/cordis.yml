@@ -53,7 +53,7 @@
     apiKeyEnv: DEEPSEEK_API_KEY
     streamIdleTimeoutMs: 300000
     models:
-      - id: !!js process.env.DSH_MODEL ?? process.env.DEEPSEEK_RESEARCH_MODEL ?? 'deepseek-v4-pro'
+      - id: !!js process.env.DSH_MODEL ?? process.env.DEEPSEEK_RESEARCH_MODEL ?? 'deepseek-v4-flash'
         contextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 128000)
 
 - id: paper-reading-gateway

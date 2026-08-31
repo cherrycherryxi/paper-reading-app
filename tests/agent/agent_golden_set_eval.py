@@ -97,12 +97,12 @@ class GoldenSetEvaluator:
 
     def run_case(self, case):
         if "mockModelError" in case:
-            def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+            def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
                 raise RuntimeError(case["mockModelError"])
         else:
             model_output = case["mockModelOutput"]
 
-            def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+            def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
                 if isinstance(model_output, str):
                     return model_output
                 return json.dumps(model_output, ensure_ascii=False)

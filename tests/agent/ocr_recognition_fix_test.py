@@ -104,7 +104,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
     def test_bug_exploration_ocr_should_use_kimi_vision_helper(self):
         calls = {"deepseek": 0, "kimi": 0}
 
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             calls["deepseek"] += 1
             return "deepseek output"
 
@@ -127,10 +127,10 @@ class OCRRecognitionFixTests(unittest.TestCase):
         self.assertEqual(calls["kimi"], 1)
         self.assertEqual(calls["deepseek"], 0)
 
-    def test_preservation_chat_route_still_uses_deepseek_chat(self):
+    def test_preservation_chat_route_uses_configured_model(self):
         observed = {}
 
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             observed["messages"] = messages
             observed["model"] = model
             return json.dumps({"reply": "ok", "actions": []}, ensure_ascii=False)
@@ -146,13 +146,13 @@ class OCRRecognitionFixTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["reply"], "ok")
-        self.assertEqual(observed["model"], "deepseek-chat")
+        self.assertEqual(observed["model"], app_server.DEEPSEEK_MODEL)
         self.assertEqual(observed["messages"][-1]["content"], "你好")
 
     def test_preservation_unauthenticated_ocr_returns_401_without_model_calls(self):
         calls = {"deepseek": 0, "kimi": 0}
 
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             calls["deepseek"] += 1
             return "should not run"
 

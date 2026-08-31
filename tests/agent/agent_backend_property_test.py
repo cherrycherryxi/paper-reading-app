@@ -143,7 +143,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
         return {row["name"] for row in rows}
 
     def _fake_chat_with_action(self, action_type, data, book_id="book-1", message="test-message"):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "ok", "actions": [{"type": action_type, "data": data}]},
                 ensure_ascii=False,
@@ -564,7 +564,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
 
         observed = {}
 
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             observed["prompt"] = messages[0]["content"]
             return json.dumps({"reply": "ok", "actions": []}, ensure_ascii=False)
 
@@ -584,7 +584,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertIn("这是一条需要讨论的摘抄", observed["prompt"])
 
     def test_property_response_structure_validation(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "structured reply", "actions": [{"type": "question", "data": {"content": "why"}}]},
                 ensure_ascii=False,
@@ -609,12 +609,12 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertEqual(payload["actions"][0]["status"], "PENDING_APPROVAL")
 
     def test_streaming_chat_retries_non_stream_when_stream_finish_reason_is_not_stop(self):
-        def fake_stream(messages, model="deepseek-chat", max_tokens=2400):
+        def fake_stream(messages, model="deepseek-v4-flash", max_tokens=2400):
             yield "半截回答："
             yield "《激情耗尽》（薇塔·萨克"
             return "length"
 
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps({"reply": "完整回答", "actions": []}, ensure_ascii=False)
 
         app_server.call_deepseek_stream = fake_stream
@@ -665,7 +665,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
     def test_question_action_content_completes_short_lead_in_reply(self):
         question = "汉斯的悲剧是被教育体制决定的，还是他的顺从也参与了共谋？"
 
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "基于《在轮下》的核心冲突，一个值得深挖的问题是：", "actions": [{"type": "question", "data": {"content": question}}]},
                 ensure_ascii=False,
@@ -967,7 +967,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
         self.assertEqual(sorted(second_book["tags"]), sorted(first_book["tags"]))
 
     def test_property_structured_error_responses_keep_required_fields(self):
-        def fake_error(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_error(messages, model="deepseek-v4-flash", max_tokens=1200):
             raise RuntimeError("upstream failure")
 
         error_cases = [
@@ -1012,7 +1012,7 @@ class AgentBackendPropertyTests(unittest.TestCase):
             "network_call",
         ]
         for action_type in dangerous_action_types:
-            def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200, current=action_type):
+            def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200, current=action_type):
                 return json.dumps(
                     {"reply": "bad action", "actions": [{"type": current, "data": {}}]},
                     ensure_ascii=False,

@@ -73,13 +73,12 @@ output 自己实现——模型输出 `{reply, actions[]}` 形态的 JSON，Host
 这个人在回路环节。tool calling 是为"模型自主完成任务"设计的范式，与"审批后执行"
 存在冲突。如果未来扩展到多步自主任务，再升级到 tool calling 范式。
 
-### 为什么 `link_thought` 用推理模型
+### 为什么 `link_thought` 是纯数据操作
 
-`reading_mcp_server.py` 内调用模型的只有一处——`link_thought` 用了
-`deepseek-reasoner`，其他 Tool 是无模型的纯数据操作。理由是跨书关联发现是高复杂度
-推理任务：需要同时理解多本书的核心主题并推断隐性联系。普通对话模型倾向于表面关键词
-匹配，推理模型的 CoT 过程能捕捉到"异曲同工"这类语义层关联。延迟换质量，且该操作
-非实时对话，几秒等待可接受。
+`reading_mcp_server.py` 里所有 Tool 都是无模型的纯数据操作——包括 `link_thought`。
+跨书关联的语义判断（"异曲同工"这类隐性联系）由发起方（agent 聊天流程）在调用前
+完成，Tool 本身只负责校验实体存在性并把关联写入 connections。Tool 层因此保持
+确定性、零延迟、零模型成本，语义理解集中在唯一的模型入口（`call_deepseek`）。
 
 ### 为什么 Tool description 不写"模型应该怎么做"
 
@@ -142,7 +141,7 @@ pip install -r requirements.txt
 
 ```bash
 export DEEPSEEK_API_KEY="..."     # 必填
-export DEEPSEEK_MODEL="deepseek-v4-pro"  # 选填，聊天模型；默认 deepseek-v4-pro
+export DEEPSEEK_MODEL="deepseek-v4-flash"  # 选填，聊天模型；默认 deepseek-v4-flash
 export MOONSHOT_API_KEY="..."     # 选填，OCR 用
 ```
 

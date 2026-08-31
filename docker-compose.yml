@@ -13,7 +13,7 @@ services:
       UPLOAD_DIR: /app/uploads
       # — Required for AI features —
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-pro}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash}
       MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
       # — Cloud OCR for the fast 快速识别 path (OPT-016); without these it
       #   falls back to local Tesseract automatically —

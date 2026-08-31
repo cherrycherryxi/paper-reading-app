@@ -488,7 +488,7 @@ class DeepReadingRunner:
             with tempfile.TemporaryDirectory(prefix="paper-reading-dsh-") as session_root:
                 with DeepSeekHarness(
                         provider="deepseek-official",
-                        model=os.getenv("DEEPSEEK_RESEARCH_MODEL", os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro")),
+                        model=os.getenv("DEEPSEEK_RESEARCH_MODEL", os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")),
                         max_tokens=int(os.getenv("DEEPSEEK_RESEARCH_MAX_TOKENS", "8192")),
                         cwd=session_root,
                         session_root=session_root,

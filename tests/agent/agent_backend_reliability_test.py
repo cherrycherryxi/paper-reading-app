@@ -135,7 +135,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         return action
 
     def test_chat_response_includes_trace_and_persists_pending_action(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {
                     "reply": "这里是回答",
@@ -176,7 +176,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertIn("RESPONSE_SENT", event_types)
 
     def test_chat_parse_failure_returns_degraded_status_without_actions(self):
-        app_server.call_deepseek = lambda messages, model="deepseek-chat", max_tokens=1200: "not json"
+        app_server.call_deepseek = lambda messages, model="deepseek-v4-flash", max_tokens=1200: "not json"
 
         status, payload = self.request_json(
             "POST",
@@ -192,7 +192,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertEqual(payload["actions"], [])
 
     def test_chat_validation_failure_rejects_unknown_action_type(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {
                     "reply": "给你一个奇怪动作",
@@ -217,7 +217,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertTrue(any("unknown action type" in item for item in payload["validationErrors"]))
 
     def test_approve_action_executes_server_side_mutation(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {
                     "reply": "已准备添加标签",
@@ -253,7 +253,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertIn("哲学", stored_book["tags"])
 
     def test_reject_action_transitions_without_state_mutation(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {
                     "reply": "要不要加一本书",
@@ -297,7 +297,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertTrue(payload["traceId"].startswith("trace-"))
 
     def test_state_machine_transitions_cover_valid_and_invalid_paths(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "记录一个问题", "actions": [{"type": "question", "data": {"content": "为什么？"}}]},
                 ensure_ascii=False,
@@ -358,7 +358,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         ]
 
         for index, (action_type, data, assertion) in enumerate(scenarios):
-            def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200, current_type=action_type, current_data=data):
+            def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200, current_type=action_type, current_data=data):
                 return json.dumps(
                     {"reply": "ok", "actions": [{"type": current_type, "data": current_data}]},
                     ensure_ascii=False,
@@ -385,7 +385,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         contents = ["第一个问题？", "第二个问题？"]
 
         for content in contents:
-            def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200, current_content=content):
+            def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200, current_content=content):
                 return json.dumps(
                     {"reply": current_content, "actions": [{"type": "question", "data": {"content": current_content}}]},
                     ensure_ascii=False,
@@ -454,7 +454,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertEqual(failed_action["errorMessage"], "boom")
 
     def test_trace_query_covers_success_failed_and_not_found(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "这里是回答", "actions": [{"type": "add_note", "data": {"content": "新笔记", "tags": ["洞察"]}}]},
                 ensure_ascii=False,
@@ -476,7 +476,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertEqual(success_trace["status"], "OK")
         self.assertTrue(len(success_trace["events"]) >= 1)
 
-        def fake_error(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_error(messages, model="deepseek-v4-flash", max_tokens=1200):
             raise RuntimeError("upstream exploded")
 
         app_server.call_deepseek = fake_error
@@ -506,7 +506,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertEqual(missing_payload["error"], "Trace not found")
 
     def test_metrics_collection_tracks_requests_actions_and_failures(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "这里是回答", "actions": [{"type": "add_note", "data": {"content": "新笔记", "tags": ["洞察"]}}]},
                 ensure_ascii=False,
@@ -541,7 +541,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         )
         self.assertEqual(reject_status, 200)
 
-        app_server.call_deepseek = lambda messages, model="deepseek-chat", max_tokens=1200: (_ for _ in ()).throw(RuntimeError("boom"))
+        app_server.call_deepseek = lambda messages, model="deepseek-v4-flash", max_tokens=1200: (_ for _ in ()).throw(RuntimeError("boom"))
         error_status, _ = self.request_json(
             "POST",
             "/api/chat",
@@ -586,7 +586,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertGreaterEqual(metrics["avgOutputTokens"], 0.0)
 
     def test_agent_dashboard_renders_metrics_summary_html(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "这里是回答", "actions": [{"type": "add_note", "data": {"content": "新笔记", "tags": ["洞察"]}}]},
                 ensure_ascii=False,
@@ -611,7 +611,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertIn("Avg Latency", html)
 
     def test_model_logs_include_actions_and_trace_errors(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "推荐这本书", "actions": [{"type": "add_book", "data": {"title": "Deep Work", "author": "Cal Newport"}}]},
                 ensure_ascii=False,
@@ -635,7 +635,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertEqual(log_item["traceErrorMessage"], "")
 
     def test_debug_logs_html_renders_action_block(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps(
                 {"reply": "记录一下", "actions": [{"type": "tag", "data": {"tags": ["哲学"]}}]},
                 ensure_ascii=False,
@@ -656,7 +656,7 @@ class AgentBackendReliabilityTests(unittest.TestCase):
         self.assertIn("PENDING_APPROVAL", html)
 
     def test_debug_logs_html_renders_token_and_latency_aggregate(self):
-        def fake_deepseek(messages, model="deepseek-chat", max_tokens=1200):
+        def fake_deepseek(messages, model="deepseek-v4-flash", max_tokens=1200):
             return json.dumps({"reply": "ok", "actions": []}, ensure_ascii=False)
 
         app_server.call_deepseek = fake_deepseek

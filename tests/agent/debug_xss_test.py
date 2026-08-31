@@ -59,7 +59,7 @@ class DebugLogsXSSTest(unittest.TestCase):
                 "user-xss",
                 self.XSS_PAYLOAD,           # username
                 "chat",
-                "deepseek-chat",
+                "deepseek-v4-flash",
                 self.XSS_PAYLOAD,           # prompt
                 self.XSS_PAYLOAD,           # input
                 self.XSS_PAYLOAD,           # output
