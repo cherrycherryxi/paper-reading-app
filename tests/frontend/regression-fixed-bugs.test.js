@@ -1351,10 +1351,43 @@ test("P0 account-delete: frontend wires #deleteAccountBtn and requires double co
     "must include #exportAccountBtn button");
   assert.match(appSource, /function deleteAccount/,
     "app.js must define deleteAccount");
-  assert.match(appSource, /deleteAccount[\s\S]{0,800}window\.prompt/,
-    "deleteAccount must require a second confirmation via prompt");
+  // OPT-175: window.prompt is unsupported on iOS Safari (returns null), so the
+  // second confirmation must use the dialog's inline text input, not prompt().
+  assert.doesNotMatch(appSource, /deleteAccount[\s\S]{0,800}window\.prompt/,
+    "deleteAccount must not rely on window.prompt for the second confirmation");
+  assert.match(appSource, /deleteAccount[\s\S]{0,800}inputConfig/,
+    "deleteAccount must pass an inputConfig (inline text input) to showConfirmDialog");
   assert.match(appSource, /\/api\/account[\s\S]{0,200}method:\s*"DELETE"/,
     "deleteAccount must hit DELETE /api/account");
+});
+
+test("OPT-175 regression: showConfirmDialog inline input slot feeds typed value to onConfirm", () => {
+  const hooks = createAppHarness();
+  const received = { typed: null, count: 0 };
+
+  // Without inputConfig, the slot is hidden and onConfirm gets undefined.
+  hooks.showConfirmDialog({ message: "plain", onConfirm: (typed) => {
+    received.typed = typed; received.count++;
+  }});
+  assert.equal(hooks.getEl("#confirmDialogInputWrap").hidden, true,
+    "input wrap must be hidden when no inputConfig is given");
+  hooks.getEl("#confirmDialogConfirmBtn").dispatch("click");
+  assert.equal(received.count, 1, "plain onConfirm should fire once");
+  assert.equal(received.typed, undefined, "plain onConfirm should receive undefined");
+
+  // With inputConfig, the slot is shown and onConfirm receives the typed value.
+  const typedForDeletion = { typed: null };
+  hooks.showConfirmDialog({
+    message: "delete",
+    inputConfig: { placeholder: "输入「alice」" },
+    onConfirm: (typed) => { typedForDeletion.typed = typed; },
+  });
+  assert.equal(hooks.getEl("#confirmDialogInputWrap").hidden, false,
+    "input wrap must be shown when inputConfig is given");
+  hooks.getEl("#confirmDialogInput").value = "alice";
+  hooks.getEl("#confirmDialogConfirmBtn").dispatch("click");
+  assert.equal(typedForDeletion.typed, "alice",
+    "onConfirm must receive the value typed into the inline input");
 });
 
 test("P0 rate-limit: backend RATE_LIMITS config exists and chat/ocr endpoints are gated", () => {
