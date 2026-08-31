@@ -10072,6 +10072,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-31T12:37:40.903Z"
+    },
+    {
+      "id": "auto-016",
+      "timestamp": "2026-08-31T17:01:39.603Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-31T17:01:41.661Z"
+    },
+    {
+      "id": "auto-017",
+      "timestamp": "2026-08-31T21:04:42.053Z",
+      "error_message": "Missing await",
+      "file": "optimization/explore.md",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:04:42.053Z"
     }
   ]
 }
