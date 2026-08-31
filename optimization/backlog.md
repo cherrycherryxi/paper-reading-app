@@ -1659,7 +1659,7 @@ Format per item:
 - how: 把用户名二次确认改用项目内既有确认对话框样式（如给 `showConfirmDialog` 加可选文本输入槽），或改为弹窗内输入框 + 校验，替换原生 `prompt`。需在 iOS 真机与前端回归测试中验证注销能完成、用户名不匹配时能取消。Touch: `app.js:4962-4990`；`index.html`（账号抽屉）；`tests/frontend/regression-fixed-bugs.test.js`。
 
 ### OPT-176 — 关联目标摘抄检索被单本书挤占，跨书匹配无法浮现 — 由 explore E313 提拔 [2026-08-31]
-- status: new
+- status: triaged
 - area: frontend / ux / retrieval
 - priority: P1
 - size: M
@@ -1669,7 +1669,7 @@ Format per item:
 - how: 在 `filteredQuotes()` 对结果按 `item.bookId` 做分组/均衡：可给每本匹配书一个小额保底槽位并显示每书命中数标题，或在按匹配强度排序后按书间轮流插入，确保命中多书时用户能看到不止一本的匹配。需配套前端回归断言跨书场景下多本书的摘抄都能出现在目标列表。Touch: `app.js:6208-6253`；`tests/frontend/quote-combobox-ocr-label.test.js`。
 
 ### OPT-177 — deleteQuote/deleteSession 失败不回滚，与 deleteConnection 语义不一致 — 由 explore E317 提拔 [2026-08-31]
-- status: new
+- status: triaged
 - area: frontend / data safety / consistency
 - priority: P1
 - size: M
