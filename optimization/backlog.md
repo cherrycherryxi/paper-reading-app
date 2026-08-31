@@ -1649,7 +1649,7 @@ Format per item:
 - how: 已由 `a69a67b` + `37b92d9` 落地于 `app.js`（`readingInsightMetrics` / `defaultReadingInsightNarratives` / `renderSummary` / `renderReadingInsightsShareCard`）与 `tests/frontend/reading-insights-dashboard.test.js`、`tests/frontend/share-card.test.js`；2026-08-30 triage 实跑两文件 **25 项全部通过**。`index.html` 的洞察卡由 `renderSummary()` 动态渲染，无残留硬编码”0 分钟”。
 
 ### OPT-175 — 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 `prompt` → iPhone 上永远无法注销 — 由 explore E308 提拔 [2026-08-30]
-- status: triaged（夜间轨指派 [2026-08-31]：替换 `window.prompt` 为 `showConfirmDialog` 文本输入槽）
+- status: done（✅ PR #138 / `6874095` 已合入 [2026-09-01]；`showConfirmDialog` 加可选 `inputConfig` 文本输入槽，`deleteAccount` 弃用 `window.prompt`，前端回归断言不再用 prompt 且输入值透传 `onConfirm`）
 - area: frontend / error handling / platform
 - priority: P1
 - size: S
