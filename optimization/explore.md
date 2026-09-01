@@ -5663,3 +5663,65 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 中——提升核心写路径与账号流回归网，间接支撑 Theme 3 与 OPT-175 验收，但本身不产出用户可见价值，暂不提拔。
 
 > 本次 run 新发现 6 条：E319（服务端 OCR 写路径绕过乐观锁静默互踩，L，data-safety/server）、E320（摘抄/书/记录保存与删除在冲突时仍播报成功，M，data-safety/consistency）、E321（书籍编辑封面 objectURL 从不 revoke，S，memory）、E322（摘抄对话框取消不 revoke 图片 objectURL，S，memory）、E323（import 结果弹窗省略聊天记录/上下文统计，S，data-transparency）、E324（前端测试缺口：无 revoke 断言 + 无账号设置/摘抄编辑持久化测试，M，test-coverage）。六项均由当前文件逐行核实并排除 backlog（OPT-169/170/176/177、E48 孤立图片、OPT-133/E213 MCP 锁）、旧 E001–318 与最近合并目标。沿 Theme 3「积累可信」，E319 命中 OCR 长耗时写路径唯一绕开乐观锁、并发编辑静默丢失，提拔为 OPT-178；E320 是 OPT-169（仅关联）覆盖面的自然补齐、无产品分歧，提拔为 OPT-179；E321/E322/E323/E324（含 L 级 E319 已提、其余 S/M）留探索池待 owner 或更直接证据。
+
+## 2026-09-02
+
+> 扫描焦点：沿当前 Theme 3「积累可信」（8/10–9/06）与最近合入的 OPT-175（注销改用 showConfirmDialog 内嵌输入框），核对刚上线组件的键盘/无障碍收口、state_conflict 误报成功的覆盖面（OPT-179 已登记路径之外的遗漏）、以及新控件的测试网。隔离 clone 当前 `HEAD` 为 `d572828`（09-02 晨间 triage），本地 backlog 现存最大 OPT 编号为 **OPT-179**、最大 explore 编号为 **E324**；open PR 数据不可用，未据此推断。本批方向均已排除 backlog（OPT-169/170/176/177/178/179）、旧 E001–324 与最近合并目标；其中 E303（摘抄墙无分页）、E243（记忆写失败幽灵变更）、E48（孤儿图片 GC）、E308（OPT-175 的 prompt→输入框改造）、E324（前端测试缺口）已在探索池，本批刻意绕开。
+
+### E325 — OPT-175 内嵌输入框缺 Enter 确认、无 aria 标签、焦点不还原 (S)
+
+**What:** 注销/删除等走 `showConfirmDialog` 的 `inputConfig` 文本输入槽（`app.js:4173-4210`）。输入框（`index.html:741`）无 `<label>`/`aria-label` 关联；`showConfirmDialog` 不监听输入框 keydown → 键盘/辅助技术用户输完用户名按 Enter 不触发确认，必须 Tab 到按钮再点；对话框关闭后焦点回到 body 而非触发元素。
+
+**Evidence:** `index.html:741` 的 `<input type="text" id="confirmDialogInput" ... autocomplete="off" />` 无任何 aria 属性；`showConfirmDialog`（`app.js:4173-4210`）只在 `input.focus()`（`4185`）设焦点，无 keydown/Enter handler（grep 确认 `confirmDialogInput` 相关 keydown 仅命中 `quoteTagInput`/combobox，非本框）；`handleConfirm` 仅经按钮 click 触发（`4191-4196`）。与旁边记忆表单（`index.html:277` `aria-label="记忆类型"`）的完整标签形成对比。
+
+**Why:** OPT-175 刚把 iOS 不可用的 `window.prompt` 换成内嵌输入框，但新建控件的键盘/语义通道未同步收口；注销是不可逆操作，键盘用户无法用 Enter 走完。属刚合入功能的直接后续缺口。
+
+**Size:** S
+
+**Files:** `index.html:741`; `app.js:4173-4210`; `tests/frontend/regression-fixed-bugs.test.js`（OPT-175 段）
+
+**Northstar:** 弱中——a11y 类别此前按「无当前 signal」parked（OPT-046/048），且主平台 iPhone 键盘 Enter 并非自然确认手势，暂不提拔。
+
+### E326 — 书编辑与书删除在 state_conflict 时仍播报成功，超出 OPT-179 已登记路径 (S)
+
+**What:** `saveBookEdit`（`app.js:4384-4389`）与 `deleteBook`（`app.js:3320-3325`）都在 `await syncState()` 后无条件 toast「书籍已更新/书籍已删除」，忽略返回值的 `{saved:false, reason:"state_conflict"}` 分支——冲突时服务端以最新 state 覆盖本地、本次编辑被静默丢弃，提示却仍报成功。OPT-179 登记的三条路径（addQuote `4843`、addBook `3157`、deleteSession/deleteQuote `4206/4225`）之外的这两条未被覆盖。
+
+**Evidence:** `saveBookEdit` 的 `try { await syncState(); showToast(...) }`（`app.js:4384-4386`）只 catch 不查返回值；`deleteBook` 同构（`3320-3324`）。对照 `addConnection`/`deleteConnection` 检查 `saved:false` 分支（`app.js:6458,6481`）与 OPT-179 文档列出的路径，书编辑/删除确属遗漏。
+
+**Why:** 手机+桌面跨设备冲突是常态，书编辑/删除是高频写路径，提示「已更新/已删除」后刷新发现没生效是最伤信任的一类；修法与 OPT-179 同族（统一检查 `syncState` 冲突返回）。故不作为独立新 OPT，而是 OPT-179 覆盖面的支撑证据。
+
+**Size:** S
+
+**Files:** `app.js:4384-4389,3320-3325`; 对照 `app.js:6458,6481`、OPT-179 文档；`tests/frontend/`（状态冲突回归）
+
+**Northstar:** 强——直接命中 Theme 3 数据可信，与 OPT-179 无产品分歧；因属同一 fix 族不单独占号，建议并入 OPT-179 实施范围。
+
+### E327 — OPT-175 的 confirmDialog inputConfig 缺键盘/校验行为测试 (S)
+
+**What:** OPT-175 的回归测试只断言「不再用 window.prompt、输入值透传 `onConfirm`」（`tests/frontend/regression-fixed-bugs.test.js` 的 OPT-175 段），没有覆盖 inputConfig 的交互细节：输入框 Enter 确认、空值/不匹配用户名时的按钮行为、对话框关闭后焦点状态。E324 已覆盖账号流静态端点断言，但未覆盖该输入槽的交互。
+
+**Evidence:** grep `tests/frontend/` 无针对 `confirmDialogInput` 的 keydown/Enter/校验断言；`regression-fixed-bugs.test.js` 的 OPT-175 段以「不再用 prompt + 值透传」为主。对照 `app.js:4984-4988`（`deleteAccount` 的 `typed !== expected` 校验在 `onConfirm` 内），无测试锁定该校验。
+
+**Why:** 与 E325（键盘/a11y）对应，缺测试网会让该新控件的键盘路径在回归中静默漂移；属测试覆盖收口，可随 E325 修复落地。
+
+**Size:** S
+
+**Files:** `tests/frontend/regression-fixed-bugs.test.js`; `app.js:4173-4210,4984-4988`
+
+**Northstar:** 弱中——回归网价值，本身不产出用户可见改观，暂不提拔。
+
+### E328 — 摘抄网格卡不展示「我的理解」reflection，主界面捕获但不可见 (S)
+
+**What:** 摘抄表单把「我的理解」作为一等字段录入（`index.html:640`），但摘抄墙网格卡（`app.js:2307-2328`）只显示封面/书名/页码/正文/标签+角标，不渲染 `reflection`。用户无法在摘抄墙上判断哪些摘抄带了「我的理解」，需逐张点开详情。reflection 仅在摘抄详情（`3397`）、书详情预览（`4501`）、分享图（`3645`）可见。
+
+**Evidence:** 网格卡模板（`app.js:2307-2328`）无 `quote.reflection` 引用；对照详情（`app.js:3397-3398` `if (quote.reflection) reflEl.textContent = ...`）存在展示。`quoteContent` 取 `content/ocrText`（`2301`），不含 reflection。
+
+**Why:** OPT-173（8/28）重设计卡片时聚焦「摘抄 vs 笔记」的封面区分，「我的理解」这一积累资产在主界面无可见入口，与 Theme 2/3「回顾有价值·积累可信」的回流目标有弱错位；但紧凑卡片不放次注释可能是刻意取舍，故判弱。
+
+**Size:** S
+
+**Files:** `app.js:2307-2328,3397-3398,4501,3645`; `index.html:640`; `tests/frontend/quote-content-display.test.js`
+
+**Northstar:** 弱——可能是设计取舍（紧凑卡），缺 owner 对「网格卡是否要露我的理解」的意图确认，不提拔。
+
+> 本次 run 新发现 4 条：E325（OPT-175 内嵌输入框缺 Enter/aria/焦点还原，S，UX/a11y）、E326（书编辑/删除在 state_conflict 仍误报成功，超出 OPT-179 路径，S，data-safety）、E327（OPT-175 inputConfig 缺键盘/校验测试，S，test-coverage）、E328（摘抄网格卡不展示 reflection，S，UX）。四项均由当前文件逐行核实，并刻意排除已覆盖的 E303（摘抄墙分页）、E243（记忆写失败）、E48（孤儿图片）、E308（prompt→输入框改造）、E324（测试缺口）与 backlog OPT-169/170/176/177/178/179。**本批不提拔新 OPT**：E325/E327 属 a11y/测试网、北极星弱（a11y 类别此前按无 signal parked）；E326 是 OPT-179 覆盖面遗漏的两条书路径，属同一 fix 族，作支撑证据并入 OPT-179 实施范围、不单独占号；E328 疑为紧凑卡设计取舍、缺 owner 意图。领域自 08-29 起对深读/关联/OCR/记忆/objectURL/导入/冲突/测试缺口高度饱和，本批无符合「新方向 + 强北极星 + 非重复」的提拔项。
