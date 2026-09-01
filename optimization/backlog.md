@@ -1697,3 +1697,4 @@ Format per item:
 - description: `syncState()` 在 409 冲突时采用服务端最新 state、丢弃本地未同步编辑并 toast「数据已在其他设备更新」（`app.js:1184-1197`）。但摘抄/书/记录（session）的保存与删除调用方不看 `syncState()` 的 `{saved:false, reason:"state_conflict"}` 返回值，随后仍 toast 各自成功（`addQuote` `app.js:4843,4849`；`addBook` `3157,3161`；`deleteSession`/`deleteQuote` `4206,4209`/`4225,4228`）——冲突提示被成功提示覆盖。OPT-169 只修了**关联**（connections，`app.js:6458,6481` 检查 `result.saved`），摘抄/书/记录三路未对齐。
 - why: 保存结果与「已保存」提示必须一致；冲突是手机+桌面并用时的常态路径，静默丢弃编辑并谎报成功是数据可信的确定性缺口。修法统一、无产品取舍。
 - how: 统一一个「检查 `syncState()` 冲突返回值」的助手，当 `{saved:false, reason:"state_conflict"}` 时不再播报「已保存/已删除」（冲突 toast 已由 syncState 弹出），或改为「编辑在其他设备更新未保存，请核对」。需前端回归覆盖冲突路径下摘抄/书/记录不报成功。Touch: `app.js:3157-3161,4206-4228,4843-4849`；对照 `app.js:6458,6481`；`tests/frontend/`（状态冲突回归）。
+- scope note [2026-09-02, explore E326]: 除上述三条路径外，**书编辑 `saveBookEdit`（`app.js:4384-4389`）与书删除 `deleteBook`（`app.js:3320-3325`）同为 `await syncState()` 后无条件 toast「书籍已更新/书籍已删除」、忽略冲突返回**，实施本项时应一并纳入统一助手覆盖，避免遗漏。
