@@ -1679,7 +1679,7 @@ Format per item:
 - how: 仿 `deleteConnection`，在 mutate 前对 `state.quotes`/`state.sessions`（及联带清理的关联）做快照，catch 里恢复快照并重渲染，toast 明确“删除失败，已保留”。需前端回归覆盖非冲突失败路径下项目仍留在列表。Touch: `app.js:4196-4233,6478-6491`；摘抄/记录删除相关测试。
 
 ### OPT-178 — 服务端 OCR 写路径绕过乐观锁整表写 state，与用户并发编辑静默互踩 — 由 explore E319 提拔 [2026-09-01]
-- status: new
+- status: triaged
 - area: backend / data safety / concurrency
 - priority: P1
 - size: L
@@ -1689,7 +1689,7 @@ Format per item:
 - how: 需拆分：先在 OCR 写前读取并携带 state version，冲突时不再整表覆盖，而是把 OCR 结果只写 `quote["ocrText"]` 等局部字段（或让出、返回冲突让前端重试），保留用户并发编辑。Touch: `app_server.py:1824-1843,5980`；对照 `app_server.py:6645-6665`（do_PUT 版本校验）、OPT-133/E213（同类先例）；`tests/agent/ocr_*` 相关。
 
 ### OPT-179 — 摘抄/书/记录保存与删除在 state_conflict 时仍播报成功，本地编辑被覆盖且无提示 — 由 explore E320 提拔 [2026-09-01]
-- status: new
+- status: triaged
 - area: frontend / data safety / consistency
 - priority: P1
 - size: M

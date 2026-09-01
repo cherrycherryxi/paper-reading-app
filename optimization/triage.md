@@ -2,28 +2,27 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-09-01
+Last triaged: 2026-09-02
 
 ## Next up
 
-**夜间执行 · 修复 OPT-175（iOS Safari 无法注销账号）**
+**状态：无符合夜间条件的任务（本夜不指派）**
 
-**状态：指派（夜间轨唯一 S 级合格项）**
+本夜核验所有未完成 backlog 项，**无一项符合夜间轨边界**（复杂度 S、验收边界清楚、无需 owner 产品/设计判断）。因此 Next up 明确写「无符合夜间条件的任务」，不为填满预算而指派。OPT-175 已于 09-01 由 PR #138 合入标 done，不再需要本夜执行。
 
-**指派：** OPT-175。**夜间适配：是**——依据：① 复杂度 S（改动仅 `app.js:4959-4992` 的 `deleteAccount()` + 既有 `showConfirmDialog` 加一个可选文本输入槽 + 一条前端回归）；② 验收边界清楚（iOS 真机能完成注销、用户名不匹配时取消并 toast）；③ 无需 owner 产品/设计判断（平台兼容正确性修复，非信息架构/导航/视觉取舍，复用既有对话框基建）。本次核验确认 08-31 指派仍未实施（`app.js:4968` 仍为 `window.prompt`、无 OPT-175 提交），本夜继续指派。其余未完成项均 P3 parked / blocked，或为 M/L（OPT-176/177）不合夜间 S 边界，不填充指派。
+**夜间适配否决（未完成项逐项）：**
+- OPT-176（P1/M）：关联目标摘抄检索被单本书挤占。M 级，涉「每书保底槽位 / 每书命中数标题 / 书间轮流插入」等检索排序体验取舍 → 不合夜间 S 边界，留 07:00 晨间候选卡。
+- OPT-177（P1/M）：deleteQuote/deleteSession 失败不回滚。M 级，涉删除失败回滚的数据安全语义与联带清理范围 → 不合夜间 S 边界，留晨间候选卡。
+- OPT-178（P1/L）：服务端 OCR 写路径绕过乐观锁整表写 state。**L 级**，需拆分（先做局部字段只写 / 冲突让出，再收口版本校验），且是后端并发写架构改动、需在「局部写 vs 让出冲突 vs 整表覆盖前比对」间做设计取舍 → 不合夜间 S 边界，留晨间/功能轨。
+- OPT-179（P1/M）：state_conflict 时摘抄/书/记录仍播报成功。M 级，涉多路调用方统一冲突返回的检查助手与提示语义 → 不合夜间 S 边界，留晨间候选卡。
+- P3 parked/blocked 13 项（OPT-032/035/036/044/046/048/050/051/081/089/117/124/144）维持不变，见未完成项重评。
 
-**预算状态（2026-09-01）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **5**，上限 **8**，剩余 3 个预算位，本次指派 1 项实现，未达上限。未调用 `gh` 或 GitHub API。
+**预算状态（2026-09-02）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 4 个预算位，未达上限。但因无合格夜间 S 任务，本夜 0 指派，不调用 `gh` 或 GitHub API。
 
-**signal / Theme：** OPT-175 由 explore E308 于 2026-08-30 提拔；northstar 强——完整账号注销是 P0/GDPR/PIPL 数据权利要求，主平台（iPhone/WebKit）上 `window.prompt` 恒返 `null`，`typed !== expected` 恒真，注销永远走「用户名不匹配，已取消」（`app.js:4969-4972`）。对齐当前 Theme 3「积累可信」的数据权利可信度。
-
-**关键文件：** `app.js:4959-4992`（`deleteAccount()`）；`index.html`（账号抽屉）；`tests/frontend/regression-fixed-bugs.test.js`。
-
-**本次对账（2026-09-01）：**
-- 仓库证据：HEAD 停在 2026-08-31 20:53（`936eb29`），今日无提交；`app.js:4968` 实测仍为 `window.prompt(...)`、`app.js:4977` 服务端 DELETE 仍需 `confirmUsername`，无 `showConfirmDialog` 文本输入槽改动或兼容分支/测试 → OPT-175 未实施，继续指派。
-- 最近 8 天提交与合并 PR 均为 hooks / release / signals / DeepSeek 模型切换（`6922ac0` flash model 上线）与已标 done 的 OPT（#137/#136/#135/#134/#133/#132/#131），无映射任何未完成 OPT 的新合并 → 无需新增 done 对账；OPT-174 已于 08-30 由 PR #137 标 done。
-- 新增 OPT-176（P1/M）与 OPT-177（P1/M），由 explore 08-31 提拔写入 backlog，有真实 signal / Theme 3 佐证，但均 M 级且涉体验取舍或数据安全语义 → 不合夜间 S 边界，已写入 Prioritized backlog 标 triaged，留给 07:00 晨间候选卡，不写入 Next up。
-
-**夜间适配否决（OPT-176/177）：** 两者均 P1 但 size=M，超夜间轨「仅 S、验收边界清楚、无需 owner 取舍」边界。OPT-176 需在「每书保底槽位 / 每书命中数标题 / 书间轮流插入」等检索排序体验间做取舍；OPT-177 涉删除失败回滚的数据安全语义与联带清理范围。均留给晨间候选卡，不写入 Next up。
+**本次对账（2026-09-02）：**
+- OPT-175 已确认 done：最近 8 天提交 `6874095`（feat OPT-175, PR #138）合入 `showConfirmDialog` 的 `inputConfig` 文本输入槽（`app.js:4173-4192`）、`deleteAccount` 弃用 `window.prompt`（`app.js:4962-4990`，仅剩注释提及）、`index.html` + `styles.css` + `tests/frontend/regression-fixed-bugs.test.js`（+37 行回归断言）。实测 `rg window.prompt app.js` 仅命中注释、无运行时调用 → 与 triage 09-01 表格中的 done 标记一致。
+- 最近 8 天其余提交均为 hooks / release / signals / 模型切换（`6922ac0` flash 上线）/ 已标 done 的 OPT（#137/#136/#135/#134/#133/#132/#131），无映射其他未完成 OPT 的新合并 → 无需新增 done 对账。
+- **新增 OPT-178（P1/L）与 OPT-179（P1/M）**，由 explore E319/E320 于 09-01 提拔写入 backlog（status new），本次核验后标 triaged（已更新 backlog 状态）。两者均 P1、northstar 强（均属 Theme 3「积累可信」的静默数据丢失/误报成功缺口，OPT-179 有 OPT-169 关联先例、无 owner 取舍分歧），但分别 L/M 级 → 不合夜间 S 边界，写入 Prioritized backlog 留晨间候选卡，不写入 Next up。
 
 **未完成项逐项重评（维持 parked/blocked）：** P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。以上 13 项均缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不因预算尚有空间而填充指派。
 
@@ -34,6 +33,8 @@ Last triaged: 2026-09-01
 | OPT-175 | 注销账号用原生 `window.prompt` 二次确认，iOS Safari 不支持 → iPhone 上永远无法注销 | **P1** | S | **done** | ✅ PR #138 / `6874095` 已合入 [2026-09-01]；`showConfirmDialog` 加可选 `inputConfig` 文本输入槽，`deleteAccount` 弃用 `window.prompt`，前端回归断言不再用 prompt 且输入值透传 `onConfirm` |
 | OPT-176 | 关联目标摘抄检索被单本书挤占，跨书匹配无法浮现 | **P1** | M | **triaged** | 🔜 晨间候选 [2026-09-01]：M 级且涉检索排序体验取舍（08-25 owner signal 直接来源）；不合夜间 S 边界，留 07:00 候选卡 |
 | OPT-177 | deleteQuote/deleteSession 失败不回滚，与 deleteConnection 语义不一致 | **P1** | M | **triaged** | 🔜 晨间候选 [2026-09-01]：M 级且涉删除失败回滚数据安全语义；不合夜间 S 边界，留 07:00 候选卡 |
+| OPT-179 | 摘抄/书/记录保存与删除在 state_conflict 时仍播报成功，本地编辑被覆盖且无提示 | **P1** | M | **triaged** | 🔜 晨间候选 [2026-09-02]：M 级，属 Theme 3 误报成功缺口，有 OPT-169 关联先例；不合夜间 S 边界，留 07:00 候选卡 |
+| OPT-178 | 服务端 OCR 写路径绕过乐观锁整表写 state，与用户并发编辑静默互踩 | **P1** | L | **triaged** | 🔜 晨间/功能轨 [2026-09-02]：L 级需拆分（局部字段只写 / 冲突让出 / 版本比对），后端并发写架构取舍；不合夜间 S 边界，留功能轨 |
 | OPT-174 | “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 | **P1** | M | **done** | ✅ PR #137 / `a69a67b` + `37b92d9` 已合入 [2026-08-29]；无 session 分钟时切活跃天数/新增摘抄口径，卡片与分享图同步 |
 | OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | **done** | ✅ PR #136 / `93ed07b` 已合入 [2026-08-29]；两端清洗、渲染防御与畸形数据回归已落地 |
 | OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | **done** | ✅ PR #135 / `fe6173c` 已合入 [2026-08-28]；直白标签、独立版式与源码回归已落地 |
