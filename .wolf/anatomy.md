@@ -2,6 +2,8 @@
 
 > Auto-maintained by OpenWolf. Last scanned: 2026-09-01T23:01:41.878Z
 > Files: 435 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-02T21:05:54.171Z
+> Files: 434 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -483,13 +485,13 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~47414 tok)
-- `explore.md` — Exploration — new optimization directions (~90280 tok)
+- `backlog.md` — Optimization Backlog (~48053 tok)
+- `explore.md` — Exploration — new optimization directions (~93548 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1423 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
-- `triage.md` — Triage (~2157 tok)
+- `triage.md` — Triage (~2148 tok)
 
 ## output/pdf/
 

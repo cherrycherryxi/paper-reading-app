@@ -2,27 +2,27 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-09-02
+Last triaged: 2026-09-03
 
 ## Next up
 
 **状态：无符合夜间条件的任务（本夜不指派）**
 
-本夜核验所有未完成 backlog 项，**无一项符合夜间轨边界**（复杂度 S、验收边界清楚、无需 owner 产品/设计判断）。因此 Next up 明确写「无符合夜间条件的任务」，不为填满预算而指派。OPT-175 已于 09-01 由 PR #138 合入标 done，不再需要本夜执行。
+本夜核验所有未完成 backlog 项，**无一项符合夜间轨边界**（复杂度 S、验收边界清楚、无需 owner 产品/设计判断）。因此 Next up 明确写「无符合夜间条件的任务」，不为填满预算而指派。
 
-**夜间适配否决（未完成项逐项）：**
+**夜间适配否决（未完成项逐项，2026-09-03 复评，与 09-02 结论一致）：**
 - OPT-176（P1/M）：关联目标摘抄检索被单本书挤占。M 级，涉「每书保底槽位 / 每书命中数标题 / 书间轮流插入」等检索排序体验取舍 → 不合夜间 S 边界，留 07:00 晨间候选卡。
 - OPT-177（P1/M）：deleteQuote/deleteSession 失败不回滚。M 级，涉删除失败回滚的数据安全语义与联带清理范围 → 不合夜间 S 边界，留晨间候选卡。
 - OPT-178（P1/L）：服务端 OCR 写路径绕过乐观锁整表写 state。**L 级**，需拆分（先做局部字段只写 / 冲突让出，再收口版本校验），且是后端并发写架构改动、需在「局部写 vs 让出冲突 vs 整表覆盖前比对」间做设计取舍 → 不合夜间 S 边界，留晨间/功能轨。
-- OPT-179（P1/M）：state_conflict 时摘抄/书/记录仍播报成功。M 级，涉多路调用方统一冲突返回的检查助手与提示语义 → 不合夜间 S 边界，留晨间候选卡。
+- OPT-179（P1/M）：state_conflict 时摘抄/书/记录仍播报成功。M 级，需统一多路调用方（含 E326 scope note 补充的 `saveBookEdit`/`deleteBook`）冲突返回的检查助手与提示语义 → 不合夜间 S 边界，留晨间候选卡。
 - P3 parked/blocked 13 项（OPT-032/035/036/044/046/048/050/051/081/089/117/124/144）维持不变，见未完成项重评。
 
-**预算状态（2026-09-02）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 4 个预算位，未达上限。但因无合格夜间 S 任务，本夜 0 指派，不调用 `gh` 或 GitHub API。
+**预算状态（2026-09-03）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 4 个预算位，未达上限。但因无合格夜间 S 任务，本夜 0 指派，不调用 `gh` 或 GitHub API。
 
-**本次对账（2026-09-02）：**
-- OPT-175 已确认 done：最近 8 天提交 `6874095`（feat OPT-175, PR #138）合入 `showConfirmDialog` 的 `inputConfig` 文本输入槽（`app.js:4173-4192`）、`deleteAccount` 弃用 `window.prompt`（`app.js:4962-4990`，仅剩注释提及）、`index.html` + `styles.css` + `tests/frontend/regression-fixed-bugs.test.js`（+37 行回归断言）。实测 `rg window.prompt app.js` 仅命中注释、无运行时调用 → 与 triage 09-01 表格中的 done 标记一致。
-- 最近 8 天其余提交均为 hooks / release / signals / 模型切换（`6922ac0` flash 上线）/ 已标 done 的 OPT（#137/#136/#135/#134/#133/#132/#131），无映射其他未完成 OPT 的新合并 → 无需新增 done 对账。
-- **新增 OPT-178（P1/L）与 OPT-179（P1/M）**，由 explore E319/E320 于 09-01 提拔写入 backlog（status new），本次核验后标 triaged（已更新 backlog 状态）。两者均 P1、northstar 强（均属 Theme 3「积累可信」的静默数据丢失/误报成功缺口，OPT-179 有 OPT-169 关联先例、无 owner 取舍分歧），但分别 L/M 级 → 不合夜间 S 边界，写入 Prioritized backlog 留晨间候选卡，不写入 Next up。
+**本次对账（2026-09-03）：**
+- **无可新增 done**：git HEAD `1a16a22`（merge 2026-09-02 07:00）即上次 triage 已核验的终点。`git log --since 2026-09-02 00:00` 仅命中 `d572828`（triage 09-02）/`efe40c8`（explore 09-02）/`33a0cc2`（pre-sync）/`1a16a22`（merge）——均为 09-02 夜间周期自身产出，**无任何新 feat/fix 提交或新合并 PR**。不凭描述臆断：最近 50 PR 外层清单为空，信号日志最新一行仍为 2026-08-30 北极星，无新 signal。
+- **无可新增 backlog 项**：backlog 中最新 explore 提拔为 E320（OPT-179，09-01）与其 E326 scope note（09-02），均已被 09-02 triage 纳入；17 个非 done 状态恰好映射 OPT-176/177/178/179 + 13 项 parked/blocked，无游离的 untriaged 项。
+- **当前 Theme 复评（2026-09-03，Theme 3「积累可信」8/10–9/06 期末）**：四个 P1 未完成项 northstar 均为强（OPT-176 命中 08-25 signal；OPT-177/178/179 属数据可信/静默丢失缺口），优先级与 S/M/L 判定维持不变；北极星最近实测 8/30 = 8 / 24 / 30，回落于 8/16 峰值但高于 8/23 谷值，不改变上述取舍。
 
 **未完成项逐项重评（维持 parked/blocked）：** P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。以上 13 项均缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不因预算尚有空间而填充指派。
 
