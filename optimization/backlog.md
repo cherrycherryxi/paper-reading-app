@@ -1698,3 +1698,23 @@ Format per item:
 - why: 保存结果与「已保存」提示必须一致；冲突是手机+桌面并用时的常态路径，静默丢弃编辑并谎报成功是数据可信的确定性缺口。修法统一、无产品取舍。
 - how: 统一一个「检查 `syncState()` 冲突返回值」的助手，当 `{saved:false, reason:"state_conflict"}` 时不再播报「已保存/已删除」（冲突 toast 已由 syncState 弹出），或改为「编辑在其他设备更新未保存，请核对」。需前端回归覆盖冲突路径下摘抄/书/记录不报成功。Touch: `app.js:3157-3161,4206-4228,4843-4849`；对照 `app.js:6458,6481`；`tests/frontend/`（状态冲突回归）。
 - scope note [2026-09-02, explore E326]: 除上述三条路径外，**书编辑 `saveBookEdit`（`app.js:4384-4389`）与书删除 `deleteBook`（`app.js:3320-3325`）同为 `await syncState()` 后无条件 toast「书籍已更新/书籍已删除」、忽略冲突返回**，实施本项时应一并纳入统一助手覆盖，避免遗漏。
+
+### OPT-180 — 探讨 `/api/chat/stream` 在长 LLM 流式期间持有整份 state 快照，结束后无条件整表写回，静默覆盖并发编辑 — 由 explore E329 提拔 [2026-09-03]
+- status: new
+- area: backend / data safety / concurrency
+- priority: P1
+- size: M
+- northstar: 强——直接消除 Theme 3「积累可信」下探讨这条高频、长耗时（压缩二次 LLM + 流式回复常达数十秒）写路径的静默并发覆盖：请求早期读取整份用户 state 快照，长窗口后盲写回，期间任一设备/标签页的编辑都被静默覆盖、无 409/无提示。与 OPT-178（OCR）同族但收口面是另一条独立整表写路径。
+- description: `/api/chat/stream` 在请求早期 `state = load_state(conn, user["id"])`（`app_server.py:6076`）取整份 state，随后经历压缩对话历史的二次 LLM 调用（`app_server.py:6123`）与完整流式 agent 回复（`6137+`），最后把同一份旧快照 `save_state(conn, user["id"], state)` 无条件写回（`app_server.py:6217`）。`save_state`（`app_server.py:986-995`）是盲写 last-writer-wins、不带版本参数。长窗口内任何并发写——第二个探讨标签页、后台 OCR job（`_run_quote_ocr_job` `1824,1843`）、或另一设备带版本校验的 `/api/state` PUT（`do_PUT` `6645-6665`）——都会被这份陈旧快照覆盖。对照已修先例：ActionExecutor 用 `BEGIN IMMEDIATE` 显式串行化读改写（`app_server.py:3804-3815`，OPT-029/160）；OPT-178 只登记 OCR 写路径，`/api/chat/stream` 是仍裸奔的长耗时全量写实例。
+- why: 并发写不丢编辑是 Theme 3 验收面；探讨是高频且流式回复天然长耗时（冲突高发窗口），却仍整段「读快照→长等待→盲写」放开。需设计取舍：不在流式期间持有整份 state，改为结束前重读/仅局部合并写 `chatHistories`/`chatContexts`，或带版本校验冲突让出。
+- how: 同 OPT-178 的写路径收口族，可一并考虑统一「后端非 GET 全量写入口先取版本、冲突让出」的助手。探讨论证变更通常只涉及 `chatHistories`/`chatContexts` 两个字段，优先尝试「save 前重读最新 state、仅把本次回复追加的 history/context 写回」以最小化覆盖面，而非全量覆盖。Touch: `app_server.py:6076,6123,6217,986-995`；对照 `3804-3815`、`6645-6665`、OPT-178（`1824,1843,5980`）；`tests/agent/` 探讨相关。
+
+### OPT-181 — 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 — 由 explore E330 提拔 [2026-09-03]
+- status: new
+- area: frontend / data safety / session
+- priority: P1
+- size: S
+- northstar: 强——会话过期是登录账号正常生命周期，Token 失效后 UI 仍显示真实私有数据并保持「已同步」外观、后续写请求静默 401，用户对着死会话继续编辑不明所以，是 Theme 3 数据可信下的脱同步信任缺口；修法为复用 `logout()` 同款 teardown，无 owner 决策分歧。
+- description: `apiFetch` 的 401 分支（`app.js:535-542`）在会话过期时只清 `authToken`/`currentUser`/`stateVersion`、删 localStorage token、toast「登录已过期」、`dispatchUserChange()`，但**不**重置 `state`、不 `render()`、不 `activateTab("me")`、不 `loadDemoPreview()`——而显式 `logout()`（`app.js:2834-2842`）会 reset state→`render()`→`activateTab("me")`→demo 预览。结果：token 失效后界面仍停在真实（非示例）书/摘抄 + userPanel「已同步」标识，看似已登录；每次受保护写都 401 逐次 toast，书墙不切登录态、`state` 也不重置为 demo（`hasSampleData` 只认 `isSample` 项，真实数据仍屏）。用户仅靠手动刷新或某次写命中 `requireAuth`→`activateTab("me")`（`app.js:1152-1156`）才被动回登录态。
+- why: 401 分支显然是有意写的重置逻辑，却缺了 `logout()` 的渲染/导航半段，属实现遗漏而非设计取舍。需保留 429/409 分支不受影响。
+- how: 让 401 分支补上与 `logout()` 一致的 teardown（可选：保留当前用户已离线状态为「会话过期」而非彻底登出，但至少需隐藏真实数据/回登录墙），并加会话过期回归测试断言过期后不再显示「已同步」与真实私有数据。Touch: `app.js:535-542,2834-2842,1587-1601,1152-1156`；`tests/frontend/`（会话过期回归）。

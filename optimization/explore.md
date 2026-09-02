@@ -5725,3 +5725,93 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱——可能是设计取舍（紧凑卡），缺 owner 对「网格卡是否要露我的理解」的意图确认，不提拔。
 
 > 本次 run 新发现 4 条：E325（OPT-175 内嵌输入框缺 Enter/aria/焦点还原，S，UX/a11y）、E326（书编辑/删除在 state_conflict 仍误报成功，超出 OPT-179 路径，S，data-safety）、E327（OPT-175 inputConfig 缺键盘/校验测试，S，test-coverage）、E328（摘抄网格卡不展示 reflection，S，UX）。四项均由当前文件逐行核实，并刻意排除已覆盖的 E303（摘抄墙分页）、E243（记忆写失败）、E48（孤儿图片）、E308（prompt→输入框改造）、E324（测试缺口）与 backlog OPT-169/170/176/177/178/179。**本批不提拔新 OPT**：E325/E327 属 a11y/测试网、北极星弱（a11y 类别此前按无 signal parked）；E326 是 OPT-179 覆盖面遗漏的两条书路径，属同一 fix 族，作支撑证据并入 OPT-179 实施范围、不单独占号；E328 疑为紧凑卡设计取舍、缺 owner 意图。领域自 08-29 起对深读/关联/OCR/记忆/objectURL/导入/冲突/测试缺口高度饱和，本批无符合「新方向 + 强北极星 + 非重复」的提拔项。
+
+## 2026-09-03
+
+> 扫描焦点：领域在前几夜对深读/关联/OCR/记忆/objectURL/导入/state_conflict/测试缺口高度饱和，本批刻意绕开那些簇，改从「仍未被收口的写路径与生命周期边界」入手——后端长耗时写路径的乐观锁覆盖（OPT-178 只收口了 OCR，探索 chat 流式写是否同样裸奔）、会话过期/401 的生命周期 teardown、以及 agent 审批卡与深读跑批的前端竞态/错误处理。隔离 clone 当前 `HEAD` 为 `899c8e6`（09-03 晨间 triage），本地 backlog 现存最大 OPT 编号为 **OPT-179**、最大 explore 编号为 **E328**；open PR 数据不可用，未据此推断。本批六项均由当前文件逐行核实，并排除 backlog（OPT-159–168/169/170/176/177/178/179）、旧 E001–328 与最近合并目标（OPT-173/174/175）。刻意绕开 09-02 已探的 E325/326/327/328 与池内 E303（分页）/E243（记忆幽灵）/E48（孤儿图）/E308/E324。
+
+### E329 — 探讨 `/api/chat/stream` 在长 LLM 流式期间持有整份 state 快照，结束后无条件整表写回，静默覆盖并发编辑 (M)
+
+**What:** 探讨 SSE 端点 `/api/chat/stream` 在请求早期 `state = load_state(conn, user["id"])`（`app_server.py:6076`）取整份用户 state 快照，随后经历一次「对话历史压缩」二次 LLM 调用（`6123`，注释明言其会再调一次 LLM）与完整的流式 agent 回复（`6137+`，持续数秒到数十秒），最后把**同一份旧快照** `save_state(conn, user["id"], state)` 无条件写回（`app_server.py:6217`）。`save_state`（`app_server.py:986-995`）是盲写 last-writer-wins、不带任何版本参数。于是在这段长窗口内，任何并发写——第二个探讨标签页、后台 OCR job（`_run_quote_ocr_job` `1824,1843`）、或另一设备走带版本校验的 `/api/state` PUT（`do_PUT` `6645-6665`）——都会被这份陈旧快照整体覆盖，无 409、无提示。对照已修的先例：ActionExecutor 用 `BEGIN IMMEDIATE` 显式串行化读改写（`app_server.py:3804-3815`，OPT-029/OPT-160）；OPT-178 只登记了 OCR 写路径，`/api/chat/stream` 是仍裸奔的长耗时全量写实例。
+
+**Evidence:** `state = load_state(...)` `app_server.py:6076` → `history = compress_chat_history_if_needed(conn, user["id"], ..., state)`（`6123`，内嵌一次 LLM 调用）→ 流式回写至 `save_state(conn, user["id"], state)`（`6217`），期间无任何 `BEGIN IMMEDIATE`/版本比对；`save_state` 定义（`986-995`）只 `UPDATE user_state SET state_json` 无条件提交。对照 ActionExecutor 注释明确这类「两并发批准都读同一 state，第二个 save 静默覆盖、丢书/丢笔记无报错」并以 `BEGIN IMMEDIATE` 串行化（`3804-3815`）；对照 OPT-178 文档（`app_server.py:1824,1843,5980`）——OCR 与 chat 流式是两条不同、彼此独立的整表写路径。
+
+**Why:** 探讨是高频、长耗时（压缩二次 LLM + 流式回复常达数十秒）的写路径，正是并发冲突最高发窗口；而它把「读快照→长等待→盲写」整段放开，另一设备/标签页的任意编辑都在流式期间被静默覆盖——Theme 3「积累可信」下最贵的静默丢编辑，且与 OPT-178（OCR）同族但属新实例。
+
+**Size:** M（需设计取舍：不在流式期间持有整份 state，改为结束前重读/仅合并写 `chatHistories`/`chatContexts` 两个字段的局部更新，或带版本校验冲突让出；同 OPT-178 的写路径收口族）。
+
+**Files:** `app_server.py:6076,6123,6137-6217,986-995`；对照 `3804-3815`（ActionExecutor BEGIN IMMEDIATE 先例）、`6645-6665`（do_PUT 版本校验）、OPT-178（`1824,1843,5980` OCR 路径）；`tests/agent/` 探讨相关。
+
+**Northstar:** 强——直接消除 Theme 3 下探讨高频长写路径的静默并发覆盖，确定性缺口、无 owner 产品取舍，与 OPT-178 同族但收口面不同。→ **promoted to OPT-180**
+
+### E330 — 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 (S)
+
+**What:** `apiFetch` 的 401 分支（`app.js:535-542`）在会话过期时只做了一半 teardown：清空 `authToken`/`currentUser`/`stateVersion`、删 localStorage token、toast「登录已过期，请重新登录」、`dispatchUserChange()`——但**不**像显式 `logout()`（`app.js:2834-2842`）那样重置 `state` 为示例、`render()`、`activateTab("me")`、`loadDemoPreview()`。结果：token 已失效后，界面仍停留在用户真实的（非示例）书/摘抄 + userPanel「已同步」标识上，看似已登录；此后每次受保护写请求都 401 并逐次 toast，但书墙不会自动切到登录态、`state` 也不重置为 demo（`hasSampleData` 只认 `isSample` 项，真实数据仍在屏）。用户只有在手动刷新、或某次写命中 `requireAuth`→`activateTab("me")`（`app.js:1152-1156`）时才被动回到登录/演示态——在此之前对着已失效会话继续编辑且不明所以。
+
+**Evidence:** 401 分支（`app.js:535-542`）无 `render()`/`activateTab`/`loadDemoPreview`/`state` 重置；对照 `logout()`（`app.js:2834-2842`）完整 teardown（reset state→`render()`→`activateTab("me")`→`loadDemoPreview()`，注释「退出后回到示例预览，与新访客一致」）。`dispatchUserChange`（`570`）只翻 is-admin 等 body 类、不重建书墙；`renderAuthPanels`（`app.js:1587-1601`）由 `render()` 调用，401 分支从未触发它。
+
+**Why:** 会话过期是登录账号的正常生命周期（不是罕见路径）；Token 失效后 UI 仍显示真实私有数据并保持「已同步」外观、写请求静默 401，用户对着死会话继续编辑是最伤信任的脱同步场景，属 Theme 3 数据可信。修法是让 401 分支复用 `logout()` 同款 teardown，无产品取舍。
+
+**Size:** S（把 401 分支补上 reset-state→render→导航 me→demo 预览；注意保留 429/409 分支不受影响）。
+
+**Files:** `app.js:535-542`（401 分支）、`2834-2842`（logout teardown 对照）、`1587-1601`（renderAuthPanels）、`1152-1156`（requireAuth）；`tests/frontend/`（会话过期回归）。
+
+**Northstar:** 强——修正会话过期时「看似已登录的假象 + 静默脱同步」，无 owner 分歧，S 级。→ **promoted to OPT-181**
+
+### E331 — agent 审批卡确认成功后 600ms 延时卡片移除定时器不随书切换取消，向新上下文注入「已执行」气泡并可能重复弹下一张卡 (S)
+
+**What:** `_showNextAgentAction` 的确认成功路径在 `tryExecute` 里用 `setTimeout(..., 600)`（`chat.js:989-993`）延时移除已批准卡片、追加「✅ 已执行」系统气泡并 `_showNextAgentAction(remaining)`。该定时器句柄从不登记/清除。若用户在点「确认执行」后的 600ms 窗口内切换书籍（书选择器 `change` → `restoreHistory` → `resetMessages()` 清空消息 DOM，`chat.js:478`/`271-284`），定时器仍会触发：向**新上下文**刚重建的消息列表追加一行「✅ 已执行」，并对多动作队列继续挂载下一张 PENDING 卡。而 `restoreHistory`→`findRecoveredActions`→`handleAgentActions`（`chat.js:484-486,507-514`）又会从远端日志把仍 PENDING 的兄弟动作重新呈现——同一 action 可能被渲染两次、出现两个「确认执行」。
+
+**Evidence:** `setTimeout(() => { container.remove(); appendBubble("system", \`✅ 已执行：…\`); _showNextAgentAction(remaining); }, 600)` `chat.js:989-993`；grep `chat.js` 定时器仅 618/989/1284/1423 四处，989 无配套 clear。书切换清空：`restoreHistory` 调 `resetMessages()`（`478`）；恢复 PENDING 动作：`findRecoveredActions`/`handleAgentActions`（`484-486,507-514`）。
+
+**Why:** 与 OPT-168（深读跨书残留）同族的前端竞态：审批确认到卡清理之间的延迟窗口未被切换取消。窗口窄（600ms）但可复现，造成跨书上下文气泡污染 + 潜在重复确认提示。
+
+**Size:** S
+
+**Files:** `chat.js:989-993,478,271-284,484-486,507-514`；对照 OPT-168 修复先例。
+
+**Northstar:** 弱中——窄窗口竞态，主场景（确认后立即切书）较少见，北极星贡献一般，留探索池待直接证据。
+
+### E332 — 深读启动提交不 await/catch 初始 `loadRun`，加载失败成未处理拒绝、面板卡死在「已创建/研究中」且开始按钮永久禁用 (S)
+
+**What:** 深读「开始研究」提交处理器在创建 run 成功后 `renderStatus(activeRun)`/`renderResult(activeRun)` 接着 `loadRun(activeRun.id);`（`chat.js:1343-1345`）——`loadRun` 是 async 且**未被 await 也未被 .catch**。若其首次拉取拒绝（例如 `apiFetch` 返回 `null` 后在 `activeRun = payload.run` 处解引用抛错，`chat.js:1277`），该拒绝就逃出外层 try/catch（`1346-1348`）成为未处理 rejection。而 `renderStatus` 已对 CREATED 把 `startBtn.disabled = true`（`chat.js:1248-1250`），重新启用路径只有终态 renderStatus / handleError / user-changed，全都不触发，且本轮从未挂轮询 → 面板永久停在「已创建 · 研究中…」、开始按钮禁用、无任何错误提示。对照：历史点击的 `loadRun` 有 `.catch`（`chat.js:1366`）、自调度 `loadRun` 有 `.catch`（`1284`），唯独提交路径不一致。
+
+**Evidence:** `renderStatus(activeRun); renderResult(activeRun); loadRun(activeRun.id);` `chat.js:1343-1345`（无 await/catch）；`async function loadRun` `1276`、内 `activeRun = payload.run;` `1279`、CREATED/RUNNING 续挂轮询 `1282+`；`renderStatus` 对 running 禁用 startBtn `1248-1250`；对照 `.catch` 路径 `1284`/`1366`。
+
+**Why:** 深读启动失败（网络/服务端 5xx/返回异常）应报错并可重试；现状是未处理拒绝 + 永久禁用的假「运行中」，与同函数其他 .catch 路径不一致。属错误处理收口。
+
+**Size:** S
+
+**Files:** `chat.js:1343-1348,1276-1284,1248-1250`；对照 `1284,1366`；`tests/frontend/`（深读相关）。
+
+**Northstar:** 弱中——失败态表现不佳但非高频且可刷新恢复，北极星一般，留探索池。
+
+### E333 — 后端 `_read_json` 对畸形 JSON/非 UTF-8/数组体不做校验，客户端可控输入触发 500 并污染 server_errors (S)
+
+**What:** `_read_json`（`app_server.py:4307-4313`）直接 `json.loads(raw.decode("utf-8"))`，无 try/except：畸形 JSON 抛 `JSONDecodeError`、非 UTF-8 字节抛 `UnicodeDecodeError`、合法 JSON 但为数组时后续 `payload.get(...)` 抛 `AttributeError`。所有 POST 端点都无守卫地调用它（如 `/api/login` `app_server.py:5343`）。这些异常都逃到调度层 catch-all（`handle_one_request`，返回 500 + 写一条 `server_errors`），客户端得到的是 500「internal server error」而非 4xx——触发源是客户端可控输入，等于把 4xx 级别的脏请求记成 500 级错误、污染错误摘要/P0 看板。`Content-Type` 也不做强制校验。
+
+**Evidence:** `_read_json` 体（`app_server.py:4307-4313`）无校验、无 try；POST 调用点未包 try（如 `5343`）；调度层统一 500（`handle_one_request`）。已有 `MAX_REQUEST_BYTES` 尺寸护栏（`4309-4311`）只防超大 body，不防解析错。
+
+**Why:** 客户端可控输入不应触发 500/错误日志污染；这是错误分类与日志卫生问题，非数据安全。修复极小（try/except 解析错误→400，或先校验 JSON 类型为 object）。
+
+**Size:** S
+
+**Files:** `app_server.py:4307-4313,5343`；调度层 catch-all（`handle_one_request`）。
+
+**Northstar:** 弱——4xx/500 语义与日志卫生，无直接用户 signal，不提拔。
+
+### E334 — 摘抄墙空态文案把「筛选/搜索无命中」误报成「还没有摘抄」，与书单的空态区分逻辑不一致 (S)
+
+**What:** `renderQuotes` 在过滤/搜索/sort 后（`app.js:2275-2285`）统一落到单一空态分支：`els.quotesList.textContent = "还没有摘抄卡片，点左上角加号新增一张。"`（`app.js:2287-2290`）。当库里确有摘抄、只是当前类型/搜索筛选把可见卡片全部滤掉时，仍显示这句「还没有摘抄卡片」——把「筛选无命中」说成「从无数据」。对照 `renderBooks` 已区分真·空库与「筛选无结果」（`app.js:2066-2078`），摘抄/时间线空态未对齐该区分。
+
+**Evidence:** 过滤链（`app.js:2281-2285` filter+sort）后 `if (!quotes.length) { ... "还没有摘抄卡片…" }`（`2287-2290`），无「是筛选所致」分支；对照 renderBooks 的两态区分（`app.js:2066-2078`）。
+
+**Why:** 用户按标签/搜索过滤后看到「还没有摘抄卡片」会误以为卡片丢了（Theme 3 信任）；书单已做区分而摘抄未对齐，属 UX 文案一致性问题。
+
+**Size:** S
+
+**Files:** `app.js:2287-2290`；对照 `app.js:2066-2078`（renderBooks 空态两态）；`tests/frontend/`（摘抄空态）。
+
+**Northstar:** 弱中——误导文案但非丢失，不影响数据本身，暂不提拔。
+
+> 本次 run 新发现 6 条，刻意绕开 09-02 已探簇与旧 backlog：E329（`/api/chat/stream` 长 LLM 窗口持整份 state 快照后盲写，静默覆盖并发编辑，M，data-safety/server）、E330（401 过期只清 token 不清 UI，真实私有数据停「已同步」假象静默脱同步，S，frontend/session）、E331（审批卡 600ms 清除定时器不随书切换取消 → 跨上下文气泡 + 重复下一卡，S，chat/residue）、E332（深读启动未 await/catch 初始 loadRun，加载失败成未处理拒绝且开始按钮永久禁用，S，error-handling）、E333（后端 `_read_json` 畸形 body→500 污染 server_errors，S，backend robustness）、E334（摘抄墙空态把筛选无命中误报成无数据，S，UX copy）。六项均由当前文件逐行核实并排除 backlog（OPT-159–168/169/170/176/177/178/179）、旧 E001–328 与最近合并（OPT-173/174/175）。沿 Theme 3「积累可信」提拔 2 条证据最强、无 owner 分歧项：**E329 → OPT-180**（探讨长耗时写路径唯一仍裸奔的全量覆盖，与 OPT-178 OCR 同族但收口面不同）、**E330 → OPT-181**（会话过期假登录 + 静默脱同步，S 级 clean fix）。E331/E332 竞态/失败态真实但窗口窄/可刷新恢复，E333 是 4xx/500 日志卫生、E334 是误导文案，北极星弱中均不提拔。
