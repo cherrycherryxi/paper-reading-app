@@ -6,6 +6,7 @@
 
 ## User Preferences
 
+- (2026-09-03) UI 动作按钮的文案绝不能引用产品里不存在的概念/状态。取消确认框曾把正式保存标成「保存草稿」，但系统没有草稿状态——owner 实测后指出「草稿和正式保存没区别」。按钮名要与行为一一对应（改回「保存卡片」，行为=正常保存、产物出现在摘抄列表）；若想提供更弱的「未完成」语义，必须先做出真草稿状态（状态字段+列表分区+UI）再命名。同类原则见 Do-Not-Repeat 营销物料先核代码一条。
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
 - **[2026-07-24] 日报要易读，每个 bug/新功能都按四点写清：存在的问题、目标、实现方法、最终效果。** owner 要求日报别堆大段文字——「今日主要工作」里每个条目（无论 bug 修复还是新功能）各写成一个 `### 小节`，每小节按四点（加粗小标题、各占一行）：**存在的问题**（触发现象/为什么做）、**目标**、**实现方法**（含关键文件与改动）、**最终效果**（可验证结果）；之后仍是「亮点与可改进」+「明天可做 3-5 条」。已落到两处生成 prompt：自动日报 `~/.claude/scripts/paper-wrapup.sh` 的 `gen_report()`，与交互式「今天就到这」钩子（`~/.claude/settings.json` UserPromptSubmit）。
@@ -18,6 +19,10 @@
 
 ## Key Learnings
 
+- (2026-09-03) 新增摘抄对话框的关闭语义:取消按钮(id=quoteCancelBtn)与 Esc 统一走 requestCloseQuoteDialog()——quoteDialogIsNew && quoteDraftHasContent() 时弹 quoteDiscardDialog 三键确认(保存草稿=quoteForm.requestSubmit() 走真实 addQuote 校验、继续编辑=只关确认框、放弃=quoteDialog.close() 由既有 close 监听 discardProvisionalOcrQuote 清 OCR 卡)。设计边界:①空表单与编辑已有卡(quoteDialogIsNew=false)保持一键取消——编辑态卡本身还在,只丢本次改动不值得拦;②有内容判定=OCR卡/任一张照片(pendingQuoteImage 的 objectUrl/dataUrl/savedUrl/compressionPromise 任一)/正文/页码/理解/标签,bookId 不算劳动成果;③保存动作不能绕过校验直接留卡——必须 requestSubmit 走 addQuote,缺书时 toast 回编辑,内容不丢;④确认框常驻 Esc 语义=Escape 回编辑。
+- (2026-09-03) 双页OCR合并的既有语义:runOcrFromImage 页间合并前用 endsWithSentencePunctuation(页1末行) 判断——句末标点结尾才插 
+
+,否则无缝拼接(照片从句子中间切开时不能留空段)。行选择器 renderOcrLineSelector 按空行切 section,裁句的两行合并后成为同一视觉行,行数比原两页行数少一行属预期;测试断言别按原文行数数行。
 - [2026-07-15] **豆瓣导入(OPT-105)：豆瓣无官方导出、第三方扩展(豆伴/tofu)已停维护且解析失效(GitHub #114/120/122)、油猴脚本停在2019——都不可靠。可行方案=本地小脚本抓 `book.douban.com/people/<id>/collect`(读书列表默认公开、无需 cookie)，当前结构是 `li.item > .title/.date(含 rating{N}-t)/.intro(作者)/.comment(短评)`(2026 版, 老的 subject-item/pub 已废)。脚本在 tools/douban_export.py。导入器只填空缺、不覆盖已填(评分/读完日期/读后感字段已存在, 走 syncState 零后端改动)。
 - [2026-07-15] **前端测试坑：`assert.deepStrictEqual` 比较『vm.runInNewContext 内产生的数组』与测试 realm 的数组字面量会失败**，报「Values have same structure but are not reference-equal」——因为 vm 内 `[]` 用的是它自己 realm 的 Array.prototype，跨 realm 原型不等。改用 `arr.join("|")` 等原始值比较即可(字符串跨 realm 相等)。别为此以为被测代码有 bug。
 - [2026-07-21] **摘抄图片有两套渲染/兜底路径，改一处要想到全部三处(OPT-052/070/071)。** ①列表卡 `renderQuotes()`(app.js~1907) + ②搜索卡 `buildQuoteSearchCard()`(~1528)都是 **innerHTML 字符串**拼的，图片走 `quote.imageUrl ? <img src=resolveImageUrl(...)> : <div class=entry-cover-fallback>`，加载失败兜底用**内联 `onerror="this.classList.add('is-hidden')"`**(`is-hidden`=`display:none!important`，露出 `.entry-card-cover` 的粉底=与无图占位视觉一致)；③详情弹窗 `openQuoteDetail()`(~2864)是 **JS 建的单例 img**，兜底用 `img.onerror=()=>imgWrap.classList.add("is-hidden")`(**必须在赋 src 前挂**，且无图分支要 `img.onerror=null` 清理，因单例跨次复用)。书封面(`bindBookCoverImageFallback`)是另一套 per-card `addEventListener("error")`+退默认封面，别混。OPT-070=给②补取图(此前它 dead code 但恒占位)；OPT-071=给①②③补 onerror。

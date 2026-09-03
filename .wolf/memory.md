@@ -6097,3 +6097,57 @@
 | 05:05 | Edited optimization/explore.md | added error handling | ~2305 |
 | 05:05 | Edited optimization/backlog.md | expanded (+20 lines) | ~738 |
 | 05:06 | explore 2026-09-03 Agent3: E329-334 追加 explore.md；提拔 OPT-180(chat/stream 整表盲写)/OPT-181(401 过期 UI 未 teardown) 至 backlog status:new | optimization/explore.md, optimization/backlog.md | appended + promoted 2 | ~6 |
+
+## Session: 2026-09-02 07:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:02 | Created ../../.claude/paper-loop/cards-2026-09-03.md | — | ~120 |
+| 07:02 | Session end: 1 writes across 1 files (cards-2026-09-03.md) | 5 reads | ~50329 tok |
+
+## Session: 2026-09-03 18:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:10 | Edited app.js | added 2 condition(s) | ~298 |
+| 18:10 | Edited app.js | 2→2 lines | ~24 |
+| 18:10 | Edited tests/frontend/quote-combobox-ocr-label.test.js | expanded (+20 lines) | ~302 |
+| 18:10 | Edited tests/frontend/quote-combobox-ocr-label.test.js | 19→17 lines | ~233 |
+| 18:13 | 实现 OPT-176 跨书摘抄检索按书均衡，避免单书独占前30槽位 | app.js, tests/frontend/quote-combobox-ocr-label.test.js | PR #139 合入 feature/agent，Python 543 + 前端全绿 | ~6000 |
+| 18:14 | Edited optimization/backlog.md | 2→2 lines | ~50 |
+| 18:15 | Session end: 5 writes across 3 files (app.js, quote-combobox-ocr-label.test.js, backlog.md) | 4 reads | ~134445 tok |
+| 20:16 | Edited app_server.py | expanded (+7 lines) | ~220 |
+| 20:16 | Edited app_server.py | modified save_image() | ~168 |
+| 20:16 | Edited app.js | modified buildOcrRequestOptions() | ~108 |
+| 20:16 | Edited app.js | 5→9 lines | ~130 |
+| 20:17 | Edited tests/agent/ocr_recognition_fix_test.py | modified test_fast_ocr_empty_octet_body_reuses_saved_image_without_overwrite() | ~1216 |
+| 20:17 | Created tests/frontend/ocr-request-options.test.js | — | ~1262 |
+| 20:20 | 修 bug-605:空 dataUrl 被后端当新空图覆盖 quote.imageUrl(照片消失+empty image);三层修复(前端 blob 短路/后端空 body 不产假 dataUrl/save_image 防空图)+回归测试 | app_server.py,app.js,tests/agent/ocr_recognition_fix_test.py,tests/frontend/ocr-request-options.test.js | 全量绿 551 前端+545 后端;回退验证测试会红 | ~40000 |
+| 20:20 | Session end: 11 writes across 6 files (app.js, quote-combobox-ocr-label.test.js, backlog.md, app_server.py, ocr_recognition_fix_test.py) | 6 reads | ~229876 tok |
+| 20:26 | Edited app.js | modified if() | ~188 |
+| 20:26 | Edited app.js | modified endsWithSentencePunctuation() | ~68 |
+| 20:26 | Edited tests/frontend/ocr-multi-image.test.js | inline fix | ~48 |
+| 20:26 | Edited tests/frontend/ocr-multi-image.test.js | 2→2 lines | ~40 |
+| 20:26 | Edited tests/frontend/ocr-multi-image.test.js | expanded (+20 lines) | ~259 |
+| 20:27 | Edited tests/frontend/ocr-multi-image.test.js | 5→6 lines | ~97 |
+
+## Session: 2026-09-03 20:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:28 | 双页OCR合并修复:句末标点检测决定页间是否插空行(endsWithSentencePunctuation),裁句无缝拼接 | app.js tests/frontend/ocr-multi-image.test.js .wolf/buglog.json | 前端552+后端545全绿,8测试含新裁句case | ~8k |
+| 20:35 | Edited app.js | 3→7 lines | ~140 |
+| 20:35 | Edited app.js | 1→2 lines | ~33 |
+| 20:36 | Edited app.js | added optional chaining | ~604 |
+| 20:36 | Edited app.js | expanded (+9 lines) | ~164 |
+| 20:36 | Edited index.html | inline fix | ~25 |
+| 20:36 | Edited index.html | expanded (+14 lines) | ~286 |
+| 20:36 | Edited styles.css | CSS: gap, padding, white-space | ~105 |
+| 20:37 | Created tests/frontend/quote-cancel-draft.test.js | — | ~2721 |
+| 20:37 | Edited app.js | 2→3 lines | ~47 |
+| 20:38 | 新增摘抄取消防误触:有实质内容(照片/OCR卡/手填)时弹保存草稿/继续编辑/放弃三键确认,空表单与编辑态仍一键取消 | app.js index.html styles.css tests/frontend/quote-cancel-draft.test.js .wolf/buglog.json | 前端563(含11新)+后端545全绿 | ~7k |
+| 20:38 | Session end: 9 writes across 4 files (app.js, index.html, styles.css, quote-cancel-draft.test.js) | 3 reads | ~131556 tok |
+| 20:42 | Edited index.html | 13→15 lines | ~242 |
+| 20:42 | Edited styles.css | inline fix | ~16 |
+| 20:42 | 取消防误触确认框文案修正:保存草稿→保存卡片(系统无草稿状态,owner实测指出名不副实),补HTML注释防复发 | index.html styles.css app.js tests/frontend/quote-cancel-draft.test.js .wolf/cerebrum.md | 11测试重跑全绿 | ~2k |
+| 20:42 | Session end: 11 writes across 4 files (app.js, index.html, styles.css, quote-cancel-draft.test.js) | 3 reads | ~131832 tok |

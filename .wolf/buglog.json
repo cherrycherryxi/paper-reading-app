@@ -10184,6 +10184,221 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-02T21:05:43.450Z"
+    },
+    {
+      "id": "auto-023",
+      "timestamp": "2026-09-03T10:14:03.283Z",
+      "error_message": "Wrong reference: triaged should be done",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"triaged\" instead of \"done\"",
+      "fix": "Changed triaged → done",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T10:14:03.283Z"
+    },
+    {
+      "id": "auto-024",
+      "timestamp": "2026-09-03T12:16:38.996Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app.js",
+      "root_cause": "Condition was: if (typeof Blob !== \"undefined\" && typeof atob === \"fu)",
+      "fix": "Changed to: if (hasImageData && typeof Blob !== \"undefined\" && typ)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:16:38.996Z"
+    },
+    {
+      "id": "bug-605",
+      "timestamp": "2026-09-03T15:20:00+08:00",
+      "error_message": "新增摘抄额度用完先保存，之后编辑该摘抄点快速识别，照片消失、识别失败（百度 empty image）",
+      "file": "app_server.py (_read_ocr_payload / save_image), app.js (buildOcrRequestOptions)",
+      "root_cause": "编辑态重识别无新图、仅复用 imageUrl 时，前端 buildOcrRequestOptions('') 仍走 Blob 分支发 0 字节 body；后端 image_bytes_to_data_url(b'') 返回 truthy 假 dataUrl 'data:image/jpeg;base64,' → OCR handler if data_url 分支 save_image 存 0 字节空图并把 quote.imageUrl 覆盖为空图 URL 落库 → 原图引用丢失（照片消失）+ 百度 216200 empty image。设计好的 elif image_url 复用分支被假 dataUrl 抢先，AI 精识别路径同受影响。prod trace trace-84c7f23bebb0425c 实锤：REQUEST_RECEIVED hasImageDataUrl=true → IMAGE_SAVED → CLOUD_OCR_FAILED empty image",
+      "fix": "三层防御：① _read_ocr_payload 空 body 不再生成假 dataUrl（imageDataUrl 置空 → 走 media_url_to_data_url 复用已有图）；② save_image 空字节 raise ValueError（防空图落盘覆盖 imageUrl）；③ 前端 buildOcrRequestOptions 空/非 data: dataUrl 跳过 Blob 分支走 JSON 兜底（imageDataUrl=''）。回归测试：octet 0 字节 body + metadata imageUrl 必须复用原图且不覆盖 imageUrl（回退修复即红）；save_image 空 dataUrl raise；前端 5 例",
+      "tags": [
+        "ocr",
+        "image",
+        "data-url",
+        "empty-image",
+        "imageUrl-overwrite",
+        "rate-limit-flow"
+      ],
+      "related_bugs": [
+        "bug-200",
+        "bug-321",
+        "bug-330"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T14:49:00+08:00"
+    },
+    {
+      "id": "auto-025",
+      "timestamp": "2026-09-03T12:26:17.265Z",
+      "error_message": "Wrong reference: opts should be firstText",
+      "file": "tests/frontend/ocr-multi-image.test.js",
+      "root_cause": "Used \"opts\" instead of \"firstText\"",
+      "fix": "Changed opts → firstText",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:26:17.265Z"
+    },
+    {
+      "id": "auto-026",
+      "timestamp": "2026-09-03T12:26:25.356Z",
+      "error_message": "Missing await",
+      "file": "tests/frontend/ocr-multi-image.test.js",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:26:25.356Z"
+    },
+    {
+      "id": "auto-027",
+      "timestamp": "2026-09-03T12:27:02.433Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/ocr-multi-image.test.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:27:02.433Z"
+    },
+    {
+      "id": "bug-606",
+      "timestamp": "2026-09-03T20:28:54.592772+08:00",
+      "error_message": "两张照片快速识别，第一张和第二张识别内容之间出现换行和空白段（照片从句子中间切开时尤为明显）",
+      "file": "app.js",
+      "root_cause": "两页合并逻辑无条件在页间插入 \n\n（原 merge 硬编码空行）。照片把同一句裁到两页时（页1末行无句末标点），空白段落在句子中间，用户须手动删除。此前 OPT-109 的修复只处理了整页自然的句子边界。",
+      "fix": "合并前检测页1末行是否以句末标点结尾：endsWithSentencePunctuation() 为真才插 \n\n，否则直接无缝拼接。行选择器 renderOcrLineSelector 按空行切分 section，拼接后裁句的两行并成同一视觉行、同一 section。",
+      "tags": [
+        "ocr",
+        "frontend",
+        "multi-image",
+        "merge",
+        "page-break"
+      ],
+      "related_bugs": [
+        "bug-605",
+        "auto-025",
+        "auto-026",
+        "auto-027"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T20:28:54.592811+08:00"
+    },
+    {
+      "id": "auto-028",
+      "timestamp": "2026-09-03T12:36:03.381Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:36:03.381Z"
+    },
+    {
+      "id": "auto-029",
+      "timestamp": "2026-09-03T12:36:08.660Z",
+      "error_message": "Significant refactor of ",
+      "file": "app.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→12 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:36:08.660Z"
+    },
+    {
+      "id": "auto-030",
+      "timestamp": "2026-09-03T12:36:10.748Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"quoteDialog\"",
+      "fix": "Changed to \"quoteCancelBtn\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:36:10.748Z"
+    },
+    {
+      "id": "auto-031",
+      "timestamp": "2026-09-03T12:36:36.139Z",
+      "error_message": "CSS fix: font-size",
+      "file": "styles.css",
+      "root_cause": "font-size: 13px → 14px",
+      "fix": "Changed font-size: 13px → 14px",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T12:36:36.139Z"
+    },
+    {
+      "id": "bug-607",
+      "timestamp": "2026-09-03T20:38:17.691848+08:00",
+      "error_message": "新增摘抄拍照识别一通操作后误点「取消」，整张摘抄（照片+识别内容）静默消失，无任何挽回机会",
+      "file": "app.js index.html styles.css",
+      "root_cause": "取消按钮(data-close-dialog)与 Esc 都直接 dialog.close()，close 监听 discardProvisionalOcrQuote 无条件删除 OCR 临时创建的卡；新增流程的劳动成果没有任何关闭前确认",
+      "fix": "取消/Esc 统一走 requestCloseQuoteDialog：quoteDialogIsNew 且 quoteDraftHasContent()（OCR卡/任一张照片/正文/页码/理解/标签）时先弹 quoteDiscardDialog——「保存草稿」走 quoteForm.requestSubmit()(addQuote 校验失败 toast 并留在编辑)、「继续编辑」只关确认框、「放弃」才真正 close(既有 discard 兜底清 OCR 卡)；空表单与编辑已有卡(quoteDialogIsNew=false)保持原一键取消。",
+      "tags": [
+        "quote-dialog",
+        "cancel",
+        "draft",
+        "ocr",
+        "ux",
+        "data-loss"
+      ],
+      "related_bugs": [
+        "bug-605",
+        "bug-606",
+        "auto-025",
+        "auto-026",
+        "auto-027"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T20:38:17.691890+08:00"
     }
   ]
 }

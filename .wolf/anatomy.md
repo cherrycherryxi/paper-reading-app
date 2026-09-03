@@ -1,9 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-01T23:01:41.878Z
-> Files: 435 tracked | Anatomy hits: 0 | Misses: 0
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-02T21:05:54.171Z
-> Files: 434 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-03T12:42:45.853Z
+> Files: 438 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -283,6 +281,7 @@
 - `cards-2026-08-29.md` — 卡片① (~43 tok)
 - `cards-2026-09-01.md` — 卡片① (~89 tok)
 - `cards-2026-09-02.md` — 卡片① (~80 tok)
+- `cards-2026-09-03.md` — 卡片① (~112 tok)
 - `review-2026-08-01.md` (~2 tok)
 - `review-2026-08-02.md` — 2026-08-02 夜间 PR 审查 (~8 tok)
 - `review-2026-08-03.md` (~2 tok)
@@ -315,8 +314,8 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~252 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~84376 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~81970 tok)
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~85091 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~83414 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~16534 tok)
@@ -326,7 +325,7 @@
 - `designqc-reading-insights.html` (~0 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~13818 tok)
+- `index.html` — 🐛 又买了一本书 (~14111 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -337,7 +336,7 @@
 - `README.md` — Project documentation (~1455 tok)
 - `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~30993 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~31068 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -485,7 +484,7 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~48053 tok)
+- `backlog.md` — Optimization Backlog (~48077 tok)
 - `explore.md` — Exploration — new optimization directions (~93548 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
@@ -604,7 +603,7 @@
 - `metrics_json_guard_test.py` — Tests: valid_rows_still_counted, corrupted_row_no_exception_and_still_counted, all_rows_corrupted_still_aggregates_values, mixed_corruption_degrade... (~1455 tok)
 - `object_storage_test.py` — Regression tests for S3-compatible object storage (P3 commercialization). (~1596 tok)
 - `ocr_pending_orphan_test.py` — OPT-042 (Fix A): the fast OCR path must not leave an orphaned "pending" (~1786 tok)
-- `ocr_recognition_fix_test.py` — OCRRecognitionFixTests: setUp, tearDown, request_json, send_response + 19 more (~7949 tok)
+- `ocr_recognition_fix_test.py` — OCRRecognitionFixTests: setUp, tearDown, request_json, send_response + 19 more (~9142 tok)
 - `paper_wrapup_runner_migration_test.py` — Contracts for the formal paper-wrapup provider migration. (~678 tok)
 - `password_reset_test.py` — Regression tests for password reset flow (P1 commercialization). (~2891 tok)
 - `plan_tier_test.py` — Regression tests for free/Plus plan tiers (P2 commercialization). (~2279 tok)
@@ -664,10 +663,12 @@
 - `ocr-cancel-cleanup.test.js` — Bug (2026-06-24): photo → 快速识别 creates+persists a quote server-side (~1806 tok)
 - `ocr-fast-panel-integration.test.js` — Integration test for the FAST OCR path (runOcrFromImage("fast")): (~1884 tok)
 - `ocr-line-selector.test.js` — OPT-055: 快速 OCR 行级编辑/删除面板 (~4036 tok)
-- `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~2877 tok)
+- `ocr-multi-image.test.js` — OPT-109: cross-page OCR — when two images are loaded, fast OCR runs serially on (~3175 tok)
+- `ocr-request-options.test.js` — 回归锁：buildOcrRequestOptions 在「无新图、仅复用已有 imageUrl」的编辑态重识别时， (~1262 tok)
 - `ocr-stale-recovery.test.js` — OPT-042 (Fix B): recoverStalePendingOcr() flips quotes orphaned at (~1458 tok)
+- `quote-cancel-draft.test.js` — 防误触：新增摘抄已拍照/识别/填内容后点取消或按 Esc，先弹「保存草稿 / 继续编辑 / 放弃」 (~2721 tok)
 - `quote-card-image-thumb.test.js` — OPT-158: quote cards use a calm, type-specific art cover in the review grid. (~1891 tok)
-- `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~3134 tok)
+- `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~3368 tok)
 - `quote-content-display.test.js` — Regression coverage for compact quote cards: (~1190 tok)
 - `quote-image-onerror.test.js` — OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。 (~1516 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~2594 tok)
@@ -702,38 +703,38 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第10篇-词语活得更久/
 
+- `文案.md` — 标题三选一 (~149 tok)
 - `material.md` — 真实素材 (~21 tok)
 - `vars.sh` (~42 tok)
-- `文案.md` — 标题三选一 (~149 tok)
 
 ## 小红书物料/第11篇-现在的书架/
 
+- `文案.md` — 标题三选一 (~161 tok)
 - `material.md` — 真实素材 (~30 tok)
 - `vars.sh` (~34 tok)
-- `文案.md` — 标题三选一 (~161 tok)
 
 ## 小红书物料/第12篇-时间是谁写出来的/
 
+- `文案.md` — 标题三选一 (~173 tok)
 - `material.md` — 真实素材 (~107 tok)
 - `vars.sh` (~44 tok)
-- `文案.md` — 标题三选一 (~173 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -741,33 +742,33 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 
 ## 小红书物料/第8篇-老了才要回时间/
 
@@ -775,6 +776,6 @@
 
 ## 小红书物料/第9篇-两种英式幽默/
 
+- `文案.md` — 标题三选一 (~169 tok)
 - `material.md` — 真实素材 (~37 tok)
 - `vars.sh` (~46 tok)
-- `文案.md` — 标题三选一 (~169 tok)
