@@ -1700,7 +1700,7 @@ Format per item:
 - scope note [2026-09-02, explore E326]: 除上述三条路径外，**书编辑 `saveBookEdit`（`app.js:4384-4389`）与书删除 `deleteBook`（`app.js:3320-3325`）同为 `await syncState()` 后无条件 toast「书籍已更新/书籍已删除」、忽略冲突返回**，实施本项时应一并纳入统一助手覆盖，避免遗漏。
 
 ### OPT-180 — 探讨 `/api/chat/stream` 在长 LLM 流式期间持有整份 state 快照，结束后无条件整表写回，静默覆盖并发编辑 — 由 explore E329 提拔 [2026-09-03]
-- status: new
+- status: triaged — [2026-09-04 triage] P1/M 后端整表盲写路径收口族（同 OPT-178），留功能轨，与 OPT-178 一并处理
 - area: backend / data safety / concurrency
 - priority: P1
 - size: M
@@ -1710,7 +1710,7 @@ Format per item:
 - how: 同 OPT-178 的写路径收口族，可一并考虑统一「后端非 GET 全量写入口先取版本、冲突让出」的助手。探讨论证变更通常只涉及 `chatHistories`/`chatContexts` 两个字段，优先尝试「save 前重读最新 state、仅把本次回复追加的 history/context 写回」以最小化覆盖面，而非全量覆盖。Touch: `app_server.py:6076,6123,6217,986-995`；对照 `3804-3815`、`6645-6665`、OPT-178（`1824,1843,5980`）；`tests/agent/` 探讨相关。
 
 ### OPT-181 — 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 — 由 explore E330 提拔 [2026-09-03]
-- status: new
+- status: triaged — [2026-09-04 triage] P1/S 夜间指派：复用 `logout()` teardown + 会话过期回归；可选「保留离线会话过期态」增强涉 owner 取舍、排除在夜间范围外
 - area: frontend / data safety / session
 - priority: P1
 - size: S

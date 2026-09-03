@@ -10399,6 +10399,38 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-09-03T20:38:17.691890+08:00"
+    },
+    {
+      "id": "auto-032",
+      "timestamp": "2026-09-03T17:02:51.929Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/triage.md",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 21→27 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-03T17:02:51.929Z"
+    },
+    {
+      "id": "auto-033",
+      "timestamp": "2026-09-03T17:02:54.649Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-03T17:02:57.368Z"
     }
   ]
 }
