@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-03T12:42:45.853Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-03T21:08:53.308Z
 > Files: 438 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
@@ -484,13 +484,13 @@
 
 ## optimization/
 
-- `backlog.md` — Optimization Backlog (~48077 tok)
-- `explore.md` — Exploration — new optimization directions (~93548 tok)
+- `backlog.md` — Optimization Backlog (~48378 tok)
+- `explore.md` — Exploration — new optimization directions (~95098 tok)
 - `README.md` — Project documentation (~482 tok)
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1423 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
-- `triage.md` — Triage (~2148 tok)
+- `triage.md` — Triage (~2436 tok)
 
 ## output/pdf/
 
@@ -703,38 +703,38 @@
 
 ## 小红书物料/_归档-拍照摘抄AI卡稿/
 
-- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 - `img-1-封面.html` (~724 tok)
 - `img-2-痛点.html` (~619 tok)
 - `img-3-演示.html` (~940 tok)
 - `img-4-摘抄卡.html` (~838 tok)
 - `img-5-尾图.html` (~674 tok)
+- `文案.md` — 第 2 篇 · 拍照摘抄（发布包） (~405 tok)
 
 ## 小红书物料/第10篇-词语活得更久/
 
-- `文案.md` — 标题三选一 (~149 tok)
 - `material.md` — 真实素材 (~21 tok)
 - `vars.sh` (~42 tok)
+- `文案.md` — 标题三选一 (~149 tok)
 
 ## 小红书物料/第11篇-现在的书架/
 
-- `文案.md` — 标题三选一 (~161 tok)
 - `material.md` — 真实素材 (~30 tok)
 - `vars.sh` (~34 tok)
+- `文案.md` — 标题三选一 (~161 tok)
 
 ## 小红书物料/第12篇-时间是谁写出来的/
 
-- `文案.md` — 标题三选一 (~173 tok)
 - `material.md` — 真实素材 (~107 tok)
 - `vars.sh` (~44 tok)
+- `文案.md` — 标题三选一 (~173 tok)
 
 ## 小红书物料/第1篇-开发故事/
 
-- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 - `img-1-封面.html` (~733 tok)
 - `img-2-痛点.html` (~645 tok)
 - `img-3-流程.html` (~835 tok)
 - `img-4-尾图.html` (~674 tok)
+- `文案.md` — 第 1 篇 · 开发故事（发布包） (~396 tok)
 
 ## 小红书物料/第2篇-把书连成线/
 
@@ -742,33 +742,33 @@
 
 ## 小红书物料/第3篇-一句被击中的话/
 
-- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 - `material.md` — 真实素材：一条摘抄 (~28 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 3 篇 · 一句被击中的话（发布包） (~361 tok)
 
 ## 小红书物料/第4篇-两本书接上头/
 
-- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（对比） (~75 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 4 篇 · 两本书接上头（发布包） (~403 tok)
 
 ## 小红书物料/第5篇-书架半年/
 
-- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 - `material.md` — 真实素材：我的书架半年 (~34 tok)
 - `vars.sh` (~39 tok)
+- `文案.md` — 第 5 篇 · 书架半年（发布包） (~390 tok)
 
 ## 小红书物料/第6篇-再连一条线/
 
-- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 - `material.md` — 真实素材：一条「思想碰撞」连接（异曲同工） (~76 tok)
 - `vars.sh` (~47 tok)
+- `文案.md` — 第 6 篇 · 再连一条线（发布包） (~426 tok)
 
 ## 小红书物料/第7篇-收官那一句/
 
-- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 - `material.md` — 真实素材：一条摘抄 (~20 tok)
 - `vars.sh` (~48 tok)
+- `文案.md` — 第 7 篇 · 收官那一句（发布包） (~401 tok)
 
 ## 小红书物料/第8篇-老了才要回时间/
 
@@ -776,6 +776,6 @@
 
 ## 小红书物料/第9篇-两种英式幽默/
 
-- `文案.md` — 标题三选一 (~169 tok)
 - `material.md` — 真实素材 (~37 tok)
 - `vars.sh` (~46 tok)
+- `文案.md` — 标题三选一 (~169 tok)
