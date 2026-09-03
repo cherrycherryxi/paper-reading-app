@@ -1718,3 +1718,11 @@ Format per item:
 - description: `apiFetch` 的 401 分支（`app.js:535-542`）在会话过期时只清 `authToken`/`currentUser`/`stateVersion`、删 localStorage token、toast「登录已过期」、`dispatchUserChange()`，但**不**重置 `state`、不 `render()`、不 `activateTab("me")`、不 `loadDemoPreview()`——而显式 `logout()`（`app.js:2834-2842`）会 reset state→`render()`→`activateTab("me")`→demo 预览。结果：token 失效后界面仍停在真实（非示例）书/摘抄 + userPanel「已同步」标识，看似已登录；每次受保护写都 401 逐次 toast，书墙不切登录态、`state` 也不重置为 demo（`hasSampleData` 只认 `isSample` 项，真实数据仍屏）。用户仅靠手动刷新或某次写命中 `requireAuth`→`activateTab("me")`（`app.js:1152-1156`）才被动回登录态。
 - why: 401 分支显然是有意写的重置逻辑，却缺了 `logout()` 的渲染/导航半段，属实现遗漏而非设计取舍。需保留 429/409 分支不受影响。
 - how: 让 401 分支补上与 `logout()` 一致的 teardown（可选：保留当前用户已离线状态为「会话过期」而非彻底登出，但至少需隐藏真实数据/回登录墙），并加会话过期回归测试断言过期后不再显示「已同步」与真实私有数据。Touch: `app.js:535-542,2834-2842,1587-1601,1152-1156`；`tests/frontend/`（会话过期回归）。
+
+### OPT-182 — chat 流式回复每 token 无条件 `scrollToBottom()`，击溃上翻阅读与自带「回到底部」逃生口 — 由 explore E336 提拔 [2026-09-04]
+- status: new
+- area: frontend / chat / ux
+- northstar: 中强——探讨/深读是北极星「回顾」里最高频动作（signals 回顾操作 ≈ 探讨次数），流式输出的再阅读正是回顾场景；长回复期间无法上翻回看更早文本是确定性体验缺陷，且与产品自建的「回到底部」逃生口语义冲突，S 级修复无 owner 分歧。
+- description: SSE 流式在 `evt.delta` 分支逐 token 调 `thinking.textContent += evt.delta; scrollToBottom();`（`chat.js:668-673`）。`scrollToBottom`（`chat.js:447-450`）无条件把 `els.messages.scrollTop` 置底并把 `scrollBtnRow.hidden = true`。消息容器的滚动监听（`chat.js:919-922`）本会在用户滚离底部时显示悬浮「回到底部」按钮——但流式期每个 token 都钉回底部并隐藏该按钮，用户无法上翻回看早前内容，越翻越被拽回底部；这个为离开底部阅读而建的逃生口在整个流式期形同虚设。
+- why: 现有「回到底部」按钮说明产品本意允许用户滚离底部，流式强制钉底是与自建设计冲突的实现遗漏，而非纯品味取舍。深读/探讨常产出数秒到数十秒的流式回复，期间用户无法边等边回读已输出文本（再阅读是回顾核心场景）。
+- how: 仅当已在底部（`scrollHeight - scrollTop - clientHeight < 阈值`）时才自动跟随；用户滚离底部则停止调用 `scrollToBottom()`、允许 `scrollBtnRow` 出现，点按钮再回底。补前端回归：流式期间滚离底部不被逐 token 拽回、「回到底部」按钮可出现。保留 delta 分支对 `resetIdle()`（`chat.js:672`）不受影响。Touch: `chat.js:668-673,447-450,919-922`；`tests/frontend/`（chat 流式滚动回归）。

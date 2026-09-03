@@ -5815,3 +5815,79 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——误导文案但非丢失，不影响数据本身，暂不提拔。
 
 > 本次 run 新发现 6 条，刻意绕开 09-02 已探簇与旧 backlog：E329（`/api/chat/stream` 长 LLM 窗口持整份 state 快照后盲写，静默覆盖并发编辑，M，data-safety/server）、E330（401 过期只清 token 不清 UI，真实私有数据停「已同步」假象静默脱同步，S，frontend/session）、E331（审批卡 600ms 清除定时器不随书切换取消 → 跨上下文气泡 + 重复下一卡，S，chat/residue）、E332（深读启动未 await/catch 初始 loadRun，加载失败成未处理拒绝且开始按钮永久禁用，S，error-handling）、E333（后端 `_read_json` 畸形 body→500 污染 server_errors，S，backend robustness）、E334（摘抄墙空态把筛选无命中误报成无数据，S，UX copy）。六项均由当前文件逐行核实并排除 backlog（OPT-159–168/169/170/176/177/178/179）、旧 E001–328 与最近合并（OPT-173/174/175）。沿 Theme 3「积累可信」提拔 2 条证据最强、无 owner 分歧项：**E329 → OPT-180**（探讨长耗时写路径唯一仍裸奔的全量覆盖，与 OPT-178 OCR 同族但收口面不同）、**E330 → OPT-181**（会话过期假登录 + 静默脱同步，S 级 clean fix）。E331/E332 竞态/失败态真实但窗口窄/可刷新恢复，E333 是 4xx/500 日志卫生、E334 是误导文案，北极星弱中均不提拔。
+
+## 2026-09-04
+
+> 扫描焦点：Theme 3「积累可信」临近期末（8/10–9/06），且 09-02/09-03 两夜已把深读/关联/OCR/记忆/objectURL/导入/state_conflict/后端整表写路径高度收口。本批用 3 个并行只读审计（frontend-ux / backend-robustness / perf-memory）做扇形扫描，再由本人对每条候选重新打开当前文件逐行核实 + 关键词去重，刻意排除池内已覆盖簇：**E243**（记忆写失败幽灵变更）、**E303**（摘抄墙无分页）、**E48**（孤儿图片 GC）、**explore:129**（last_seen_at 每请求写）、**E66**（`_parse_iso_to_epoch` TZ 剥离），以及 backlog OPT-177/178/179/180/181 与最近合并 OPT-173/174/175/176。隔离 clone 当前 `HEAD` 为 `b7b2d9a`（09-04 晨间 triage，已将 OPT-181 指派夜间轨），本地 backlog 现存最大 OPT 编号为 **OPT-181**、最大 explore 编号为 **E334**；open PR 数据不可用，未据此推断。本批提拔 1 条证据最确凿、非重复、可干净独立修复的新机制：**E336 → OPT-182**（chat.js 流式回复期间逐 token 强制 `scrollToBottom()`，击溃应用自带的「回到底部」上翻逃生口，无法边流式边回看更早文本）。其余 4 条真实但北极星弱中或同族，留池。
+
+### E335 — `addBook` 在 `syncState` 失败前已 `unshift` 进 `state.books`，非冲突失败留下幽灵书 + 卡死保存弹窗，重试被 `findDuplicateBook` 永久拦截 (S/M)
+
+**What:** `addBook`（`app.js:3186-3232`）在 `try` 内先 `state.books.unshift({...})`（`3205`）构造新书，随后 `await syncState()`（`3224`）才落库；`closeDialog`/`render`/成功 toast 只在 try 成功路径。若 `syncState` 以**非 409**（网络/5xx）方式 reject，`catch`（`3229-3230`）只 `showToast(error.message)`，而新书已留在 `state.books`、弹窗保持打开。用户点「保存」重试时 `findDuplicateBook(title, author)`（`3191-3193`）此时已能匹配到这条幽灵书，toast「书单里已存在这本书」并 `return`——保存被永久拦截；点取消走 `resetBookDraft`（`3137`）只清表单/pending 图、不删已 push 的幽灵书，随后任意一次无关的成功的 `syncState` 会把这本用户可能以为「没加成」的书静默落库。
+
+**Evidence:** `state.books.unshift` `app.js:3205` → `await syncState()` `3224` → catch `3229-3230`；`findDuplicateBook` 拦截 `3191-3194`；`resetBookDraft` `3137`。对照同族先例：OPT-170（关联普通保存失败已做快照回滚）、E243（记忆 saveMemory 同款先改 state 后 await，`app.js:482-484` 无回滚）——books 是新实例。
+
+**Why:** 与 E243/OPT-170 同属「乐观改 state、失败不回滚」族但落在更核心的对象（书），并带书单特有的新后果：弹窗永久不可保存 + 幽灵书被后续 sync 静默持久化（用户以为失败，实际迟早入库）。Theme 3 数据可信（静默多出的、用户放弃的数据）。
+
+**Size:** S/M（把 unshift 推迟到 `syncState` 成功之后，或在 catch 里按 id 从 `state.books` 移除；需前端回归覆盖「网络失败不残留幽灵书、弹窗可重试」）。
+
+**Files:** `app.js:3186-3232,3191-3194,3137`；对照 E243（`476-489`）、OPT-170/179；`tests/frontend/`（保存失败回归）。
+
+**Northstar:** 中——静默幻影落库削弱「积累可信」，但网络失败是次频路径、非主场景必现；与池内 E243 同族、项目此前对同族未单独立项，故不提拔、留池待直接证据。
+
+### E336 — chat 流式回复每 token 无条件 `scrollToBottom()`，击溃上翻阅读与自带「回到底部」逃生口 (S)
+
+**What:** SSE 流式在 `evt.delta` 分支逐 token 调 `thinking.textContent += evt.delta; scrollToBottom();`（`chat.js:668-673`）。`scrollToBottom`（`chat.js:447-450`）无条件 `els.messages.scrollTop = scrollHeight` 且把 `scrollBtnRow.hidden = true`。消息容器的滚动监听（`chat.js:919-922`）本会在用户滚离底部时显示悬浮「回到底部」按钮（`scrollBtnRow`）——但流式期间每个 token 都把滚动条钉回底部并把该按钮立刻隐藏。于是深读/探讨的长回复（数秒到数十秒）期间，用户**无法上翻回看早前文本**，越翻越被拽回底部；`scrollBtnRow` 这个为「离开底部阅读」而建的逃生口在整个流式期形同虚设。
+
+**Evidence:** `scrollToBottom` 定义 `chat.js:447-450`（无条件，隐藏 scrollBtnRow）；delta 分支 `668-673`；滚动监听显示/隐藏 scrollBtnRow `919-922`（`scrollBtn` click `923+`）。同文件 447/465/597/671/684/924/974 多处调用，671 是流式热路径。
+
+**Why:** 探讨/深读是北极星「回顾·检索」里最高频动作（signals 中回顾操作 ≈ 探讨次数），流式输出的**再阅读**正是回顾场景；现有「回到底部」按钮说明产品本意允许用户滚离底部，流式强制钉底是与其自建设计冲突的实现遗漏（非纯品味取舍）。修法清晰：仅当已在底部（或距底 < 阈值）时才自动跟随，离开底部则停 `scrollToBottom` 并允许 scrollBtnRow 出现。S 级前端纯改动，可夜间轨独立完成。
+
+**Size:** S
+
+**Files:** `chat.js:668-673,447-450,919-922`；`tests/frontend/`（流式期间滚离底部不被拽回 + 按钮可出现的回归）。→ **promoted to OPT-182**
+
+**Northstar:** 中强——修正主回顾路径「流式中不可回看」的确定性体验缺陷，修复无 owner 产品分歧（保留既有逃生口语义），S 级可独立收口。
+
+### E337 — chat 流式客户端 30s 空闲超时在服务端「首 token 前压缩二次 LLM」窗口内被误触发，长对话偶发假「请求超时」 (S)
+
+**What:** 客户端在 `fetch` 前就武装 30s 空闲定时器（`chat.js:614-618`，`STREAM_IDLE_TIMEOUT_MS`），仅在收到响应头（`635`）与每个 delta（`672`）时重置。而 `/api/chat/stream` 服务端先 flush SSE 头、再同步跑一轮「对话历史压缩」二次 LLM 调用（`app_server.py:6123`/`6137`，见 E329/OPT-180 记录），首个 delta 要等压缩 + 系统提示构建 + 首 token 之后才到。于是当压缩这轮 LLM 慢（历史超阈值后每轮都全量重发 `to_compress` 片段、`2776-2785`）或网络毛刺，客户端在「头已到、首 token 未到」的空窗期空等，超 30s 即 `controller.abort()`，把一条本健康的请求误报成超时（`renderStreamTimeout`）。
+
+**Evidence:** 定时器武装/重置 `chat.js:614-635`，delta 处 `672`；服务端首 token 前压缩见 E329 记录 `app_server.py:6123,6137`。此为 OPT-180（后端盲写）收口之外的一条**客户端**新症状，非重复。
+
+**Why:** 探讨/深读是长流式主路径；对话一长、历史压缩必触发，压缩慢即偶发假超时打断流式、浪费已产生的 LLM 输出。与 OPT-180 同窗但属不同修复面（客户端超时策略 vs 后端写路径）。
+
+**Size:** S（如首 token 前的空闲窗口放宽 / 服务端在压缩阶段也发心跳空行以重置客户端定时器）。
+
+**Files:** `chat.js:614-635,668-672`；`app_server.py:6123,6137`；`tests/frontend/`（流式压缩期不误超时回归）。
+
+**Northstar:** 弱中——偶发、可刷新重试恢复，非数据丢失；作为 OPT-180 探讨写路径收口的联带症状记录，不单独提拔。
+
+### E338 — chat 消息 DOM 随会话单调增长，仅切书才 `resetMessages()` 清空，长对话移动端主线程节点持续累积 (S)
+
+**What:** `appendBubble`（`chat.js:452-467`）与流式定稿路径每轮追加 user/assistant（+可选 action 行）气泡，无条数上限/修剪；唯一清空点是切书 `restoreHistory`→`resetMessages()`（`chat.js:469-487`）。而服务端存储侧把历史压缩截到约 `_COMPRESS_KEEP_RECENT`（7 条，`app_server.py:2763`）。于是同一本书内的一次长探讨，DOM 气泡可累积到远超服务端保留条数的若干倍，且到切书前零修剪。
+
+**Evidence:** `appendBubble` `chat.js:452`；切书清空 `469-487`；服务端压缩保留阈值 `app_server.py:2763`。
+
+**Why:** iPhone 主线程上 DOM 节点随会话无界增长，超长探讨最终拖慢滚动与回流。属移动端长会话卫生，非数据正确性。
+
+**Size:** S（超阈值修剪最旧气泡，阈值与服务端压缩保留量对齐）。
+
+**Files:** `chat.js:452-467,469-487`；`app_server.py:2763`。
+
+**Northstar:** 弱——低频/仅超长会话才显现，无直接用户 signal，留池。
+
+### E339 — 无 `storage` 事件监听：同浏览器另一标签登出后，本标签短暂停留私有数据 +「已同步」直至下次请求 (S)
+
+**What:** `authToken` 在模块加载时一次性读入内存变量（`app.js:235`），`setAuthToken` 写/删 `localStorage[AUTH_TOKEN_KEY]`（`app.js:1170-1179`）；全前端 grep 无任何 `addEventListener("storage")`。同浏览器双标签：Tab B `logout()`（`app.js:2839-2853`）删掉共享 key 并**服务端 DELETE 该 session**（`app_server.py:5394-5398`），Tab A 无从感知，在下次发出受保护请求（命中 401→OPT-181 teardown）之前的窗口内，仍显示该账号私有数据 +「数据已同步至服务器」。核验后确认 logout() 会服务端吊销（`5394-5398`），故残留仅限「吊销后、下个请求前」的短暂窗口，且纯同浏览器多标签才触发——不同设备登出本就不影响彼此（各持 token）。
+
+**Evidence:** token 单次读入 `app.js:235`；`setAuthToken` `1170-1179`；logout 调 `/api/logout` `2842`；服务端吊销 `app_server.py:5394-5398`；grep 全前端无 storage 监听。
+
+**Why:** 与 OPT-181（401 假登录 teardown）紧邻但机制不同（storage 事件缺位 vs 401 分支半 teardown）；OPT-181 只覆盖「请求已 401」后，本项覆盖「吊销后未请求前」的同浏览器窗口。severity 因 logout 会服务端吊销而显著降低，双标签属少数场景。
+
+**Size:** S（加 `storage` 事件监听 key 被删/变即触发 `logout()` 同款 teardown）。
+
+**Files:** `app.js:235,1170-1179`；对照 `2839-2853`、OPT-181（`535-547`）；`app_server.py:5394-5398`。
+
+**Northstar:** 弱——双标签少数场景 + 短窗口，且被 OPT-181 兜底大半；仅作记录留池，不提拔。
+
+> 本次 run 从 3 个只读审计的候选池中，经本人重新打开文件逐行核实 + 关键词去重后，仅保留 5 条确属「尚未进入 backlog」的方向，并排除了 5 条实为池内/已覆盖的近似项（E243 记忆幽灵、E303 摘抄分页、E48 孤儿图片、explore:129 last_seen_at 每请求写、E66 TZ 剥离）。领域至 09-04 已高度饱和、且 OPT-177/178/179/180/181 五条 P1 数据可信项在案，本批只有 **E336**（chat 流式强制钉底击溃自带上翻逃生口）同时满足「新机制、非重复、S 级可独立收口、无 owner 分歧」→ **提拔为 OPT-182**；E335 与池内 E243 同族、E337/338/339 北极星弱中，均不提拔。
