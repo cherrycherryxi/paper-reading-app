@@ -191,6 +191,24 @@ test("E289: 其他书与指定书范围不会被当前书前 30 条挤占", () =
   assert.deepEqual(c.labels(), ["目标书 · 跨书目标"]);
 });
 
+test("OPT-176: 命中最多的一本书不独占前 30 个槽位，其他匹配书仍会浮现", () => {
+  const books = [{ id: "b1", title: "来源书" }, { id: "b2", title: "命中书" }, { id: "b3", title: "第三本" }];
+  const quotes = [
+    { id: "source", bookId: "b1", kind: "quote", content: "来源摘抄。", tags: [] },
+    // 命中书（非来源书）有 40 条命中，第三本只有 1 条命中——若只按匹配强度排序并
+    // slice(0,30)，命中书会独占全部槽位，第三本的跨书命中永不浮现。
+    ...Array.from({ length: 40 }, (_, i) => ({ id: `b2-${i}`, bookId: "b2", kind: "quote", content: `主题词 命中书摘抄${i}`, tags: [] })),
+    { id: "b3-hit", bookId: "b3", kind: "quote", content: "主题词 第三本目标", tags: [] },
+  ];
+  const c = mountQuoteCombobox(quotes, { books, scope: "other", sourceQuoteId: "source" });
+  c.open();
+  c.type("主题词");
+
+  const labels = c.labels();
+  assert.ok(labels.includes("第三本 · 主题词 第三本目标"),
+    `第三本的跨书命中应浮现，实际: ${labels.join(" | ")}`);
+});
+
 test("E289: 清除按钮同时移除可见标签和隐藏的目标 ID", () => {
   const c = mountQuoteCombobox([TYPED_QUOTE]);
   c.wrapper._comboboxSetValue("q-typed");
