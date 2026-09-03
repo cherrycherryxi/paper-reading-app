@@ -1659,7 +1659,7 @@ Format per item:
 - how: 把用户名二次确认改用项目内既有确认对话框样式（如给 `showConfirmDialog` 加可选文本输入槽），或改为弹窗内输入框 + 校验，替换原生 `prompt`。需在 iOS 真机与前端回归测试中验证注销能完成、用户名不匹配时能取消。Touch: `app.js:4962-4990`；`index.html`（账号抽屉）；`tests/frontend/regression-fixed-bugs.test.js`。
 
 ### OPT-176 — 关联目标摘抄检索被单本书挤占，跨书匹配无法浮现 — 由 explore E313 提拔 [2026-08-31]
-- status: triaged
+- status: done — ✅ PR #139 / `633a3a0` 已合入 [2026-09-03]；`filteredQuotes()` 排序后按 bookId 分组、书间轮流各取一条，命中多书时每本匹配书都会浮现
 - area: frontend / ux / retrieval
 - priority: P1
 - size: M
