@@ -2636,6 +2636,13 @@ def _detect_image_type(binary: bytes) -> str | None:
 
 def save_image(user_id: str, data_url: str, filename: str = "") -> str:
     binary, mime_type = decode_data_url(data_url)
+    if not binary:
+        # Guard: never persist an empty image. Before this check an empty
+        # request body could arrive as "data:image/jpeg;base64," and overwrite a
+        # quote's saved imageUrl with a 0-byte file (photo "vanished" + OCR
+        # "empty image" failures). Re-OCR on an existing quote must reuse the
+        # saved image instead of clobbering it.
+        raise ValueError("image data is empty")
     detected = _detect_image_type(binary)
     extension = detected or mime_type.split("/")[-1] or "jpg"
     safe_name = f"{uuid.uuid4().hex[:16]}.{extension}"
@@ -4330,7 +4337,14 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(metadata, dict):
             raise ValueError("invalid OCR metadata")
         mime_type = str(metadata.get("contentType") or self.headers.get("X-OCR-Content-Type") or "image/jpeg")
-        metadata["imageDataUrl"] = image_bytes_to_data_url(binary, mime_type)
+        # A raw-body upload with zero bytes (empty blob) must NOT become a
+        # truthy "data:image/jpeg;base64," data-url: the OCR handler would treat
+        # it as a new empty image, overwrite the quote's saved imageUrl with an
+        # empty file and fail recognition (bug: re-OCR on an existing quote
+        # "lost" the photo). An empty body means the client only sent metadata
+        # (imageUrl reuse) — leave imageDataUrl empty so the handler falls back
+        # to media_url_to_data_url on the previously-uploaded image.
+        metadata["imageDataUrl"] = image_bytes_to_data_url(binary, mime_type) if binary else ""
         return metadata
 
     def _get_token(self) -> str | None:

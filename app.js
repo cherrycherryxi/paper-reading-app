@@ -206,9 +206,14 @@ const els = {
   confirmDialogCancelBtn: document.querySelector("#confirmDialogCancelBtn"),
   confirmDialogInputWrap: document.querySelector("#confirmDialogInputWrap"),
   confirmDialogInput: document.querySelector("#confirmDialogInput"),
+  quoteDiscardDialog: document.querySelector("#quoteDiscardDialog"),
+  quoteDiscardSaveBtn: document.querySelector("#quoteDiscardSaveBtn"),
+  quoteDiscardContinueBtn: document.querySelector("#quoteDiscardContinueBtn"),
+  quoteDiscardExitBtn: document.querySelector("#quoteDiscardExitBtn"),
   bookDialog: document.querySelector("#bookDialog"),
   sessionDialog: document.querySelector("#sessionDialog"),
   quoteDialog: document.querySelector("#quoteDialog"),
+  quoteCancelBtn: document.querySelector("#quoteCancelBtn"),
   openBookDialogBtn: document.querySelector("#openBookDialogBtn"),
   sampleBanner: document.querySelector("#sampleBanner"),
   sampleBannerText: document.querySelector("#sampleBanner .sample-banner-text"),
@@ -820,6 +825,12 @@ function normalizeOcrText(text) {
     .map((line) => line.trim())
     .join("\n")
     .trim();
+}
+
+function endsWithSentencePunctuation(text) {
+  // 句末标点才算「句子完整结束」。句中标点（，、；：）不算——照片常把
+  // 段中一句裁到两页，末行以句中标点或光秃秃收尾时应与下一页无缝相接。
+  return /[。！？….!?]$/.test(String(text || "").trimEnd());
 }
 
 function isStalePendingOcr(quote, now = Date.now()) {
@@ -3045,6 +3056,60 @@ function discardProvisionalOcrQuote() {
   syncState()
     .then(() => { renderHero(); renderSummary(); renderQuotes(); })
     .catch(() => {});
+}
+
+// 新增摘抄对话框里已有实质内容（照片 / OCR 卡 / 手填字段）时，取消或 Esc 会丢掉全部工作。
+// 关闭前先弹 quoteDiscardDialog 问一句：保存卡片 / 继续编辑 / 放弃。空表单保持一键取消。
+// 仅编辑已有卡片（quoteDialogIsNew=false）不拦——卡片本身还在，丢的只是本次改动。
+function quoteDraftHasContent() {
+  if (ocrProvisionalQuoteId) return true;
+  const hasPhoto = (p) => !!(p && (p.objectUrl || p.dataUrl || p.savedUrl || p.compressionPromise));
+  if (hasPhoto(pendingQuoteImage) || hasPhoto(pendingQuoteImage2)) return true;
+  const fieldValue = (name) =>
+    String(els.quoteForm?.querySelector?.(`[name="${name}"]`)?.value || "").trim();
+  return !!(fieldValue("page") || fieldValue("reflection") || fieldValue("tags") ||
+    String(els.quoteContent?.value || "").trim());
+}
+
+// 取消按钮与 Esc 的统一关闭入口：有内容先确认，确认后仍走 els.quoteDialog.close()，
+// 由既有 close 监听 discardProvisionalOcrQuote 负责清理 OCR 临时卡（本函数不重复删除）。
+function requestCloseQuoteDialog() {
+  if (quoteDialogIsNew && quoteDraftHasContent()) {
+    showQuoteDiscardDialog();
+    return;
+  }
+  els.quoteDialog.close();
+}
+
+function showQuoteDiscardDialog() {
+  els.quoteDiscardDialog.showModal();
+  const onSave = () => {
+    cleanup();
+    els.quoteDiscardDialog.close();
+    // 走正常表单提交：缺书等校验失败会 toast「先选择一本书」并留在编辑，内容不丢。
+    els.quoteForm?.requestSubmit?.();
+  };
+  const onContinue = () => {
+    cleanup();
+    els.quoteDiscardDialog.close();
+  };
+  const onExit = () => {
+    cleanup();
+    els.quoteDiscardDialog.close();
+    els.quoteDialog.close();
+  };
+  function cleanup() {
+    els.quoteDiscardSaveBtn.removeEventListener("click", onSave);
+    els.quoteDiscardContinueBtn.removeEventListener("click", onContinue);
+    els.quoteDiscardExitBtn.removeEventListener("click", onExit);
+    els.quoteDiscardDialog.removeEventListener("cancel", cleanup);
+  }
+  // 在本确认框上按 Esc（原生 cancel）= 「不退了，继续编辑」：解除监听并关掉确认框，
+  // quoteDialog 保持打开。下一次弹框会重新绑定。
+  els.quoteDiscardDialog.addEventListener("cancel", cleanup, { once: true });
+  els.quoteDiscardSaveBtn.addEventListener("click", onSave, { once: true });
+  els.quoteDiscardContinueBtn.addEventListener("click", onContinue, { once: true });
+  els.quoteDiscardExitBtn.addEventListener("click", onExit, { once: true });
 }
 
 function hideOcrLineSelector() {
@@ -5656,8 +5721,9 @@ async function applyQuoteImageCrop() {
 function buildOcrRequestOptions(dataUrl, metadata) {
   // Send compressed bytes directly when the browser supports Blob/atob. Keep
   // JSON data-url fallback for older WebViews and the test harness.
+  const hasImageData = typeof dataUrl === "string" && dataUrl.startsWith("data:");
   try {
-    if (typeof Blob !== "undefined" && typeof atob === "function") {
+    if (hasImageData && typeof Blob !== "undefined" && typeof atob === "function") {
       const [header, encoded] = String(dataUrl).split(",", 2);
       const mimeType = header.match(/^data:([^;]+)/i)?.[1] || "image/jpeg";
       const binary = atob(encoded || "");
@@ -5676,7 +5742,11 @@ function buildOcrRequestOptions(dataUrl, metadata) {
   }
   return {
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...metadata, imageDataUrl: dataUrl }),
+    // No image bytes = re-OCR reusing an already-uploaded imageUrl (edit mode).
+    // Sending a 0-byte blob body would make the backend treat it as an empty
+    // new image and clobber the saved one — keep imageDataUrl empty instead so
+    // the server falls back to loading the saved image.
+    body: JSON.stringify({ ...metadata, imageDataUrl: hasImageData ? dataUrl : "" }),
   };
 }
 
@@ -5870,7 +5940,12 @@ async function runOcrFromImage(engine = "fast") {
             const text2 = String(data2.recognizedText || "");
             if (text2) {
               const firstPageText = guardPass ? recognized : currentVal;
-              const merged = [firstPageText, text2].filter(Boolean).join("\n\n");
+              // 跨页拼接：照片常把同一段（甚至同一句）裁到两页上，页边界
+              // 不一定是段落边界。页 1 末行是完整句子（以句末标点结尾）才
+              // 插空行分段；若句子被裁断（无句末标点）则无缝衔接，否则句子
+              // 中间会出现空白段（用户每次都要手动删）。
+              const pageBreak = endsWithSentencePunctuation(firstPageText) ? "\n\n" : "";
+              const merged = [firstPageText, text2].filter(Boolean).join(pageBreak);
               els.quoteContent.value = merged;
               renderOcrLineSelector(merged);
               didSecondPage = true;
@@ -6796,8 +6871,17 @@ function bindEvents() {
     button.addEventListener("click", () => closeDialog(document.getElementById(button.dataset.closeDialog)));
   });
 
-  // 取消（按钮 / Esc）关闭摘抄对话框且未保存时，删除 OCR 临时创建但未确认的卡片。
-  // 保存路径已在 addQuote 里先清空 ocrProvisionalQuoteId，故这里只命中真正的取消。
+  // 摘抄对话框的两个关闭入口（取消按钮 / Esc）统一走 requestCloseQuoteDialog：
+  // 新增流程已有照片 / 识别内容时先弹「保存卡片 / 继续编辑 / 放弃」确认，防止误触丢卡。
+  els.quoteCancelBtn?.addEventListener("click", () => requestCloseQuoteDialog());
+  els.quoteDialog?.addEventListener("cancel", (event) => {
+    // Esc 的默认行为是直接关 dialog；先拦下，有内容走确认，空表单照常关闭。
+    event.preventDefault();
+    requestCloseQuoteDialog();
+  });
+  // 未保存就真正关闭时，删除 OCR 临时创建但未确认的卡片。
+  // 保存路径已在 addQuote 里先清空 ocrProvisionalQuoteId，故这里只命中真正的取消
+  //（含 quoteDiscardDialog 里「放弃」后的 close）。
   els.quoteDialog?.addEventListener("close", discardProvisionalOcrQuote);
 
   els.bookForm?.addEventListener("submit", (event) => {

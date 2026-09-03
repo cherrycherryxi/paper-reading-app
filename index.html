@@ -640,10 +640,26 @@
         <label><span>我的理解</span><textarea name="reflection" rows="3" placeholder="为什么值得记？它和你现在的问题有什么关系？"></textarea></label>
         <input type="hidden" name="id" id="quoteId" />
         <div class="dialog-actions">
-          <button type="button" class="button button-ghost" data-close-dialog="quoteDialog">取消</button>
+          <button type="button" class="button button-ghost" id="quoteCancelBtn">取消</button>
           <button type="submit" class="button button-primary">保存卡片</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- 新增摘抄已有照片/识别内容时，取消前的防误触确认（保存卡片 / 继续编辑 / 放弃）。
+         注意：本应用没有「草稿」状态——「保存卡片」= 正常保存，产物就是正式卡片，
+         列表里随时可继续编辑。按钮文案必须与行为一致。 -->
+    <dialog id="quoteDiscardDialog" class="delete-confirm-dialog" aria-labelledby="quote-discard-title">
+      <div class="dialog-form">
+        <h2 id="quote-discard-title" class="delete-confirm-title">这张摘抄还没保存</h2>
+        <p class="delete-confirm-body">关闭对话框，照片和识别好的内容就会被丢弃。</p>
+        <p class="delete-confirm-warning">先保存成卡片就能从摘抄列表里继续编辑补全；不想要就直接放弃。</p>
+        <div class="dialog-actions dialog-actions--quote-discard">
+          <button type="button" class="button button-primary" id="quoteDiscardSaveBtn">保存卡片</button>
+          <button type="button" class="button button-ghost" id="quoteDiscardContinueBtn">继续编辑</button>
+          <button type="button" class="button button-danger" id="quoteDiscardExitBtn">放弃</button>
+        </div>
+      </div>
     </dialog>
 
     <dialog id="quoteCropDialog" class="quote-crop-dialog" aria-labelledby="quoteCropDialogTitle">

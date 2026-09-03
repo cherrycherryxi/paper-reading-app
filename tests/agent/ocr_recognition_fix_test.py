@@ -603,6 +603,100 @@ class OCRRecognitionFixTests(unittest.TestCase):
         self.assertEqual(quote["reflection"], "先写我的理解")
         self.assertEqual(quote["ocrStatus"], "done")
 
+    def test_fast_ocr_empty_octet_body_reuses_saved_image_without_overwrite(self):
+        # Regression: the Blob upload path sends a 0-byte body when the client
+        # has no new image (edit-mode re-OCR reusing the saved imageUrl). That
+        # empty body used to become a truthy "data:image/jpeg;base64,", so the
+        # handler saved a 0-byte file, overwrote the quote's imageUrl with it
+        # and OCR failed with Baidu "empty image" — the photo "vanished".
+        # Empty body must fall back to loading the saved image (IMAGE_LOADED),
+        # never persist anything.
+        image_bytes, _ = app_server.decode_data_url(TEST_IMAGE_DATA_URL)
+        user_dir = app_server.UPLOAD_DIR / self.user_id
+        user_dir.mkdir(parents=True, exist_ok=True)
+        (user_dir / "existing.png").write_bytes(image_bytes)
+        image_url = f"/media/{self.user_id}/existing.png"
+        state = {
+            **app_server.INITIAL_STATE,
+            "books": [{"id": "book-1", "title": "测试书", "author": "作者"}],
+            "quotes": [{
+                "id": "quote-1",
+                "bookId": "book-1",
+                "page": 8,
+                "kind": "quote",
+                "content": "",
+                "reflection": "",
+                "tags": [],
+                "imageUrl": image_url,
+                "createdAt": app_server.now_iso(),
+            }],
+        }
+        conn = app_server.get_conn()
+        app_server.save_state(conn, self.user_id, state)
+        conn.close()
+
+        received = {}
+        original_run_fast_ocr = app_server.run_fast_ocr
+
+        def fake_run_fast_ocr(image_data_url, trace_event=None):
+            received["data_url"] = image_data_url
+            from types import SimpleNamespace
+            return SimpleNamespace(text="整页识别出的文字"), "快速识别"
+
+        app_server.run_fast_ocr = fake_run_fast_ocr
+        try:
+            metadata = {
+                "quoteId": "quote-1",
+                "bookId": "book-1",
+                "engine": "fast",
+                "imageUrl": image_url,
+                "contentType": "image/jpeg",
+            }
+            import urllib.parse
+
+            headers = {
+                "Content-Type": "application/octet-stream",
+                "Content-Length": "0",
+                "X-OCR-Metadata": urllib.parse.quote(json.dumps(metadata)),
+                "Authorization": f"Bearer {self.token}",
+            }
+            handler = app_server.Handler.__new__(app_server.Handler)
+            handler.path = "/api/quotes/ocr"
+            handler.command = "POST"
+            handler.headers = headers
+            handler.rfile = BytesIO(b"")
+            handler.wfile = BytesIO()
+            handler._status_code = None
+            handler.send_response = lambda code: setattr(handler, "_status_code", code)
+            handler.send_header = lambda *args, **kwargs: None
+            handler.end_headers = lambda: None
+            handler.do_POST()
+
+            self.assertEqual(handler._status_code, 200)
+            payload = json.loads(handler.wfile.getvalue().decode("utf-8"))
+            self.assertEqual(payload["status"], "done")
+            self.assertEqual(payload["recognizedText"], "整页识别出的文字")
+        finally:
+            app_server.run_fast_ocr = original_run_fast_ocr
+
+        # The engine received the REAL image bytes (read back from the saved
+        # file), not an empty data-url.
+        decoded, _ = app_server.decode_data_url(received["data_url"])
+        self.assertEqual(decoded, image_bytes)
+
+        conn = app_server.get_conn()
+        saved = app_server.load_state(conn, self.user_id)
+        conn.close()
+        quote = next(item for item in saved["quotes"] if item["id"] == "quote-1")
+        self.assertEqual(quote["imageUrl"], image_url)  # not overwritten by an empty file
+        self.assertEqual(quote["ocrStatus"], "done")
+
+    def test_save_image_rejects_empty_data_url(self):
+        # Guard: never persist a 0-byte image — an empty data-url used to
+        # create an empty file whose URL then replaced the real imageUrl.
+        with self.assertRaises(ValueError):
+            app_server.save_image(self.user_id, "data:image/jpeg;base64,", "empty.jpg")
+
     def test_quote_ocr_uses_rescue_prompt_when_first_response_is_empty(self):
         state = {
             **app_server.INITIAL_STATE,

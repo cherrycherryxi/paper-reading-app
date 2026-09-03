@@ -59,7 +59,7 @@ function createOcrSelectorStub() {
 }
 
 function createHarness(opts = {}) {
-  const { secondImageDataUrl = "data:image/jpeg;base64,img2", fetchReturnsText2 = true, firstResponseStatus = "done" } = opts;
+  const { secondImageDataUrl = "data:image/jpeg;base64,img2", fetchReturnsText2 = true, firstResponseStatus = "done", firstText = TEXT1, secondText = TEXT2 } = opts;
 
   const ocrSel = createOcrSelectorStub();
   const quoteContent = fieldStub("");
@@ -106,7 +106,7 @@ function createHarness(opts = {}) {
       fetchCalls.push(String(url));
       if (String(url).includes("/api/quotes/ocr")) {
         const isFirstCall = callIndex === 0;
-        const recognizedText = isFirstCall ? TEXT1 : (fetchReturnsText2 ? TEXT2 : "");
+        const recognizedText = isFirstCall ? firstText : (fetchReturnsText2 ? secondText : "");
         const responseStatus = isFirstCall ? firstResponseStatus : "done";
         callIndex++;
         return {
@@ -187,6 +187,27 @@ test("two images: fast OCR preserves both pages' Baidu visual lines before rebui
     ["0", "0", "0", "1", "1", "1"],
     "line editor must receive all original lines from page 1 and page 2",
   );
+});
+
+test("two images: sentence split across the page boundary joins seamlessly (no blank gap)", async () => {
+  // 照片把同一句裁到两页：页 1 末行无句末标点。页边界绝不能插空行——
+  // 句子中间出现空白段是用户必须手动删的坏结果（bug 修复）。
+  const SPLIT_TEXT1 = ["第一页第一行。", "第一页第二行。", "……正常和"].join("\n");
+  const SPLIT_TEXT2 = ["可以接受，或者根本无法被看见，直接隐形。", "第二页第二行。"].join("\n");
+  const { hooks, ocrSel, quoteContent } = createHarness({ firstText: SPLIT_TEXT1, secondText: SPLIT_TEXT2 });
+  await hooks.runOcrFromImage("fast");
+
+  assert.equal(
+    quoteContent.value,
+    "第一页第一行。第一页第二行。……正常和可以接受，或者根本无法被看见，直接隐形。第二页第二行。",
+    "split sentence must join without a blank line, keeping the paragraph continuous",
+  );
+  assert.deepEqual(
+    Array.from(ocrSel.rows, (row) => row.dataset.section),
+    ["0", "0", "0", "0"],
+    "split-across-pages paragraph stays in one section (page 1 last line + page 2 first line merged)",
+  );
+  assert.equal(ocrSel.rows[2].input.value, "……正常和可以接受，或者根本无法被看见，直接隐形。", "torn sentence must sit on one merged visual line");
 });
 
 test("two images: status text reflects two-page completion", async () => {

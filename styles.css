@@ -791,6 +791,16 @@ textarea {
   line-height: 1.5;
 }
 
+/* 摘抄取消确认：340px 内排三个动作按钮（保存卡片 / 继续编辑 / 放弃），收窄留白防换行。 */
+.dialog-actions--quote-discard {
+  gap: 8px;
+}
+.dialog-actions--quote-discard .button {
+  padding: 10px 14px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
 /* Import result dialog (OPT-041) */
 .import-result {
   max-width: 320px;
