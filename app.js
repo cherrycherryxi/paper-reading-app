@@ -6210,7 +6210,7 @@ function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
     const sourceId = String(source?.id || "");
     const sourceBookId = String(source?.bookId || "");
     const scope = activeScope();
-    return allQuotes.map((item, index) => {
+    const ranked = allQuotes.map((item, index) => {
       const book = state.books.find((b) => b.id === item.bookId);
       const haystack = [quoteText(item), book?.title || "", ...(item.tags || []), item.reflection || ""]
         .map((value) => String(value).toLowerCase()).join(" ");
@@ -6225,7 +6225,26 @@ function initQuoteCombobox(wrapperEl, hiddenInput, options = {}) {
       b.matchedTerms - a.matchedTerms || Number(b.exact) - Number(a.exact) ||
       Number(sourceBookId && String(b.item.bookId) !== sourceBookId) - Number(sourceBookId && String(a.item.bookId) !== sourceBookId) ||
       a.index - b.index
-    ).slice(0, 30).map(({ item }) => item);
+    );
+    // 跨书均衡：排序后仍按书分组（组内保持匹配强度顺序），再在书间轮流各取一条，
+    // 避免命中最多的一本书独占前 30 个槽位、把其他匹配书挤得永远不出现（OPT-176）。
+    const groups = [];
+    const groupOf = new Map();
+    for (const entry of ranked) {
+      const key = String(entry.item.bookId);
+      if (!groupOf.has(key)) { groupOf.set(key, groups.length); groups.push([]); }
+      groups[groupOf.get(key)].push(entry);
+    }
+    const balanced = [];
+    const cursor = new Array(groups.length).fill(0);
+    let advanced = true;
+    while (balanced.length < 30 && advanced) {
+      advanced = false;
+      for (let g = 0; g < groups.length && balanced.length < 30; g++) {
+        if (cursor[g] < groups[g].length) { balanced.push(groups[g][cursor[g]++]); advanced = true; }
+      }
+    }
+    return balanced.map(({ item }) => item);
   }
 
   function positionList() {
