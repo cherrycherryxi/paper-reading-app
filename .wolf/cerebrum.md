@@ -229,6 +229,7 @@
 - [2026-06-02] **划线句子提取归 AI 精识别，快路径(百度)不做划线检测。** OPT-016 后用户问"百度能只识别划线句子吗"。结论：传统 OCR(百度/腾讯)不理解"划线"语义、无此接口，整页全识别。App 的划线提取一直由 AI 精识别(Kimi)路径承担——`OCR_PROMPT`(app_server.py:787)指示"只提取用户划线、标记或框选的正文"，无划线时取主段落，`未发现划线文字`为其空结果哨兵。曾评估"给百度快路径加下划线检测(找横线笔画+按行 location 过滤)"以实现"快+只要划线"，但真实照片下下划线检测鲁棒性差(底纹/表格线/页边/倾斜误判)、且稳妥实现要引入 OpenCV 重依赖——故**维持现状**：快路径(百度)=整页快速录入，AI 精识别=划线精准提取。两档分工即产品设计，勿再给快路径加划线检测。
 
 - [2026-05-12] **Auth panel redesigned as login-first tabbed UI.** Two forms (login + register) now tab-switch instead of sitting side-by-side. Login tab shown first by default. Tab panels use `display: contents` when active so the inner `<form>` participates in parent grid layout correctly.
+- [2026-09-05] **triage 指派落地复核**：夜间 Agent1(triage)续指前，用 `git log --all` 复核上次指派是否已产生实现 commit/PR——OPT-181 09-04 被指派给夜间 implement 但截至 09-05 全量 refs 无任何实现（仅 da4bbff kimi 模型直改），判定「指派后空转一夜」而非已占用预算，故本夜**续指同一项**而非另开低价值项填槽；若再空转一夜应升级 07:00 晨间查因。教训：指派 ≠ 完成，done 判定与续指决策都以 git 证据为准，不凭 triage 记录臆断。
 
 - [2026-05-12] **外网访问方案选型：ngrok（当前）。** 用户 iPhone 已有 VPN，iOS 只允许一个 VPN 配置，故排除 Tailscale。ngrok 免费版够用（个人使用 + 偶尔演示）。每次重启 ngrok 地址会变，这是已知限制，可接受。未来若需要固定域名可迁移至 Cloudflare Tunnel（需购买域名约 ¥60–80/年）。启动命令：`ngrok http 8787`。
 

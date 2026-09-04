@@ -1710,7 +1710,7 @@ Format per item:
 - how: 同 OPT-178 的写路径收口族，可一并考虑统一「后端非 GET 全量写入口先取版本、冲突让出」的助手。探讨论证变更通常只涉及 `chatHistories`/`chatContexts` 两个字段，优先尝试「save 前重读最新 state、仅把本次回复追加的 history/context 写回」以最小化覆盖面，而非全量覆盖。Touch: `app_server.py:6076,6123,6217,986-995`；对照 `3804-3815`、`6645-6665`、OPT-178（`1824,1843,5980`）；`tests/agent/` 探讨相关。
 
 ### OPT-181 — 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 — 由 explore E330 提拔 [2026-09-03]
-- status: triaged — [2026-09-04 triage] P1/S 夜间指派：复用 `logout()` teardown + 会话过期回归；可选「保留离线会话过期态」增强涉 owner 取舍、排除在夜间范围外
+- status: triaged — [2026-09-04 triage] P1/S 夜间指派：复用 `logout()` teardown + 会话过期回归；可选「保留离线会话过期态」增强涉 owner 取舍、排除在夜间范围外；[2026-09-05 triage] 续指：git 全量 refs 复核 09-04 指派后无实现 commit，本夜续指同项，若再空转一夜升级 07:00 晨间查因
 - area: frontend / data safety / session
 - priority: P1
 - size: S
@@ -1720,7 +1720,7 @@ Format per item:
 - how: 让 401 分支补上与 `logout()` 一致的 teardown（可选：保留当前用户已离线状态为「会话过期」而非彻底登出，但至少需隐藏真实数据/回登录墙），并加会话过期回归测试断言过期后不再显示「已同步」与真实私有数据。Touch: `app.js:535-542,2834-2842,1587-1601,1152-1156`；`tests/frontend/`（会话过期回归）。
 
 ### OPT-182 — chat 流式回复每 token 无条件 `scrollToBottom()`，击溃上翻阅读与自带「回到底部」逃生口 — 由 explore E336 提拔 [2026-09-04]
-- status: new
+- status: triaged — [2026-09-05 triage] P1/S 候补夜间：northstar 中强低于 OPT-181 且涉「上翻 vs 自动跟随」UX 取舍，本夜单指派已用 → 不指派，紧接 OPT-181 之后/下一夜
 - area: frontend / chat / ux
 - northstar: 中强——探讨/深读是北极星「回顾」里最高频动作（signals 回顾操作 ≈ 探讨次数），流式输出的再阅读正是回顾场景；长回复期间无法上翻回看更早文本是确定性体验缺陷，且与产品自建的「回到底部」逃生口语义冲突，S 级修复无 owner 分歧。
 - description: SSE 流式在 `evt.delta` 分支逐 token 调 `thinking.textContent += evt.delta; scrollToBottom();`（`chat.js:668-673`）。`scrollToBottom`（`chat.js:447-450`）无条件把 `els.messages.scrollTop` 置底并把 `scrollBtnRow.hidden = true`。消息容器的滚动监听（`chat.js:919-922`）本会在用户滚离底部时显示悬浮「回到底部」按钮——但流式期每个 token 都钉回底部并隐藏该按钮，用户无法上翻回看早前内容，越翻越被拽回底部；这个为离开底部阅读而建的逃生口在整个流式期形同虚设。

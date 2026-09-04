@@ -2,33 +2,37 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-09-04
+Last triaged: 2026-09-05
 
 ## Next up
 
-**状态：指派 1 项（OPT-181，夜间 S 适配）。其余未完成项均不合夜间 S 边界，留 07:00 晨间候选卡 / 功能轨。**
+**状态：指派 1 项（OPT-181，夜间 S 适配，续指）。其余未完成项均不合夜间 S 边界或为候补，留 07:00 晨间候选卡 / 功能轨 / 下一夜。**
 
-本夜核验所有未完成 backlog 项后，仅 **OPT-181** 符合夜间轨边界（复杂度 S、验收边界清楚、无 owner 产品/设计判断的纯正确性缺口），故指派；不为填满预算追加指派其余 M/L 项。
+本夜核验所有未完成 backlog 项后，仍仅 **OPT-181** 符合夜间轨边界（复杂度 S、验收边界清楚、无 owner 产品/设计判断的纯正确性缺口），且自 09-04 指派后 git 全量 refs 中**无任何实现 commit / PR**（`git log --all` 未见 OPT-181/会话过期改动），故本夜续指而非新开低价值项；不为填满预算追加指派其余 M/L 项。
 
 **指派：OPT-181 — 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步（P1 / S）**
 - **夜间适配：是** —— S 级、验收边界清楚（复用 `logout()` 的完整 teardown + 会话过期回归断言）、属明确的正确性缺口、无 owner 产品/设计判断，夜间轨可独立完成。
-- 理由：`apiFetch` 的 401 分支（`app.js:535-542`）只清 `authToken`/`currentUser`/`stateVersion` + toast「登录已过期」+ `dispatchUserChange()`，**不** reset `state`、`render()`、`activateTab("me")`、`loadDemoPreview()`；显式 `logout()`（`app.js:2834-2842`）却完整 teardown。结果 token 失效后界面仍停在真实私有数据 + 「已同步」标识，后续每次写请求逐次 401，属实现遗漏而非设计取舍（保留 429/409 分支不受影响）。验收：会话过期后不再显示「已同步」与真实私有数据、回登录墙；回归测试在树。
-- 关键文件：`app.js:535-542, 2834-2842, 1152-1156, 1587-1601`；`tests/frontend/`（会话过期回归）。signal/Theme：Theme 3「积累可信」数据可信缺口，会话过期是登录账号正常生命周期的脱同步信任 gap。可选增强「保留为离线会话过期态而非彻底登出」涉 owner 产品取舍，明确排除在夜间范围外，留晨间由 owner 定夺。
+- 理由（本夜定向复核 `app.js`）：401 分支（`app.js:535-542,543`）只清 `authToken`/`currentUser`/`stateVersion` + toast「登录已过期」+ `dispatchUserChange()`，**不** reset `state`、`render()`、`activateTab("me")`、`loadDemoPreview()`；显式 `logout()`（`app.js:2843-2852`）却 `setAuthToken("")`→`currentUser=null`→`state=normalizeStateShape(initialState)`→`render()`→`dispatchUserChange()`→`activateTab("me")`→`loadDemoPreview()` 完整 teardown。结果 token 失效后界面仍停在真实私有数据 + 「已同步」标识，后续写请求逐次 401，属实现遗漏而非设计取舍（429/409 分支 `app.js:547-552` 不受影响）。验收：会话过期后不再显示「已同步」与真实私有数据、回登录墙；回归测试在树。
+- 关键文件：`app.js:535-545, 2843-2852, 1152-1156, 1587-1601`；`tests/frontend/`（会话过期回归）。signal/Theme：Theme 3「积累可信」数据可信缺口，会话过期是登录账号正常生命周期的脱同步信任 gap。可选增强「保留为离线会话过期态而非彻底登出」涉 owner 产品取舍，明确排除在夜间范围外，留晨间由 owner 定夺。
+- **续指注记**：09-04 triage 已把 OPT-181 交夜间 implement，但截至本夜快照未产生任何实现（git 无 commit/branch），非预算或 scope 所致。本夜续指同一项，期望 tonight implement 实际落盘；若再空转一夜应升级给 07:00 晨间查因。
 
-**夜间适配否决（其余未完成项，2026-09-04 复评）：**
+**本夜新纳入候选（OPT-182，**不**指派）：** E336 09-04 提拔、`status: new` 首见。chat 流式逐 token 无条件 `scrollToBottom()`（`chat.js:668-673`）击溃上翻再阅读。S 级、验收边界清楚（仅已在底部才自动跟随）、northstar 中强（探讨是北极星「回顾」最高频动作）。因本夜单指派已用于更高 northstar 的 OPT-181，OPT-182 暂列 **P1/S triaged 候补夜间**（紧接 OPT-181 之后或下一夜），不改 `status` 为 assigned。
+
+**夜间适配否决（其余未完成项，2026-09-05 复评）：**
 - OPT-177（P1/M）：deleteQuote/deleteSession 失败不回滚。M 级，涉删除失败回滚的数据安全语义与联带清理范围 → 留晨间候选卡。
 - OPT-178（P1/L）：服务端 OCR 写路径绕过乐观锁整表写 state。L 级，后端并发写架构取舍 → 留功能轨。
 - OPT-179（P1/M）：state_conflict 时摘抄/书/记录仍播报成功。M 级，需统一多路调用方（含 E326 scope note 补充的 `saveBookEdit`/`deleteBook`）→ 留晨间候选卡。
-- OPT-180（P1/M，本夜新纳入）：`/api/chat/stream` 长 LLM 流式期间持整份 state 快照、结束后整表盲写回。与 OPT-178 同族，M 级后端并发写架构取舍 → 留功能轨，与 OPT-178 一并收口。
+- OPT-180（P1/M）：`/api/chat/stream` 长 LLM 流式期间持整份 state 快照、结束后整表盲写回。与 OPT-178 同族，M 级后端并发写架构取舍 → 留功能轨，与 OPT-178 一并收口。
+- OPT-182（P1/S，本夜新见）：chat 流式滚动。S 级合规，但 northstar 中强低于 OPT-181 且涉「上翻 vs 自动跟随」的 UX 取舍，本夜单指派已用 → 候补，不指派。
 - P3 parked/blocked 13 项（OPT-032/035/036/044/046/048/050/051/081/089/117/124/144）维持不变，见未完成项重评。
 
-**预算状态（2026-09-04）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **4**，上限 **8**，剩余 4 个预算位，未达上限。本夜指派 OPT-181（1 个 auto PR 预算位，4→3），不调用 `gh` 或 GitHub API。
+**预算状态（2026-09-05）：** 外层一次性统计最近 7 天 `auto/` PR 数为 **3**，上限 **8**，剩余 5 个预算位，未达上限（证据可用，非 UNKNOWN）。本夜指派 OPT-181（1 个 auto PR 预算位，3→4），不调用 `gh` 或 GitHub API。
 
-**本次对账（2026-09-04）：**
-- **新增 done 1 项：OPT-176 → done**。证据：`633a3a0`「fix(frontend): 跨书摘抄检索按书均衡，避免单书独占前 30 槽位 (#139)」= PR #139 已合入，`bf08138`「chore(backlog): 标记 OPT-176 已完成（PR #139）」在 backlog 标 done（backlog:1662）。triage 侧此前为 triaged P1/M，现同步标 done 并入 reconciled 清单。验收已落地（`filteredQuotes()` 按 bookId 均衡）。
-- **新增 done 0 项其余**：`e663023`「fix(app): 摘抄照片丢失、双页空白段、取消防误触三处修复」为未登记 bug-605/606/607 的夜间直修（非 OPT、不对应任何 backlog 项），无需对账。
-- **新增 backlog 项 2 条（09-03 explore E329/E330 提拔，上次 triage 后到达）**：OPT-180（探讨 `/api/chat/stream` 写路径盲写回）、OPT-181（会话过期 401 不清 UI）——已纳入本夜逐项判定。
-- **当前 Theme 复评（2026-09-04，Theme 3「积累可信」8/10–9/06 期末）**：五个 P1 未完成项（OPT-177/178/179/180/181）northstar 均为强（数据可信 / 静默丢失 / 并发覆盖 / 会话脱同步缺口），优先级与 S/M/L 判定如上；北极星最近实测 8/30 = 8 / 24 / 30，不改变取舍。
+**本次对账（2026-09-05）：**
+- **新增 done 0 项**：上次 triage（09-04）以来 git 全量提交中唯一功能 commit 为 `da4bbff`「fix(backend): 封面/书架识别 Kimi 模型 kimi-k2.5 下线，默认切 kimi-k2.6」——非 OPT、不对应任何 backlog 项（模型配置直改），无需对账。OPT-176（#139 / `633a3a0`）已于 09-04 对账为 done，不变。
+- **新增 backlog 项 1 条（09-04 explore E336 提拔，上次 triage 后到达）**：OPT-182（chat 流式滚动）——已纳入本夜判定（候补，不指派）。
+- **续查**：OPT-181 09-04 已指派但无实现 commit（git 全量 refs 复核），维持 open、本夜续指。
+- **当前 Theme 复评（2026-09-05，Theme 3「积累可信」8/10–9/06 期末）**：五个 P1 未完成项（OPT-177/178/179/180/181）northstar 均强（数据可信 / 静默丢失 / 并发覆盖 / 会话脱同步缺口），优先级与 S/M/L 判定如上；新见 OPT-182 northstar 中强，不改变取舍；北极星最近实测 8/30 = 8 / 24 / 30，不改变取舍。
 
 **未完成项逐项重评（维持 parked/blocked）：** P3/S 为 OPT-032、035、036、044、046、048、050、051、089、124、144；P3/M 为 OPT-081；P3/L blocked 为 OPT-117。以上 13 项均缺当前 Theme / 真实 signal 的合理北极星贡献，维持 parked/blocked，不因预算尚有空间而填充指派。
 
@@ -42,7 +46,8 @@ Last triaged: 2026-09-04
 | OPT-179 | 摘抄/书/记录保存与删除在 state_conflict 时仍播报成功，本地编辑被覆盖且无提示 | **P1** | M | **triaged** | 🔜 晨间候选 [2026-09-02]：M 级，属 Theme 3 误报成功缺口，有 OPT-169 关联先例；不合夜间 S 边界，留 07:00 候选卡 |
 | OPT-178 | 服务端 OCR 写路径绕过乐观锁整表写 state，与用户并发编辑静默互踩 | **P1** | L | **triaged** | 🔜 晨间/功能轨 [2026-09-02]：L 级需拆分（局部字段只写 / 冲突让出 / 版本比对），后端并发写架构取舍；不合夜间 S 边界，留功能轨 |
 | OPT-180 | 探讨 /api/chat/stream 长 LLM 流式期间持整份 state 快照，结束后无条件整表写回，静默覆盖并发编辑 | **P1** | M | **triaged** | 🆕 [2026-09-04]：E329 提拔 new→triaged。与 OPT-178 同族的另一条整表盲写路径（`app_server.py:6076,6123,6217,986-995`）；M 级后端并发写架构取舍 → 不合夜间 S 边界，留功能轨，与 OPT-178 一并收口 |
-| OPT-181 | 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 | **P1** | S | **triaged** | 🔜 **指派夜间** [2026-09-04]：S 级纯正确性缺口，复用 `logout()` teardown，夜间适配：是 |
+| OPT-181 | 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 | **P1** | S | **triaged** | 🔜 **指派夜间** [2026-09-04，09-05 续指]：S 级纯正确性缺口，复用 `logout()` teardown，夜间适配：是；09-04 指派后无实现 commit，本夜续指 |
+| OPT-182 | chat 流式逐 token 无条件 `scrollToBottom()`，击溃上翻阅读与「回到底部」逃生口 | **P1** | S | **triaged** | 🆕 [2026-09-05]：E336 提拔 new→triaged，S 级候补夜间；northstar 中强低于 OPT-181 且涉「上翻 vs 自动跟随」UX 取舍，本夜单指派已用 → 不指派，紧接 OPT-181 之后/下一夜 |
 | OPT-174 | “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 | **P1** | M | **done** | ✅ PR #137 / `a69a67b` + `37b92d9` 已合入 [2026-08-29]；无 session 分钟时切活跃天数/新增摘抄口径，卡片与分享图同步 |
 | OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | **done** | ✅ PR #136 / `93ed07b` 已合入 [2026-08-29]；两端清洗、渲染防御与畸形数据回归已落地 |
 | OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | **done** | ✅ PR #135 / `fe6173c` 已合入 [2026-08-28]；直白标签、独立版式与源码回归已落地 |
