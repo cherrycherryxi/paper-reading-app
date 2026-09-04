@@ -60,7 +60,9 @@ def static_asset_version() -> str:
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip() or "deepseek-v4-flash"
 MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
-MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.5")
+# 2026-09-03: kimi-k2.5 已被 Moonshot 下线（Not found the model），切到 k2.6。
+# 换模型前先对可用列表（GET /v1/models）确认名字，勿凭记忆写。
+MOONSHOT_VISION_MODEL = os.getenv("MOONSHOT_VISION_MODEL", "kimi-k2.6")
 # Cloud OCR for the "快速识别" fast path (OPT-016 mid-term): commercial-grade
 # Chinese OCR via Baidu 通用文字识别·高精度版 (accurate_basic). Same urllib
 # pattern as the Kimi call — no new deps. When no key is configured the fast
@@ -4128,7 +4130,7 @@ def call_kimi_vision(messages: list[dict], max_tokens: int = KIMI_VISION_MAX_TOK
         "messages": messages,
         "max_tokens": max_tokens,
     }
-    if MOONSHOT_VISION_MODEL in {"kimi-k2.5", "kimi-k2.6"}:
+    if MOONSHOT_VISION_MODEL in {"kimi-k2.6"}:
         request_body["thinking"] = {"type": "disabled"}
 
     payload = json.dumps(request_body).encode("utf-8")

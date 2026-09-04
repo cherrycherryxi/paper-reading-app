@@ -220,13 +220,13 @@ class OCRRecognitionFixTests(unittest.TestCase):
 
         app_server.urlopen = fake_urlopen
         app_server.MOONSHOT_API_KEY = "test-key"
-        app_server.MOONSHOT_VISION_MODEL = "kimi-k2.5"
+        app_server.MOONSHOT_VISION_MODEL = "kimi-k2.6"
         app_server.KIMI_VISION_MAX_TOKENS = 4096
 
         result = app_server.call_kimi_vision([{"role": "user", "content": "extract"}])
 
         self.assertEqual(result.content, "ok")
-        self.assertEqual(observed["body"]["model"], "kimi-k2.5")
+        self.assertEqual(observed["body"]["model"], "kimi-k2.6")
         self.assertEqual(observed["body"]["thinking"], {"type": "disabled"})
         self.assertEqual(observed["body"]["max_tokens"], 4096)
 
@@ -243,7 +243,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
             def read(self):
                 return json.dumps(
                     {
-                        "model": "kimi-k2.5",
+                        "model": "kimi-k2.6",
                         "choices": [
                             {
                                 "message": {"content": "", "reasoning_content": "thinking"},
@@ -261,7 +261,7 @@ class OCRRecognitionFixTests(unittest.TestCase):
 
         app_server.urlopen = fake_urlopen
         app_server.MOONSHOT_API_KEY = "test-key"
-        app_server.MOONSHOT_VISION_MODEL = "kimi-k2.5"
+        app_server.MOONSHOT_VISION_MODEL = "kimi-k2.6"
 
         result = app_server.call_kimi_vision([{"role": "user", "content": "extract"}])
 
