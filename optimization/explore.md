@@ -5891,3 +5891,93 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱——双标签少数场景 + 短窗口，且被 OPT-181 兜底大半；仅作记录留池，不提拔。
 
 > 本次 run 从 3 个只读审计的候选池中，经本人重新打开文件逐行核实 + 关键词去重后，仅保留 5 条确属「尚未进入 backlog」的方向，并排除了 5 条实为池内/已覆盖的近似项（E243 记忆幽灵、E303 摘抄分页、E48 孤儿图片、explore:129 last_seen_at 每请求写、E66 TZ 剥离）。领域至 09-04 已高度饱和、且 OPT-177/178/179/180/181 五条 P1 数据可信项在案，本批只有 **E336**（chat 流式强制钉底击溃自带上翻逃生口）同时满足「新机制、非重复、S 级可独立收口、无 owner 分歧」→ **提拔为 OPT-182**；E335 与池内 E243 同族、E337/338/339 北极星弱中，均不提拔。
+
+## 2026-09-05
+
+> 扫描焦点：Theme 3「积累可信」临期末（8/10–9/06）。近四夜（09-01~09-04）已把深读/关联/OCR/记忆/objectURL/导入/state_conflict/后端整表写路径收口到 OPT-177~182 高度饱和；本批刻意转到一个近期未覆盖的**正交角**——前端「录入弹窗的键盘/隐式提交与 toast 真话性」+ 后端「非聊天路径的资源/DoS 硬化」+ 代码健康「读摘抄正文的 ocrText 回退漂移」——用 3 个并行只读审计（frontend-ux / backend-robustness / code-health-test）扇形扫描，再由本人重新打开当前文件逐行核实 + 关键词去重。刻意排除池内已覆盖簇：**OPT-177**（deleteQuote/deleteSession 失败不回滚）、**OPT-178/180**（后端整表盲写）、**OPT-179**（state_conflict 误报成功）、**OPT-181/182**（401 teardown / chat 流式滚动）、E243（记忆幽灵）、E321/322（objectURL 泄漏）、explore 明确排除的「matchQuotes 不接入 globalSearch」。隔离 clone 当前 `HEAD`=origin/feature/agent=`ca72e63`（09-05 晨间 triage），本地 backlog 现存最大 OPT=**OPT-182**、explore 最大 E=**E339**；open PR 数据不可用，未据此臆断。本批提拔 1 条证据最确凿、非重复、可干净独立修复的**主采集路径 toast 真话性缺口**：**E340 → OPT-183**（addQuote 图片上传失败后，随后的无条件成功 toast 把「图片上传失败」提示在同一次流转内覆盖，用户对照片实际没保存成功毫无感知）。其余 5 条真实但北极星弱中或涉取舍，留池待直接证据。
+
+### E340 — addQuote 图片上传失败时，兜底 toast「图片上传失败，先保存文字」被同次流转尾部的无条件成功 toast 覆盖，用户对照片未保存成功毫不知情 (S)
+
+**What:** `addQuote`（`app.js:4849-4934`）先 `showToast("保存中…")`（`4909`），随后在 `try` 内分两级：内层 `uploadQuoteImage(pendingImage)`（`4913`）抛错时 `catch` 弹 `"图片上传失败，先保存文字"`（`4921-4923`）——然后 `await syncState()`（`4924`）成功后，`4930` 无条件 `showToast(existingId ? "摘抄已更新" : "摘抄卡片已保存")`。图片上传失败但 syncState 成功（移动蜂窝网络的常态）时，`4923` 的失败提示在**同一次流转内**被 `4930` 的成功 toast 顶替——`showToast` 每次调用替换当前 toast，而 syncState 通常 < 2.2s toast 生命周期。于是用户最终看到的只有「摘抄卡片已保存」，卡片 `imageUrl` 恒 `""`（新卡 `4888`；编辑分支 `4914-4919` 未执行），照片被静默丢弃且无任何残留提示。
+
+**Evidence:** `state.quotes.unshift` 见 `4880`（新卡 `imageUrl:""` `4888`）；图片上传 `4913`、内层 catch `4921-4923`、`syncState` `4924`、无条件成功 toast `4930`。`showToast` 语义为替换当前 toast（本项目 toast 是单例挂 body/顶层 dialog，见 cerebrum bug-log modal 一条）。
+
+**Why:** 这是采集主路径（拍照摘抄=本 app 的核心录入）上的**真话性**缺口：产品在内层 catch 刻意想告知「图没存上、先存文字」（设计意图明确），但随后的成功 toast 把这条告知在同一次流转里吞掉——与 OPT-179（state_conflict 误报成功）不同机制（这是网络上传失败而非 409 冲突），不重复。照片是本 app 的采集本体，静默丢弃照片违反 Theme 3「积累可信」（用户以为照片已存、事后翻卡才发现空图）。
+
+**Size:** S（在内层 catch 设 `imageFailed` 标记，`4930` 的成功文案据此改「摘抄已保存（图片上传失败，可编辑补图）」；或失败时跳过成功 toast 单独停留错误提示）。
+
+**Files:** `app.js:4909-4930`；`tests/frontend/`（图片上传失败时最终 toast 含「图片上传失败」、`imageUrl` 未写且用户可见提示的回归）。→ **promoted to OPT-183**
+
+**Northstar:** 中强——修正采集主路径上「照片实际没保存却被宣告成功」的确定性信息失真，属 Theme 3 数据可信面；修复无 owner 产品分歧（保留「先存文字」降级语义，仅改正 toast 真话性），S 级可独立收口。
+
+### E341 — 书 combobox 无 Enter 守卫与键盘选项导航：摘抄/记录主录入表单里按回车触发隐式表单提交，可能以预填的上一本书提交或弹「先选择一本书」 (S/M)
+
+**What:** 摘抄/记录(book)选择器由 `initBookCombobox`（`app.js:6120-6233`）构建，只挂 `focus/input/blur`，**无任何 `keydown` 守卫**；其兄弟 `initQuoteCombobox`（连接目标选择器）却在 `6397-6411` 显式拦截 Enter（注释：「iOS 键盘『完成』会提交所在 form。搜索框内按下时只收起键盘，既不提交关联…」）。`quoteBookCombobox`/`sessionBookCombobox` 位于含 `[type=submit]` 的 `<form>`（`index.html:570/595`），`addQuote`/`addSession` 在 submit 时读 `formData.get("bookId")`（`4853`）。后果：① 摘抄对话框打开时 `lastQuoteBookId` 预填进隐藏 `bookId`（字段上可见上一本书，`6685-6688`）——用户在书字段按回车/键盘「完成」即隐式提交，落在预填的上一本书（跨书记错/归错书风险）；② 用户想打字搜索换书时，`input` 事件把 `hiddenInput.value=""`（`6202`），此时按回车 `bookId` 为空 → `addQuote` 只在 `4855` toast「先选择一本书」——键盘用户**无法用回车从下拉选中候选项**，只能手点列表项（`6173-6175` mousedown/touchstart），下拉也无 Esc 关闭。
+
+**Evidence:** `initBookCombobox` 全部监听见 `6200-6207`（focus/input/blur，无 keydown）；对照 `initQuoteCombobox` 的 Enter 守卫 `6397-6411`；`addQuote` 空 bookId 拦截 `4853-4855`；预填 `6685-6688`；下拉项只能 mouse/touch 选 `6173-6175`。确认：initBookCombobox 与 initQuoteCombobox 共享相同「iOS 键盘完成提交 form」前提，却不共享对应守卫——同族不一致。
+
+**Why:** 采集表单是最高频路径；回车该「收起键盘/停在列表」却去提交表单，是产品已为兄弟控件明确定过的坑在本控件的复制遗漏。归错书=把内容挂到错误对象上（数据可信的轻度版）；键盘不可选中=录入可达性缺口。风险窗口较 E340 窄（非输入直接回车才落预填书、输入后回车为空被拦截），故 S/M、非纯 a11y（含隐式提交的数据路由面）。
+
+**Size:** S/M（给 `initBookCombobox` 补 `keydown` Enter `preventDefault+stopPropagation` 并收起键盘/保留下拉，同 `initQuoteCombobox` 守卫）。
+
+**Files:** `app.js:6120-6233,6397-6411,4853-4855,6685-6688,6173-6175`；`index.html:570,595`；`tests/frontend/`（书字段回车不提交表单、可保留下拉选中的回归）。
+
+**Northstar:** 中——录入主路径的回车语义/可达性，但风险窗口部分条件化、且 lean 键盘/a11y（单人 owner 场景 a11y 历史上 P3 parked）；记录留池，不单独提拔。
+
+### E342 — `goToConnection` 预填搜索只取 `quote?.content`，漏 `ocrText` 回退，OCR 摘抄正文检索词退化 (S)
+
+**What:** `goToConnection` 内 `sideSearchText`（`app.js:4645-4652`）对 quote 端点返回 `[book.title, quote?.content].join(" ")`（`4651`）——只读 `content`。全库其它 quote 正文读取器已统一到规范 `quote.content || quote.ocrText || ""`（规范注释见 `app.js:6250-6254`，同文件 1075/1140/2290/2429/3454/4116/4225/4565 一致）。此处漏掉 `ocrText` 回退：当目标摘抄是「正文在 `ocrText`、`content` 为空」的 OCR 卡（OCR 录入路径的已知形态，见 cerebrum 摘抄混合集合与 content/ocrText 双字段），从该书详情/摘抄卡片跳「建立关联」时预填进连接搜索框的检索词只剩书名，正文关键词缺失——用户得手动重打才能搜到想关联的摘抄。
+
+**Evidence:** `sideSearchText` `4645-4652`（quote 分支 `4651` 只拼 `content`）；规范 `content||ocrText` 见 `6250-6254`；调用点 `4660`。grep 确认该函数是全文件少数未带 ocrText 回退的 quote 正文读取点（同批还有 `matchQuotes` `1775` / `buildQuoteSearchCard` `1936`，但后两者是**刻意不接入 globalSearch** 的死代码，见 backlog 排除表，不在本次范围）。
+
+**Why:** 关联建立是 Theme 2/3 的回顾核心；OCR 摘抄（采集主路径产物）占相当比例。预填检索词缺失=关联入口对被 OCR 卡半失效。真实影响依赖「content 空而 ocrText 有正文」的卡占比（需现场数据），故 S 级漂移、中等置信。
+
+**Size:** S（`4651` 补 `|| quote.ocrText || ""`，或抽出与 `6250` 一致的 quoteBody helper 消除漂移）。
+
+**Files:** `app.js:4645-4652`；规范 `6250-6254`；`tests/frontend/`（ocrText-only quote 的 goToConnection 预填断言）。
+
+**Northstar:** 中弱——OCR 卡关联预填退化，非数据丢失、非必现；记录留池。
+
+### E343 — OCR 图像路径无像素/解压尺寸上限，客户端压缩炸弹直灌 tesseract 致进程 OOM (M)
+
+**What:** `_read_ocr_payload` 只按 `MAX_REQUEST_BYTES`（20MB）限请求体（`app_server.py:4333`），`run_fast_ocr`→`call_tesseract_ocr` 把 data-url `decode_data_url`（`1590`）后原样写临时文件再 `subprocess` 调 `tesseract`（`1595-1603`），全程无像素尺寸/解压后大小守卫（OCR 路径 grep 无 PIL/Image/resize/宽高检查）。一个体积小、解压后巨大的压缩炸弹图可让 tesseract C 库在进程内申请数 GB 内存 → OOM。
+
+**Evidence:** 请求体读取 `4333`；decode→tesseract `1590-1603`；`decode_data_url` `2571-2576` 仅 base64 decode 无尺寸记账。
+
+**Why:** 属后端资源/DoS 硬化面。本项目唯一真实用户=owner 本人（自摄自用），非公开可滥用面，北极星弱；但压缩炸弹成本极低、防不胜防，服务是 owner 自营基础设施，属成本低收益稳的健壮性储备。非 OPT-178/180（写路径）同族，是新机制。
+
+**Size:** M（OCR 前解出尺寸：PNG/JPEG header 或懒解码，超限（如 >12000×12000 或 >某像素数）即 400/413，不落 tesseract）。
+
+**Files:** `app_server.py:4333,1590-1603,2571-2576`；`tests/agent/`（超尺寸图返 4xx 不 OOM）。
+
+**Northstar:** 弱——单人 owner 场景非公开攻击面；仅记录作健壮性储备，不提拔。
+
+### E344 — `/api/research-runs` 的 `limit` 参数非数值时未捕获 `int()` 异常 → 500 而非 400 (S)
+
+**What:** handler 把 `query.get("limit",[30])[0]` 原样传入 `research_store().list(...)`（`app_server.py:4600`），`deep_reading.py:274` 内 `max(1, min(int(limit), 100))` 对非整数字符串（如 `/api/research-runs?limit=abc`）抛 `ValueError`，穿透到 `handle_one_request` 的通用 500 分支并污染 `server_errors`，而不是返回 400。≤100 的钳制被任意非整数绕过。
+
+**Evidence:** `app_server.py:4600`（裸传）→ `deep_reading.py:274`（`int(limit)` 无 try）。已核：handler 返回前 `conn.close(); _active_conn=None`（`4598-4599`），故异常落到外层通用 500。
+
+**Why:** 客户端可控输入触发非 400 的 500，属低危错误处理清洁度；深读历史列表非高频，北极星弱，但修复一行、无取舍。与 E333（`_read_json` 畸形 JSON→500）同族但另一入口。
+
+**Size:** S（`4600` 或 `deep_reading.py:274` 对 limit 做数值校验，非整数回退默认或返 400）。
+
+**Files:** `app_server.py:4600`；`deep_reading.py:274`；`tests/agent/`（非数值 limit 不 500）。
+
+**Northstar:** 弱——错误处理清洁度、非用户可见主路径；记录留池。
+
+### E345 — 关联页搜索无防抖且每次 input 全量重算，与其兄弟搜索框防抖不一致 (M)
+
+**What:** `els.connectionSearch?.addEventListener("input", renderConnections)`（`app.js:6718`）直接绑定、无防抖；`renderConnections` 内每条 connection 的 haystack 对两端调用 `state.books.find(...)`/`state.quotes.find(...)`（`1135-1151`），且每次调用连带重刷四个 combobox（`1121-1124`）。对照：摘抄/记录搜索防抖 250ms（`7002-7009`）、书单全局搜索防抖 200ms（`7066-7071`）。关联页是唯一未防抖的 tab 搜索，在大量 connection/quote 上每键 O(connections×(books+quotes)) 重扫。
+
+**Evidence:** 绑定 `6718`（无 debounce）；haystack find `1135-1151`；combobox 联动 `1121-1124`；兄弟防抖 `7002-7009,7066-7071`。
+
+**Why:** 性能一致性：手机主线程上逐键全量重扫造成输入卡顿。仅在连接/摘抄规模较大时显现，属代码健康面，非数据正确性。
+
+**Size:** M（与兄弟一致的防抖，或复用 buildRenderCache 式的一次性端点名→label 映射）。
+
+**Files:** `app.js:6718,1135-1151,7002-7009`；`tests/frontend/`（快速连续 input 只触发一次渲染的回归）。
+
+**Northstar:** 弱中——低规模不可见、无用户 signal；记录留池。
+
+> 本次 run 从 3 个并行只读审计候选池中，经本人重新打开文件逐行核实 + 关键词去重后，仅保留 6 条确属「尚未进入 backlog」的方向，并排除若干实为池内/已覆盖或北极星过弱的近似项（OPT-177/178/179/180/181/182、E243/E321/322、deleteQuote 乐观删除无回滚=OPT-177、后端 export 无界/慢读无超时等单人场景健壮性、matchQuotes 死代码=backlog 排除表刻意决策、deleteQuote/memory 无行为测试=测试健康面暂以注记留档）。本批唯一满足「新机制、非重复、S 级可独立收口、采集主路径数据可信、无 owner 分歧」的是 **E340**（addQuote 图片上传失败的告知被成功 toast 覆盖）→ **提拔为 OPT-183**；E341 回车语义部分条件化且 lean a11y、E342 依赖 ocrText-only 卡占比、E343/344/345 北极星弱中，均不提拔，留池待直接证据。

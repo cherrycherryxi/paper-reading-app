@@ -1726,3 +1726,13 @@ Format per item:
 - description: SSE 流式在 `evt.delta` 分支逐 token 调 `thinking.textContent += evt.delta; scrollToBottom();`（`chat.js:668-673`）。`scrollToBottom`（`chat.js:447-450`）无条件把 `els.messages.scrollTop` 置底并把 `scrollBtnRow.hidden = true`。消息容器的滚动监听（`chat.js:919-922`）本会在用户滚离底部时显示悬浮「回到底部」按钮——但流式期每个 token 都钉回底部并隐藏该按钮，用户无法上翻回看早前内容，越翻越被拽回底部；这个为离开底部阅读而建的逃生口在整个流式期形同虚设。
 - why: 现有「回到底部」按钮说明产品本意允许用户滚离底部，流式强制钉底是与自建设计冲突的实现遗漏，而非纯品味取舍。深读/探讨常产出数秒到数十秒的流式回复，期间用户无法边等边回读已输出文本（再阅读是回顾核心场景）。
 - how: 仅当已在底部（`scrollHeight - scrollTop - clientHeight < 阈值`）时才自动跟随；用户滚离底部则停止调用 `scrollToBottom()`、允许 `scrollBtnRow` 出现，点按钮再回底。补前端回归：流式期间滚离底部不被逐 token 拽回、「回到底部」按钮可出现。保留 delta 分支对 `resetIdle()`（`chat.js:672`）不受影响。Touch: `chat.js:668-673,447-450,919-922`；`tests/frontend/`（chat 流式滚动回归）。
+
+### OPT-183 — addQuote 图片上传失败后，兜底「图片上传失败」提示被成功 toast 覆盖，用户对照片未保存毫不知情 — 由 explore E340 提拔 [2026-09-05]
+- status: new
+- area: frontend / data safety / ux
+- priority: P2
+- size: S
+- northstar: 中强——采集主路径（拍照摘抄）上的 toast 真话性缺口：图片上传失败但文字保存成功时，同次流转内随后的成功 toast 覆盖了「图片上传失败」告知，用户以为照片已存、事后翻卡才发现是空图；照片是本 app 的采集本体，属 Theme 3「积累可信」的静默信息失真。
+- description: `addQuote`（`app.js:4849-4934`）图片上传在内层 `try`（`4912-4923`），失败时 `4921-4923` 弹「图片上传失败，先保存文字」；随后 `await syncState()`（`4924`）成功后 `4930` 无条件 `showToast(existingId ? "摘抄已更新" : "摘抄卡片已保存")`。`showToast` 每次调用替换当前 toast 且 syncState 通常 < 2.2s 生命周期，于是 `4923` 的失败提示在同一流转内被 `4930` 的成功 toast 顶替——用户最终只见「摘抄卡片已保存」，而新卡 `imageUrl` 恒 `""`（`4888`；编辑分支 `4914-4919` 未执行），照片被静默丢弃、无任何残留提示。产品在内层 catch 刻意想告知「图没存上、先存文字」（设计意图明确），是随后的成功 toast 把这条吞掉，属实现遗漏而非设计取舍。
+- why: 网络上传失败（移动蜂窝常态）时用户被宣告「已保存」，照片实际未入库——与 OPT-179（state_conflict 误报成功）不同机制（上传失败非 409 冲突），不重复。静默丢照片违反「积累可信」，修复保留「先存文字」降级语义、只改正 toast 真话性，无 owner 产品取舍。
+- how: 内层 catch 置 `let imageFailed = true`，`4930` 成功 toast 据此改「摘抄已保存（图片上传失败，可编辑补图）」，或图片失败时跳过成功 toast 让错误提示停留。需前端回归断言图片上传失败时最终可见 toast 含「图片上传失败」且用户可感知照片未存。Touch: `app.js:4909-4930`；`tests/frontend/`（图片上传失败 toast 回归）。
