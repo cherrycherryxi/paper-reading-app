@@ -112,6 +112,7 @@
 
 ## Do-Not-Repeat
 
+- [2026-09-04]（bug-608）**外部模型名会静默下线——「调 X 模型失败」第一反应是 curl 供应商的 /v1/models 列表核实，别对着代码里的模型名猜。** kimi-k2.5 被 Moonshot 下线后封面识别全挂，prod model_logs 留下「Not found the model kimi-k2.5 or Permission denied」就是唯一证据。同 deepseek-chat 停用（2026-08-31）。排查法：查 model_logs 最近 type=ocr 的 error 列拿供应商原文；修复前先对候选模型（kimi-k2.6/k3 等）用真实 key 发最小 vision 请求验证存在性+行为（1x1 png 即可），再把**已验证**的模型写进代码默认；未验证的模型不要顺手加进特判集合。
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
 

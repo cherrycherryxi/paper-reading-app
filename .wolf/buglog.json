@@ -10447,6 +10447,44 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-03T21:08:46.069Z"
+    },
+    {
+      "id": "auto-035",
+      "timestamp": "2026-09-04T04:58:20.788Z",
+      "error_message": "Incorrect value in code",
+      "file": "app_server.py",
+      "root_cause": "Had \"kimi-k2.5\"",
+      "fix": "Changed to \"kimi-k2.6\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-04T04:58:23.616Z"
+    },
+    {
+      "id": "bug-608",
+      "timestamp": "2026-09-04T12:59:32.588800+08:00",
+      "error_message": "新增书本拍照点「识别封面」调用 Kimi 失败（prod model_logs: Not found the model kimi-k2.5 or Permission denied）",
+      "file": "app_server.py",
+      "root_cause": "Moonshot 已下线 kimi-k2.5（2026-09-03 起），代码默认 MOONSHOT_VISION_MODEL=kimi-k2.5 未跟随；与 deepseek-chat 停用同类事件。快速识别走 Baidu 不受影响，仅封面/书架 Kimi 路径挂",
+      "fix": "默认模型 kimi-k2.5 → kimi-k2.6（实测 vision 可用、4131 特判已在），清理 4131 死模型；测试 mock 名同步",
+      "tags": [
+        "ocr",
+        "kimi",
+        "moonshot",
+        "model-deprecated",
+        "book-cover"
+      ],
+      "related_bugs": [
+        "bug-605",
+        "bug-606",
+        "bug-607"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-04T12:59:32.588852+08:00"
     }
   ]
 }
