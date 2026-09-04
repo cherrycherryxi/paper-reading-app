@@ -10485,6 +10485,22 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-09-04T12:59:32.588852+08:00"
+    },
+    {
+      "id": "auto-036",
+      "timestamp": "2026-09-04T17:01:52.249Z",
+      "error_message": "Wrong reference: new should be triaged",
+      "file": "optimization/backlog.md",
+      "root_cause": "Used \"new\" instead of \"triaged\"",
+      "fix": "Changed new → triaged",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-04T17:01:52.249Z"
     }
   ]
 }
