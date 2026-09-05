@@ -6212,6 +6212,8 @@
 |------|--------|---------|---------|--------|
 | 2026-09-05 夜 | Explore Agent3：3 并行只读审计(采集弹窗键盘/toast 真话性、后端非聊天健壮性、代码健康 ocrText 漂移)，explore 追加 E340-E345 新方向 | optimization/explore.md | 追加 2026-09-05 小节(E340-E345)，未写代码未开 PR | ~4k |
 | 2026-09-05 夜 | Explore Agent3：提拔最强证据 E340(addQuote 图片上传失败告知被成功 toast 覆盖)→OPT-183 | optimization/backlog.md | 追加 OPT-183 status:new，后端最大编号 182 之后取号 | ~1k |
+| 2026-09-06 夜 | Explore Agent3：3 并行只读审计(tag 管理新 UI / OCR·上传生命周期 / 后端盲写错误路径)，explore 追加 E346-E351 六方向 | optimization/explore.md | 追加 2026-09-06 小节(E346-E351)，未写代码未开 PR | ~7k |
+| 2026-09-06 夜 | Explore Agent3：提拔标签管理删除两项→OPT-184(报成功但落库失败/冲突被吞)、OPT-185(单击即永久全局删除无确认)，均 status:new | optimization/backlog.md | 追加 OPT-184/185，最大编号 183 之后取号 | ~1k |
 
 ## Session: 2026-09-04 07:00
 
@@ -6254,6 +6256,17 @@
 | 19:29 | Session end: 23 writes across 6 files (app.js, index.html, styles.css, quote-tag-picker-persist.test.js, quote-tag-manage.test.js) | 6 reads | ~143933 tok |
 
 ## Session: 2026-09-05 23:30
+
+## Session: 2026-09-05 01:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:02 | Edited optimization/triage.md | added error handling | ~871 |
+| 01:02 | Edited optimization/triage.md | 2→3 lines | ~142 |
+| 01:02 | Edited optimization/backlog.md | 3→3 lines | ~60 |
+| 01:02 | Edited optimization/backlog.md | inline fix | ~81 |
+
+## Session: 2026-09-05 05:00
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|

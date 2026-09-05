@@ -5981,3 +5981,91 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Northstar:** 弱中——低规模不可见、无用户 signal；记录留池。
 
 > 本次 run 从 3 个并行只读审计候选池中，经本人重新打开文件逐行核实 + 关键词去重后，仅保留 6 条确属「尚未进入 backlog」的方向，并排除若干实为池内/已覆盖或北极星过弱的近似项（OPT-177/178/179/180/181/182、E243/E321/322、deleteQuote 乐观删除无回滚=OPT-177、后端 export 无界/慢读无超时等单人场景健壮性、matchQuotes 死代码=backlog 排除表刻意决策、deleteQuote/memory 无行为测试=测试健康面暂以注记留档）。本批唯一满足「新机制、非重复、S 级可独立收口、采集主路径数据可信、无 owner 分歧」的是 **E340**（addQuote 图片上传失败的告知被成功 toast 覆盖）→ **提拔为 OPT-183**；E341 回车语义部分条件化且 lean a11y、E342 依赖 ocrText-only 卡占比、E343/344/345 北极星弱中，均不提拔，留池待直接证据。
+
+## 2026-09-06
+
+> 扫描焦点：Theme 3「积累可信」期末（8/10–9/06，北极星最近 8/30 = 8/24/30）。近五夜已把 addQuote toast 覆盖（OPT-183）、深读/关联/OCR/记忆/state_conflict/后端整表盲写族（OPT-177~182）收到高度饱和；本批用 3 个并行只读审计（tag 管理新 UI / OCR·上传生命周期 / 后端盲写与错误路径）扇形扫描，再由本人打开当前文件逐行核实 + 关键词去重。**刻意瞄准一块近两夜未覆盖的新代码**：owner 09-05 直改 `a8dfc05` 新上的「摘抄自定义标签按书过滤推荐 + 自定义标签管理删除入口」——它同时落在采集主路径（标签是积累本体）与「新功能无成熟处理」的高性价比位置。隔离 clone 当前 `HEAD`=`b92b359`（09-06 晨间 triage），本地 backlog 现存最大 OPT=**OPT-183**、explore 最大 E=**E345**；open PR #140（OPT-183）已见，故凡与 addQuote 图片上传同函数同行的发现一律只留池、不提拔。本批提拔 2 条证据确凿、非重复、同属 owner 最新 UI 的可独立修复方向：**E346 → OPT-184**（标签删除报成功但落库失败/冲突被吞）、**E347 → OPT-185**（标签删除单击即永久全局删除、无确认）。排除项：孤儿媒体文件未清理 = explore E48 旧项复述（仅深化、不重记）；观测表无界增长 = backlog OPT-124 parked；其余 OCR 失败路径/两页 OCR/书库上限等北极星弱中或涉取舍，留池待直接证据。
+
+### E346 — 摘抄自定义标签「删除」报成功但落库失败/冲突被吞：标签实际没删掉（静默回退/重出） (S)
+
+**What:** 新版标签管理删除 handler（`app.js:6986-6995`）命中 `data-delete-custom-tag` 按钮即 `saveCustomQuoteTags(getCustomQuoteTags().filter((t) => t !== tag))`（`6991`），随后 `renderManageTagsList()` + toast「已把「tag」移出推荐，已打的卡片不受影响」（`6994`）。但 `saveCustomQuoteTags`（`692-698`）对已登录只做 `state.customQuoteTags = clean; syncState().catch(() => {})`（`696-697`）——后端落库失败被 `.catch(()=>{})` 静默吞掉；删除 handler 不 await 也不看 `syncState` 的 saved 结果就播成功 toast。
+
+**Evidence:** 删除 handler `6986-6995`；`saveCustomQuoteTags` 吞错 `696-697`（`syncState().catch(() => {})`）；成功 toast `6994`；`syncState` 冲突分支整表采纳服务端副本 `1240-1249`（`state = normalizeStateShape(error.state)` `1244` 会把服务端仍存在的被删 tag 重新灌回 `state.customQuoteTags`）。
+
+**Why:** 落库失败时删除从未持久化，用户刷新/重登后 tag 回推荐库，但已播「已移出」——采集/标签管理主路径的静默分歧；`state_conflict` 时服务端并发副本里的 tag 被灌回、toast 宣称删除却脱节、无重试/对账。与 OPT-177/179/183 同族的「报成功但没落地」真话性缺口，但落在全新代码、机制独立。
+
+**Size:** S（`saveCustomQuoteTags` 返回 `syncState()` 的 saved；删除 handler await、失败/409 回滚本地并播真话文案或保留 tag 提示冲突）。
+
+**Files:** `app.js:692-698,6986-6995,1240-1249`；`tests/frontend/`（删除落库失败/冲突回归）。→ **promoted to OPT-184**
+
+**Northstar:** 中强——修正 owner 当前正在使用、新上的标签管理删除入口「报成功但删除未生效」的确定性信息失真，属 Theme 3 数据可信面；修复无 owner 产品分歧（标签删除语义明确，只补真话与对账），S 级可独立收口。
+
+### E347 — 摘抄自定义标签「删除」单击即永久移出全局库、无确认且无影响面提示，与 app 既有破坏性删除模式不一致 (S)
+
+**What:** `renderManageTagsList`（`app.js:731-743`）每行渲染 `<button type="button" class="manage-tags-item__delete" data-delete-custom-tag="...">删除</button>`（`740`）；容器 click handler（`6986-6995`）命中即从全局库 `state.customQuoteTags` 移除（`6991`），无任何 `showConfirmDialog`。删除对象是随 `syncState` 跨设备持久化的全局共享库（`696-697`），一次删除影响所有书、所有设备的推荐，且不可恢复（只能重打）。
+
+**Evidence:** 删除无确认 `6986-6995`（直接 `saveCustomQuoteTags(filter)`）；全局库来源与跨设备持久化 `692-698`；渲染 `731-743` 不展示该 tag 当前打了多少卡（`quoteTagsUsedByBook` `719-727` 未用于使用面提示）。对照 app 一贯破坏性删除都先 `showConfirmDialog`（`4278`，deleteQuote/deleteBook/deleteConnection、OPT-106/OPT-175）。
+
+**Why:** owner 最新直改 UI 上，删除一个「正在用」的标签会在后续所有卡片编辑的推荐里静默消失、且横跨设备；与 app「破坏性操作先确认 + 说明影响面」的统一模式（deleteQuote/deleteBook 都先确认）不符。误触成本高、无恢复入口。
+
+**Size:** S（删除前 `showConfirmDialog`，含 tag 名 + 使用面/影响面文案，确认后再删）。
+
+**Files:** `app.js:6986-6995,731-743,719-727`（复用 `4278` confirmDialog）；`tests/frontend/`（删除确认回归）。→ **promoted to OPT-185**
+
+**Northstar:** 中——改善 owner 新 UI 上全局破坏性删除的安全与模式一致性，非数据丢失但影响真实可用；S 级无取舍分歧。
+
+### E348 — 标签管理删除后焦点丢失到 body、删除按钮读屏歧义（纯「删除」无 aria），键盘/读屏用户删 N 个要重走全页 (S)
+
+**What:** `renderManageTagsList`（`app.js:737-742`）每次删除后 `list.innerHTML = …` 重建整个列表（`6992` 再次调用），销毁了持有焦点的删除按钮 DOM 节点，之后无人重新聚焦到剩余行/空态/完成按钮，键盘焦点掉到 `<body>`；每删一个标签键盘用户都要从头 Tab。且每行按钮文案恒为「删除」（`740`），无 `aria-label`/`aria-labelledby` 关联所属 tag，读屏用户扫描 N 行听到 N 个无区分的「删除」。
+
+**Evidence:** 焦点：删除 handler `6992` `renderManageTagsList()` → `731-743` `innerHTML` 重建（`737-742`），无 refocus；删除完成也从不把焦点还给 `#quoteManageTagsBtn` 触发器（`closeDialog` `2666` 为裸 `dialog.close()`）。读屏：`740` 静态「删除」、无 aria。
+
+**Why:** 键盘/读屏用户是目标 UX 的被排除群体，而 owner 新 UI 的批量删除正是这类用户的痛点场景；重建列表丢焦点是 `<dialog>` 列表内动态删除的常见 a11y 缺陷。
+
+**Size:** S（重建后聚焦到相邻剩余行或删除按钮所在行/空态；给每个删除按钮 `aria-label="删除标签「X」"`）。
+
+**Files:** `app.js:737-742,6986-6995,2666`；`tests/frontend/`（删除后焦点仍在对话框内、按钮有可辨识名字的回归）。
+
+**Northstar:** 弱中——lean a11y（现有 P3 parked 同族无当前 signal）；但属新代码、修复廉价，记录留池待直接 signal。
+
+### E349 — `/api/quotes/ocr` 快速识别异常路径仍把全新照片的空卡以 `failed` 持久化，违背自身「不留孤儿 pending 卡」设计；丢响应时客户端不可追踪/不可 discard (M)
+
+**What:** 快速路径把全新 quote 在 OCR 前就插入内存 `state`（`app_server.py:5957`），注释宣称「不在此 commit…被中断的快速请求不留孤儿 pending 卡」（`5959-5966`）。但任一快速引擎抛异常时（`6024-6032`）把该新卡 `ocrStatus="failed"` 并 `save_state` 持久化（`6032`）——一张首次拍照、OCR 失败的空卡成为永久已存 `failed` 卡，与该注释「不留孤儿卡」的本意相悖（注释只覆盖 pending，未覆盖 failed 分支）。客户端 `ocrProvisionalQuoteId` 只在正常响应里设（`app.js:5916`，需 `data.quoteId`）；若失败响应在 iOS 标签页挂起丢 socket 时丢失，前端 `recoverOcrRequest`（`app.js:6015`）的成功分支会对此空+failed 卡报「已取回后台识别结果」，且从不把它登记为 provisional——于是既无 discard 监听（`6932`）也无恢复路径去删它。
+
+**Evidence:** 插入新卡 `5957`；注释 `5959-5966`；异常分支置 failed 并 `save_state` `6024-6032`；客户端 provisional 仅在正常响应设 `5916`、丢响应恢复路径 `6015` 起。
+
+**Why:** 数据完整性的失败路径缺口：全新照片 OCR 失败被悄悄落成一张空 failed 卡（用户从没确认），丢响应时该卡既不在卡片列表里显眼存在、也无法按会话 discard，污染「积累可信」；同类已在书架 OCR（`5792-5798`）加固过，quote-OCR 未跟上。修复需确认「保留 failed 供 AI 重试」是否确为设计意图再收敛 discard 语义，故涉少量取舍、非纯 S。
+
+**Size:** M（异常分支区分「已有既有 quoteId」与「全新照片」：全新且用户可弃则落 `ocrProvisionalQuoteId` 或干脆不持久化；客户端丢响应恢复路径把 failed+无正文空卡纳入 discard/重试对账）。
+
+**Files:** `app_server.py:5955-5966,6024-6032`；`app.js:5914-5916,6015-6022,6930-6932`；`tests/agent/`（quotes/ocr 快速引擎失败不留不可追踪空卡）。
+
+**Northstar:** 弱中——OCR 失败路径，非高频、含取舍；记录留池待直接 signal 或与 OPT-178 OCR 收口一并评估。
+
+### E350 — addQuote 在图片上传 resolve 之前就关弹窗 + `resetQuoteDraft()` 清空照片草稿，上传挂起/失败无重试无超时，乐观卡可能永不落库 (M)
+
+**What:** `addQuote`（`app.js:4889-4974`）把卡片 `unshift` 进 `state.quotes`（新卡 `4919-4932`，`imageUrl:""`）后，**同步地在任何网络完成前**执行 `closeDialog`（`4941`）+ `resetQuoteDraft()`（`4942`，`3163` revoke objectURL、置空 `pendingQuoteImage`）+ 一系列 render + `showToast("保存中…")`（`4949`），**之后**才 `await uploadQuoteImage(pendingImage)`（`4953`）。`apiFetch`（`app.js:505-576`）无 `AbortController`/超时：上传挂起时 `4953` 永不 resolve → `4964 await syncState()` 永不执行，乐观卡仅存内存、刷新即失，而照片草稿已被 `resetQuoteDraft` 销毁、无重试入口（`uploadQuoteImage` throw 走 `4961-4963` catch，但照片 bytes 已丢，只能重拍）。
+
+**Evidence:** 乐观 `unshift` `4919-4932`；`closeDialog` `4941`、`resetQuoteDraft` `4942`（revoke objectURL `3163-3175`）；`await uploadQuoteImage` `4953`（在此之后）；`syncState` `4964`（依赖 upload 先返回）；`apiFetch` 无超时 `505-576`。
+
+**Why:** 卡片与照片的生命周期在「上传是否成功」落定前就被破坏性地关闭/清空——失败无法在会话内重试/对账（对照 OCR 路径有 `recoverOcrRequest` `1344` 恢复机制）。移动蜂窝 + 大图上传是常态，挂起/超时会让文字+照片双双「看似保存中实则没落库」。**注意：与 open PR #140 / in-flight OPT-183 同函数（`4889-4974`），且本项是「上传前销毁草稿+无超时」的**生命周期**缺口、非 toast 文案，属不同缺陷；为避免与在途实现互相踩踏，本项只留池、不提拔，待 OPT-183 合入后再复核行号与重叠面。**
+
+**Size:** M（给上传设超时/可取消；失败保留照片草稿与「重试/取消」而非先 `resetQuoteDraft`；或至少先 await 上传成功再关弹窗）。
+
+**Files:** `app.js:4889-4974,3163-3175,505-576`；`tests/frontend/`（上传挂起/失败时卡片不假性「保存中」、照片可重试）。
+
+**Northstar:** 中——采集主路径的上传生命周期可靠性，与 Theme 3「不丢数据」直接相关；但实现涉 toast/草稿流重排，与 OPT-183 在途同区，留池。
+
+### E351 — `/api/chat`（非流式）与 `DELETE /api/chat-history` 仍整表盲写 state，是与 OPT-178/180 同族的未枚举盲写点，收口时应一并纳入 (M)
+
+**What:** `do_POST` `/api/chat`（`app_server.py:6328` 起）读整份 state（`load_state` `6337`）、跑数秒 LLM 后 `save_state(conn, user["id"], state)` 盲写回（`6432`），`books`/`quotes`/`memories`/`connections` 都被这份陈旧快照覆盖；`DELETE /api/chat-history`（`6700-6710`）同样整表读改后 `save_state`（`6710`）只清一条 `chatHistories[key]` 却把其余集合用陈旧内存副本回写。二者均无版本/冲突校验（`save_state` `988-995` 盲写）。
+
+**Evidence:** `/api/chat` 盲写 `6432`（对照 OPT-180 流式盲写 `6233`）；`DELETE /api/chat-history` 盲写 `6710`；`save_state` 无版本 `988-995`。
+
+**Why:** 是已登记 OPT-178/180「后端整表盲写收口族」里仍未枚举的另两条非 GET 全量写实例——用户设备 A 探讨/清聊天记录时，设备 B 的书/摘抄编辑被陈旧副本静默覆盖、无 409/无提示。**不单独开新卡**：该族已在 OPT-178/180 收口至功能轨（L/M，非夜间 S），本项作为补充 scope 证据记录，建议在 OPT-178/180 收口 `how` 里把这两处盲写 site 一并纳入「save 前重读仅写变更字段」或「统一版本让出」清单。
+
+**Size:** M（随 OPT-178/180 收口一并处理，非独立拆分）。
+
+**Files:** `app_server.py:6328,6337,6432,6700-6710,988-995`（收口族 scope 补充）。
+
+**Northstar:** 中强（若并入收口族）——同 OPT-180 的静默并发覆盖、数据可信面；但 M 级后端架构收口，非夜间 S，故记录为收口族 scope 而非提拔单卡。
