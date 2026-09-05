@@ -10613,6 +10613,24 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-05T17:02:44.020Z"
+    },
+    {
+      "id": "bug-609",
+      "timestamp": "2026-09-06T00:00:00.000Z",
+      "error_message": "addQuote 图片上传失败提示被成功 toast 覆盖，用户对照片未保存毫不知情",
+      "file": "app.js",
+      "root_cause": "内层 catch showToast(图片上传失败) 后，同一流转 await syncState() + showToast(摘抄已保存/已更新) 无条件覆盖失败提示，showToast 单例替换",
+      "fix": "引入 imageUploadFailed 标志，上传失败时最终 toast 改为「摘抄已保存/已更新，图片上传失败可补图」",
+      "tags": [
+        "toast",
+        "addQuote",
+        "image-upload",
+        "truthfulness",
+        "OPT-183"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-06T00:00:00.000Z"
     }
   ]
 }

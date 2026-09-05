@@ -4949,6 +4949,7 @@ async function addQuote(formData) {
   showToast("保存中…");
 
   try {
+    let imageUploadFailed = false;
     try {
       const uploadedUrl = await uploadQuoteImage(pendingImage);
       if (uploadedUrl) {
@@ -4959,7 +4960,7 @@ async function addQuote(formData) {
         }
       }
     } catch {
-      showToast("图片上传失败，先保存文字");
+      imageUploadFailed = true;
     }
     await syncState();
     renderHero();
@@ -4967,7 +4968,11 @@ async function addQuote(formData) {
     renderQuotes();
     if (isTabActive("connections")) renderConnections();
     if (isTabActive("books")) renderBooks();
-    showToast(existingId ? "摘抄已更新" : "摘抄卡片已保存");
+    if (imageUploadFailed) {
+      showToast(existingId ? "摘抄已更新，图片上传失败可补图" : "摘抄已保存，图片上传失败可补图");
+    } else {
+      showToast(existingId ? "摘抄已更新" : "摘抄卡片已保存");
+    }
   } catch (error) {
     showToast(error.message);
   }

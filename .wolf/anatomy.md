@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-05T17:02:50.491Z
-> Files: 441 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-05T20:03:09.190Z
+> Files: 442 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -317,7 +317,7 @@
 - `.gitignore` — Git ignore rules (~252 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
 - `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~85119 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~84248 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~84292 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~16534 tok)
@@ -492,7 +492,7 @@
 - `roadmap.md` — 项目推进方案(roadmap) (~2534 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1423 tok)
 - `signals.md` — Signals — 真实使用信号日志 (~1005 tok)
-- `triage.md` — Triage (~2710 tok)
+- `triage.md` — Triage (~2717 tok)
 
 ## output/pdf/
 
@@ -673,6 +673,7 @@
 - `quote-combobox-ocr-label.test.js` — OPT-111: 关联对话框的摘抄下拉里，OCR 摘抄正文只存在 quote.ocrText（content 为空）， (~3368 tok)
 - `quote-content-display.test.js` — Regression coverage for compact quote cards: (~1190 tok)
 - `quote-image-onerror.test.js` — OPT-071: 摘抄图片 URL 失效时优雅降级，而非暴露浏览器破图图标。 (~1516 tok)
+- `quote-image-upload-failure-toast.test.js` — OPT-183：addQuote 图片上传失败时，内层「图片上传失败，先保存文字」提示会被紧随其后的 (~1374 tok)
 - `quote-ocr-fast.test.js` — OPT-016: runOcrFromImage(engine) — fast path sends engine:"fast" and fills the (~2594 tok)
 - `quote-page-prefill.test.js` — OPT-095: 新建摘抄对话框的页码字段应预填 book.currentPage（正在读的这一页）， (~1475 tok)
 - `quote-search-card-image.test.js` — OPT-070: buildQuoteSearchCard() must fill quote.imageUrl in the cover like the (~1294 tok)
