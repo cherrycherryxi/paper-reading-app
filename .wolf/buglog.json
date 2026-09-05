@@ -10501,6 +10501,86 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-04T17:01:52.249Z"
+    },
+    {
+      "id": "auto-037",
+      "timestamp": "2026-09-05T10:48:19.684Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: options.onPick?.(book); | Also: // 自定义标签管理：列表渲染后打开。删除 = 移出推荐库（state.customQuoteTags + 镜像 + 同; // 不打到已保存的卡片上——卡片标签保留，编辑那张卡时以 selected-only 形态展示。",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-05T10:48:33.842Z"
+    },
+    {
+      "id": "auto-038",
+      "timestamp": "2026-09-05T10:48:44.888Z",
+      "error_message": "CSS fix: gap",
+      "file": "styles.css",
+      "root_cause": "gap: 8px → 12px",
+      "fix": "Changed gap: 8px → 12px",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-05T10:54:00.030Z"
+    },
+    {
+      "id": "auto-039",
+      "timestamp": "2026-09-05T10:48:47.225Z",
+      "error_message": "Incorrect value in code",
+      "file": "index.html",
+      "root_cause": "Had \"manage-tags-title\"",
+      "fix": "Changed to \"manage-tags-dialog\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-05T10:48:47.225Z"
+    },
+    {
+      "id": "auto-040",
+      "timestamp": "2026-09-05T10:49:55.100Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "tests/frontend/quote-tag-manage.test.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-05T10:49:55.100Z"
+    },
+    {
+      "id": "auto-041",
+      "timestamp": "2026-09-05T10:51:01.563Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/frontend/ui-redesign.test.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-05T10:51:01.563Z"
     }
   ]
 }

@@ -7,6 +7,7 @@
 ## User Preferences
 
 - (2026-09-03) UI 动作按钮的文案绝不能引用产品里不存在的概念/状态。取消确认框曾把正式保存标成「保存草稿」，但系统没有草稿状态——owner 实测后指出「草稿和正式保存没区别」。按钮名要与行为一一对应（改回「保存卡片」，行为=正常保存、产物出现在摘抄列表）；若想提供更弱的「未完成」语义，必须先做出真草稿状态（状态字段+列表分区+UI）再命名。同类原则见 Do-Not-Repeat 营销物料先核代码一条。
+- (2026-09-05) 摘抄标签推荐要**贴着当前书走**：owner 看到《见树又见林》里敲的词在下一本书的推荐区出现，视为问题（问句原文「见树又见林的摘抄新增的标签怎么在新的书里也成默认标签了」）。AskUserQuestion 二选一都选「Recommended」：①推荐 chips 按书过滤（自定义词只显示本书用过的；默认 7 词不过滤）②加删除自定义标签的入口（管理 dialog，删除只移出推荐库、不碰已打标签的卡）。语义演进完整记录在 Key Learnings 摘抄标签 picker 一条，勿再凭旧文写「picker 与书无关」。
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
 - **[2026-07-24] 日报要易读，每个 bug/新功能都按四点写清：存在的问题、目标、实现方法、最终效果。** owner 要求日报别堆大段文字——「今日主要工作」里每个条目（无论 bug 修复还是新功能）各写成一个 `### 小节`，每小节按四点（加粗小标题、各占一行）：**存在的问题**（触发现象/为什么做）、**目标**、**实现方法**（含关键文件与改动）、**最终效果**（可验证结果）；之后仍是「亮点与可改进」+「明天可做 3-5 条」。已落到两处生成 prompt：自动日报 `~/.claude/scripts/paper-wrapup.sh` 的 `gen_report()`，与交互式「今天就到这」钩子（`~/.claude/settings.json` UserPromptSubmit）。
@@ -36,9 +37,11 @@
 
 - **[2026-06-29] `chat.js` 的 `renderMiniMarkdown` 有序列表坑：** 收集器只把『连续』的 `N. ` 行收进同一个 `<ol>`。LLM 列表项间几乎总有空行 → 每项被拆进独立 `<ol>`，而 `<ol>` 默认每段从 1 重数 → 显示成「1.1.1.」。修法是 `<li value="N">` 保留模型原始序号。改这个迷你 markdown 渲染器时，任何「按运行收集连续行」的块级元素都要想到空行会打断收集。
 
-- **[2026-06-29] `state.quotes` 是混合集合：摘抄(kind=quote)、笔记(kind=note)、提问(kind=question) 全塞在一个数组里，靠 `kind` 字段区分。** 任何「遍历 state.quotes 取标签/统计」的逻辑都要先按 `kind` 过滤，否则会把笔记/提问的内容混进摘抄场景。另外 quote 的 `tags` 里既有用户手敲的，也有 AI OCR 自动生成的，无法从数据区分来源。教训：摘抄标签 picker 三次返工，根因就是从 state.quotes 反推「书用过的标签」——把 note 标签 + AI 自动标签全拖进来了。**「用户手动加的标签」= localStorage 的 `quote-custom-tags`（只在标签输入框按 Enter 写入），这是唯一可靠的「手敲」来源；不要用 used-tags 近似它。**
+- **[2026-06-29，2026-09-05 演进] `state.quotes` 是混合集合：摘抄(kind=quote)、笔记(kind=note)、提问(kind=question) 全塞在一个数组里，靠 `kind` 字段区分。** 另外 quote 的 `tags` 里既有用户手敲的，也有 AI OCR 自动生成的，无法从数据区分来源。教训：摘抄标签 picker 多次返工，根因就是从 state.quotes 反推「书用过的标签」当**推荐来源**——把 note 标签 + AI 自动标签全拖进来了。**「用户手动加的标签」= 全局自定义库 `quote-custom-tags`（state.customQuoteTags 权威 + localStorage 镜像，只在标签输入框按 Enter 写入），这是唯一可靠的「手敲」来源。** 2026-09-05 用户反馈跨书词堆叠后，书内 used-tags 重新上岗——但**只作过滤条件**（推荐 = 库 ∩ 当前书用过），绝不直接当来源。AI/OCR 标签不在库里 → 天然被 ∩ 排除。
 
-- **[2026-06-29] 摘抄标签 picker 最终形态：`[...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags()])]`**，与当前选了哪本书无关。曾试图加 getUsedQuoteTags（先全局、后按书）均被用户否决（太多/太杂）。注意 `renderQuoteTagPicker` 在 `resetQuoteDraft`（form.reset 后 bookId 为空）和 Enter 重渲染（bookId 已定）两个时机被调，若 picker 依赖 bookId 会忽多忽少——所以 picker 内容必须与 bookId 无关。
+- **[2026-06-29，2026-09-05 反转] 摘抄标签 picker 推荐形态（按用户反馈演进两次，别按任一旧版写代码）：**
+  - 2026-06-29 用户否决「全 state 反推书用过的标签」后定为：`[...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags()])]`，**与选书无关**。原因：从 state.quotes 反推会拖进笔记/AI 自动标签（几十个堆着杂乱）；且 renderQuoteTagPicker 在 resetQuoteDraft（bookId 刚清空）与 Enter 重渲染（bookId 已定）两个时机被调，若依赖 bookId 会忽多忽少。
+  - **2026-09-05 用户反馈反转**：《见树又见林》敲的词在下一本书的推荐里冒出来 → 推荐改为**按当前书收窄**：自定义候选 = `getCustomQuoteTags().filter(tag => quoteTagsUsedByBook(bookId).has(tag))`（quoteTagsUsedByBook 扫该书全部 kind 卡的 tags 成 Set）。两个配套：①未选书（表单 bookId 空，resetQuoteDraft 后）给**全量库兜底**、combobox onPick 选定后收窄——old「忽多忽少」的坑靠 FAB handler 在设回 lastQuoteBookId 后补一次 renderQuoteTagPicker 规避；②新增「管理」按钮（#quoteManageTagsBtn，库空时 hidden）+ #manageTagsDialog 删除入口，删除仅移出推荐库、卡片上已打的词以 selected-only 保留。默认 7 词（金句/人物/…）不过滤。
 
 - **[2026-06-29] 探讨发给模型的书单是后端从 state 组装的，不是前端传的。** `PromptBuilder.build_chat_prompt` 的 `all_books_summary`（≤50本，按 updatedAt 倒序）。book.status 取值：`finished`/`reading`/`wishlist`。要让模型按阅读状态筛选，必须把 status 放进 summary 且在 system instruction 里给规则——否则它在整个书单(含没读的 wishlist)上召回。
 
