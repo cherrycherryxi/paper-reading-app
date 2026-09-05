@@ -607,7 +607,10 @@
           </label>
           <label class="quote-tag-picker"><span>标签</span>
             <div id="quoteTagChips" class="quote-tag-chip-row"></div>
-            <input id="quoteTagInput" type="text" placeholder="输入新标签后按 Enter" autocomplete="off" />
+            <div class="quote-tag-input-row">
+              <input id="quoteTagInput" type="text" placeholder="输入新标签后按 Enter" autocomplete="off" />
+              <button type="button" class="quote-tag-manage-btn" id="quoteManageTagsBtn" title="删除不再想被推荐的标签" hidden>管理</button>
+            </div>
             <input id="quoteTagsHidden" name="tags" type="hidden" />
           </label>
         </div>
@@ -658,6 +661,19 @@
           <button type="button" class="button button-primary" id="quoteDiscardSaveBtn">保存卡片</button>
           <button type="button" class="button button-ghost" id="quoteDiscardContinueBtn">继续编辑</button>
           <button type="button" class="button button-danger" id="quoteDiscardExitBtn">放弃</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 自定义标签管理：只移出「按书推荐」的候选库；已打上标签的卡片不受影响（无删除）。
+         入口按钮 #quoteManageTagsBtn 由 renderQuoteTagPicker 按库是否为空显隐。 -->
+    <dialog id="manageTagsDialog" class="manage-tags-dialog" aria-labelledby="manage-tags-title">
+      <div class="dialog-form">
+        <div class="section-head"><h2 id="manage-tags-title">管理自定义标签</h2><p>新增摘抄时按书推荐。删除后只不再推荐，已经打的卡片不受影响。</p></div>
+        <p id="manageTagsEmpty" class="helper-text" hidden>还没有自定义标签。新增摘抄时在标签框敲一个词按回车，就会出现在这里。</p>
+        <ul id="manageTagsList" class="manage-tags-list"></ul>
+        <div class="dialog-actions">
+          <button type="button" class="button button-ghost" data-close-dialog="manageTagsDialog">完成</button>
         </div>
       </div>
     </dialog>

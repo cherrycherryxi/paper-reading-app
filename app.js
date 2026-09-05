@@ -210,6 +210,9 @@ const els = {
   quoteDiscardSaveBtn: document.querySelector("#quoteDiscardSaveBtn"),
   quoteDiscardContinueBtn: document.querySelector("#quoteDiscardContinueBtn"),
   quoteDiscardExitBtn: document.querySelector("#quoteDiscardExitBtn"),
+  quoteManageTagsBtn: document.querySelector("#quoteManageTagsBtn"),
+  manageTagsDialog: document.querySelector("#manageTagsDialog"),
+  manageTagsList: document.querySelector("#manageTagsList"),
   bookDialog: document.querySelector("#bookDialog"),
   sessionDialog: document.querySelector("#sessionDialog"),
   quoteDialog: document.querySelector("#quoteDialog"),
@@ -668,11 +671,12 @@ function normalizeTags(raw) {
     .filter(Boolean);
 }
 
-// picker 的自定义标签来源**只用这一个**：用户经标签输入框亲手敲过的标签。
-// 不要从 state.quotes 里反推「这本书用过的标签」——那会把笔记(note)卡片的标签、以及 AI OCR
-// 自动生成的标签全拖进来，几十个堆在一起特别杂乱（用户明确：只要默认 + 自己手动加的摘抄标签）。
+// picker 的自定义标签候选**只用全局自定义库**（state.customQuoteTags / 本机镜像）。库里的词
+// 只能经标签输入框按 Enter 亲手敲入：AI OCR 自动生成的标签、别的来源的标签永远进不了库。
 // OPT-078：标签现在跨设备同步——权威来源是 state.customQuoteTags（随 syncState 持久化、
 // 进导出包）；localStorage 仅作离线/迁移镜像（登出时也能记住本机敲过的标签）。
+// 2026-09-05 按书过滤（用户反馈《见树又见林》敲的词在下一本书的推荐里冒出来）：推荐区只展示
+// 当前书**实际用过**的手敲词——按该书摘抄卡 tags 反推后再 ∩ 库。库外杂标签依旧天然进不来。
 const CUSTOM_QUOTE_TAGS_LS_KEY = "quote-custom-tags";
 function _readLocalCustomQuoteTags() {
   try {
@@ -710,12 +714,48 @@ function _syncQuoteTagsInput() {
   const hidden = document.getElementById("quoteTagsHidden");
   if (hidden) hidden.value = selectedQuoteTags.join(", ");
 }
+// 当前书在表单里选定的书（新增/编辑摘抄时 [name="bookId"] 已填）。返回 Set：这本书所有卡片
+// （quote/note/question 一视同仁）上出现过的标签。仅用作推荐过滤条件，绝不直接当作推荐来源。
+function quoteTagsUsedByBook(bookId) {
+  const used = new Set();
+  if (!bookId) return used;
+  (Array.isArray(state.quotes) ? state.quotes : []).forEach((quote) => {
+    if (quote.bookId !== bookId || !Array.isArray(quote.tags)) return;
+    quote.tags.forEach((tag) => { const t = String(tag || "").trim(); if (t) used.add(t); });
+  });
+  return used;
+}
+
+// 管理自定义标签对话框的列表渲染。只移出「推荐库」，已打在卡片上的词不受影响
+// （它们仍会以 selected-only 形态出现在对应书的编辑里，用户可自行去掉）。
+function renderManageTagsList() {
+  const list = document.getElementById("manageTagsList");
+  const empty = document.getElementById("manageTagsEmpty");
+  if (!list) return;
+  const tags = getCustomQuoteTags();
+  if (empty) empty.hidden = tags.length > 0;
+  list.innerHTML = tags
+    .map((t) =>
+      `<li class="manage-tags-item"><span class="manage-tags-item__name">${escapeHtml(t)}</span>` +
+      `<button type="button" class="manage-tags-item__delete" data-delete-custom-tag="${escapeHtml(t)}">删除</button></li>`
+    )
+    .join("");
+}
+
 function renderQuoteTagPicker(initialTags) {
   selectedQuoteTags = [...(initialTags || [])];
   _syncQuoteTagsInput();
   const container = document.getElementById("quoteTagChips");
+  const manageBtn = document.getElementById("quoteManageTagsBtn");
+  const customTags = getCustomQuoteTags();
+  if (manageBtn) manageBtn.hidden = !customTags.length; // 库为空时不需要管理入口
   if (!container) return;
-  const pickerTags = [...new Set([...DEFAULT_QUOTE_TAGS, ...getCustomQuoteTags()])];
+  // 按书过滤自定义词：已选定书 → 只推荐这本书实际用过的手敲词；尚未选书（表单 bookId 空）→
+  // 给全量库兜底，选定书（combobox onPick）后自动收窄。默认 7 个词是产品级通用标签，不过滤。
+  const bookId = String(els.quoteForm?.querySelector?.('[name="bookId"]')?.value || "").trim();
+  const bookUsed = quoteTagsUsedByBook(bookId);
+  const customCandidates = bookId ? customTags.filter((tag) => bookUsed.has(tag)) : customTags;
+  const pickerTags = [...new Set([...DEFAULT_QUOTE_TAGS, ...customCandidates])];
   const selectedOnlyTags = selectedQuoteTags.filter((tag) => !pickerTags.includes(tag));
   container.innerHTML = [
     ...pickerTags.map((t) =>
@@ -6117,7 +6157,8 @@ function positionComboboxList(textInput, list) {
   }
 }
 
-function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
+// options.onPick:用户在下拉里选定一本书后的联动回调（如摘抄表单按书刷新标签推荐）。
+function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false, options = {}) {
   if (!wrapperEl || !hiddenInput) return;
   const textInput = wrapperEl.querySelector(".book-combobox-input");
   const list = wrapperEl.querySelector(".book-combobox-list");
@@ -6195,6 +6236,7 @@ function initBookCombobox(wrapperEl, hiddenInput, includeWishlist = false) {
     hiddenInput.value = book.id;
     textInput.value = bookLabel(book);
     closeList();
+    options.onPick?.(book);
   }
 
   textInput.addEventListener("focus", openList);
@@ -6642,7 +6684,10 @@ function bindEvents() {
   const sessionComboWrap = document.querySelector("#sessionBookCombobox");
   const quoteComboWrap = document.querySelector("#quoteBookCombobox");
   initBookCombobox(sessionComboWrap, els.sessionBookSelect, false);
-  initBookCombobox(quoteComboWrap, els.quoteBookSelect, true);
+  // onPick：换书后按新书收窄标签推荐（已选中的词保留，见 renderQuoteTagPicker）。
+  initBookCombobox(quoteComboWrap, els.quoteBookSelect, true, {
+    onPick: () => renderQuoteTagPicker(selectedQuoteTags),
+  });
 
   // Initialize connection dialog comboboxes
   connSourceBookComboWrap = document.querySelector("#connSourceBookCombobox");
@@ -6687,6 +6732,8 @@ function bindEvents() {
       quoteComboWrap?._comboboxSetValue?.(lastQuoteBookId);
       els.quoteForm.querySelector('[name="page"]').value = quotePagePrefill(lastQuoteBookId);
     }
+    // resetQuoteDraft 渲染时 bookId 已被清空（全量库兜底）；设回默认书后按书收窄标签推荐。
+    renderQuoteTagPicker(selectedQuoteTags);
     els.quoteDialog.showModal();
   });
 
@@ -6928,6 +6975,23 @@ function bindEvents() {
     }
     e.target.value = "";
     renderQuoteTagPicker(selectedQuoteTags);
+  });
+
+  // 自定义标签管理：列表渲染后打开。删除 = 移出推荐库（state.customQuoteTags + 镜像 + 同步），
+  // 不打到已保存的卡片上——卡片标签保留，编辑那张卡时以 selected-only 形态展示。
+  els.quoteManageTagsBtn?.addEventListener("click", () => {
+    renderManageTagsList();
+    els.manageTagsDialog?.showModal?.();
+  });
+  els.manageTagsList?.addEventListener("click", (event) => {
+    const btn = event.target?.closest?.("[data-delete-custom-tag]");
+    if (!btn) return;
+    const tag = btn.dataset.deleteCustomTag;
+    if (!tag) return;
+    saveCustomQuoteTags(getCustomQuoteTags().filter((t) => t !== tag));
+    renderManageTagsList();
+    renderQuoteTagPicker(selectedQuoteTags); // 同步当前打开的摘抄表单的推荐与「管理」按钮显隐
+    showToast(`已把「${tag}」移出推荐，已打的卡片不受影响`);
   });
   els.registerForm?.addEventListener("submit", (event) => {
     event.preventDefault();

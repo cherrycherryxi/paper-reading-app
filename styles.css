@@ -551,6 +551,78 @@ label span,
   gap: 8px;
 }
 
+.quote-tag-input-row {
+  display: flex;
+  align-items: stretch; /* 按钮与输入框同高，视觉成一体 */
+  gap: 8px;
+}
+/* 全局 input 是 width:100%，放进行内必须改 flex-basis，否则把「管理」按钮挤出容器 */
+.quote-tag-input-row > input {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.quote-tag-manage-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  border-radius: var(--radius-pill);
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+/* 无全局 [hidden]{display:none}，而本按钮 display:inline-flex 会压过 UA 的 hidden——必须自声明 */
+.quote-tag-manage-btn[hidden] { display: none; }
+
+/* 管理自定义标签对话框：删除只移出推荐库，不影响已打的卡片 */
+.manage-tags-dialog {
+  width: min(360px, calc(100% - 40px));
+}
+.manage-tags-list {
+  list-style: none;
+  margin: 4px 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+.manage-tags-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 4px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+.manage-tags-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.manage-tags-item__delete {
+  flex: none;
+  border: 1px solid var(--color-danger-border);
+  background: transparent;
+  color: var(--color-danger-fg);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+/* 空态提示在管理对话框里用 [hidden] 控制显隐（helper-text 无全局 hidden 规则） */
+#manageTagsEmpty[hidden] { display: none; }
+
 .tag-chip-pick {
   border: 1px solid var(--color-border);
   background: var(--color-surface);

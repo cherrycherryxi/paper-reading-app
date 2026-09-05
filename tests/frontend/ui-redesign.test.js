@@ -123,12 +123,17 @@ test("regression: quote OCR completion syncs generated tags into the open form",
 });
 
 test("regression: AI quote tags stay selected without being added to default picker tags", () => {
-  assert.match(appSource, /const pickerTags = \[\.\.\.new Set\(\[\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.getCustomQuoteTags\(\)\]\)\];/);
-  // picker 不得再从 state.quotes 反推「书用过的标签」（会拖进笔记/AI 自动标签，杂乱）。
+  // 2026-09-05 按书过滤后 pickerTags 的两段式构造：默认 7 词 + 按书收窄后的自定义候选
+  // （customCandidates = 库 ∩ 当前书用过的词；未选书时才是全量库，见 renderQuoteTagPicker）。
+  assert.match(appSource, /const pickerTags = \[\.\.\.new Set\(\[\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.customCandidates\]\)\];/);
+  assert.match(appSource, /const customCandidates = bookId \? customTags\.filter\(\(tag\) => bookUsed\.has\(tag\)\) : customTags;/);
+  // picker 候选仍只来自手敲词库（∪ 默认）；书内标签只作过滤条件，绝不能直接当推荐来源。
   assert.doesNotMatch(appSource, /getUsedQuoteTags/, "getUsedQuoteTags must be fully removed");
   assert.match(appSource, /const selectedOnlyTags = selectedQuoteTags\.filter\(\(tag\) => !pickerTags\.includes\(tag\)\);/);
   assert.match(appSource, /data-selected-only-tag="true"/);
   assert.doesNotMatch(appSource, /\.\.\.DEFAULT_QUOTE_TAGS, \.\.\.getCustomQuoteTags\(\), \.\.\.selectedQuoteTags/);
+  // 已选中的词不得整体塞回推荐集合（否则删除管理、跨书残留词会重新变成可点推荐）。
+  assert.doesNotMatch(appSource, /pickerTags\.includes\(tag\) \|\| selectedQuoteTags/);
 });
 
 test("regression: book list status chip stays visible over the cover image", () => {
