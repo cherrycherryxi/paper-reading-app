@@ -1736,3 +1736,23 @@ Format per item:
 - description: `addQuote`（`app.js:4849-4934`）图片上传在内层 `try`（`4912-4923`），失败时 `4921-4923` 弹「图片上传失败，先保存文字」；随后 `await syncState()`（`4924`）成功后 `4930` 无条件 `showToast(existingId ? "摘抄已更新" : "摘抄卡片已保存")`。`showToast` 每次调用替换当前 toast 且 syncState 通常 < 2.2s 生命周期，于是 `4923` 的失败提示在同一流转内被 `4930` 的成功 toast 顶替——用户最终只见「摘抄卡片已保存」，而新卡 `imageUrl` 恒 `""`（`4888`；编辑分支 `4914-4919` 未执行），照片被静默丢弃、无任何残留提示。产品在内层 catch 刻意想告知「图没存上、先存文字」（设计意图明确），是随后的成功 toast 把这条吞掉，属实现遗漏而非设计取舍。
 - why: 网络上传失败（移动蜂窝常态）时用户被宣告「已保存」，照片实际未入库——与 OPT-179（state_conflict 误报成功）不同机制（上传失败非 409 冲突），不重复。静默丢照片违反「积累可信」，修复保留「先存文字」降级语义、只改正 toast 真话性，无 owner 产品取舍。
 - how: 内层 catch 置 `let imageFailed = true`，`4930` 成功 toast 据此改「摘抄已保存（图片上传失败，可编辑补图）」，或图片失败时跳过成功 toast 让错误提示停留。需前端回归断言图片上传失败时最终可见 toast 含「图片上传失败」且用户可感知照片未存。Touch: `app.js:4909-4930`；`tests/frontend/`（图片上传失败 toast 回归）。
+
+### OPT-184 — 摘抄自定义标签「删除」报成功但落库失败/冲突被吞：删除其实没生效（静默回退/重出） — 由 explore E346 提拔 [2026-09-06]
+- status: new
+- area: frontend / data safety / truthfulness
+- priority: P2
+- size: S
+- northstar: 中强——新版自定义标签管理删除入口（owner 09-05 直改 `a8dfc05` 新增）是当前正在使用的积累面；删除操作无条件播「已把「tag」移出推荐」，而持久化在 `saveCustomQuoteTags` 里 `syncState().catch(()=>{})` 吞掉后端失败、state_conflict 时整表采纳服务端副本让被删标签静默重出——用户以为已从全局库删除、实则未生效或已回退，属 Theme 3「积累可信」下又一条「删除报成功但持久化没落地」的真话性缺口（与 OPT-177/179/183 同族，但落在全新前端代码、机制独立）。
+- description: 删除 handler（`app.js:6986-6995`）读 `getCustomQuoteTags()` 过滤掉该 tag 后调 `saveCustomQuoteTags(...)`（`6991`）→ 内部 `state.customQuoteTags = clean; syncState().catch(() => {})`（`696-697`），后端落库失败被 `.catch(()=>{})` 静默吞掉——toast（`6994`）照报「已把「tag」移出推荐」，但删除从未持久化，用户刷新/重登后标签仍在推荐库。且 `syncState` 遇 `state_conflict` 会整表采纳服务端最新副本（`app.js:1240-1249`），被删 tag 若在服务端并发副本里仍存在则被重新灌回 `state.customQuoteTags`（`1244`），标签在推荐里复活、toast 已宣称删除，与删除动作脱节、无重试/对账。
+- why: 标签删除是「移出全局推荐库」的幂等性看似安全，但报成功却未落库会让 owner 误以为已清理，跨设备同步后旧标签再次出现在各书推荐里——采集/管理主路径上的静默分歧。与 OPT-179（state_conflict 仍报成功）机制相关但不重复：这里是删除专用路径 + 落库失败被 `.catch` 吞掉，前端新增、无既有处理。
+- how: `saveCustomQuoteTags` 对已登录返回 `syncState()` 的 saved 结果，删除 handler await 后仅在成功时 toast、失败/冲突时回滚本地 `state.customQuoteTags` 并 toast 真话文案（或在 409 时把被删 tag 保留并提示「有其他设备在改动标签，已保留」）。补前端回归：syncState reject / state_conflict 时删除不报「已移出」、标签不被静默复活。Touch: `app.js:692-698,6986-6995,1240-1249`；`tests/frontend/`（标签删除落库失败/冲突回归）。
+
+### OPT-185 — 摘抄自定义标签「删除」单击即永久移出全局库且无确认/无影响面提示，与 app 既有破坏性删除统一带确认的模式不一致 — 由 explore E347 提拔 [2026-09-06]
+- status: new
+- area: frontend / ux / data safety
+- priority: P2
+- size: S
+- northstar: 中——删除入口单点即把 tag 从全局库永久移出（影响所有书的推荐 + 跨设备同步），无 `showConfirmDialog`、无该 tag 已用卡片数/使用面提示、不可恢复只能重打；而 app 其余破坏性删除（`deleteQuote`/`deleteBook`/`deleteConnection`、OPT-175 默认「确认删除」标签）统一走 `showConfirmDialog`。误触删除一个在用标签会在后续所有卡片编辑的推荐里静默消失，属 owner 最新直改 UI 上的安全/一致性缺口。
+- description: `renderManageTagsList`（`app.js:731-743`）每行渲染 `<button … data-delete-custom-tag>删除</button>`（`740`）；容器 click handler（`6986-6995`）命中即 `saveCustomQuoteTags(filter …)`（`6991`）无任何确认即从 `state.customQuoteTags`（全局库，随 `syncState` 跨设备持久化，`696-697`）移除并 toast「已移出推荐」。列表不显示该 tag 当前打了多少张卡（`quoteTagsUsedByBook` 存在但此处未用于展示使用面），用户点前无从知晓影响范围。
+- why: 与 app 一贯「破坏性操作先确认 + 说明影响面」的模式（E71/OPT-106/OPT-175 等，deleteQuote/deleteBook 都先 showConfirmDialog）不符；删除对象是全局共享推荐库而非单卡，单击即永久删除的破坏半径大于用户直觉。修复为弹 `showConfirmDialog`（含该 tag 使用卡片数或「全库推荐消失」说明）后删除，无 owner 产品分歧。
+- how: 删除 handler 先 `showConfirmDialog`（带 tag 名 + 影响面文案）确认后再 `saveCustomQuoteTags`；补前端回归断言删除前出现确认、取消不删。Touch: `app.js:6986-6995,731-743`（可复用 `4278` 的 confirmDialog）；`tests/frontend/`（标签删除确认回归）。
