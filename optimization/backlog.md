@@ -1728,7 +1728,7 @@ Format per item:
 - how: 仅当已在底部（`scrollHeight - scrollTop - clientHeight < 阈值`）时才自动跟随；用户滚离底部则停止调用 `scrollToBottom()`、允许 `scrollBtnRow` 出现，点按钮再回底。补前端回归：流式期间滚离底部不被逐 token 拽回、「回到底部」按钮可出现。保留 delta 分支对 `resetIdle()`（`chat.js:672`）不受影响。Touch: `chat.js:668-673,447-450,919-922`；`tests/frontend/`（chat 流式滚动回归）。
 
 ### OPT-183 — addQuote 图片上传失败后，兜底「图片上传失败」提示被成功 toast 覆盖，用户对照片未保存毫不知情 — 由 explore E340 提拔 [2026-09-05]
-- status: assigned — [2026-09-06 triage] P2/S 夜间指派：S 级纯正确性缺口（toast 真话性），采集主路径；夜间适配：是
+- status: done — ✅ PR #140 / `0366970` 已合入 [2026-09-06]：addQuote 引入 `imageUploadFailed` 标志，图片上传失败时最终 toast 改为「摘抄已保存/已更新，图片上传失败可补图」；前端回归 `quote-image-upload-failure-toast.test.js` 3 用例 + 全量 577 JS/545 Py 全绿
 - area: frontend / data safety / ux
 - priority: P2
 - size: S
