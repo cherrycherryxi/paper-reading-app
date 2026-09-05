@@ -10581,6 +10581,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-05T10:51:01.563Z"
+    },
+    {
+      "id": "auto-042",
+      "timestamp": "2026-09-05T17:02:39.872Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/triage.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-05T17:02:39.872Z"
+    },
+    {
+      "id": "auto-043",
+      "timestamp": "2026-09-05T17:02:44.020Z",
+      "error_message": "Incorrect value in code",
+      "file": "optimization/triage.md",
+      "root_cause": "Had `logout()`",
+      "fix": "Changed to `scrollToBottom()`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-05T17:02:44.020Z"
     }
   ]
 }

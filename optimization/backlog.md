@@ -1710,7 +1710,7 @@ Format per item:
 - how: 同 OPT-178 的写路径收口族，可一并考虑统一「后端非 GET 全量写入口先取版本、冲突让出」的助手。探讨论证变更通常只涉及 `chatHistories`/`chatContexts` 两个字段，优先尝试「save 前重读最新 state、仅把本次回复追加的 history/context 写回」以最小化覆盖面，而非全量覆盖。Touch: `app_server.py:6076,6123,6217,986-995`；对照 `3804-3815`、`6645-6665`、OPT-178（`1824,1843,5980`）；`tests/agent/` 探讨相关。
 
 ### OPT-181 — 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 — 由 explore E330 提拔 [2026-09-03]
-- status: triaged — [2026-09-04 triage] P1/S 夜间指派：复用 `logout()` teardown + 会话过期回归；可选「保留离线会话过期态」增强涉 owner 取舍、排除在夜间范围外；[2026-09-05 triage] 续指：git 全量 refs 复核 09-04 指派后无实现 commit，本夜续指同项，若再空转一夜升级 07:00 晨间查因
+- status: triaged — [2026-09-04 triage] P1/S 夜间指派：复用 `logout()` teardown + 会话过期回归；可选「保留离线会话过期态」增强涉 owner 取舍、排除在夜间范围外；[2026-09-05 triage] 续指：git 全量 refs 复核 09-04 指派后无实现 commit，本夜续指同项，若再空转一夜升级 07:00 晨间查因；[2026-09-06 triage] 升级：09-05 夜仍无实现 commit，连空转三夜，升级 07:00 晨间查因，不再夜间第 3 次指派（status 维持 triaged，非 done）
 - area: frontend / data safety / session
 - priority: P1
 - size: S
@@ -1728,7 +1728,7 @@ Format per item:
 - how: 仅当已在底部（`scrollHeight - scrollTop - clientHeight < 阈值`）时才自动跟随；用户滚离底部则停止调用 `scrollToBottom()`、允许 `scrollBtnRow` 出现，点按钮再回底。补前端回归：流式期间滚离底部不被逐 token 拽回、「回到底部」按钮可出现。保留 delta 分支对 `resetIdle()`（`chat.js:672`）不受影响。Touch: `chat.js:668-673,447-450,919-922`；`tests/frontend/`（chat 流式滚动回归）。
 
 ### OPT-183 — addQuote 图片上传失败后，兜底「图片上传失败」提示被成功 toast 覆盖，用户对照片未保存毫不知情 — 由 explore E340 提拔 [2026-09-05]
-- status: new
+- status: assigned — [2026-09-06 triage] P2/S 夜间指派：S 级纯正确性缺口（toast 真话性），采集主路径；夜间适配：是
 - area: frontend / data safety / ux
 - priority: P2
 - size: S
