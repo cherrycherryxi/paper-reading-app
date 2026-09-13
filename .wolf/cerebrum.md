@@ -20,6 +20,7 @@
 
 ## Key Learnings
 
+- (2026-09-14) **产品负责人仪式的运行方式与「上周焦点」读法**：`scripts/codex/product-owner-monday.sh` 由 launchd `com.huangnanqi.paper-codex-product-owner.plist`（周一 07:00）触发，在 `/tmp` 下的**隔离 worktree**（detached 于 `origin/feature/agent`）里跑，白名单只允许改 `optimization/{roadmap,backlog,explore,triage}.md` 和 `.wolf/`，越权变更会让脚本 `fail_stage` 整体失败；脚本自己 commit+push 并邮件发摘要，摘要须 350-600 字且含五个固定小节（`【上周结算】【本周唯一焦点】【为什么现在】【本周三件事】【明确不做】`），不满足就降级成「需人工确认」邮件、**什么都不提交**。所以「roadmap 里没有本周焦点」既可能是没跑、也可能是跑了但摘要校验失败——两种情况要去 `~/.claude/codex-product-owner.log` 里搜 `=== Codex product-owner <周次>` 分辨（历史运行点：W32 8/03、W33 8/10、W34 8/17、W35 8/24、W36 8/31、W37 9/07、W38 9/14）。另：脚本喂给模型的「最近 8 天提交」按 committer date 过滤，主干静默时这段会**一条都不含本周内容**——看到这种空窗要先怀疑交付循环本身，而不是以为模型漏读了。
 - (2026-09-03) 新增摘抄对话框的关闭语义:取消按钮(id=quoteCancelBtn)与 Esc 统一走 requestCloseQuoteDialog()——quoteDialogIsNew && quoteDraftHasContent() 时弹 quoteDiscardDialog 三键确认(保存草稿=quoteForm.requestSubmit() 走真实 addQuote 校验、继续编辑=只关确认框、放弃=quoteDialog.close() 由既有 close 监听 discardProvisionalOcrQuote 清 OCR 卡)。设计边界:①空表单与编辑已有卡(quoteDialogIsNew=false)保持一键取消——编辑态卡本身还在,只丢本次改动不值得拦;②有内容判定=OCR卡/任一张照片(pendingQuoteImage 的 objectUrl/dataUrl/savedUrl/compressionPromise 任一)/正文/页码/理解/标签,bookId 不算劳动成果;③保存动作不能绕过校验直接留卡——必须 requestSubmit 走 addQuote,缺书时 toast 回编辑,内容不丢;④确认框常驻 Esc 语义=Escape 回编辑。
 - (2026-09-03) 双页OCR合并的既有语义:runOcrFromImage 页间合并前用 endsWithSentencePunctuation(页1末行) 判断——句末标点结尾才插 
 
@@ -115,6 +116,7 @@
 
 ## Do-Not-Repeat
 
+- [2026-09-14]（bug-610）**自动化「在跑」不等于「在产出」——判某条轨是否活着，看的是它最后的提交/日志时间戳，不是它有没有进程或有没有报错；而且「焦点文件没更新」本身就是必须被当成故障记录的信号。** 2026-09-06 07:08 之后主干 `origin/feature/agent` 连续 8 天零提交（今日 07:00 从 GitHub 重新 fetch 仍指向 `e705103`），同时 `codex-nightly-triage/-implement/-explore.log`、`codex-paper-morning.log` 最后写入均停在 9/06，`codex-weekly-report.log` 停在 8/30——而 prod 后端与隧道照常运行（`paper-backend-prod.log` 9/14 06:57），所以**「整机停机」是错误假设**。更隐蔽的一半：产品仪式 W36/W37 **确实运行了**，但两次都因摘要未过 350-600 字校验被 `product-owner-monday.sh:102` 判失败、只发「需人工确认」邮件、不提交 roadmap——于是 roadmap 静默停在三周前的焦点上，从文件表面完全看不出异常。**排查法：① 核主干 `git log` 最新提交时间 + 每个自动化脚本自己的 `.log` mtime，逐个轨对时间线；② 仪式类脚本的「需人工确认」降级路径要当故障看，不是当正常分支；③ 别把「某条轨上周空转」当成给它的新指派还能落盘——在空转轨上继续指派只是把同一件事再拖一周（OPT-181 连空转三夜即此病，已立为 roadmap §5 规则 7：指派前先验证该轨上周真的产出过提交）。** 日志里的 `[claude-code:unrecognized_model] model=deepseek-v4-flash[1m]` 是并行线索，但根因（夜间休眠未唤醒 / launchd 未加载 / 模型档位失效 / 阈值过紧）当时未定论，不得臆断。
 - [2026-09-04]（bug-608）**外部模型名会静默下线——「调 X 模型失败」第一反应是 curl 供应商的 /v1/models 列表核实，别对着代码里的模型名猜。** kimi-k2.5 被 Moonshot 下线后封面识别全挂，prod model_logs 留下「Not found the model kimi-k2.5 or Permission denied」就是唯一证据。同 deepseek-chat 停用（2026-08-31）。排查法：查 model_logs 最近 type=ocr 的 error 列拿供应商原文；修复前先对候选模型（kimi-k2.6/k3 等）用真实 key 发最小 vision 请求验证存在性+行为（1x1 png 即可），再把**已验证**的模型写进代码默认；未验证的模型不要顺手加进特判集合。
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->

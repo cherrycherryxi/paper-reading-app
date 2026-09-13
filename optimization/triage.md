@@ -4,6 +4,19 @@ Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the a
 
 Last triaged: 2026-09-06
 
+## ⚠️ PO 修正（2026-09-14 周一仪式，人工，非 Agent1 产出）
+
+**本文件已停更 8 天，其「Next up」段不再代表当前状态。** 事实：`codex-nightly-triage.log` / `-implement.log` / `-explore.log` 最后写入均为 2026-09-06，`codex-paper-morning.log` 停在 9/06 07:13，`codex-weekly-report.log` 停在 8/30；`origin/feature/agent` 今日 07:00 从 GitHub 重新 fetch 后仍为 `e705103`（9/06 07:08），主干 8 天零提交，日志中可见 `[claude-code:unrecognized_model] {"model":"deepseek-v4-flash[1m]"}`。因此下面「指派 OPT-183」「本夜指派」「预算状态 09-06」均为**历史快照**，不是本周待办。
+
+**受此影响的条目状态修正（不改变 backlog/triage 的既有判定依据，只同步执行轨现实）：**
+- **OPT-183**：已在 9/06 由 PR #140 / `0366970` 合入，**done**（下方的「本夜指派」段已完成其使命，保留作追溯）。
+- **OPT-181 / OPT-182**：triage 于 9/06 已把 OPT-181 升级为「07:00 晨间查因」，但晨间轨自 9/06 起同样停摆，**该升级从未被执行**。二者**本周（2026-W38）不再指派**，维持 triaged，待自动化轨恢复后再评估——在一条空转的轨上继续指派只会重复「指派 ≠ 落盘」（已写入 roadmap §5 规则 7）。
+- **OPT-184 / OPT-185**：已由 PO 仪式（9/14）从 `new` 提为 `triaged`，列为 2026-W38 事项 2（见 roadmap §2 短期节）。
+- **OPT-177 / OPT-178 / OPT-179 / OPT-180**：判定不变（留功能轨/晨间候选卡），本周不做。
+- **P3 parked/blocked 13 项**（OPT-032/035/036/044/046/048/050/051/081/089/117/124/144）：维持不变。新增 OPT-186（P1/M，本周焦点，夜间执行）。
+
+**恢复前提（交晨间轨与 owner 查证，本文件不臆断根因）：**需确认 9/07 起夜间 job 未触发的原因（机器夜间休眠未唤醒 / launchd 未加载 / 模型档位 `deepseek-v4-flash[1m]` 失效）并恢复；同时产品仪式的摘要长度校验（350-600 字）在 W36/W37 连续两次把整次仪式判失败，阈值与降级策略需一并复核。
+
 ## Next up
 
 **状态：指派 1 项（OPT-183，夜间 S 适配）。OPT-181 连续多夜空转，按 09-05 注记升级 07:00 晨间查因，本夜不再第 3 次夜间续指。OPT-182（P1/S）涉「上翻 vs 自动跟随」UX 取舍，留 07:00 晨间候选卡。其余 P1 M/L 项与 P3 parked 不变。**

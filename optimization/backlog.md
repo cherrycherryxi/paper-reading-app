@@ -1738,7 +1738,7 @@ Format per item:
 - how: 内层 catch 置 `let imageFailed = true`，`4930` 成功 toast 据此改「摘抄已保存（图片上传失败，可编辑补图）」，或图片失败时跳过成功 toast 让错误提示停留。需前端回归断言图片上传失败时最终可见 toast 含「图片上传失败」且用户可感知照片未存。Touch: `app.js:4909-4930`；`tests/frontend/`（图片上传失败 toast 回归）。
 
 ### OPT-184 — 摘抄自定义标签「删除」报成功但落库失败/冲突被吞：删除其实没生效（静默回退/重出） — 由 explore E346 提拔 [2026-09-06]
-- status: new
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-185 同一 PR 收口，owner 白天执行）；本项为真话性半段（落库失败/冲突不报成功、标签不复活），OPT-185 为确认半段
 - area: frontend / data safety / truthfulness
 - priority: P2
 - size: S
@@ -1748,7 +1748,7 @@ Format per item:
 - how: `saveCustomQuoteTags` 对已登录返回 `syncState()` 的 saved 结果，删除 handler await 后仅在成功时 toast、失败/冲突时回滚本地 `state.customQuoteTags` 并 toast 真话文案（或在 409 时把被删 tag 保留并提示「有其他设备在改动标签，已保留」）。补前端回归：syncState reject / state_conflict 时删除不报「已移出」、标签不被静默复活。Touch: `app.js:692-698,6986-6995,1240-1249`；`tests/frontend/`（标签删除落库失败/冲突回归）。
 
 ### OPT-185 — 摘抄自定义标签「删除」单击即永久移出全局库且无确认/无影响面提示，与 app 既有破坏性删除统一带确认的模式不一致 — 由 explore E347 提拔 [2026-09-06]
-- status: new
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-184 同一 PR 收口，owner 白天执行）；本项为确认半段（破坏性操作先确认并说明影响面）
 - area: frontend / ux / data safety
 - priority: P2
 - size: S
@@ -1756,3 +1756,13 @@ Format per item:
 - description: `renderManageTagsList`（`app.js:731-743`）每行渲染 `<button … data-delete-custom-tag>删除</button>`（`740`）；容器 click handler（`6986-6995`）命中即 `saveCustomQuoteTags(filter …)`（`6991`）无任何确认即从 `state.customQuoteTags`（全局库，随 `syncState` 跨设备持久化，`696-697`）移除并 toast「已移出推荐」。列表不显示该 tag 当前打了多少张卡（`quoteTagsUsedByBook` 存在但此处未用于展示使用面），用户点前无从知晓影响范围。
 - why: 与 app 一贯「破坏性操作先确认 + 说明影响面」的模式（E71/OPT-106/OPT-175 等，deleteQuote/deleteBook 都先 showConfirmDialog）不符；删除对象是全局共享推荐库而非单卡，单击即永久删除的破坏半径大于用户直觉。修复为弹 `showConfirmDialog`（含该 tag 使用卡片数或「全库推荐消失」说明）后删除，无 owner 产品分歧。
 - how: 删除 handler 先 `showConfirmDialog`（带 tag 名 + 影响面文案）确认后再 `saveCustomQuoteTags`；补前端回归断言删除前出现确认、取消不删。Touch: `app.js:6986-6995,731-743`（可复用 `4278` 的 confirmDialog）；`tests/frontend/`（标签删除确认回归）。
+
+### OPT-186 — addQuote 在照片上传落定前就关弹窗 + 销毁照片草稿，上传挂起/超时无出路，卡片只存内存刷新即失 — 由 explore E350 提拔 [2026-09-14]
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 唯一焦点·事项 1**（夜间执行）；提拔理由：E350 原注「待 OPT-183 合入后再复核行号」的前置已在 2026-09-06 满足（PR #140 / `0366970` 已合入），行号已按当前树复核
+- area: frontend / data safety / capture
+- priority: P1
+- size: M
+- northstar: 强——采集主路径（拍照摘抄）的落库可靠性：照片是本 app 的采集本体，上传挂起/失败时文字与照片可能双双「看似保存中实则没落库」，且照片草稿已被销毁、无重试入口，直接违背 Theme 4「失败不弄丢用户手上的东西」。
+- description: `addQuote`（`app.js:4889-4979`）把卡片 `unshift` 进 `state.quotes`（新卡 `4920-4932`，`imageUrl:""`）后，**同步地在任何网络完成前**执行 `closeDialog`(4941) + `resetQuoteDraft()`(4942，`app.js:3163` revoke objectURL、置空 `pendingQuoteImage`) + 一系列 render + `showToast("保存中…")`(4949)，**之后**才 `await uploadQuoteImage(pendingImage)`(4954)。`apiFetch`（`app.js:505-576`）无 `AbortController`/超时：上传挂起时 `4954` 永不 resolve → `4965 await syncState()` 永不执行，乐观卡仅存内存、刷新即失，而照片草稿已被 `resetQuoteDraft` 销毁、无重试入口（`uploadQuoteImage` throw 走 `4962-4963` catch 置 `imageUploadFailed`，但照片 bytes 已丢，只能重拍）。**注意与 OPT-183（同函数、已修）机制不同**：OPT-183 修的是「失败时最终 toast 不真话」，本项是「上传未落定就破坏性地关窗 + 清草稿、且无超时」，属生命周期缺口，不重复。
+- why: 卡片与照片的生命周期在「上传是否成功」落定前就被破坏性关闭/清空；移动蜂窝下上传慢或挂起是常态，用户会得到一张「保存中」后消失的卡 + 一张再也找不到的照片。对照 OCR 路径有 `recoverOcrRequest`(1344) 的恢复机制，采集主路径反而没有。同函数三周内已连续出过三次同类缺陷（`e663023` bug-605 照片消失 / bug-607 取消丢卡、PR #140 OPT-183 toast 覆盖），说明「先关掉、再上传」的顺序本身有问题。
+- how: 反转顺序或引入可恢复语义——(a) 给 `uploadQuoteImage`/`apiFetch` 加超时与可取消（`AbortController`）；(b) 上传落定前不 `resetQuoteDraft()`、不 revoke objectURL，失败或超时时保留照片草稿并给出「重试 / 仅存文字」明确出路；(c) 卡片在落定前不得呈现为已保存（「保存中…」需有终态，超时后转失败提示并可重试）。补前端回归：上传挂起时卡片不播「已保存」、照片草稿仍在且可重试、超时后给出失败提示而非永久「保存中」；图片上传成功路径 toast 与落库不变。Touch: `app.js:4889-4979,3163-3175,505-576`。

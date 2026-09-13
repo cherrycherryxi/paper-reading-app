@@ -10647,6 +10647,42 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-05T23:05:39.563Z"
+    },
+    {
+      "id": "auto-045",
+      "timestamp": "2026-09-13T23:03:18.623Z",
+      "error_message": "Missing await",
+      "file": "optimization/roadmap.md",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T23:03:18.623Z"
+    },
+    {
+      "id": "bug-610",
+      "timestamp": "2026-09-14T07:00:00+08:00",
+      "error_message": "主干 origin/feature/agent 自 2026-09-06 07:08 (e705103) 起 8 天零提交；Codex 夜间/晨间自动化轨全部停摆；W36/W37 产品仪式未落盘",
+      "file": "scripts/codex/product-owner-monday.sh; ~/Library/LaunchAgents/com.huangnanqi.paper-codex-*.plist",
+      "root_cause": "未定论，需查证：① 夜间 job 自 9/06 起未再触发（codex-nightly-*.log / codex-paper-morning.log 最后写入均为 9/06；codex-weekly-report.log 停在 8/30），可能为机器夜间休眠未唤醒或 launchd 未加载；② 日志中出现 [claude-code:unrecognized_model] model=deepseek-v4-flash[1m]；③ 产品仪式 W36/W37 两次运行均因摘要未过 350-600 字校验被脚本判为失败（product-owner-monday.sh:102），只发『需人工确认』邮件、未提交 roadmap 变更，导致焦点在文件中静默停在三周前",
+      "fix": "本仪式未改脚本（白名单外）：已在 optimization/roadmap.md 记录 W36/W37 实情并新增 §5 规则 7（指派前先验证执行轨是否产出过提交；仪式自身产出连续失败两次以上须当周升级为显式故障记录），在 optimization/triage.md 加 PO 修正块标注停更与受影响条目。脚本/launchd 修复待 owner 与晨间轨查证后另立任务。",
+      "tags": [
+        "automation",
+        "launchd",
+        "codex",
+        "product-owner",
+        "stall",
+        "unrecognized-model",
+        "summary-length-gate"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T07:00:00+08:00"
     }
   ]
 }
