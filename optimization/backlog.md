@@ -1728,7 +1728,7 @@ Format per item:
 - how: 仅当已在底部（`scrollHeight - scrollTop - clientHeight < 阈值`）时才自动跟随；用户滚离底部则停止调用 `scrollToBottom()`、允许 `scrollBtnRow` 出现，点按钮再回底。补前端回归：流式期间滚离底部不被逐 token 拽回、「回到底部」按钮可出现。保留 delta 分支对 `resetIdle()`（`chat.js:672`）不受影响。Touch: `chat.js:668-673,447-450,919-922`；`tests/frontend/`（chat 流式滚动回归）。
 
 ### OPT-183 — addQuote 图片上传失败后，兜底「图片上传失败」提示被成功 toast 覆盖，用户对照片未保存毫不知情 — 由 explore E340 提拔 [2026-09-05]
-- status: done — ✅ PR #140 / `0366970` 已合入 [2026-09-06]：addQuote 引入 `imageUploadFailed` 标志，图片上传失败时最终 toast 改为「摘抄已保存/已更新，图片上传失败可补图」；前端回归 `quote-image-upload-failure-toast.test.js` 3 用例 + 全量 577 JS/545 Py 全绿
+- status: done — ✅ PR #140 / `0366970` 已合入 [2026-09-06]：addQuote 引入 `imageUploadFailed` 标志，图片上传失败时最终 toast 改为「摘抄已保存/已更新，图片上传失败可补图」；前端回归 `quote-image-upload-failure-toast.test.js` 3 用例 + 全量 577 JS/545 Py 全绿。**[2026-09-28 PO 仪式] ⚠️ 状态修正：已合入 dev，但 NOT released to prod**——`git merge-base --is-ancestor 0366970 main` 为否，`origin/main`（prod 指针）仍为 `63099ea`（2026-09-05 19:16），本修复自 09-06 起在 dev 躺了 22 天；`git diff origin/main origin/feature/agent` 当前**只剩这一处** `app.js` 7+/2-。已列为 2026-W40 事项 2（发版）——按 §5 规则 8，「done」指合入 dev，**prod 未生效必须显式标注**（详见 roadmap §5 规则 8）
 - area: frontend / data safety / ux
 - priority: P2
 - size: S
@@ -1738,7 +1738,7 @@ Format per item:
 - how: 内层 catch 置 `let imageFailed = true`，`4930` 成功 toast 据此改「摘抄已保存（图片上传失败，可编辑补图）」，或图片失败时跳过成功 toast 让错误提示停留。需前端回归断言图片上传失败时最终可见 toast 含「图片上传失败」且用户可感知照片未存。Touch: `app.js:4909-4930`；`tests/frontend/`（图片上传失败 toast 回归）。
 
 ### OPT-184 — 摘抄自定义标签「删除」报成功但落库失败/冲突被吞：删除其实没生效（静默回退/重出） — 由 explore E346 提拔 [2026-09-06]
-- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-185 同一 PR 收口，owner 白天执行）；本项为真话性半段（落库失败/冲突不报成功、标签不复活），OPT-185 为确认半段
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-185 同一 PR 收口，owner 白天执行）；本项为真话性半段（落库失败/冲突不报成功、标签不复活），OPT-185 为确认半段。**[2026-09-28 PO 仪式] W38 未落地**——当前树 `app.js:697` 仍为 `syncState().catch(() => {})`，删除 handler 仍无条件播报，`tests/frontend/` 无对应回归；**不 park、不降级**（有明确北极星贡献），顺延为 **2026-W41 首位候选**（本周 WIP=1 且夜间轨自 09-06 停摆，无可承接的轨）。用户侧证据：owner 的 `customQuoteTags` 已积累 25 个标签，其中 7 个已打到 3 张以上卡片（prod `user_state` 实测），删除面是活跃积累面而非冷功能
 - area: frontend / data safety / truthfulness
 - priority: P2
 - size: S
@@ -1748,7 +1748,7 @@ Format per item:
 - how: `saveCustomQuoteTags` 对已登录返回 `syncState()` 的 saved 结果，删除 handler await 后仅在成功时 toast、失败/冲突时回滚本地 `state.customQuoteTags` 并 toast 真话文案（或在 409 时把被删 tag 保留并提示「有其他设备在改动标签，已保留」）。补前端回归：syncState reject / state_conflict 时删除不报「已移出」、标签不被静默复活。Touch: `app.js:692-698,6986-6995,1240-1249`；`tests/frontend/`（标签删除落库失败/冲突回归）。
 
 ### OPT-185 — 摘抄自定义标签「删除」单击即永久移出全局库且无确认/无影响面提示，与 app 既有破坏性删除统一带确认的模式不一致 — 由 explore E347 提拔 [2026-09-06]
-- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-184 同一 PR 收口，owner 白天执行）；本项为确认半段（破坏性操作先确认并说明影响面）
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-184 同一 PR 收口，owner 白天执行）；本项为确认半段（破坏性操作先确认并说明影响面）。**[2026-09-28 PO 仪式] W38 未落地**——当前树删除 handler（`app.js:6996`）仍无 `showConfirmDialog`，`app.js:6999` 仍无条件播「已把「tag」移出推荐」；**不 park、不降级**，顺延为 **2026-W41 首位候选**（理由同 OPT-184）
 - area: frontend / ux / data safety
 - priority: P2
 - size: S
@@ -1758,7 +1758,7 @@ Format per item:
 - how: 删除 handler 先 `showConfirmDialog`（带 tag 名 + 影响面文案）确认后再 `saveCustomQuoteTags`；补前端回归断言删除前出现确认、取消不删。Touch: `app.js:6986-6995,731-743`（可复用 `4278` 的 confirmDialog）；`tests/frontend/`（标签删除确认回归）。
 
 ### OPT-186 — addQuote 在照片上传落定前就关弹窗 + 销毁照片草稿，上传挂起/超时无出路，卡片只存内存刷新即失 — 由 explore E350 提拔 [2026-09-14]
-- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 唯一焦点·事项 1**（夜间执行）；提拔理由：E350 原注「待 OPT-183 合入后再复核行号」的前置已在 2026-09-06 满足（PR #140 / `0366970` 已合入），行号已按当前树复核
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 唯一焦点·事项 1**（夜间执行）；提拔理由：E350 原注「待 OPT-183 合入后再复核行号」的前置已在 2026-09-06 满足（PR #140 / `0366970` 已合入），行号已按当前树复核。**[2026-09-28 PO 仪式] W38 未落地**——当前树 `app.js:4941-4942`（`closeDialog` + `resetQuoteDraft()`）仍早于 `app.js:4954 await uploadQuoteImage`，`apiFetch`（`505-576`）仍无 `AbortController`/超时（定向 grep 零命中）；原指派轨（夜间 implement）自 2026-09-06 起零产出，**改派 owner 白天，列为 2026-W40 唯一焦点·事项 1**。**暴露面修正（避免夸大）**：每日高频路径是「快速识别」——照片随 `POST /api/quotes/ocr` 由服务端 `save_image()` 落盘（9/27 prod 实测 22 次/日，20/24 条摘抄带图），本项影响的是「带照片草稿但未走快速识别」的保存路径（9/27 实测 `POST /api/upload-image` 1 次）；要修的是上传生命周期与失败出路，**不改快速识别的落盘语义**
 - area: frontend / data safety / capture
 - priority: P1
 - size: M

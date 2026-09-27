@@ -5,6 +5,12 @@ Strong ideas should also be promoted into `backlog.md` as new OPT-NNN items.
 
 ---
 
+## 2026-09-28 · PO 备注（人工，非 Agent3 产出）
+
+**本文件最后写入为 2026-09-06（Agent3 自该日起停摆），蓄水池自那以后无新增，也**未**执行 prune——按 roadmap §2 约定，下次全量 prune = **2026-10-05**（十月首个周一）。** 本周（2026-W40）不提拔任何新条目：夜间/晨间轨全部停摆，提拔了也没有可承接的轨（roadmap §5 规则 7）。唯一状态变化的条目是 **E350**（已提拔为 OPT-186），其备注见该条目末尾。E349（OCR 异常路径落孤儿 failed 空卡）留池不提拔；E348 维持 P3 parked；E351 作为 OPT-178/180 收口族的 scope 证据保留，不动。
+
+---
+
 ## 2026-05-30
 
 ### E4 — `link_thought` action missing from backend execution test suite (S)
@@ -6055,6 +6061,8 @@ _COMPRESS_KEEP_RECENT = 6  # recent messages to keep verbatim         # app_serv
 **Files:** `app.js:4889-4974,3163-3175,505-576`；`tests/frontend/`（上传挂起/失败时卡片不假性「保存中」、照片可重试）。
 
 **Northstar:** 中——采集主路径的上传生命周期可靠性，与 Theme 3「不丢数据」直接相关；但实现涉 toast/草稿流重排，与 OPT-183 在途同区，留池。
+
+**[2026-09-28 PO 备注] 已提拔为 OPT-186，并被指派过 2026-W38 唯一焦点（未落地）与 2026-W40 唯一焦点。两条实证补充/修正：**①**暴露面修正（避免夸大）**——每日高频路径是「快速识别」，照片随 `POST /api/quotes/ocr` 由服务端 `save_image()` 落盘（prod 实测 9/27 22 次/日、20/24 条摘抄带图），本项影响的是「带照片草稿但未走快速识别」的保存路径（同日 `POST /api/upload-image` 仅 1 次）；修的是上传生命周期与失败出路，不改快速识别的落盘语义。②**W38 未落地的原因不是难度**——原指派轨（夜间 implement）自 2026-09-06 起零产出，属 roadmap §5 规则 7 描述的「指派给空转轨」；W40 已改派 owner 白天。
 
 ### E351 — `/api/chat`（非流式）与 `DELETE /api/chat-history` 仍整表盲写 state，是与 OPT-178/180 同族的未枚举盲写点，收口时应一并纳入 (M)
 

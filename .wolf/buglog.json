@@ -10683,6 +10683,91 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-14T07:00:00+08:00"
+    },
+    {
+      "id": "auto-046",
+      "timestamp": "2026-09-27T23:03:38.744Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/roadmap.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-27T23:03:38.744Z"
+    },
+    {
+      "id": "auto-047",
+      "timestamp": "2026-09-27T23:04:00.197Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/backlog.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-27T23:04:00.197Z"
+    },
+    {
+      "id": "auto-048",
+      "timestamp": "2026-09-27T23:04:06.024Z",
+      "error_message": "Missing await",
+      "file": "optimization/backlog.md",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-27T23:04:06.024Z"
+    },
+    {
+      "id": "auto-049",
+      "timestamp": "2026-09-27T23:04:18.017Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/triage.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-27T23:04:18.017Z"
+    },
+    {
+      "id": "bug-611",
+      "timestamp": "2026-09-28T07:00:00+08:00",
+      "error_message": "W39(2026-09-21) 周一产品负责人仪式在 fetch 阶段失败 (fatal: unable to access https://github.com/cherrycherryxi/paper-reading-app.git/ : LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443)，roadmap 未更新；主干 origin/feature/agent 自 2026-09-14 (05f6b2f) 起 14 天零提交；夜间三条轨 + 晨间轨 + 轮询器自 2026-09-06 起零产出",
+      "file": "scripts/codex/product-owner-monday.sh; scripts/codex/nightly-triage.sh, nightly-implement.sh, nightly-explore.sh, paper-morning.sh, paper-implement-poll.sh; /Users/huangnanqi/.claude/codex-product-owner.log",
+      "root_cause": "分三段：① W39 仪式失败于网络/TLS 层（github.com:443 SSL_ERROR_SYSCALL，脚本自记「失败阶段：fetch feature/agent」），与 W36/W37 的摘要长度校验失败不是同一原因——fetch 失败即整体中止，只发「本周焦点 · 2026-W39（Codex 失败）」邮件，不进入会改文件的阶段；② 夜间/晨间轨自 2026-09-06 起零产出（各 .log mtime 停在 9/06、~/.claude/paper-loop/ 最后一份 review 为 review-2026-09-06.md、主干无对应提交），根因仍未定论（夜间休眠未唤醒 / launchd 未加载 / 模型档位 deepseek-v4-flash[1m] 失效），本仪式不臆断；③ 交付面另有一处独立缺口：prod 指针 origin/main 停在 63099ea(9/05)，OPT-183 合入 dev 后 22 天未发版 (已规则化写入 roadmap §5 规则 8)。",
+      "fix": "本仪式（2026-09-28 W40）未改脚本（白名单外，只允许改 optimization/{roadmap,backlog,explore,triage}.md 与 .wolf/）：triage.md 新增 09-28 PO 修正块写明轨停摆与 W39 失败原因；roadmap §0 修订诊断、§2 新增 W40 焦点节（含「焦点落盘前的轨存活检查」首次实际执行，三件事全部改派 owner 白天）、§5 新增规则 8（「已合入 dev」≠「用户已获得」）。恢复动作需 owner 在场：核 launchd 加载状态与夜间唤醒、复核 W39 的 TLS 失败是否与代理出口有关、复核摘要长度阈值。",
+      "tags": [
+        "automation-stall",
+        "product-owner-ritual",
+        "network-tls",
+        "launchd",
+        "delivery-loop",
+        "dev-vs-prod"
+      ],
+      "related_bugs": [
+        "bug-610"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T07:00:00+08:00"
     }
   ]
 }

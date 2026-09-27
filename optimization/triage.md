@@ -4,7 +4,21 @@ Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the a
 
 Last triaged: 2026-09-06
 
-## ⚠️ PO 修正（2026-09-14 周一仪式，人工，非 Agent1 产出）
+## ⚠️ PO 修正（2026-09-28 周一仪式，人工，非 Agent1 产出）
+
+**本文件已停更 22 天（`Last triaged: 2026-09-06`），下面所有段落都是历史快照，不代表当前状态。** 09-28 实测事实：①**夜间三条轨与晨间轨、轮询器自 2026-09-06 起零产出**——`codex-nightly-triage/-implement/-explore.log`、`codex-paper-morning.log` 最后写入均为 9/06，`codex-paper-implement-poll.log` 停在 9/04，`~/.claude/paper-loop/` 最后一份 review 为 `review-2026-09-06.md`；**当前唯一确认存活的轨是周一 07:00 的 product-owner 本轨**。②**W39（9/21）仪式在 fetch 阶段失败**——`codex-product-owner.log`：`LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443` + 「失败阶段：fetch feature/agent」，roadmap 未改动一行（与 W36/W37 的摘要校验失败**不是同一原因**）。③**主干 14 天零提交**：`origin/feature/agent` = `05f6b2f`（9/14 07:05，W38 仪式自身那一次提交），W38 之后无任何提交。④**prod 未获交付**：`origin/main` = `63099ea`（9/05 19:16），`git diff origin/main origin/feature/agent` 只剩 `app.js` 一处 7+/2-（OPT-183）。
+
+**条目状态修正（只同步执行轨现实，不改变既有判定依据）：**
+- **OPT-183**：dev 已 done（PR #140 / `0366970`），但 **prod 未生效**（`git merge-base --is-ancestor 0366970 main` 为否）。已列为 **2026-W40 事项 2（发版）**；按 roadmap §5 规则 8，「已合入 dev」必须与「prod 生效」分开写。
+- **OPT-186**：W38 唯一焦点·事项 1 **未落地**（`app.js:4941-4942` 仍早于 `app.js:4954`；`apiFetch` 无超时），原指派轨（夜间）自 09-06 零产出 → **改派 owner 白天**，列为 **2026-W40 唯一焦点·事项 1**。另修正暴露面：每日高频路径是「快速识别」（照片随 `POST /api/quotes/ocr` 服务端落盘，9/27 prod 实测 22 次/日），本项影响「带照片草稿但未走快速识别」的保存路径（同日 `POST /api/upload-image` 1 次）。
+- **OPT-184 / OPT-185**：W38 事项 2 **未落地**（`app.js:697` 仍 `syncState().catch(() => {})`；`app.js:6996` 无确认框、`6999` 无条件播报）。**不 park、不降级**，顺延为 **2026-W41 首位候选**。
+- **OPT-181 / OPT-182 / OPT-177 / OPT-178 / OPT-179 / OPT-180**：本周（W40）**一律不指派**——它们全部依赖夜间轨或功能轨，两条轨均在停摆；OPT-178/180（整表盲写族，含 E351 补充的 `/api/chat`、`DELETE /api/chat-history`）**明确留功能轨**，不降级塞给夜间。
+- **P3 parked/blocked 13 项**（OPT-032/035/036/044/046/048/050/051/081/089/117/124/144）：维持不变。
+- **新增无**：本仪式未提拔新 OPT（夜间/晨间轨停摆期无新增 explore 条目；explore 最后写入为 2026-09-06）。
+
+**恢复前提（交 owner 查证，本文件不臆断根因）：**需确认 ① 夜间 job 自 9/07 起未触发的原因（机器夜间休眠未唤醒 / launchd 未加载 / 模型档位 `deepseek-v4-flash[1m]` 失效）；② W39 的 `github.com:443` TLS 失败是否与代理/网络出口有关（历史先例：Clash 出口节点问题曾致隧道绕路）；③ 产品仪式的摘要长度校验（350-600 字）在 W36/W37 连续两次把整次仪式判失败，阈值与降级策略需一并复核。**在轨道真正产出提交之前，任何指派都不算产能**（roadmap §5 规则 7）。
+
+## ⚠️ PO 修正（2026-09-14 周一仪式，人工，非 Agent1 产出）— 已归档，见上方 09-28 块
 
 **本文件已停更 8 天，其「Next up」段不再代表当前状态。** 事实：`codex-nightly-triage.log` / `-implement.log` / `-explore.log` 最后写入均为 2026-09-06，`codex-paper-morning.log` 停在 9/06 07:13，`codex-weekly-report.log` 停在 8/30；`origin/feature/agent` 今日 07:00 从 GitHub 重新 fetch 后仍为 `e705103`（9/06 07:08），主干 8 天零提交，日志中可见 `[claude-code:unrecognized_model] {"model":"deepseek-v4-flash[1m]"}`。因此下面「指派 OPT-183」「本夜指派」「预算状态 09-06」均为**历史快照**，不是本周待办。
 
