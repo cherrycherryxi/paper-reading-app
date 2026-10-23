@@ -10800,6 +10800,25 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-10-23T08:01:44.985Z"
+    },
+    {
+      "id": "bug-612",
+      "timestamp": "2026-10-23T19:25:11+08:00",
+      "error_message": "用户报告：paper-reading 此前已暂停的定时任务，从旧电脑迁移到新机后又被启动（nightly-implement 等 11 项实际在跑）",
+      "file": "~/Library/LaunchAgents/*.plist; scripts/codex/launchd/*.plist",
+      "root_cause": "2026-09-06 的暂停只用了 launchctl bootout，不跨重启/重新登录；重启后 ~/Library/LaunchAgents 会被 launchd 自动加载。迁移会话在 2026-10-23 01:41 收到用户「启用paper/fx」后，按旧机 launchctl-before.txt 批量 bootstrap 全部 28 个 job，其中包含 11 个 paper 定时任务（MIGRATION.md:142）。",
+      "fix": "launchctl disable + bootout 11 项（triage/implement/explore/morning/implement-poll/wrapup/product-owner/weekly-report/weekly-prod-release/prod-monitor/prod-daily-digest），plist 移入 ~/Library/LaunchAgents/_disabled/；保留 backend-prod/mcp-prod/tunnel 常驻服务。",
+      "tags": [
+        "launchd",
+        "launchctl",
+        "migration",
+        "scheduled-tasks",
+        "bootout",
+        "persistence"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T19:25:11+08:00"
     }
   ]
 }

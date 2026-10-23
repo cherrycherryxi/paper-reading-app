@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-23T08:01:51.977Z
-> Files: 446 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-23T11:25:18.439Z
+> Files: 448 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -309,7 +309,8 @@
 
 ## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
 
-- `project_daily_loop_automation.md` (~1889 tok)
+- `MEMORY.md` (~770 tok)
+- `project_daily_loop_automation.md` (~2279 tok)
 
 ## ../../.claude/scripts/configs/
 
@@ -318,6 +319,10 @@
 ## ../../Library/LaunchAgents/
 
 - `com.huangnanqi.paper-codex-product-owner.plist` (~278 tok)
+
+## ../../Library/LaunchAgents/_disabled/
+
+- `README.md` — Project documentation (~198 tok)
 
 ## ./
 
