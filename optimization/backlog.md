@@ -1738,7 +1738,7 @@ Format per item:
 - how: 内层 catch 置 `let imageFailed = true`，`4930` 成功 toast 据此改「摘抄已保存（图片上传失败，可编辑补图）」，或图片失败时跳过成功 toast 让错误提示停留。需前端回归断言图片上传失败时最终可见 toast 含「图片上传失败」且用户可感知照片未存。Touch: `app.js:4909-4930`；`tests/frontend/`（图片上传失败 toast 回归）。
 
 ### OPT-184 — 摘抄自定义标签「删除」报成功但落库失败/冲突被吞：删除其实没生效（静默回退/重出） — 由 explore E346 提拔 [2026-09-06]
-- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-185 同一 PR 收口，owner 白天执行）；本项为真话性半段（落库失败/冲突不报成功、标签不复活），OPT-185 为确认半段。**[2026-09-28 PO 仪式] W38 未落地**——当前树 `app.js:697` 仍为 `syncState().catch(() => {})`，删除 handler 仍无条件播报，`tests/frontend/` 无对应回归；**不 park、不降级**（有明确北极星贡献），顺延为 **2026-W41 首位候选**（本周 WIP=1 且夜间轨自 09-06 停摆，无可承接的轨）。用户侧证据：owner 的 `customQuoteTags` 已积累 25 个标签，其中 7 个已打到 3 张以上卡片（prod `user_state` 实测），删除面是活跃积累面而非冷功能
+- status: triaged — [2026-09-14 PO 仪式] 纳入 Theme 4「说了就要算数」，**列为 2026-W38 事项 2**（与 OPT-185 同一 PR 收口，owner 白天执行）；本项为真话性半段（落库失败/冲突不报成功、标签不复活），OPT-185 为确认半段。**[2026-09-28 PO 仪式] W38 未落地**——当前树 `app.js:697` 仍为 `syncState().catch(() => {})`，删除 handler 仍无条件播报，`tests/frontend/` 无对应回归；**不 park、不降级**（有明确北极星贡献），顺延为 **2026-W41 首位候选**（本周 WIP=1 且夜间轨自 09-06 停摆，无可承接的轨）。用户侧证据：owner 的 `customQuoteTags` 已积累 25 个标签，其中 7 个已打到 3 张以上卡片（prod `user_state` 实测），删除面是活跃积累面而非冷功能。**[2026-10-23 夜间 triage] 指派夜间 implement 轨（P2/S，夜间适配：是）**——定向复核 `app.js:692-698`（`697` 仍 `.catch(()=>{})`）、`app.js:6992-6999`（`6996` 调 `saveCustomQuoteTags` 后 `6999` 无条件 toast，无 await/回滚），`tests/frontend/quote-tag-manage.test.js` 无失败/409 回归；范围仅真话性半段，**不含 OPT-185 确认框**。若当夜无实现 commit，按「轨未恢复」处理，不得记为完成
 - area: frontend / data safety / truthfulness
 - priority: P2
 - size: S

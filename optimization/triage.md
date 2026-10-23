@@ -2,9 +2,35 @@
 
 Maintained by Agent1 (daily 01:00 CST). Do not hand-edit unless correcting the agent.
 
-Last triaged: 2026-09-06
+Last triaged: 2026-10-23
 
-## ⚠️ PO 修正（2026-09-28 周一仪式，人工，非 Agent1 产出）
+## 夜间 triage（2026-10-23，Agent1）
+
+**执行轨与对账证据（仓库内）**
+- `git log 0366970..HEAD` 只有 6 条 bookkeeping 提交（最新 `fa0a0b8` 2026-10-23 仅改 `.wolf/`；`30bf408`/`05f6b2f` 只改 `optimization/` 与 `.wolf/`）。
+- `git diff --stat 0366970 HEAD -- app.js app_server.py chat.js index.html styles.css tests/` 输出为空 → **自 2026-09-06 合入 OPT-183 后应用代码零变更**。
+- **本轮新增 done：0 项**；无新 merged PR 可对账（外层「最近 50 个 feature/agent PR」为空，未调用 `gh`）。
+- **prod 缺口仍在**：`origin/main` = `63099ea`（9/05），`git merge-base --is-ancestor 0366970 origin/main` 退出码 1 → OPT-183 **仍未到 prod**；`git diff --stat origin/main origin/feature/agent` 中 `app.js` 仍为 9+/−。按 roadmap §5 规则 8，只记「dev done，prod 未生效」。
+
+**当前 Theme 与 signal**
+- roadmap 最后修订仍是 2026-09-28（W40），Theme 4「说了就要算数」窗口 9/14–10/11 **已过期**，W41–W43 无新焦点（本文件不修改 roadmap）。
+- `signals.md` 最后一条仍为 **8/30**（北极星 8 / 24 / 30），无新用户侧信号 → Theme 4 验收「连续 2 周零次报成功但结果不符」**仍无法判定**；本轮不臆造 signal，只用 Theme 4 既有主题 + 仓库证据排序。
+
+**未完成项评估（21 项，按夜间边界）**
+
+| id | P/复杂度 | 北极星 / Theme | 判定 |
+|----|---------|---------------|------|
+| OPT-184 | P2 / S | 中强；Theme 4 真话性 | ✅ **本夜指派**（夜间适配：是） |
+| OPT-185 | P2 / S | 中；Theme 4 破坏性操作一致性 | 晨间候选：确认框含「影响面文案」的轻度产品表达 |
+| OPT-186 | P1 / M | 强；采集主路径生命周期 | 晨间/owner 白天：M 级，roadmap 已改派 |
+| OPT-181 | P1 / S | 强；会话脱同步可信 | 晨间：09-04/09-05 两夜空转、09-06 已升级晨间查因，不第 3 次续指 |
+| OPT-182 | P1 / S | 中强；流式阅读体验 | 晨间：涉「上翻 vs 自动跟随」UX 取舍 |
+| OPT-177 / OPT-179 / OPT-180 | P1 / M | 强；删除回滚 / 409 真话性 / 整表盲写 | 晨间候选（M 级） |
+| OPT-178 | P1 / L | 强；后端并发写架构 | 功能轨（L 级需拆分） |
+| OPT-032/035/036/044/046/048/050/051/081/089/124/144 | P3 / S·M | 无当前 Theme / signal 贡献 | 维持 parked（13 项） |
+| OPT-117 | P3 / L | 原增长钩子，技术路径已证不可行 | 维持 blocked |
+
+## ⚠️ PO 修正（2026-09-28 周一仪式，人工，非 Agent1 产出）— W40 快照，状态已由上方 10-23 段接续
 
 **本文件已停更 22 天（`Last triaged: 2026-09-06`），下面所有段落都是历史快照，不代表当前状态。** 09-28 实测事实：①**夜间三条轨与晨间轨、轮询器自 2026-09-06 起零产出**——`codex-nightly-triage/-implement/-explore.log`、`codex-paper-morning.log` 最后写入均为 9/06，`codex-paper-implement-poll.log` 停在 9/04，`~/.claude/paper-loop/` 最后一份 review 为 `review-2026-09-06.md`；**当前唯一确认存活的轨是周一 07:00 的 product-owner 本轨**。②**W39（9/21）仪式在 fetch 阶段失败**——`codex-product-owner.log`：`LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443` + 「失败阶段：fetch feature/agent」，roadmap 未改动一行（与 W36/W37 的摘要校验失败**不是同一原因**）。③**主干 14 天零提交**：`origin/feature/agent` = `05f6b2f`（9/14 07:05，W38 仪式自身那一次提交），W38 之后无任何提交。④**prod 未获交付**：`origin/main` = `63099ea`（9/05 19:16），`git diff origin/main origin/feature/agent` 只剩 `app.js` 一处 7+/2-（OPT-183）。
 
@@ -31,7 +57,30 @@ Last triaged: 2026-09-06
 
 **恢复前提（交晨间轨与 owner 查证，本文件不臆断根因）：**需确认 9/07 起夜间 job 未触发的原因（机器夜间休眠未唤醒 / launchd 未加载 / 模型档位 `deepseek-v4-flash[1m]` 失效）并恢复；同时产品仪式的摘要长度校验（350-600 字）在 W36/W37 连续两次把整次仪式判失败，阈值与降级策略需一并复核。
 
-## Next up
+## Next up（2026-10-23）
+
+**状态：预算 0/8（外层统计最近 7 天 `auto/` PR = 0，证据可用，非 UNKNOWN）；本夜指派 1 项 OPT-184（P2/S）。**
+
+**指派：OPT-184 — 摘抄自定义标签「删除」报成功但落库失败/冲突被吞（P2 / S）**
+- **夜间适配：是** —— S 级、验收边界客观（`syncState` reject / `state_conflict` 时删除不得播「已移出」、被删标签不得静默复活）、属明确的正确性/真话性缺口、无需 owner 产品/设计判断；不涉信息架构、导航、主页重构或视觉方案，也不需要在多种体验之间取舍。
+- 理由（定向复核当前树）：`saveCustomQuoteTags`（`app.js:692-698`）仍以 `syncState().catch(() => {})`（`app.js:697`）吞掉落库失败；删除 handler（`app.js:6992-6999`）先调 `saveCustomQuoteTags(...)`（`6996`，无 await）再无条件 `showToast('已把「tag」移出推荐…')`（`6999`），无回滚；`tests/frontend/quote-tag-manage.test.js` 只覆盖列表渲染与删除生效，无失败/409 回归。
+- 关键文件：`app.js:692-698, 6986-6999, 1240-1249`；`tests/frontend/`（扩展 `quote-tag-manage.test.js` 或新增回归）。
+- signal/Theme：Theme 4「说了就要算数」的真话性缺口；**无 8/30 之后的新 signal**，用户侧支撑来自 backlog 已记录的 prod 实测（`customQuoteTags` 25 个、其中 7 个已打到 3 张以上卡片）。northstar：中强（活跃积累面上「删除」的可信度）。
+- 范围纪律：只做 OPT-184 的真话性半段；**不并入 OPT-185 的确认框**（含影响面文案，留晨间候选），不顺手重构标签管理 UI。
+- 数据安全提示（roadmap §5.2）：本项改 state 写入语义，必须带前端回归测试。
+
+**07:00 晨间候选卡（不在夜间范围）**
+- **OPT-185**（P2/S）：删除确认 + 影响面文案——轻度产品表达判断，与 OPT-184 同族但可随后单独收口。
+- **OPT-186**（P1/M）：上传生命周期反转——M 级，roadmap 已改派 owner 白天。
+- **OPT-181**（P1/S）：401 teardown 正确性清晰，但 09-04/09-05 两夜空转、09-06 已升级晨间查因，本夜不第 3 次续指。
+- **OPT-182**（P1/S）：涉「上翻 vs 自动跟随」UX 取舍。
+- **OPT-177 / OPT-179 / OPT-180**（M）、**OPT-178**（L）：晨间/功能轨。
+
+**执行轨风险提示**：本项仍投给夜间 implement 轨，而仓库证据显示该轨自 2026-09-06 起零功能提交、近 7 天 `auto/` PR = 0（roadmap §5 规则 7）。若本夜仍无实现 commit，应按「轨未恢复」处理，**不得**把 OPT-184 记为完成或半完成。
+
+**预算**：上限 8，本夜使用 1（OPT-184），剩余 7。未达上限，但未为填满预算追加指派。
+
+### 已归档（2026-09-06 夜间快照，已被 10-23 段取代）
 
 **状态：指派 1 项（OPT-183，夜间 S 适配）。OPT-181 连续多夜空转，按 09-05 注记升级 07:00 晨间查因，本夜不再第 3 次夜间续指。OPT-182（P1/S）涉「上翻 vs 自动跟随」UX 取舍，留 07:00 晨间候选卡。其余 P1 M/L 项与 P3 parked 不变。**
 
@@ -76,7 +125,10 @@ Last triaged: 2026-09-06
 | OPT-180 | 探讨 /api/chat/stream 长 LLM 流式期间持整份 state 快照，结束后无条件整表写回，静默覆盖并发编辑 | **P1** | M | **triaged** | 🆕 [2026-09-04]：E329 提拔 new→triaged。与 OPT-178 同族的另一条整表盲写路径（`app_server.py:6076,6123,6217,986-995`）；M 级后端并发写架构取舍 → 不合夜间 S 边界，留功能轨，与 OPT-178 一并收口 |
 | OPT-181 | 会话过期 401 只清 token 不清 UI，真实私有数据停在「已同步」假象上静默脱同步 | **P1** | S | **triaged** | 🔜 曾指派夜间 [09-04→09-05 续指]，09-05 夜仍无实现 commit → **2026-09-06 升级 07:00 晨间查因**，不再夜间第 3 次指派 |
 | OPT-182 | chat 流式逐 token 无条件 `scrollToBottom()`，击溃上翻阅读与「回到底部」逃生口 | **P1** | S | **triaged** | 🆕 [2026-09-05]：E336 提拔 new→triaged，S 级候补夜间；涉「上翻 vs 自动跟随」UX 取舍 → 留 07:00 晨间候选卡，不指派 |
-| OPT-183 | addQuote 图片上传失败提示被成功 toast 覆盖，用户对照片未保存毫不知情 | P2 | S | **done** | ✅ PR #140 / `0366970` 已合入 [2026-09-06]：引入 `imageUploadFailed` 标志，图片上传失败时最终 toast 改为「…图片上传失败可补图」；前端回归 3 用例全绿 |
+| OPT-183 | addQuote 图片上传失败提示被成功 toast 覆盖，用户对照片未保存毫不知情 | P2 | S | **done** | ✅ PR #140 / `0366970` 已合入 [2026-09-06]：引入 `imageUploadFailed` 标志，图片上传失败时最终 toast 改为「…图片上传失败可补图」；前端回归 3 用例全绿。⚠️ **[2026-10-23] prod 未生效**：`origin/main` = `63099ea`，`0366970` 非其祖先（roadmap §5 规则 8） |
+| OPT-184 | 摘抄标签「删除」报成功但落库失败/冲突被吞，删除其实没生效 | P2 | S | **triaged** | 👉 **2026-10-23 夜间指派**（夜间适配：是）；当前树 `app.js:697` 仍 `syncState().catch(()=>{})`、`app.js:6999` 无条件播「已移出」，`tests/frontend/` 无失败/409 回归 |
+| OPT-185 | 标签「删除」单击即永久移出全局库，无确认/无影响面提示 | P2 | S | **triaged** | 🔜 2026-10-23 晨间候选：含影响面文案的产品表达判断，与 OPT-184 同族但不并入夜间；当前树 `app.js:6992-6999` 仍无 `showConfirmDialog` |
+| OPT-186 | addQuote 上传落定前关弹窗 + 销毁照片草稿，挂起/超时无出路 | **P1** | M | **triaged** | 🔜 2026-10-23 晨间/owner 白天：M 级生命周期重构；当前树 `app.js:4941-4942` 仍早于 `4954`，`apiFetch` 仍无超时 |
 | OPT-174 | “阅读动力”只统计手工记录，记录页下线后真实阅读会被误报为 0 | **P1** | M | **done** | ✅ PR #137 / `a69a67b` + `37b92d9` 已合入 [2026-08-29]；无 session 分钟时切活跃天数/新增摘抄口径，卡片与分享图同步 |
 | OPT-171 | 畸形关联字段可穿过 state 归一化并拖垮整个关联页 | **P1** | S | **done** | ✅ PR #136 / `93ed07b` 已合入 [2026-08-29]；两端清洗、渲染防御与畸形数据回归已落地 |
 | OPT-173 | 摘抄页的摘抄与笔记封面差异不够直观 | **P1** | M | **done** | ✅ PR #135 / `fe6173c` 已合入 [2026-08-28]；直白标签、独立版式与源码回归已落地 |
@@ -123,6 +175,8 @@ Last triaged: 2026-09-06
 | OPT-117 | 豆瓣 ID 一键生成阅读偏好画像 | P3 | L | blocked | 服务端代抓不可行，等待新证据 |
 
 ## Recently reconciled done
+
+**2026-10-23 对账：新增 done 0 项**（`0366970..HEAD` 无应用代码变更，外层最近 50 个 feature/agent PR 为空）；无 merged 项需要从 backlog/triage 同步为 done。
 
 OPT-176（PR #139 / 633a3a0，[2026-09-03]）、OPT-174、OPT-173、OPT-172、OPT-170、OPT-169、OPT-168、OPT-165、OPT-166、OPT-164、OPT-162、OPT-163、OPT-161、OPT-160、OPT-159、OPT-158、OPT-157、OPT-147、OPT-142、OPT-156、OPT-155、OPT-152、OPT-154、OPT-153、OPT-151、OPT-150、OPT-148、OPT-149、OPT-067、OPT-125、OPT-141、OPT-138、OPT-143、OPT-136、OPT-120、OPT-102、OPT-135、OPT-137、OPT-139、OPT-140、OPT-133、OPT-038、OPT-134、OPT-072、OPT-131、OPT-132、OPT-129、OPT-130、OPT-126、OPT-077、OPT-127、OPT-094、OPT-123、OPT-128、OPT-070、OPT-071、OPT-109、OPT-095、OPT-073、OPT-121、OPT-122、OPT-093、OPT-082、OPT-060 已完成。
 

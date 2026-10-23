@@ -10768,6 +10768,38 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-09-28T07:00:00+08:00"
+    },
+    {
+      "id": "auto-050",
+      "timestamp": "2026-10-23T08:01:33.401Z",
+      "error_message": "Significant refactor of ",
+      "file": "optimization/triage.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→29 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T08:01:33.401Z"
+    },
+    {
+      "id": "auto-051",
+      "timestamp": "2026-10-23T08:01:40.730Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "optimization/triage.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: | OPT-183 | addQuote 图片上传失败提示被成功 toast 覆盖，用户对照片未保存毫不知情 | P2 ; | OPT-184 | 摘抄标签「删除」报成功但落库失败/冲突被吞，删除其实没生效 | P2 | S | **triag",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-23T08:01:44.985Z"
     }
   ]
 }
