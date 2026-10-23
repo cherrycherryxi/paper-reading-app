@@ -6394,3 +6394,7 @@
 | 19:25 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→3 lines | ~159 |
 | 19:25 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~82 |
 | 19:25 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
+| 19:28 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
+| 19:31 | 排查 deepseek-pro 模型使用范围（脚本配置 + 用量日志 + 项目外默认值） | scripts/codex/*.sh; ~/.local/bin/codex-exec-compat; ~/CursorProjects/agent-runtime/bin/agent-runner; ~/.claude/agent-usage/deepseek-usage.jsonl | pro=nightly-implement/paper-implement-poll/paper-morning Phase1；其余 flash；app/prod 默认 flash；已记录默认 pro 风险 | ~900 |
+| 19:31 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
+| 19:44 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
