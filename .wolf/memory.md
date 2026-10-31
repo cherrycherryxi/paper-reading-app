@@ -6417,3 +6417,15 @@
 | 15:24 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | inline fix | ~219 |
 | 15:24 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | 3→3 lines | ~83 |
 | 15:24 | Session end: 8 writes across 6 files (README.md, project_daily_loop_automation.md, MEMORY.md, paper-tunnel-named.sh, com.huangnanqi.paper-tunnel-named.plist) | 6 reads | ~3497 tok |
+| 15:32 | Session end: 8 writes across 6 files (README.md, project_daily_loop_automation.md, MEMORY.md, paper-tunnel-named.sh, com.huangnanqi.paper-tunnel-named.plist) | 6 reads | ~3497 tok |
+| 15:38 | Edited index.html | expanded (+6 lines) | ~129 |
+| 15:38 | Edited app.js | added 3 condition(s) | ~406 |
+| 15:38 | Edited app.js | inline fix | ~14 |
+| 15:38 | Edited styles.css | expanded (+30 lines) | ~185 |
+| 15:38 | Edited styles.css | 3→3 lines | ~22 |
+| 15:39 | Edited styles.css | 2→2 lines | ~16 |
+| 15:39 | Edited app_server.py | inline fix | ~21 |
+| 15:39 | Created tests/frontend/book-detail-cover.test.js | — | ~1715 |
+| 15:39 | Edited tests/agent/account_export_delete_test.py | 2→7 lines | ~135 |
+| 15:39 | Edited app.js | 7→7 lines | ~49 |
+| 15:40 | 书籍详情页新增封面与原图入口（原图 URL 此前无任何 UI 可达）；修复导出 JSON 的 /uploads/ 死链 | index.html, app.js, styles.css, app_server.py, tests/frontend/book-detail-cover.test.js | 581 前端 + 545 Python 测试全绿；缩略图缺失时自动回退原图 | ~15000 |

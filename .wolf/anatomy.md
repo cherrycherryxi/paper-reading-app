@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-31T07:24:40.217Z
-> Files: 451 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-31T07:39:46.606Z
+> Files: 452 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -337,8 +337,8 @@
 - `.gitattributes` — Git attributes (~124 tok)
 - `.gitignore` — Git ignore rules (~252 tok)
 - `AGENTS.md` — paper-reading-app Project Instructions (~649 tok)
-- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~85119 tok)
-- `app.js` — Declares AUTH_TOKEN_KEY (~84292 tok)
+- `app_server.py` — import: static_asset_version, research_store, research_runner, ensure_research_gateway + 2 more (~85118 tok)
+- `app.js` — Declares AUTH_TOKEN_KEY (~84635 tok)
 - `backend.log` (~81214 tok)
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~16534 tok)
@@ -348,7 +348,7 @@
 - `designqc-reading-insights.html` (~0 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
 - `Dockerfile` — Docker container definition (~366 tok)
-- `index.html` — 🐛 又买了一本书 (~14355 tok)
+- `index.html` — 🐛 又买了一本书 (~14441 tok)
 - `landing.html` — 又买了一本书 · 与你的纸质书共读 (~5448 tok)
 - `LICENSE` — Project license (~285 tok)
 - `mcp_dispatcher.py` — from: updated_state, success, error_message, dispatch (~1848 tok)
@@ -359,7 +359,7 @@
 - `README.md` — Project documentation (~1455 tok)
 - `requirements-dsh.txt` — 可选的深度共读旁路运行时。开发者预览期锁精确版本。 (~29 tok)
 - `requirements.txt` — Python dependencies (~189 tok)
-- `styles.css` — Styles: 103 rules, 150 vars (~31553 tok)
+- `styles.css` — Styles: 103 rules, 150 vars (~31714 tok)
 - `terms.html` — 用户协议 · 又买了一本书 (~780 tok)
 - `tool_schema_provider.py` — from: initialize, initialize_for_testing, get, for_prompt + 3 more (~2746 tok)
 - `week6_reasoning_agent_control.html` — Week 6 · 推理模型应用 & Agent 可控性 (~12870 tok)
@@ -584,7 +584,7 @@
 ## tests/agent/
 
 - `__init__.py` (~1 tok)
-- `account_export_delete_test.py` — Regression tests for account data export + deletion (P0 GDPR/PIPL compliance). (~2404 tok)
+- `account_export_delete_test.py` — Regression tests for account data export + deletion (P0 GDPR/PIPL compliance). (~2507 tok)
 - `action_executor_atomic_test.py` — Regression test for OPT-029 (Layer A): ActionExecutor.execute_action() must (~1554 tok)
 - `action_executor_utc_ts_test.py` — Regression tests for OPT-024: ActionExecutor must write UTC timestamps (ending with 'Z'). (~1960 tok)
 - `admin_gating_test.py` — Regression tests for admin-username gating of operator UI. (~2002 tok)
@@ -658,6 +658,7 @@
 - `api-fetch-interrupted.test.js` — 真机事故（2026-07-17）：拍完书架切到别的 App，回来显示「无法连接后端服务， (~1172 tok)
 - `book-card-hierarchy.test.js` — OPT-146：书单卡片只保留扫读所需的信息；完整元信息仍在详情页可达。 (~1448 tok)
 - `book-cover-thumbnail-lazy.test.js` — 书单封面「缩略图 + 懒加载」优化：书单原来一次性拉 28MB 原图封面，改为用 (~1084 tok)
+- `book-detail-cover.test.js` — 书籍详情封面原图入口：书单卡片只渲染 .thumb.jpg 缩略图，原图 URL 此前 (~1715 tok)
 - `book-detail-ux.test.js` — OPT-049: book-detail dialog UX fixes from real-usage signals (2026-06-13): (~2497 tok)
 - `book-duplicate.test.js` — test: elStub, innerHTML, innerHTML, createHarness, getElement (~2092 tok)
 - `book-filter-clear-all.test.js` — OPT-107 书单三个筛选维度（搜索词 / 状态 chip / 标签 chip）的「清除全部筛选」入口。 (~2476 tok)
