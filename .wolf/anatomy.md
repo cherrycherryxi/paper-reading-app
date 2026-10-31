@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-31T07:44:43.398Z
-> Files: 452 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-31T08:02:51.626Z
+> Files: 453 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -343,7 +343,7 @@
 - `Caddyfile` — Caddy 2 config — auto Let's Encrypt + HTTP/3 + gzip (~386 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~16534 tok)
 - `chat.js` — STREAM_IDLE_TIMEOUT_MS: normalizePreferredBookValue, activeBookId, activeQuoteId + 20 more (~15572 tok)
-- `CLAUDE.md` — OpenWolf (~1489 tok)
+- `CLAUDE.md` — OpenWolf (~1634 tok)
 - `deep_reading.py` — Deep-reading research runs backed by a sidecar DeepSeek Harness runtime. (~6966 tok)
 - `designqc-reading-insights.html` (~0 tok)
 - `docker-compose.yml` — Docker Compose services (~895 tok)
@@ -498,6 +498,7 @@
 ## docs/releases/
 
 - `2026-08-08-f58b01bb.md` — 生产版本更新说明 (~473 tok)
+- `2026-10-31-c49b7ec.md` — 生产版本更新说明 (~1071 tok)
 - `README.md` — Project documentation (~68 tok)
 
 ## experiments/dsh-paper-reading/
