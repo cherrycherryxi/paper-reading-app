@@ -4511,6 +4511,38 @@ function openBookDetailDialog(bookId) {
   const book = state.books.find((item) => item.id === bookId);
   if (!book) return;
 
+  // 书单只渲染 .thumb.jpg 缩略图，原图 URL 此前没有任何 UI 入口，
+  // 手机上「看得到封面却拿不到照片」。这里给详情页一个真实入口：
+  // 点击在新标签打开原图（iOS Safari 长按可「存储到照片」）。
+  const coverWrap = document.getElementById("bookDetailCoverWrap");
+  const coverLink = document.getElementById("bookDetailCoverLink");
+  const coverImg = document.getElementById("bookDetailCoverImg");
+  if (coverWrap && coverLink && coverImg) {
+    const fullCover = book.coverImageUrl ? resolveImageUrl(book.coverImageUrl) : "";
+    delete coverImg.dataset.triedFull;
+    if (fullCover) {
+      coverImg.onerror = () => {
+        if (coverImg.dataset.triedFull === "true") {
+          coverImg.onerror = null;
+          return;
+        }
+        coverImg.dataset.triedFull = "true";
+        coverImg.src = fullCover;
+      };
+      coverImg.src = resolveImageUrl(thumbPath(book.coverImageUrl));
+      coverImg.alt = `${book.title || "书籍"}封面`;
+      coverLink.href = fullCover;
+      coverLink.setAttribute("aria-label", `查看《${book.title || "书籍"}》封面原图`);
+      coverWrap.classList.remove("is-hidden");
+    } else {
+      coverImg.onerror = null;
+      coverImg.src = "";
+      coverImg.alt = "";
+      coverLink.href = "";
+      coverWrap.classList.add("is-hidden");
+    }
+  }
+
   els.bookDetailTitle.textContent = book.title || "书籍详情";
   els.bookDetailMeta.textContent = `${book.author || "作者未填写"} · ${statusMap[book.status] || book.status || "未标记"}`;
   if (book.rating) {

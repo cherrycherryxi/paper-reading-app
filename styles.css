@@ -740,6 +740,36 @@ label span,
   margin-top: var(--space-md);
 }
 
+/* 书籍详情封面：原图入口（列表只有缩略图，这里点击可在新标签打开原图） */
+.book-detail-cover {
+  display: grid;
+  gap: var(--space-sm);
+  justify-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.book-detail-cover a {
+  display: block;
+  width: min(168px, 46vw);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-pastel-green);
+  box-shadow: var(--shadow-card);
+}
+
+.book-detail-cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.book-detail-cover-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-ink-muted);
+  text-align: center;
+}
+
 label {
   display: grid;
   gap: var(--space-sm);

@@ -462,6 +462,12 @@
 
     <dialog id="bookDetailDialog" aria-labelledby="bookDetailTitle">
       <div class="dialog-form book-detail-dialog-body">
+        <div id="bookDetailCoverWrap" class="book-detail-cover is-hidden">
+          <a id="bookDetailCoverLink" href="#" target="_blank" rel="noopener noreferrer">
+            <img id="bookDetailCoverImg" alt="" decoding="async" />
+          </a>
+          <p class="book-detail-cover-hint">点击查看原图 · 长按保存</p>
+        </div>
         <div class="section-head"><h2 id="bookDetailTitle">书籍详情</h2><p id="bookDetailMeta"></p></div>
         <p id="bookDetailDates" class="book-detail-dates is-hidden"></p>
         <div id="bookDetailTags" class="book-detail-tags is-hidden" aria-label="书籍标签"></div>

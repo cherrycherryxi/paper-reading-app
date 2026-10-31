@@ -118,6 +118,11 @@ class AccountExportDeleteTests(unittest.TestCase):
         self.assertEqual(len(payload["agentActions"]), 1)
         # File manifest
         self.assertTrue(any(f["name"] == "test.jpg" for f in payload["uploadedFiles"]))
+        # 导出里的图片链接必须指向服务端真实注册的 /media/ 路由；
+        # 曾经写成 /uploads/（do_GET 没有这个前缀 → 404 死链）。
+        manifest = next(f for f in payload["uploadedFiles"] if f["name"] == "test.jpg")
+        self.assertTrue(manifest["url"].startswith(f"/media/{self.user_id}/"), manifest["url"])
+        self.assertFalse(manifest["url"].startswith("/uploads/"), manifest["url"])
         # Headers
         cd = headers.get("Content-Disposition", "")
         self.assertIn("attachment", cd)

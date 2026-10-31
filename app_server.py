@@ -4795,7 +4795,7 @@ class Handler(BaseHTTPRequestHandler):
                         try:
                             uploaded_files.append(
                                 {"name": p.name, "size": p.stat().st_size,
-                                 "url": f"/uploads/{user['id']}/{p.name}"}
+                                 "url": f"/media/{user['id']}/{p.name}"}
                             )
                         except OSError:
                             continue
