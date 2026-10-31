@@ -88,7 +88,9 @@ Hooks live in `.githooks/` but git only runs them if `core.hooksPath` points the
 git config core.hooksPath .githooks
 ```
 
-`pre-push` enforces two gates: it blocks pushes to `main` (which is only the prod deploy pointer — day-to-day work goes to `feature/agent`), and it runs the CI test suite. Releasing to prod means declaring intent: `ALLOW_MAIN_PUSH=1 git push origin feature/agent:main`. Emergency bypass for the whole hook is `git push --no-verify`.
+`pre-push` enforces two gates: it blocks pushes to `main` (which is only the prod deploy pointer — day-to-day work goes to `feature/agent`), and it runs the CI test suite. Emergency bypass for the whole hook is `git push --no-verify`.
+
+**Releasing to prod: use `bash scripts/codex/deploy-prod.sh`** (also documented in `AGENTS.md`). It generates `docs/releases/YYYY-MM-DD-<sha>.md` via `release-hook.sh`, pushes `feature/agent`, fast-forwards `main`, `git pull --ff-only`s the prod checkout, and restarts the service. **Do not hand-roll the release — doing so silently skips the release notes** (2026-10-31 lesson). The raw command it runs is `ALLOW_MAIN_PUSH=1 git push origin feature/agent:main` — a **fast-forward, never a merge**: `main` is a deploy pointer and must stay a descendant of `feature/agent`. When restarting services manually, restart `paper-mcp-prod` first, then `paper-backend-prod` (bug-549).
 
 ## Key Conventions
 
