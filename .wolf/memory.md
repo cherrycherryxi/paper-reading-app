@@ -6429,3 +6429,6 @@
 | 15:39 | Edited tests/agent/account_export_delete_test.py | 2→7 lines | ~135 |
 | 15:39 | Edited app.js | 7→7 lines | ~49 |
 | 15:40 | 书籍详情页新增封面与原图入口（原图 URL 此前无任何 UI 可达）；修复导出 JSON 的 /uploads/ 死链 | index.html, app.js, styles.css, app_server.py, tests/frontend/book-detail-cover.test.js | 581 前端 + 545 Python 测试全绿；缩略图缺失时自动回退原图 | ~15000 |
+| 15:44 | Edited index.html | inline fix | ~17 |
+| 15:44 | Edited index.html | "./app.js?v=20260624e" → "./app.js?v=20261031a" | ~13 |
+| 15:46 | 发版书籍详情封面入口到 prod；记录 OPT-086 自动版本号机制（手改 ?v= 无效，已 revert） | app.js, index.html, styles.css, app_server.py, .wolf/cerebrum.md | prod 已 pull 到 c49b7ec，公网 /app 含新元素、/api/health ok | ~8000 |
