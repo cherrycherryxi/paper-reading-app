@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-23T11:25:18.439Z
-> Files: 448 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-31T07:24:40.217Z
+> Files: 451 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -309,8 +309,13 @@
 
 ## ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/
 
-- `MEMORY.md` (~770 tok)
-- `project_daily_loop_automation.md` (~2279 tok)
+- `MEMORY.md` (~803 tok)
+- `project_daily_loop_automation.md` (~2465 tok)
+- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~3859 tok)
+
+## ../../.claude/scripts/
+
+- `paper-tunnel-named.sh` — 命名隧道启动器(readjot.com) —— 绕过本机 Clash TUN 对 Cloudflare 边缘的干扰。 (~424 tok)
 
 ## ../../.claude/scripts/configs/
 
@@ -319,10 +324,11 @@
 ## ../../Library/LaunchAgents/
 
 - `com.huangnanqi.paper-codex-product-owner.plist` (~278 tok)
+- `com.huangnanqi.paper-tunnel-named.plist` (~262 tok)
 
 ## ../../Library/LaunchAgents/_disabled/
 
-- `README.md` — Project documentation (~198 tok)
+- `README.md` — Project documentation (~301 tok)
 
 ## ./
 

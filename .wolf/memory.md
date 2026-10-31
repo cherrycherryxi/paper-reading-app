@@ -6398,3 +6398,22 @@
 | 19:31 | 排查 deepseek-pro 模型使用范围（脚本配置 + 用量日志 + 项目外默认值） | scripts/codex/*.sh; ~/.local/bin/codex-exec-compat; ~/CursorProjects/agent-runtime/bin/agent-runner; ~/.claude/agent-usage/deepseek-usage.jsonl | pro=nightly-implement/paper-implement-poll/paper-morning Phase1；其余 flash；app/prod 默认 flash；已记录默认 pro 风险 | ~900 |
 | 19:31 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
 | 19:44 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
+| 19:45 | Session end: 8 writes across 3 files (project_daily_loop_automation.md, MEMORY.md, README.md) | 1 reads | ~1096 tok |
+
+## Session: 2026-10-30 17:32
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:48 | Edited ../../Library/LaunchAgents/_disabled/README.md | expanded (+8 lines) | ~182 |
+| 10:48 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/project_daily_loop_automation.md | 1→3 lines | ~325 |
+| 10:48 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/MEMORY.md | inline fix | ~94 |
+| 10:48 | 补停 10-23 停用清单漏网的焦点中期检查定时任务 focus-midweek-check | ~/Library/LaunchAgents/_disabled/README.md, memory/project_daily_loop_automation.md | 已 disable+bootout+移入 _disabled；README 更新为 12 项并记录时区解释坑 | ~6000 |
+| 10:49 | Session end: 3 writes across 3 files (README.md, project_daily_loop_automation.md, MEMORY.md) | 2 reads | ~2098 tok |
+| 15:17 | Created ../../.claude/scripts/paper-tunnel-named.sh | — | ~424 |
+| 15:17 | Edited ../../Library/LaunchAgents/com.huangnanqi.paper-tunnel-named.plist | 7→5 lines | ~46 |
+| 15:18 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | expanded (+15 lines) | ~533 |
+| 15:20 | 修复 read.readjot.com 全天 530：paper 隧道改用 DoH+--edge 直连启动器绕过 Clash fake-ip | ~/.claude/scripts/paper-tunnel-named.sh, ~/Library/LaunchAgents/com.huangnanqi.paper-tunnel-named.plist | 已恢复：4/4 连接 Registered，read/apex/www 全 200，/api/health ok | ~12000 |
+| 15:20 | Session end: 6 writes across 6 files (README.md, project_daily_loop_automation.md, MEMORY.md, paper-tunnel-named.sh, com.huangnanqi.paper-tunnel-named.plist) | 6 reads | ~3173 tok |
+| 15:24 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | inline fix | ~219 |
+| 15:24 | Edited ../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md | 3→3 lines | ~83 |
+| 15:24 | Session end: 8 writes across 6 files (README.md, project_daily_loop_automation.md, MEMORY.md, paper-tunnel-named.sh, com.huangnanqi.paper-tunnel-named.plist) | 6 reads | ~3497 tok |

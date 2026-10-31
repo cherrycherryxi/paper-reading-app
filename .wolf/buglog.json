@@ -10819,6 +10819,63 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-23T19:25:11+08:00"
+    },
+    {
+      "id": "bug-613",
+      "timestamp": "2026-10-31T15:20:00+08:00",
+      "error_message": "read.readjot.com 全天返回 530；本地 8790 正常；tunnel-watchdog 每 5 分钟 kickstart paper-tunnel-named 无效；日志反复 Failed to dial a quic connection ip=198.18.0.x（Clash fake-ip）",
+      "file": "~/.claude/scripts/paper-tunnel-named.sh + ~/Library/LaunchAgents/com.huangnanqi.paper-tunnel-named.plist",
+      "root_cause": "【2026-10-31 更正】不是订阅更新冲掉规则。真实根因：10-22/10-23 迁移到新机时，Clash Verge 的 profiles/Script.js 被重建为 96 字节空模板（mtime Oct 22 15:00/15:03），2026-07-10 注入的 DOMAIN-SUFFIX,argotunnel.com,DIRECT 两条规则从迁移那一刻起就不在新机配置里。隧道日志最早为 2026-10-23T04:31（新机第一份），此后每天 13-98 次反复重连：规则缺失后 argotunnel 走节点，QUIC/UDP 7844 被 TUN 挡，只能靠偶尔握手成功硬撑，watchdog 10-23 起已有零星不可达记录（10-27 1 次、10-28 3 次、10-29 5 次）。10-29 起节点/网络条件恶化；10-30 13:10 最后一次注册成功后彻底归零；10-31 全天 530。owner 质疑『若为订阅更新，7-10 后就该立刻坏』成立，据此推翻原判断。",
+      "fix": "照 skincare-tracker/tunnel-named.sh(bug-030) 同源方案：新增 ~/.claude/scripts/paper-tunnel-named.sh，用 DoH(1.1.1.1/dns-query)取 region1/2.v2.argotunnel.com 真实 A 记录 → --edge <真实IP>:7844 直连跳过 fake-ip → --protocol http2 走 TCP 7844；plist ProgramArguments 改为 /bin/bash + 该脚本，bootout+bootstrap 重载。实测 4/4 连接 Registered(location=lax07/08/13)，read/apex/www 全 200，/api/health ok。",
+      "tags": [
+        "cloudflared",
+        "tunnel",
+        "clash",
+        "fake-ip",
+        "530",
+        "launchd",
+        "doh",
+        "argotunnel",
+        "migration",
+        "misdiagnosed"
+      ],
+      "related_bugs": [
+        "bug-030"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T15:40:00+08:00"
+    },
+    {
+      "id": "auto-052",
+      "timestamp": "2026-10-31T07:24:35.547Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md",
+      "root_cause": "Had \"更新订阅配置成功\"",
+      "fix": "Changed to `profiles/Script.js`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T07:24:35.547Z"
+    },
+    {
+      "id": "auto-053",
+      "timestamp": "2026-10-31T07:24:40.223Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T07:24:40.223Z"
     }
   ]
 }
