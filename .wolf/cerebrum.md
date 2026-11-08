@@ -6,6 +6,8 @@
 
 ## User Preferences
 
+- **[2026-11-08] 记忆按 OpenWolf 规则存；不要擅自新建 `xxx.md`；不要擅自改 owner 的代理节点。** 排查 Gmail 收发问题时我犯了三个错，owner 逐条纠正：①在 `~/.claude/projects/*/memory/` 里新建了 `reference_clash_mail_rules.md`——**记忆一律写进 `.wolf/cerebrum.md`（Key Learnings / User Preferences / Do-Not-Repeat）和 `.wolf/buglog.json`，不要新开独立 md**；②擅自把 Clash 全局节点从 `🇺🇲 美国S01` 切到香港——**`🔰 选择节点` 是 owner 的选择，不要动**；需要给某类流量换出口时，在 Script 里新建**专用代理组**（如 `📧 Gmail`）单独指定节点；③「香港/日本节点可用」这件事**早就记在 memory 的 `reference_remote_access_setup.md`**，应先查记录再动手，而不是自己逐个节点测。
+
 - (2026-09-03) UI 动作按钮的文案绝不能引用产品里不存在的概念/状态。取消确认框曾把正式保存标成「保存草稿」，但系统没有草稿状态——owner 实测后指出「草稿和正式保存没区别」。按钮名要与行为一一对应（改回「保存卡片」，行为=正常保存、产物出现在摘抄列表）；若想提供更弱的「未完成」语义，必须先做出真草稿状态（状态字段+列表分区+UI）再命名。同类原则见 Do-Not-Repeat 营销物料先核代码一条。
 - (2026-09-05) 摘抄标签推荐要**贴着当前书走**：owner 看到《见树又见林》里敲的词在下一本书的推荐区出现，视为问题（问句原文「见树又见林的摘抄新增的标签怎么在新的书里也成默认标签了」）。AskUserQuestion 二选一都选「Recommended」：①推荐 chips 按书过滤（自定义词只显示本书用过的；默认 7 词不过滤）②加删除自定义标签的入口（管理 dialog，删除只移出推荐库、不碰已打标签的卡）。语义演进完整记录在 Key Learnings 摘抄标签 picker 一条，勿再凭旧文写「picker 与书无关」。
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
@@ -19,6 +21,8 @@
 - **[2026-07-17，2026-08-26 调整时间] 别把每日定时自动化叫「loop」。** owner 明确纠正："以后在说这个功能时不要用 loop 这种不准确的词"。按实际机制称呼：**launchd 定时任务**——「晨间任务」(`paper-morning` 07:00 审 PR + 出选题卡)、「轮询器」(`paper-implement-poll` 每 30min 读回信→实现→合入 dev)、「收工任务」(`paper-wrapup` 23:30 日报)。**「loop」一词只留给 `/loop` skill**（Claude Code 里已运行会话内的自我排程，冷启动不了，与 launchd 是两套东西）。混用的代价是每次讨论都得先花一轮拆歧义。⚠️ 约束的是**口头表述**，不是去重命名文件——`~/.claude/paper-loop/` 状态目录、`settings.json` SessionStart 钩子里「用 /loop 交互推进」的文案（那处是真 /loop，没说错）都保持原样。
 
 ## Key Learnings
+
+- (2026-11-08) **「收不到邮件」要先分清发信端还是收信端——本次是发信挂了，邮件根本没发出去。** 表象是 Apple Mail 账户旁 ⚠️ + 最近一天零新邮件，实际根因在 `send-email.py`：fx 日报日志 `~/CursorProjects/fx-trading-monitor/var/log/daily-report-launchd.log` 里 `subprocess.TimeoutExpired ... timed out after 90 seconds`。底层是订阅规则 `DST-PORT,465/587/993,DIRECT`（`clash-verge.yaml:697-700`）把邮件端口强制直连，国内对 Gmail 直连是间歇性干扰：IMAP 时通时断、SMTP 587/465 实测 **0/5 全部 ConnectionReset**。**修法（已落地）**：Clash Script 里新建专用代理组 `📧 Gmail`（`type: select`，proxies 顺序 `🇭🇰 香港S02 | IEPL` → `🇯🇵 日本S01 | IEPL` → `DIRECT`），再把 `imap/pop/mail.google/smtp.gmail.com` 四条 DOMAIN-SUFFIX 规则插到 `config.rules` 最前指向该组。**关键：不要改 `🔰 选择节点` 的全局选择**（那是 owner 的），只让邮件走专用组。节点实测：美国S01 封 SMTP（走代理也超时）、香港同时支持收发（memory 的 `reference_remote_access_setup.md` 早有「香港/日本近节点可用」记录，动手前先查）。验证闭环：`send-email.py` 发测试信 → Mail INBOX +1 收到同主题 → 公网 `/api/health` 200。⚠️ 改 Script 后 Verge 不会自动执行，必须 `osascript -e 'quit app "Clash Verge"'` + `open -a "Clash Verge"` 重启；重启会重建 TUN 带断 paper 隧道，需 `launchctl kickstart -k gui/$(id -u)/com.huangnanqi.paper-tunnel-named`。
 
 - (2026-10-31) **前端静态资源版本号由服务端自动生成，别手改 `index.html` 里的 `?v=`**：`static_asset_version()`（app_server.py:48）把 `app.js/chat.js/styles.css/index.html` 的 **mtime_ns** 拼起来取 sha1 前 10 位；HTML 响应时用 `re.sub(r"(app\.js|chat\.js|styles\.css)\?v=[^\"']*", …)` 统一改写成这个值（app_server.py:4511-4514），HTML 本身发 `Cache-Control: no-store`，只有 JS/CSS 是 `immutable` 一年（OPT-086，为让 Cloudflare 边缘缓存、避免每次穿隧道回源）。所以发版 `git pull` 更新 mtime → 版本号自动变 → 手机缓存自然失效；手改 `v=` 不但没用还会被覆盖（本人 2026-10-31 踩过，commit 后又 revert）。验证：`curl https://read.readjot.com/app | grep -oE '(app|styles)\.[a-z]+\?v=[0-9a-z]+'`，值应随发版变化。
 

@@ -10940,6 +10940,43 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T08:02:51.631Z"
+    },
+    {
+      "id": "auto-058",
+      "timestamp": "2026-10-31T08:05:22.313Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/-Users-huangnanqi-CursorProjects-paper-reading-app/memory/reference_remote_access_setup.md",
+      "root_cause": "Had `ALLOW_MAIN_PUSH=1 git push origin feature/agent:m",
+      "fix": "Changed to `bash scripts/codex/deploy-prod.sh`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T08:05:22.313Z"
+    },
+    {
+      "id": "bug-614",
+      "timestamp": "2026-11-08T16:45:00+08:00",
+      "error_message": "Apple Mail 从 2026-11-07 起完全收不到新邮件；fx 定时日报 send-email.py 90 秒超时（TimeoutExpired）",
+      "file": ".wolf/cerebrum.md（Clash Script profiles/Script.js + ~/.claude/scripts/send-email.py）",
+      "root_cause": "订阅规则 DST-PORT,465/587/993,DIRECT（clash-verge.yaml:697-700）把 Gmail 邮件端口强制直连；国内对 Gmail 直连间歇性干扰，SMTP 587/465 实测 0/5 被 ConnectionReset。于是 send-email.py 发不出去，用户自然收不到任何新邮件（发信挂 ≠ 收信挂）。上一轮只让 IMAP 走代理、SMTP 留 DIRECT，导致 SMTP 侧继续失败。",
+      "fix": "Clash Script 新建专用代理组「📧 Gmail」（select，香港S02→日本S01→DIRECT），四条 DOMAIN-SUFFIX 规则（imap/pop/mail.google/smtp.gmail.com）插到 rules 最前指向该组；不改用户全局 🔰 选择节点。重启 Verge 生效后 已验证：send-email.py 发信成功、Mail INBOX 1589→1590 收到、公网 200。",
+      "tags": [
+        "gmail",
+        "smtp",
+        "imap",
+        "clash",
+        "proxy-group",
+        "apple-mail",
+        "send-email",
+        "direct-rule"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-08T16:45:00+08:00"
     }
   ]
 }

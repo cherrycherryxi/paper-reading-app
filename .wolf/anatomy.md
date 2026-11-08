@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-31T08:02:51.626Z
-> Files: 453 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T08:41:10.607Z
+> Files: 455 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../../../var/folders/yb/15nyb3q91413vztqkb0jpz680000gn/T/tmp.3pUTW8F5/wt/optimization/
 
@@ -311,7 +311,8 @@
 
 - `MEMORY.md` (~803 tok)
 - `project_daily_loop_automation.md` (~2465 tok)
-- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~3859 tok)
+- `reference_clash_mail_rules.md` — Gmail 收发在国内的路由问题（2026-11-07 起，2026-11-08 定案） (~578 tok)
+- `reference_remote_access_setup.md` — 2026-07-09 ⚠️坑+修复：Clash Verge 全局 TUN 把隧道绕到英国，导致 prod 慢到几百 B/s (~4000 tok)
 
 ## ../../.claude/scripts/
 
@@ -320,6 +321,10 @@
 ## ../../.claude/scripts/configs/
 
 - `claude-settings.json` (~2042 tok)
+
+## ../../Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/
+
+- `Script.js` — Gmail 收发路由（2026-11-08）。 (~275 tok)
 
 ## ../../Library/LaunchAgents/
 
